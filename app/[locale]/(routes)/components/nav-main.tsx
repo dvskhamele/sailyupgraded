@@ -45,6 +45,7 @@ export interface NavItem {
   url?: string
   icon?: LucideIcon
   isActive?: boolean
+  alwaysOpen?: boolean
   items?: NavSubItem[] // For collapsible groups
 }
 
@@ -88,6 +89,47 @@ export function NavMain({ items, dict }: NavMainProps) {
           // Check if this is a collapsible group with sub-items
           if (item.items && item.items.length > 0) {
             const hasActive = hasActiveChild(item.items)
+
+            if (item.alwaysOpen) {
+              return (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild={!!item.url}
+                    tooltip={item.title}
+                    isActive={hasActive || (!!item.url && isRouteActive(item.url))}
+                  >
+                    {item.url ? (
+                      <Link href={item.url}>
+                        {item.icon && <item.icon />}
+                        <span>{item.title}</span>
+                      </Link>
+                    ) : (
+                      <>
+                        {item.icon && <item.icon />}
+                        <span>{item.title}</span>
+                      </>
+                    )}
+                  </SidebarMenuButton>
+                  <SidebarMenuSub>
+                    {item.items.map((subItem) => {
+                      const isActive = isRouteActive(subItem.url, subItem.exact)
+                      return (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton
+                            asChild
+                            isActive={isActive}
+                          >
+                            <Link href={subItem.url}>
+                              <span>{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      )
+                    })}
+                  </SidebarMenuSub>
+                </SidebarMenuItem>
+              )
+            }
 
             return (
               <Collapsible

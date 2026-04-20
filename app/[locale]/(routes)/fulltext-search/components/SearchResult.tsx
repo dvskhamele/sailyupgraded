@@ -7,12 +7,15 @@ import {
   unifiedSearch,
   type UnifiedSearchResults,
 } from "@/actions/fulltext/unified-search";
+import { SearchCreateContactFallback } from "./SearchCreateContactFallback";
 
 const ENTITY_LABELS: Record<keyof UnifiedSearchResults, string> = {
   accounts: "Accounts",
   contacts: "Contacts",
   leads: "Leads",
   opportunities: "Opportunities",
+  campaigns: "Campaigns",
+  templates: "Templates",
   projects: "Projects",
   tasks: "Tasks",
   users: "Users",
@@ -24,6 +27,8 @@ const ENTITY_ORDER: (keyof UnifiedSearchResults)[] = [
   "contacts",
   "leads",
   "opportunities",
+  "campaigns",
+  "templates",
   "projects",
   "tasks",
   "users",
@@ -82,9 +87,12 @@ export default function SearchResult() {
 
   if (!hasAnyResults)
     return (
-      <p className="text-muted-foreground">
-        No results found for &quot;{query}&quot;.
-      </p>
+      <div className="flex flex-col gap-4">
+        <p className="text-muted-foreground">
+          No results found for &quot;{query}&quot;.
+        </p>
+        <SearchCreateContactFallback query={query} />
+      </div>
     );
 
   return (

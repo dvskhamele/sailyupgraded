@@ -1,6 +1,6 @@
 import { test as setup, expect } from "@playwright/test";
 import path from "path";
-import { Pool } from "pg";
+import { prismadb } from "@/lib/prisma";
 
 const authFile = path.join(__dirname, "../playwright/.auth/user.json");
 const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || "test@nextcrm.app";
@@ -8,14 +8,12 @@ const TEST_USER_EMAIL = process.env.TEST_USER_EMAIL || "test@nextcrm.app";
 setup("authenticate", async ({ page, context }) => {
   // Use context.request so cookies are shared with the browser page
   const api = context.request;
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
   try {
     // 1. Clean up old test OTP records
-    await pool.query(
-      `DELETE FROM verification WHERE identifier = $1`,
-      [`test-otp-${TEST_USER_EMAIL}`]
-    );
+    await prismadb.verification.deleteMany({
+      where: { identifier: `test-otp-${TEST_USER_EMAIL}` },
+    });
 
     // 2. Send OTP
     const sendRes = await api.post("/api/auth/email-otp/send-verification-otp", {
@@ -51,7 +49,7 @@ setup("authenticate", async ({ page, context }) => {
       { timeout: 15000 }
     );
   } finally {
-    await pool.end();
+    await prismadb.$disconnect();
   }
 
   await context.storageState({ path: authFile });

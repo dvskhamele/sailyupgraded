@@ -17,9 +17,9 @@ export const getCampaignsMenuItem = ({ localizations }: Props): NavItem => {
     icon: Megaphone,
     items: [
       { title: localizations.campaigns, url: "/campaigns" },
-      { title: localizations.templates, url: "/campaigns/templates" },
-      { title: localizations.targets, url: "/campaigns/targets" },
-      { title: localizations.targetLists, url: "/campaigns/target-lists" },
+      // { title: localizations.templates, url: "/campaigns/templates" },
+      // { title: localizations.targets, url: "/campaigns/targets" },
+      // { title: localizations.targetLists, url: "/campaigns/target-lists" },
     ],
   };
 };

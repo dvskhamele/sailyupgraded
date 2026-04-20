@@ -4,65 +4,60 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { cn } from "@/lib/utils";
-import { UserCircle, Lock, Globe, Code2, Mail, KeyRound } from "lucide-react";
+import { UserCircle, Globe, Wrench } from "lucide-react";
 
 // Do NOT import tab content components here — they are Server Components
 // and must be passed as ReactNode props from page.tsx
 
-type Tab = "profile" | "security" | "preferences" | "developer" | "emails" | "llms";
+type Tab = "profile" | "preferences" | "administration";
 
 const TAB_ICONS: Record<Tab, React.ElementType> = {
   profile: UserCircle,
-  security: Lock,
   preferences: Globe,
-  developer: Code2,
-  emails: Mail,
-  llms: KeyRound,
+  administration: Wrench,
 };
 
 type Props = {
   profileContent: React.ReactNode;
-  securityContent: React.ReactNode;
   preferencesContent: React.ReactNode;
-  developerContent: React.ReactNode;
-  emailsContent: React.ReactNode;
-  llmsContent: React.ReactNode;
+  administrationContent?: React.ReactNode;
+  isAdmin?: boolean;
 };
 
 export function ProfileTabs({
   profileContent,
-  securityContent,
   preferencesContent,
-  developerContent,
-  emailsContent,
-  llmsContent,
+  administrationContent,
+  isAdmin = false,
 }: Props) {
   const t = useTranslations("ProfilePage");
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const TAB_IDS: Tab[] = ["profile", "security", "preferences", "developer", "emails", "llms"];
+  const TAB_IDS: Tab[] = isAdmin
+    ? ["profile", "preferences", "administration"]
+    : ["profile", "preferences"];
   const raw = searchParams.get("tab");
   const activeTab: Tab = TAB_IDS.includes(raw as Tab) ? (raw as Tab) : "profile";
 
   const tabs: { id: Tab; label: string; desc: string }[] = [
     { id: "profile", label: t("tabs.profile"), desc: t("tabs.profileDesc") },
-    { id: "security", label: t("tabs.security"), desc: t("tabs.securityDesc") },
     { id: "preferences", label: t("tabs.preferences"), desc: t("tabs.preferencesDesc") },
-    { id: "developer", label: t("tabs.developer"), desc: t("tabs.developerDesc") },
-    { id: "emails", label: t("tabs.emails"), desc: t("tabs.emailsDesc") },
-    { id: "llms", label: t("tabs.llms"), desc: t("tabs.llmsDesc") },
   ];
+  if (isAdmin) {
+    tabs.push({
+      id: "administration",
+      label: "Administration",
+      desc: "Manage admin panels and system settings",
+    });
+  }
 
   const activeTabMeta = tabs.find((t) => t.id === activeTab) ?? tabs[0];
 
   const contentMap: Record<Tab, React.ReactNode> = {
     profile: profileContent,
-    security: securityContent,
     preferences: preferencesContent,
-    developer: developerContent,
-    emails: emailsContent,
-    llms: llmsContent,
+    administration: administrationContent ?? null,
   };
 
   return (

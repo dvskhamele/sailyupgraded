@@ -25,7 +25,7 @@ type Props = {
 export const getAdministrationMenuItem = ({ title }: Props): NavItem => {
   return {
     title,
-    url: "/admin",
+    url: "/profile?tab=administration",
     icon: Wrench,
   };
 };

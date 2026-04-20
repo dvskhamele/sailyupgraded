@@ -3,6 +3,7 @@
 import { z } from "zod";
 import { prismadb as prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 
 export type CrmConfigType =
   | "industry"
@@ -13,7 +14,7 @@ export type CrmConfigType =
   | "opportunityType"
   | "salesStage";
 
-export type ConfigValue = { id: string; name: string; usageCount: number };
+export type ConfigValue = { id: string; name: string; usageCount: number; isProtected?: boolean };
 
 const nameSchema = z.string().trim().min(1, "Name is required").max(100, "Max 100 characters");
 
@@ -24,7 +25,7 @@ const configMap = {
   leadStatus:      { model: () => prisma.crm_Lead_Statuses,               countRelation: "leads",                                 updateMany: () => prisma.crm_Leads },
   leadType:        { model: () => prisma.crm_Lead_Types,                  countRelation: "leads",                                 updateMany: () => prisma.crm_Leads },
   opportunityType: { model: () => prisma.crm_Opportunities_Type,          countRelation: "assigned_opportunities",                updateMany: null },
-  salesStage:      { model: () => prisma.crm_Opportunities_Sales_Stages,  countRelation: "assigned_opportunities_sales_stage",    updateMany: null },
+  salesStage:      { model: () => prisma.crm_Opportunities_Sales_Stages,  countRelation: "assigned_opportunities_sales_stage",    updateMany: () => prisma.crm_Opportunities },
 } as const;
 
 const fkField: Record<CrmConfigType, string | null> = {
@@ -38,6 +39,36 @@ const fkField: Record<CrmConfigType, string | null> = {
 };
 
 export async function getConfigValues(configType: CrmConfigType): Promise<ConfigValue[]> {
+  if (configType === "salesStage") {
+    const { regularStages, firstStage, lostStage } = await getSalesStageCollections();
+    const rows = await prisma.crm_Opportunities_Sales_Stages.findMany({
+      include: { _count: { select: { assigned_opportunities_sales_stage: true } } },
+    });
+
+    const byId = new Map(rows.map((row: any) => [row.id, row]));
+    const values: ConfigValue[] = regularStages.map((stage: any) => {
+      const row = byId.get(stage.id);
+      return {
+        id: stage.id,
+        name: stage.name,
+        usageCount: row?._count?.assigned_opportunities_sales_stage ?? 0,
+        isProtected: stage.id === firstStage?.id,
+      };
+    });
+
+    if (lostStage) {
+      const row = byId.get(lostStage.id);
+      values.push({
+        id: lostStage.id,
+        name: lostStage.name,
+        usageCount: 0,
+        isProtected: true,
+      });
+    }
+
+    return values;
+  }
+
   const { model, countRelation } = configMap[configType];
   const rows = await (model() as any).findMany({
     include: { _count: { select: { [countRelation]: true } } },
@@ -53,7 +84,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
 export async function createConfigValue(configType: CrmConfigType, name: string): Promise<void> {
   const parsed = nameSchema.parse(name);
   const { model } = configMap[configType];
-  await (model() as any).create({ data: { name: parsed } });
+  await (model() as any).create({ data: { name: parsed, v: 0, ...(configType === "salesStage" ? { order: 0 } : {}) } });
   revalidatePath("/", "layout");
 }
 
@@ -78,6 +109,13 @@ export async function deleteConfigValue(
   }
 
   const { model, updateMany } = configMap[configType];
+
+  if (configType === "salesStage") {
+    const { firstStage, lostStage } = await getSalesStageCollections();
+    if (id === firstStage?.id || id === lostStage?.id) {
+      throw new Error("This stage is protected and cannot be deleted");
+    }
+  }
 
   if (replacementId && !updateMany) {
     throw new Error(`Config type does not support reassignment`);

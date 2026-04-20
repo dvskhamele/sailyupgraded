@@ -6,6 +6,7 @@ import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getSnapshotRate, getDefaultCurrency } from "@/lib/currency";
+import { serializeDecimals } from "@/lib/serialize-decimals";
 
 export const createOpportunity = async (data: {
   account?: string;
@@ -98,9 +99,13 @@ export const createOpportunity = async (data: {
       changes: null,
       userId: session.user.id,
     });
-    void inngest.send({ name: "crm/opportunity.saved", data: { record_id: opportunity.id } });
+    void inngest
+      .send({ name: "crm/opportunity.saved", data: { record_id: opportunity.id } })
+      .catch((error) => {
+        console.error("[CREATE_OPPORTUNITY_INGGEST]", error);
+      });
     revalidatePath("/[locale]/(routes)/crm/opportunities", "page");
-    return { data: opportunity };
+    return { data: serializeDecimals(opportunity) };
   } catch (error) {
     console.log("[CREATE_OPPORTUNITY]", error);
     return { error: "Failed to create opportunity" };

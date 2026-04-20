@@ -7,6 +7,12 @@ import TryAgain from "./components/TryAgain";
 import { Users } from "@prisma/client";
 
 const PendingPage = async () => {
+  const session = await getSession();
+
+  if (session?.user.userStatus !== "PENDING") {
+    return redirect("/");
+  }
+
   const adminUsers: Users[] = await prismadb.users.findMany({
     where: {
       role: "admin",
@@ -14,9 +20,18 @@ const PendingPage = async () => {
     },
   });
 
-  const session = await getSession();
+  const usersCount = await prismadb.users.count();
 
-  if (session?.user.userStatus !== "PENDING") {
+  if (session?.user.id && adminUsers.length === 0 && usersCount === 1) {
+    await prismadb.users.update({
+      where: { id: session.user.id },
+      data: {
+        role: "admin",
+        userStatus: "ACTIVE",
+        is_admin: true,
+        is_account_admin: true,
+      },
+    });
     return redirect("/");
   }
 
@@ -27,13 +42,12 @@ const PendingPage = async () => {
       </pre> */}
       <div className="flex flex-col">
         <h1 className="text-3xl">
-          {process.env.NEXT_PUBLIC_APP_NAME} - your account must be allowed by
-          Admin
+          Saily - your account must be allowed by Admin
         </h1>
         <p>
-          Hi, welcome to {process.env.NEXT_PUBLIC_APP_NAME}. Ask someone in your
-          organization to approve your account. If you are fist user call to
-          tech support to enable account.
+          Hi, welcome to Saily. Ask someone in your organization to approve
+          your account. If you are fist user call to tech support to enable
+          account.
         </p>
       </div>
       <div className="flex flex-col justify-center ">

@@ -32,6 +32,9 @@ export function ConfigList({ configType, label, values }: Props) {
           <div key={item.id} className="flex items-center justify-between px-4 py-3">
             <div className="flex items-center gap-3">
               <span className="text-sm font-medium">{item.name}</span>
+              {item.isProtected && (
+                <Badge variant="outline">Fixed</Badge>
+              )}
               {item.usageCount > 0 && (
                 <Badge variant="secondary">{item.usageCount} in use</Badge>
               )}
@@ -43,8 +46,14 @@ export function ConfigList({ configType, label, values }: Props) {
               <Button
                 size="icon"
                 variant="ghost"
-                disabled={values.length <= 1}
-                title={values.length <= 1 ? "Cannot delete the last value" : undefined}
+                disabled={values.length <= 1 || item.isProtected}
+                title={
+                  item.isProtected
+                    ? "This stage is fixed and cannot be deleted"
+                    : values.length <= 1
+                      ? "Cannot delete the last value"
+                      : undefined
+                }
                 onClick={() => setDeleteItem(item)}
               >
                 <Trash2 className="h-4 w-4 text-destructive" />

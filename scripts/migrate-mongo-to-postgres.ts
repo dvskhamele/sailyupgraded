@@ -11,8 +11,7 @@
 
 import { MongoClient } from 'mongodb';
 import { PrismaClient as PrismaClientPG } from '@prisma/client';
-import { Pool } from 'pg';
-import { PrismaPg } from '@prisma/adapter-pg';
+import { PrismaTiDBCloud } from '@tidbcloud/prisma-adapter';
 import { CheckpointManager } from './migration/checkpoint-manager';
 import { ProgressTracker } from './migration/progress-tracker';
 import { ErrorLogger } from './migration/error-logger';
@@ -45,13 +44,12 @@ async function main() {
 
   const mongoClient = new MongoClient(mongoUrl);
 
-  // Initialize PostgreSQL client with adapter (required for Prisma 7 with @prisma/adapter-pg)
+  // Initialize SQL client for the target database.
   const pgConnectionString = process.env.DATABASE_URL_POSTGRES || process.env.DATABASE_URL;
   if (!pgConnectionString) {
     throw new Error('PostgreSQL connection URL not found. Please set DATABASE_URL_POSTGRES or DATABASE_URL');
   }
-  const pgPool = new Pool({ connectionString: pgConnectionString });
-  const pgAdapter = new PrismaPg(pgPool);
+  const pgAdapter = new PrismaTiDBCloud({ url: pgConnectionString });
   const pgClient = new PrismaClientPG({ adapter: pgAdapter });
 
   try {
@@ -123,7 +121,6 @@ async function main() {
     // Disconnect clients
     await mongoClient.close();
     await pgClient.$disconnect();
-    await pgPool.end();
   }
 }
 

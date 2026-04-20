@@ -32,8 +32,8 @@ const PendingPage = async () => {
         Your account has been deactivated by Admin
       </CardTitle>
       <CardDescription className="py-3">
-        Hi, your {process.env.NEXT_PUBLIC_APP_NAME} account has been disabled.
-        Ask someone in your organization to activate your account again.
+        Hi, your Saily account has been disabled. Ask someone in your
+        organization to activate your account again.
       </CardDescription>
       <CardContent>
         <h2 className="flex justify-center text-xl">Admin List</h2>

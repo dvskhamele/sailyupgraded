@@ -6,7 +6,7 @@ export const getCampaigns = async (filters?: { status?: string; search?: string 
     where: {
       status: { not: "deleted" },
       ...(filters?.status ? { status: filters.status } : {}),
-      ...(filters?.search ? { name: { contains: filters.search, mode: "insensitive" } } : {}),
+      ...(filters?.search ? { name: { contains: filters.search } } : {}),
     },
     orderBy: { created_on: "desc" },
     include: {

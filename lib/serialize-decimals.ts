@@ -3,20 +3,31 @@
  * Decimal objects are not serializable across the server/client boundary.
  */
 export function serializeDecimals<T>(obj: T): T {
-  if (obj === null || typeof obj !== "object") return obj;
-  const result: Record<string, unknown> = { ...(obj as Record<string, unknown>) };
-  for (const key of Object.keys(result)) {
-    const val = result[key];
-    if (
-      val !== null &&
-      val !== undefined &&
-      typeof val === "object" &&
-      "toNumber" in val &&
-      typeof (val as { toNumber?: unknown }).toNumber === "function"
-    ) {
-      result[key] = (val as { toNumber: () => number }).toNumber();
-    }
+  if (obj === null || obj === undefined) return obj;
+
+  if (
+    typeof obj === "object" &&
+    "toNumber" in (obj as object) &&
+    typeof (obj as { toNumber?: unknown }).toNumber === "function"
+  ) {
+    return (obj as unknown as { toNumber: () => number }).toNumber() as T;
   }
+
+  if (obj instanceof Date) {
+    return obj;
+  }
+
+  if (Array.isArray(obj)) {
+    return obj.map((item) => serializeDecimals(item)) as T;
+  }
+
+  if (typeof obj !== "object") return obj;
+
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(obj as Record<string, unknown>)) {
+    result[key] = serializeDecimals(value);
+  }
+
   return result as T;
 }
 

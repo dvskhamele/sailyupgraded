@@ -131,41 +131,8 @@ export const enrichDocument = inngest.createFunction(
       return { documentId, status: "ready", enriched: false };
     }
 
-    // Step 2: Generate embeddings
     await step.run("generate-embedding", async () => {
-      if (contentText.length <= MAX_SINGLE_EMBED_CHARS) {
-        // Single embedding on the document
-        const embedding = await generateEmbedding(contentText);
-        const vector = toVectorLiteral(embedding);
-        const hash = computeContentHash(contentText);
-
-        await prismadb.$executeRaw`
-          INSERT INTO "crm_Embeddings_Documents" ("id", "document_id", "embedding", "content_hash", "embedded_at")
-          VALUES (gen_random_uuid(), ${documentId}::uuid, ${vector}::vector, ${hash}, NOW())
-          ON CONFLICT ("document_id")
-          DO UPDATE SET "embedding" = EXCLUDED."embedding",
-                        "content_hash" = EXCLUDED."content_hash",
-                        "embedded_at" = NOW()
-        `;
-      } else {
-        // Chunked embeddings
-        const chunks = chunkText(contentText);
-
-        // Delete old chunks if re-processing
-        await prismadb.crm_Document_Chunks.deleteMany({
-          where: { document_id: documentId },
-        });
-
-        for (let i = 0; i < chunks.length; i++) {
-          const embedding = await generateEmbedding(chunks[i]);
-          const vector = toVectorLiteral(embedding);
-
-          await prismadb.$executeRaw`
-            INSERT INTO "crm_Document_Chunks" ("id", "document_id", "chunk_index", "chunk_text", "embedding", "embedded_at")
-            VALUES (gen_random_uuid(), ${documentId}::uuid, ${i}, ${chunks[i]}, ${vector}::vector, NOW())
-          `;
-        }
-      }
+      return { skipped: "semantic embeddings disabled for TiDB" };
     });
 
     // Step 3: Generate summary

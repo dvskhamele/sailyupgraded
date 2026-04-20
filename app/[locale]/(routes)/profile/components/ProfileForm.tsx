@@ -49,8 +49,14 @@ export function ProfileForm({ data }: ProfileFormProps) {
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: data
-      ? { ...data }
+      ? {
+          id: data.id ?? "",
+          name: data.name ?? "",
+          username: data.username ?? "",
+          account_name: data.account_name ?? "",
+        }
       : {
+          id: "",
           name: "",
           username: "",
           account_name: "",
@@ -94,7 +100,7 @@ export function ProfileForm({ data }: ProfileFormProps) {
             <FormItem className="w-1/3">
               <FormLabel>{t("fullName")}</FormLabel>
               <FormControl>
-                <Input disabled={isLoading} placeholder="John Doe" {...field} />
+                <Input disabled={isLoading} placeholder="John Doe" {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -107,7 +113,7 @@ export function ProfileForm({ data }: ProfileFormProps) {
             <FormItem className="w-1/3">
               <FormLabel>{t("username")}</FormLabel>
               <FormControl>
-                <Input disabled={isLoading} placeholder="jdoe" {...field} />
+                <Input disabled={isLoading} placeholder="jdoe" {...field} value={field.value ?? ""} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -124,6 +130,7 @@ export function ProfileForm({ data }: ProfileFormProps) {
                   disabled={isLoading}
                   placeholder="Tesla Inc.,"
                   {...field}
+                  value={field.value ?? ""}
                 />
               </FormControl>
               <FormMessage />

@@ -108,7 +108,7 @@ export default async function EnrichmentJobsPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {record.fields.join(", ")}
+                      {((record.fields as string[] | null) ?? []).join(", ")}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground whitespace-nowrap">
                       {moment(record.createdAt).fromNow()}
@@ -120,7 +120,7 @@ export default async function EnrichmentJobsPage() {
                       {record.status === "FAILED" && (
                         <RetryEnrichmentButton
                           contactId={record.contact.id}
-                          fields={record.fields}
+                          fields={((record.fields as string[] | null) ?? [])}
                         />
                       )}
                     </TableCell>

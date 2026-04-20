@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prismadb } from "@/lib/prisma";
 import { serializeDecimalsList } from "@/lib/serialize-decimals";
+import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 
 export const getAllCrmData = cache(async () => {
   const [
@@ -27,7 +28,7 @@ export const getAllCrmData = cache(async () => {
     prismadb.crm_Contacts.findMany({ where: { deletedAt: null } }),
     prismadb.crm_Contracts.findMany({ where: { deletedAt: null } }),
     prismadb.crm_Opportunities_Type.findMany({}),
-    prismadb.crm_Opportunities_Sales_Stages.findMany({}),
+    getSalesStageCollections(),
     prismadb.crm_campaigns.findMany({ where: { deletedAt: null } }),
     prismadb.crm_Industry_Type.findMany({}),
     prismadb.crm_Contact_Types.findMany({ orderBy: { name: "asc" } }),
@@ -49,7 +50,8 @@ export const getAllCrmData = cache(async () => {
     contacts,
     contracts: serializeDecimalsList(contracts),
     saleTypes,
-    saleStages,
+    saleStages: saleStages.regularStages,
+    lostStage: saleStages.lostStage,
     campaigns,
     industries,
     contactTypes,

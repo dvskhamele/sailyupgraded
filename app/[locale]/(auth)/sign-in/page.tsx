@@ -5,7 +5,7 @@ const SignInPage = async () => {
     <div className="h-full">
       <div className="py-10">
         <h1 className="scroll-m-20 text-4xl font-extrabold tracking-tight lg:text-5xl">
-          Welcome to {process.env.NEXT_PUBLIC_APP_NAME}
+          Welcome to Saily
         </h1>
       </div>
       <div>

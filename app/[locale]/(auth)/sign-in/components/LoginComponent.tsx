@@ -29,6 +29,7 @@ export function LoginComponent() {
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
+  const [devOtp, setDevOtp] = useState("");
 
   const loginWithGoogle = async () => {
     setIsLoading(true);
@@ -51,14 +52,39 @@ export function LoginComponent() {
     }
     setIsLoading(true);
     try {
+      setDevOtp("");
+
       const { error } = await authClient.emailOtp.sendVerificationOtp({
         email,
         type: "sign-in",
       });
+
+      try {
+        const response = await fetch(
+          `/api/auth/test-otp?email=${encodeURIComponent(email)}`
+        );
+        if (response.ok) {
+          const data = await response.json();
+          if (data?.otp) {
+            setStep("otp");
+            setDevOtp(data.otp);
+            toast.success(
+              data.source === "fallback"
+                ? `Email unavailable. Use code: ${data.otp}`
+                : `Development OTP: ${data.otp}`
+            );
+            return;
+          }
+        }
+      } catch {
+        // Ignore OTP preview failures and fall back to the generic message.
+      }
+
       if (error) {
         toast.error(error.message || "Failed to send verification code.");
         return;
       }
+
       setStep("otp");
       toast.success("Verification code sent to your email.");
     } catch (error) {
@@ -146,6 +172,11 @@ export function LoginComponent() {
             <p className="text-sm text-muted-foreground">
               Enter the 6-digit code sent to <strong>{email}</strong>
             </p>
+            {devOtp ? (
+              <p className="text-sm text-amber-600">
+                Use this verification code: <strong>{devOtp}</strong>
+              </p>
+            ) : null}
             <div className="flex justify-center">
               <InputOTP
                 maxLength={6}

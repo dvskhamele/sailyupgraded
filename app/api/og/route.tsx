@@ -22,13 +22,13 @@ export async function GET(request: Request) {
     const hasTitle = searchParams.has("title");
     const title = hasTitle
       ? searchParams.get("title")?.slice(0, 200)
-      : "NextCRM";
+      : "Saily";
 
     const hasDescription = searchParams.has("description");
 
     const description = hasDescription
       ? searchParams.get("description")?.slice(0, 200)
-      : "NextCRM is an open source CRM build on top of NextJS. Technology stack: NextJS with Typescrtipt, MongoDB, TailwindCSS, React, Prisma, shadCN, resend.com, react.email and more. ";
+      : "Saily is an open source CRM built on top of Next.js with TypeScript, React, Prisma, shadcn/ui, and more.";
 
     return new ImageResponse(
       (

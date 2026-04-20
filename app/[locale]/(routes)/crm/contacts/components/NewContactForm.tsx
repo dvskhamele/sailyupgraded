@@ -33,47 +33,59 @@ type AccountOption = {
   name: string;
 };
 
+const contactFormSchema = z.object({
+  birthday_year: z.string().optional(),
+  birthday_month: z.string().optional(),
+  birthday_day: z.string().optional(),
+  first_name: z.string().optional(),
+  last_name: z.string(),
+  description: z.string().optional(),
+  email: z.string().optional(),
+  personal_email: z.string().optional(),
+  office_phone: z.string().optional(),
+  mobile_phone: z.string().optional(),
+  website: z.string().optional(),
+  position: z.string().optional(),
+  status: z.boolean(),
+  type: z.string(),
+  assigned_to: z.string(),
+  assigned_account: z.string().optional(),
+  social_twitter: z.string().optional(),
+  social_facebook: z.string().optional(),
+  social_linkedin: z.string().optional(),
+  social_skype: z.string().optional(),
+  social_youtube: z.string().optional(),
+  social_tiktok: z.string().optional(),
+});
+
+type NewAccountFormValues = z.infer<typeof contactFormSchema>;
+
 type NewContactFormProps = {
   accounts: AccountOption[];
   onFinish: () => void;
+  initialValues?: Partial<NewAccountFormValues>;
 };
 
 export function NewContactForm({
   accounts,
   onFinish,
+  initialValues,
 }: NewContactFormProps) {
   const t = useTranslations("CrmContactForm");
   const c = useTranslations("Common");
 
   const formSchema = z.object({
-    birthday_year: z.string().optional(),
-    birthday_month: z.string().optional(),
-    birthday_day: z.string().optional(),
-    first_name: z.string().optional(),
     last_name: z.string().min(1, t("lastNameRequired")),
-    description: z.string().optional(),
     email: z.union([z.string().email(t("emailInvalid")), z.literal("")]).optional(),
-    personal_email: z.string().optional(),
-    office_phone: z.string().optional(),
-    mobile_phone: z.string().optional(),
-    website: z.string().optional(),
-    position: z.string().optional(),
-    status: z.boolean(),
-    type: z.string(),
-    assigned_to: z.string(),
-    assigned_account: z.string().optional(),
-    social_twitter: z.string().optional(),
-    social_facebook: z.string().optional(),
-    social_linkedin: z.string().optional(),
-    social_skype: z.string().optional(),
-    social_youtube: z.string().optional(),
-    social_tiktok: z.string().optional(),
   });
 
-  type NewAccountFormValues = z.infer<typeof formSchema>;
+  const validatedFormSchema = contactFormSchema.extend({
+    last_name: formSchema.shape.last_name,
+    email: formSchema.shape.email,
+  });
 
   const form = useForm<NewAccountFormValues>({
-    resolver: zodResolver(formSchema),
+    resolver: zodResolver(validatedFormSchema),
     mode: "onBlur",
     defaultValues: {
       first_name: "",
@@ -98,6 +110,7 @@ export function NewContactForm({
       birthday_year: undefined,
       birthday_month: undefined,
       birthday_day: undefined,
+      ...initialValues,
     },
   });
 

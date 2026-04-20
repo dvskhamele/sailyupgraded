@@ -22,12 +22,14 @@ export function MinioUploader({
 }: MinioUploaderProps) {
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
+  const [selectedFileName, setSelectedFileName] = useState<string | null>(null);
 
   const onDrop = useCallback(
     async (acceptedFiles: File[]) => {
       const file = acceptedFiles[0];
       if (!file) return;
 
+      setSelectedFileName(file.name);
       setUploading(true);
       setProgress("Requesting upload URL...");
 
@@ -96,6 +98,9 @@ export function MinioUploader({
       ) : (
         <>
           <UploadCloud className="h-8 w-8 text-muted-foreground" />
+          <p className="text-sm font-medium text-foreground">
+            {selectedFileName ?? "No file chosen"}
+          </p>
           <p className="text-sm text-muted-foreground">
             {isDragActive ? "Drop file here" : "Drag & drop or click to upload"}
           </p>

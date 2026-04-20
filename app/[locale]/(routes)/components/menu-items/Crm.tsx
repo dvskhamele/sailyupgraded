@@ -26,16 +26,18 @@ type Props = {
 export const getCrmMenuItem = ({ localizations }: Props): NavItem => {
   return {
     title: localizations.title,
+    url: "/crm",
     icon: Coins,
+    alwaysOpen: true,
     items: [
       {
         title: "Dashboard",
         url: "/crm/dashboard",
       },
-      {
-        title: "My Dashboard",
-        url: "/crm/dashboard/user",
-      },
+      // {
+      //   title: "My Dashboard",
+      //   url: "/crm/dashboard/user",
+      // },
       {
         title: "Overview",
         url: "/crm",
@@ -48,22 +50,23 @@ export const getCrmMenuItem = ({ localizations }: Props): NavItem => {
         title: localizations.contacts,
         url: "/crm/contacts",
       },
-      {
-        title: localizations.leads,
-        url: "/crm/leads",
-      },
+      // Hidden while reducing the product to core companies, contacts, and deals.
+      // {
+      //   title: localizations.leads,
+      //   url: "/crm/leads",
+      // },
       {
         title: localizations.opportunities,
         url: "/crm/opportunities",
       },
-      {
-        title: localizations.contracts,
-        url: "/crm/contracts",
-      },
-      {
-        title: localizations.products,
-        url: "/crm/products",
-      },
+      // {
+      //   title: localizations.contracts,
+      //   url: "/crm/contracts",
+      // },
+      // {
+      //   title: localizations.products,
+      //   url: "/crm/products",
+      // },
     ],
   };
 };

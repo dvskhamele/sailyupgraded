@@ -1,10 +1,6 @@
-import { prismadb } from "@/lib/prisma";
+import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 
 export const getSaleStages = async () => {
-  const data = await prismadb.crm_Opportunities_Sales_Stages.findMany({
-    orderBy: {
-      probability: "asc",
-    },
-  });
-  return data;
+  const { regularStages } = await getSalesStageCollections();
+  return regularStages;
 };

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
+import { toast } from "sonner";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ import {
 import useDebounce from "@/hooks/useDebounce";
 import { searchAccounts } from "@/actions/crm/accounts/search-accounts";
 import { getAccountById } from "@/actions/crm/accounts/get-account-by-id";
+import { createAccount } from "@/actions/crm/accounts/create-account";
 
 type Account = { id: string; name: string };
 
@@ -51,6 +53,7 @@ export function AccountSearchCombobox({
   } | null>(null);
   const [selectedAccount, setSelectedAccount] = useState<Account | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [isCreating, setIsCreating] = useState(false);
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -106,7 +109,38 @@ export function AccountSearchCombobox({
     setOpen(false);
   };
 
+  const handleCreate = async () => {
+    const name = search.trim();
+    if (!name) return;
+
+    setIsCreating(true);
+    try {
+      const result = await createAccount({ name });
+      if (result?.error || !result?.data?.id) {
+        toast.error(result?.error ?? "Failed to create account");
+        return;
+      }
+
+      const created = { id: result.data.id, name: result.data.name as string };
+      setAccumulatedAccounts((prev) => [created, ...prev]);
+      setSelectedAccount(created);
+      onChange(created.id);
+      setSearch("");
+      setOpen(false);
+      toast.success(`Account "${created.name}" created`);
+    } catch (error) {
+      toast.error("Failed to create account");
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   const isLoading = isPending && skip === 0 && accumulatedAccounts.length === 0;
+  const trimmedSearch = search.trim();
+  const showCreateOption =
+    trimmedSearch.length > 0 &&
+    !isLoading &&
+    accumulatedAccounts.length === 0;
 
   return (
     <>
@@ -143,7 +177,22 @@ export function AccountSearchCombobox({
                 </div>
               ) : (
                 <>
-                  <CommandEmpty>No accounts found.</CommandEmpty>
+                  <CommandEmpty>
+                    <div className="space-y-2 py-2 text-center">
+                      <p className="text-sm text-muted-foreground">No accounts found.</p>
+                      {showCreateOption && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={handleCreate}
+                          disabled={isCreating}
+                        >
+                          {isCreating ? "Creating..." : `Create "${trimmedSearch}"`}
+                        </Button>
+                      )}
+                    </div>
+                  </CommandEmpty>
                   <CommandGroup>
                     {accumulatedAccounts.map((account) => (
                       <CommandItem
@@ -161,6 +210,19 @@ export function AccountSearchCombobox({
                       </CommandItem>
                     ))}
                   </CommandGroup>
+                  {showCreateOption && (
+                    <div className="border-t p-1">
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-sm font-normal"
+                        type="button"
+                        onClick={handleCreate}
+                        disabled={isCreating}
+                      >
+                        {isCreating ? "Creating..." : `Create "${trimmedSearch}"`}
+                      </Button>
+                    </div>
+                  )}
                   {listData?.hasMore && (
                     <div className="p-1">
                       <Button

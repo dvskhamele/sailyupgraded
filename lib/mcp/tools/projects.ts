@@ -13,10 +13,7 @@ import {
 function userBoardWhere(userId: string) {
   return {
     deletedAt: null,
-    OR: [
-      { user: userId },
-      { sharedWith: { has: userId } },
-    ],
+    OR: [{ user: userId }],
   };
 }
 

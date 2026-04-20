@@ -1,6 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { Pool } from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaTiDBCloud } from "@tidbcloud/prisma-adapter";
 import dotenv from "dotenv";
 import path from "path";
 
@@ -19,8 +18,7 @@ import { seedCurrencies } from "./currencies";
 import { seedInvoices } from "./invoices";
 
 const connectionString = process.env.DATABASE_URL!;
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
+const adapter = new PrismaTiDBCloud({ url: connectionString });
 
 const prisma = new PrismaClient({ adapter });
 
@@ -157,5 +155,4 @@ main()
   })
   .finally(async () => {
     await prisma.$disconnect();
-    await pool.end();
   });

@@ -18,7 +18,7 @@ type Props = {
 export const getDashboardMenuItem = ({ title }: Props): NavItem => {
   return {
     title: title,
-    url: "/",
+    url: "/crm/dashboard",
     icon: Home,
     // Active state will be detected by NavMain using pathname
   };

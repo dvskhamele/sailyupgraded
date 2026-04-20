@@ -1,13 +1,13 @@
-import Feedback from "./Feedback";
 import FulltextSearch from "./FulltextSearch";
 
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SetLanguage } from "@/components/SetLanguage";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { CommandComponent } from "@/components/CommandComponent";
-import SupportComponent from "@/components/support";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
+// import Feedback from "./Feedback";
+// import { ThemeToggle } from "@/components/ThemeToggle";
+// import { CommandComponent } from "@/components/CommandComponent";
+// import SupportComponent from "@/components/support";
 
 type Props = {
   id: string;
@@ -36,18 +36,18 @@ const Header = ({ id, lang }: Props) => {
   return (
     <>
       <div className="flex h-16 shrink-0 items-center justify-between gap-2 px-4 transition-[width,height] ease-linear group-has-[[data-collapsible=icon]]/sidebar-wrapper:h-12">
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-1 items-center gap-2">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
           <FulltextSearch />
         </div>
-        <div className="flex items-center gap-2">
-          <CommandComponent />
+        <div className="flex shrink-0 items-center gap-2">
           <SetLanguage userId={id} />
-          <Feedback />
           <CurrencySwitcher />
-          <ThemeToggle />
-          <SupportComponent />
+          {/* <CommandComponent /> */}
+          {/* <Feedback /> */}
+          {/* <ThemeToggle /> */}
+          {/* <SupportComponent /> */}
         </div>
       </div>
       <Separator />

@@ -1,4 +1,5 @@
 import React from "react";
+
 import Container from "../../components/ui/Container";
 import { getSaleStages } from "@/actions/crm/get-sales-stage";
 import CRMKanban from "./_components/CRMKanban";
@@ -16,18 +17,13 @@ const CrmDashboardPage = async () => {
       title="CRM Dashboard"
       description="In development. After this compoment is finished, there will be a optimistic update of the data."
     >
-      <div className="w-full h-full  overflow-hidden">
+      <div className="h-full w-full overflow-hidden">
         <CRMKanban
           salesStages={salesStages}
           opportunities={opportunities}
           crmData={crmData}
         />
       </div>
-
-      {/*     <CRMKanbanServer
-        salesStages={salesStages}
-        opportunities={opportunities}
-      /> */}
     </Container>
   );
 };

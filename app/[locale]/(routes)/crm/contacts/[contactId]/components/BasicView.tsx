@@ -22,9 +22,9 @@ import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
 import { EnvelopeClosedIcon } from "@radix-ui/react-icons";
 import { Badge } from "@/components/ui/badge";
-import { EnrichButton } from "./EnrichButton";
 import { ContactDetailActions } from "./ContactDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
+// import { EnrichButton } from "./EnrichButton";
 
 interface OppsViewProps {
   data: any;
@@ -49,7 +49,7 @@ export async function BasicView({ data }: OppsViewProps) {
               <CardDescription>ID:{data.id}</CardDescription>
             </div>
             <div className="flex items-center gap-2">
-              <EnrichButton
+              {/* <EnrichButton
                 contactId={data.id}
                 contactEmail={data.email ?? null}
                 contactCurrentData={{
@@ -63,7 +63,7 @@ export async function BasicView({ data }: OppsViewProps) {
                   office_phone:     data.office_phone ?? null,
                   mobile_phone:     data.mobile_phone ?? null,
                 }}
-              />
+              /> */}
               <ContactDetailActions contact={data} contactTypes={contactTypes} />
             </div>
           </div>

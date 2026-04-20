@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import {
   Sidebar,
   SidebarContent,
@@ -12,15 +13,14 @@ import {
 import { cn } from "@/lib/utils";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
-import getDashboardMenuItem from "./menu-items/Dashboard";
 import getCrmMenuItem from "./menu-items/Crm";
-import getProjectsMenuItem from "./menu-items/Projects";
-import getEmailsMenuItem from "./menu-items/Emails";
-import getReportsMenuItem from "./menu-items/Reports";
-import getDocumentsMenuItem from "./menu-items/Documents";
-import getInvoicesMenuItem from "./menu-items/Invoices";
+// import getProjectsMenuItem from "./menu-items/Projects";
+// import getEmailsMenuItem from "./menu-items/Emails";
+// import getReportsMenuItem from "./menu-items/Reports";
+// import getDocumentsMenuItem from "./menu-items/Documents";
+// import getInvoicesMenuItem from "./menu-items/Invoices";
 import getAdministrationMenuItem from "./menu-items/Administration";
-import getCampaignsMenuItem from "./menu-items/Campaigns";
+// import getCampaignsMenuItem from "./menu-items/Campaigns";
 
 /**
  * AppSidebar Component - Task Groups 1.2, 2.2-2.7, 3.1, 5.3, 5.4
@@ -90,25 +90,29 @@ export function AppSidebar({
   const isExpanded = state === "expanded";
 
   const navItems = [
-    getDashboardMenuItem({ title: dict?.dashboard || "Dashboard" }),
     getCrmMenuItem({ localizations: dict.crm }),
-    getCampaignsMenuItem({
-      localizations: {
-        title: "Campaigns",
-        campaigns: "All Campaigns",
-        templates: "Templates",
-        targets: "Targets",
-        targetLists: "Target Lists",
-      },
-    }),
-    getProjectsMenuItem({ title: dict?.projects || "Projects" }),
-    getEmailsMenuItem({ title: dict?.emails || "Emails" }),
-    getReportsMenuItem({ title: dict?.reports || "Reports" }),
-    getDocumentsMenuItem({ title: dict?.documents || "Documents" }),
-    getInvoicesMenuItem({ title: dict?.invoices || "Invoices" }),
+    // getCampaignsMenuItem({
+    //   localizations: {
+    //     title: "Campaigns",
+    //     campaigns: "All Campaigns",
+    //     templates: "Templates",
+    //     targets: "Targets",
+    //     targetLists: "Target Lists",
+    //   },
+    // }),
+    // getProjectsMenuItem({ title: dict?.projects || "Projects" }),
+    // getEmailsMenuItem({ title: dict?.emails || "Emails" }),
+    // getReportsMenuItem({ title: dict?.reports || "Reports" }),
+    // getDocumentsMenuItem({ title: dict?.documents || "Documents" }),
+    // getInvoicesMenuItem({ title: dict?.invoices || "Invoices" }),
   ];
 
   // Administration: admin users only
+  // if (session?.user?.role === "admin") {
+  //   navItems.push(
+  //     getAdministrationMenuItem({ title: dict?.settings || "Administration" }),
+  //   );
+  // }
   if (session?.user?.role === "admin") {
     navItems.push(
       getAdministrationMenuItem({ title: dict?.settings || "Administration" }),
@@ -127,7 +131,8 @@ export function AppSidebar({
     <Sidebar collapsible="icon" {...props}>
       {/* Header with Logo and Branding */}
       <SidebarHeader>
-        <div
+        <Link
+          href="/crm/dashboard"
           className={cn(
             "flex items-center py-1",
             isExpanded ? "gap-x-4" : "justify-center",
@@ -140,7 +145,7 @@ export function AppSidebar({
               isExpanded && "rotate-[360deg]",
             )}
           >
-            N
+            S
           </div>
 
           {/* App Name - visible when expanded, hidden when collapsed */}
@@ -150,9 +155,9 @@ export function AppSidebar({
               !isExpanded ? "w-0 opacity-0" : "w-auto opacity-100",
             )}
           >
-            {process.env.NEXT_PUBLIC_APP_NAME || "NextCRM"}
+            Saily
           </h1>
-        </div>
+        </Link>
       </SidebarHeader>
 
       {/* Main Content - Navigation */}

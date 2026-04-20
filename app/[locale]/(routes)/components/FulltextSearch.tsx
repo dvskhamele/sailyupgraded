@@ -15,18 +15,25 @@ const FulltextSearch = () => {
   };
 
   return (
-    <div className="flex w-full max-w-sm items-center space-x-2">
+    <form
+      onSubmit={(event) => {
+        event.preventDefault();
+        void handleSearch();
+      }}
+      className="flex min-w-0 w-full flex-1 items-center space-x-2"
+    >
       <Input
         type="text"
+        className="min-w-0 flex-1"
         placeholder={"Search something ..."}
         value={search}
         onChange={(e) => setSearch(e.target.value)}
       />
-      <Button type="submit" className="gap-2" onClick={handleSearch}>
+      <Button type="submit" className="shrink-0 gap-2">
         <span className="hidden sm:flex">Search</span>
         <SearchIcon />
       </Button>
-    </div>
+    </form>
   );
 };
 

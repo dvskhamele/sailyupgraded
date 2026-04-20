@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useTransition } from "react";
 import { Check, ChevronsUpDown } from "lucide-react";
+import Link from "next/link";
 
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -104,6 +105,7 @@ export function UserSearchCombobox({
   };
 
   const isLoading = isPending && skip === 0 && accumulatedUsers.length === 0;
+  const trimmedSearch = search.trim();
 
   return (
     <>
@@ -140,7 +142,16 @@ export function UserSearchCombobox({
                 </div>
               ) : (
                 <>
-                  <CommandEmpty>No users found.</CommandEmpty>
+                  <CommandEmpty>
+                    <div className="space-y-2 py-2 text-center">
+                      <p className="text-sm text-muted-foreground">No users found.</p>
+                      {trimmedSearch.length > 0 && (
+                        <Button asChild type="button" size="sm" variant="outline">
+                          <Link href="/admin/users">Create or invite user</Link>
+                        </Button>
+                      )}
+                    </div>
+                  </CommandEmpty>
                   <CommandGroup>
                     {accumulatedUsers.map((user) => (
                       <CommandItem
