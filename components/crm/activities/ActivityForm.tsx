@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -50,7 +50,9 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
   const [date, setDate] = useState(
     activity ? new Date(activity.date).toISOString().slice(0, 16) : ""
   );
-  const [status, setStatus] = useState<ActivityStatus>(activity?.status ?? "scheduled");
+  const [selectedStatus, setSelectedStatus] = useState<ActivityStatus | null>(
+    activity?.status ?? null
+  );
   const [duration, setDuration] = useState(activity?.duration?.toString() ?? "");
   const [outcome, setOutcome] = useState(activity?.outcome ?? "");
   const [emailSubject, setEmailSubject] = useState(
@@ -58,16 +60,11 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
   );
   const [saving, setSaving] = useState(false);
 
-  // Auto-set status when type changes (only in create mode)
-  useEffect(() => {
-    if (!isEdit) {
-      setStatus(DEFAULT_STATUS[type]);
-    }
-  }, [type, isEdit]);
-
   const showDuration = type === "call" || type === "meeting";
   const showOutcome = type === "call" || type === "meeting";
   const showEmailSubject = type === "email";
+  const status =
+    selectedStatus ?? (isEdit ? activity?.status ?? "scheduled" : DEFAULT_STATUS[type]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -162,7 +159,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
 
           <div className="space-y-1">
             <Label htmlFor="activity-status">Status</Label>
-            <Select value={status} onValueChange={(v) => setStatus(v as ActivityStatus)}>
+            <Select value={status} onValueChange={(v) => setSelectedStatus(v as ActivityStatus)}>
               <SelectTrigger id="activity-status">
                 <SelectValue />
               </SelectTrigger>

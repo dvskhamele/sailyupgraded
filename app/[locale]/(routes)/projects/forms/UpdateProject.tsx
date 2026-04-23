@@ -24,10 +24,11 @@ import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { updateProject } from "@/actions/projects/update-project";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 type Props = {
   initialData: any;
@@ -38,9 +39,8 @@ const UpdateProjectForm = ({ initialData, openEdit }: Props) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
-
   const router = useRouter();
+  const isHydrated = useHydrated();
 
   const formSchema = z.object({
     id: z.string(),
@@ -56,11 +56,7 @@ const UpdateProjectForm = ({ initialData, openEdit }: Props) => {
     defaultValues: initialData,
   });
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
+  if (!isHydrated) {
     return null;
   }
 

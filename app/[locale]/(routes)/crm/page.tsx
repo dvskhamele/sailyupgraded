@@ -1,6 +1,7 @@
 import { Suspense, type ComponentType } from "react";
 import Link from "next/link";
 import {
+  BarChart3Icon,
   CoinsIcon,
   Contact,
   DollarSignIcon,
@@ -99,6 +100,7 @@ const CrmPage = async () => {
         <DashboardCard href="/crm/contacts" title={dict("contacts")} IconComponent={Contact} content={contacts} />
         <DashboardCard href="/crm/leads" title={dict("leads")} IconComponent={CoinsIcon} content={leads} />
         <DashboardCard href="/campaigns/templates" title="Templates" IconComponent={FileText} content={templates.length} />
+        <DashboardCard href="/reports" title="Reports" IconComponent={BarChart3Icon} content="Open" />
       </div>
     </Container>
   );
@@ -115,7 +117,7 @@ const DashboardCard = ({
   href: string;
   title: string;
   IconComponent: ComponentType<{ className?: string }>;
-  content: number;
+  content: number | string;
 }) => (
   <Link href={href}>
     <Suspense fallback={<LoadingBox />}>

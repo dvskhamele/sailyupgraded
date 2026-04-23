@@ -13,6 +13,10 @@ export const getLeads = cache(async () => {
       },
       // Include assigned accounts
       assigned_accounts: true,
+      // Include lead source, status, type
+      lead_source: true,
+      lead_status: true,
+      lead_type: true,
       // Include documents through DocumentsToLeads junction table
       documents: {
         include: {

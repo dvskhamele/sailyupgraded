@@ -66,6 +66,10 @@ export async function sendInvoiceEmail(input: SendInvoiceEmailInput) {
     })
   );
 
+  if (!resend) {
+    throw new Error("Email service (Resend) is not configured correctly.");
+  }
+
   await resend.emails.send({
     from: fromEmail,
     to: input.to,

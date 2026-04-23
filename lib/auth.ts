@@ -9,11 +9,17 @@ import resendHelper from "@/lib/resend";
 
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
 const otpFallbackIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
+const databaseUrl = process.env.DATABASE_URL ?? "";
+const databaseProvider = (databaseUrl.startsWith("postgres") || databaseUrl.startsWith("postgresql"))
+  ? "postgresql"
+  : (databaseUrl.startsWith("mysql") || databaseUrl.startsWith("mariadb"))
+    ? "mysql"
+    : "sqlite";
 
 export const auth = betterAuth({
-  database: prismaAdapter(prismadb, { provider: "mysql" }),
-  secret: process.env.BETTER_AUTH_SECRET,
-  baseURL: process.env.BETTER_AUTH_URL,
+  database: prismaAdapter(prismadb, { provider: databaseProvider }),
+  secret: process.env.BETTER_AUTH_SECRET || "development-secret-must-change",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   advanced: {
     database: {
       generateId: "uuid",
@@ -57,10 +63,12 @@ export const auth = betterAuth({
   },
 
   socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_ID!,
-      clientSecret: process.env.GOOGLE_SECRET!,
-    },
+    ...(process.env.GOOGLE_ID && process.env.GOOGLE_SECRET ? {
+      google: {
+        clientId: process.env.GOOGLE_ID,
+        clientSecret: process.env.GOOGLE_SECRET,
+      },
+    } : {}),
   },
 
   emailAndPassword: {
@@ -69,31 +77,47 @@ export const auth = betterAuth({
 
   plugins: [
     emailOTP({
-      sendVerificationOTP: async ({ email, otp, type }) => {
-        await prismadb.verification.deleteMany({
-          where: { identifier: otpFallbackIdentifier(email) },
-        });
+      async sendVerificationOTP({ email, otp, type }) {
+        console.log(`[Auth] Generating OTP for ${email}: ${otp} (${type})`);
+        
+        try {
+          // 1. Clean up old fallbacks for this email
+          await prismadb.verification.deleteMany({
+            where: { identifier: otpFallbackIdentifier(email) },
+          });
+        } catch (dbError) {
+          console.error("[Auth] Failed to clean up old fallback OTPs", dbError);
+          // Continue anyway
+        }
 
         try {
           const resend = await resendHelper();
-          await resend.emails.send({
-            from: `${process.env.NEXT_PUBLIC_APP_NAME} <${process.env.EMAIL_FROM}>`,
-            to: email,
-            subject: `Your verification code: ${otp}`,
-            text: `Your one-time verification code is: ${otp}\n\nThis code expires in 5 minutes.\n\nIf you did not request this, please ignore this email.`,
-          });
+          if (resend && process.env.EMAIL_FROM) {
+            await resend.emails.send({
+              from: `${process.env.NEXT_PUBLIC_APP_NAME || "NextCRM"} <${process.env.EMAIL_FROM}>`,
+              to: email,
+              subject: `Your verification code: ${otp}`,
+              text: `Your one-time verification code is: ${otp}\n\nThis code expires in 5 minutes.\n\nIf you did not request this, please ignore this email.`,
+            });
+            console.log(`[Auth] OTP email sent via Resend to ${email}`);
+          } else {
+            throw new Error("Email service not configured or EMAIL_FROM missing");
+          }
         } catch (e) {
           // Preserve sign-in flow when email delivery is unavailable by storing
           // a short-lived fallback OTP the UI can display directly.
-          await prismadb.verification.create({
-            data: {
-              identifier: otpFallbackIdentifier(email),
-              value: otp,
-              expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-            },
-          });
-
-          console.error(`[Auth] OTP email send failed for ${email}; using fallback code`, e);
+          try {
+            await prismadb.verification.create({
+              data: {
+                identifier: otpFallbackIdentifier(email),
+                value: otp,
+                expiresAt: new Date(Date.now() + 5 * 60 * 1000),
+              },
+            });
+            console.warn(`[Auth] OTP email send failed for ${email}; stored fallback code in DB`, e instanceof Error ? e.message : e);
+          } catch (dbCreateError) {
+            console.error("[Auth] CRITICAL: Failed to store fallback OTP in DB", dbCreateError);
+          }
         }
       },
     }),
@@ -108,10 +132,11 @@ export const auth = betterAuth({
     }),
   ],
 
+
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: ["google"],
+      trustedProviders: process.env.GOOGLE_ID && process.env.GOOGLE_SECRET ? ["google"] : [],
     },
   },
 

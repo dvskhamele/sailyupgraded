@@ -47,6 +47,11 @@ export function InviteForm() {
 
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
+    defaultValues: {
+      name: "",
+      email: "",
+      language: "en",
+    },
   });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
@@ -114,7 +119,7 @@ export function InviteForm() {
           render={({ field }) => (
             <FormItem className="w-[250px]">
               <FormLabel>Language</FormLabel>
-              <Select onValueChange={field.onChange} defaultValue={field.value}>
+              <Select onValueChange={field.onChange} value={field.value}>
                 <FormControl>
                   <SelectTrigger>
                     <SelectValue placeholder="Select a user language" />

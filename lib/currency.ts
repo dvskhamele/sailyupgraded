@@ -6,7 +6,19 @@ export { findRate, convertAmount, formatCurrency } from "@/lib/currency-format";
 export type { Rate } from "@/lib/currency-format";
 
 export async function getExchangeRates() {
-  const rates = await prismadb.exchangeRate.findMany();
+  const exchangeRateModel = (prismadb as typeof prismadb & {
+    exchangeRate?: {
+      findMany?: () => Promise<
+        Array<{ fromCurrency: string; toCurrency: string; rate: Decimal }>
+      >;
+    };
+  }).exchangeRate;
+
+  if (!exchangeRateModel?.findMany) {
+    return [];
+  }
+
+  const rates = await exchangeRateModel.findMany();
   return rates.map((r: { fromCurrency: string; toCurrency: string; rate: Decimal }) => ({
     fromCurrency: r.fromCurrency,
     toCurrency: r.toCurrency,
@@ -19,7 +31,21 @@ export async function getSnapshotRate(
   to: string
 ): Promise<Decimal | null> {
   if (from === to) return new Decimal("1");
-  const rate = await prismadb.exchangeRate.findUnique({
+  const exchangeRateModel = (prismadb as typeof prismadb & {
+    exchangeRate?: {
+      findUnique?: (args: {
+        where: {
+          fromCurrency_toCurrency: { fromCurrency: string; toCurrency: string };
+        };
+      }) => Promise<{ rate: Decimal } | null>;
+    };
+  }).exchangeRate;
+
+  if (!exchangeRateModel?.findUnique) {
+    return null;
+  }
+
+  const rate = await exchangeRateModel.findUnique({
     where: {
       fromCurrency_toCurrency: { fromCurrency: from, toCurrency: to },
     },

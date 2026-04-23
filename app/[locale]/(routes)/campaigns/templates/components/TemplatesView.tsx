@@ -43,7 +43,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
@@ -120,7 +119,6 @@ function TemplateRowActions({ row }: { row: { original: Template } }) {
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setOpen(true)}>
             Delete
-            <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -147,7 +145,7 @@ const columns: ColumnDef<Template>[] = [
     accessorKey: "subject_default",
     header: "Subject Default",
     cell: ({ row }) => (
-      <div className="">{row.getValue("subject_default") ?? "—"}</div>
+      <div className="">{row.getValue("subject_default") ?? "-"}</div>
     ),
     enableSorting: true,
     enableHiding: true,
@@ -156,7 +154,7 @@ const columns: ColumnDef<Template>[] = [
     id: "created_by_name",
     header: "Created By",
     cell: ({ row }) => (
-      <div className="">{row.original.created_by_user?.name ?? "—"}</div>
+      <div className="">{row.original.created_by_user?.name ?? "-"}</div>
     ),
     enableSorting: false,
     enableHiding: true,
@@ -168,7 +166,7 @@ const columns: ColumnDef<Template>[] = [
       <div className="w-[90px]">
         {row.getValue("created_on")
           ? moment(row.getValue("created_on")).format("YY-MM-DD")
-          : "—"}
+          : "-"}
       </div>
     ),
     enableSorting: true,

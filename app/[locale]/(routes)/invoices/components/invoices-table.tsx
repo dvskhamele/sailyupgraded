@@ -45,6 +45,32 @@ interface InvoicesTableProps {
   };
 }
 
+function SortHeader({
+  field,
+  children,
+  sortField,
+  sortDir,
+  onToggleSort,
+}: {
+  field: SortField;
+  children: React.ReactNode;
+  sortField: SortField;
+  sortDir: SortDir;
+  onToggleSort: (field: SortField) => void;
+}) {
+  return (
+    <TableHead
+      className="cursor-pointer select-none"
+      onClick={() => onToggleSort(field)}
+    >
+      {children}
+      {sortField === field && (
+        <span className="ml-1">{sortDir === "asc" ? "\u2191" : "\u2193"}</span>
+      )}
+    </TableHead>
+  );
+}
+
 function formatDate(d: string | null, locale: string) {
   if (!d) return "-";
   return new Date(d).toLocaleDateString(locale);
@@ -118,40 +144,22 @@ export function InvoicesTable({
     return false;
   };
 
-  const SortHeader = ({
-    field,
-    children,
-  }: {
-    field: SortField;
-    children: React.ReactNode;
-  }) => (
-    <TableHead
-      className="cursor-pointer select-none"
-      onClick={() => toggleSort(field)}
-    >
-      {children}
-      {sortField === field && (
-        <span className="ml-1">{sortDir === "asc" ? "\u2191" : "\u2193"}</span>
-      )}
-    </TableHead>
-  );
-
   const labels = tableLabels ?? {};
 
   return (
     <Table>
       <TableHeader>
         <TableRow>
-          <SortHeader field="number">{labels.number ?? "Number"}</SortHeader>
-          <SortHeader field="account">{labels.account ?? "Account"}</SortHeader>
-          <SortHeader field="issueDate">
+          <SortHeader field="number" sortField={sortField} sortDir={sortDir} onToggleSort={toggleSort}>{labels.number ?? "Number"}</SortHeader>
+          <SortHeader field="account" sortField={sortField} sortDir={sortDir} onToggleSort={toggleSort}>{labels.account ?? "Account"}</SortHeader>
+          <SortHeader field="issueDate" sortField={sortField} sortDir={sortDir} onToggleSort={toggleSort}>
             {labels.issueDate ?? "Issued"}
           </SortHeader>
-          <SortHeader field="dueDate">{labels.dueDate ?? "Due"}</SortHeader>
-          <SortHeader field="grandTotal">
+          <SortHeader field="dueDate" sortField={sortField} sortDir={sortDir} onToggleSort={toggleSort}>{labels.dueDate ?? "Due"}</SortHeader>
+          <SortHeader field="grandTotal" sortField={sortField} sortDir={sortDir} onToggleSort={toggleSort}>
             {labels.total ?? "Total"}
           </SortHeader>
-          <SortHeader field="status">{labels.status ?? "Status"}</SortHeader>
+          <SortHeader field="status" sortField={sortField} sortDir={sortDir} onToggleSort={toggleSort}>{labels.status ?? "Status"}</SortHeader>
         </TableRow>
       </TableHeader>
       <TableBody>

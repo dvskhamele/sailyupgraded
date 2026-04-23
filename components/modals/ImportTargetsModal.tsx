@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { importTargets } from "@/actions/crm/targets/import-targets";
 import { suggestMapping } from "@/actions/crm/targets/suggest-mapping";
@@ -107,7 +107,7 @@ const ImportTargetsModal = () => {
     });
   };
 
-  const fetchSuggestedMapping = useCallback(async (headers: string[]) => {
+  const fetchSuggestedMapping = async (headers: string[]) => {
     setIsSuggesting(true);
     setStep("mapping");
     try {
@@ -134,7 +134,7 @@ const ImportTargetsModal = () => {
     } finally {
       setIsSuggesting(false);
     }
-  }, []);
+  };
 
   const computePreview = () => {
     let valid = 0;

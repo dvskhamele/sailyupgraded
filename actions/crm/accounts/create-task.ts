@@ -53,25 +53,27 @@ export const createTask = async (data: {
           where: { id: user },
         });
 
-        await resend.emails.send({
-          from:
-            process.env.NEXT_PUBLIC_APP_NAME +
-            " <" +
-            process.env.EMAIL_FROM +
-            ">",
-          to: notifyRecipient?.email!,
-          subject:
-            session.user.userLanguage === "en"
-              ? `New task - ${title}.`
-              : `Nový úkol - ${title}.`,
-          text: "",
-          react: NewTaskFromCRMEmail({
-            taskFromUser: session.user.name!,
-            username: notifyRecipient?.name!,
-            userLanguage: notifyRecipient?.userLanguage!,
-            taskData: task,
-          }),
-        });
+        if (resend) {
+          await resend.emails.send({
+            from:
+              process.env.NEXT_PUBLIC_APP_NAME +
+              " <" +
+              process.env.EMAIL_FROM +
+              ">",
+            to: notifyRecipient?.email!,
+            subject:
+              session.user.userLanguage === "en"
+                ? `New task - ${title}.`
+                : `Nový úkol - ${title}.`,
+            text: "",
+            react: NewTaskFromCRMEmail({
+              taskFromUser: session.user.name!,
+              username: notifyRecipient?.name!,
+              userLanguage: notifyRecipient?.userLanguage!,
+              taskData: task,
+            }),
+          });
+        }
       } catch (error) {
         console.log(error);
       }
@@ -88,25 +90,27 @@ export const createTask = async (data: {
       });
 
       for (const watcher of accountWatchers) {
-        await resend.emails.send({
-          from:
-            process.env.NEXT_PUBLIC_APP_NAME +
-            " <" +
-            process.env.EMAIL_FROM +
-            ">",
-          to: watcher.user?.email!,
-          subject:
-            session.user.userLanguage === "en"
-              ? `New task - ${title}.`
-              : `Nový úkol - ${title}.`,
-          text: "",
-          react: NewTaskFromCRMToWatchersEmail({
-            taskFromUser: session.user.name!,
-            username: watcher.user?.name!,
-            userLanguage: watcher.user?.userLanguage!,
-            taskData: task,
-          }),
-        });
+        if (resend) {
+          await resend.emails.send({
+            from:
+              process.env.NEXT_PUBLIC_APP_NAME +
+              " <" +
+              process.env.EMAIL_FROM +
+              ">",
+            to: watcher.user?.email!,
+            subject:
+              session.user.userLanguage === "en"
+                ? `New task - ${title}.`
+                : `Nový úkol - ${title}.`,
+            text: "",
+            react: NewTaskFromCRMToWatchersEmail({
+              taskFromUser: session.user.name!,
+              username: watcher.user?.name!,
+              userLanguage: watcher.user?.userLanguage!,
+              taskData: task,
+            }),
+          });
+        }
       }
     } catch (error) {
       console.log(error);

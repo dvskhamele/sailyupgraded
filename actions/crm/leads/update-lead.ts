@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
+import { getAddressLine1 } from "@/lib/crm-address";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export const updateLead = async (data: {
   id: string;
@@ -14,6 +16,12 @@ export const updateLead = async (data: {
   jobTitle?: string | null;
   email?: string | null;
   phone?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postal_code?: string | null;
   description?: string | null;
   lead_source_id?: string | null;
   lead_status_id?: string | null;
@@ -35,6 +43,12 @@ export const updateLead = async (data: {
     jobTitle,
     email,
     phone,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    country,
+    postal_code,
     description,
     lead_source_id,
     lead_status_id,
@@ -45,6 +59,17 @@ export const updateLead = async (data: {
     accountIDs,
   } = data;
 
+  const resolvedAddressLine1 = getAddressLine1(undefined, address_line1);
+  const supportedAddressFields = pickSupportedModelFields("crm_Leads", {
+    address: resolvedAddressLine1 || null,
+    address_line1: resolvedAddressLine1 || null,
+    address_line2: address_line2 || null,
+    city: city || null,
+    state: state || null,
+    country: country || null,
+    postal_code: postal_code || null,
+  });
+
   if (!id) return { error: "id is required" };
 
   try {
@@ -54,12 +79,13 @@ export const updateLead = async (data: {
       data: {
         v: 1,
         updatedBy: userId,
-        firstName,
+        firstName: firstName || undefined,
         lastName,
         company,
         jobTitle,
         email,
         phone,
+        ...supportedAddressFields,
         description,
         lead_source_id: lead_source_id || undefined,
         lead_status_id: lead_status_id || undefined,

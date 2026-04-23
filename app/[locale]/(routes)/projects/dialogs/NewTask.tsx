@@ -43,10 +43,11 @@ import { CalendarIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createTask } from "@/actions/projects/create-task";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 type Props = {
   boards: any;
@@ -56,11 +57,10 @@ const NewTaskDialog = ({ boards }: Props) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
-
   const router = useRouter();
   const t = useTranslations("ProjectsPage");
   const c = useTranslations("Common");
+  const isHydrated = useHydrated();
 
   const formSchema = z.object({
     title: z.string().min(3).max(255),
@@ -80,11 +80,7 @@ const NewTaskDialog = ({ boards }: Props) => {
     },
   });
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
+  if (!isHydrated) {
     return null;
   }
 

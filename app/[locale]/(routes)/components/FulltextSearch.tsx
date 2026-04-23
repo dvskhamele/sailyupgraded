@@ -1,39 +1,176 @@
 "use client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, UserPlus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState } from "react";
+import React, { useState, useEffect, useTransition } from "react";
+import useDebounce from "@/hooks/useDebounce";
+import { searchContacts, ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandGroup,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { NewContactForm } from "../crm/contacts/components/NewContactForm";
+import { getContactFormOptions } from "@/actions/crm/contacts/get-contact-form-options";
 
 const FulltextSearch = () => {
   const [search, setSearch] = useState("");
+  const [results, setResults] = useState<ContactSearchItem[]>([]);
+  const [isPending, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [formOptions, setFormOptions] = useState<{ accounts: any[], contactTypes: any[] } | null>(null);
+  
   const router = useRouter();
+  const debouncedSearch = useDebounce(search, 300);
+  const visibleResults = debouncedSearch.length >= 2 ? results : [];
+
+  useEffect(() => {
+    if (debouncedSearch.length < 2) return;
+
+    startTransition(async () => {
+      const data = await searchContacts({
+        search: debouncedSearch,
+        take: 5,
+      });
+      setResults(data);
+    });
+  }, [debouncedSearch]);
 
   const handleSearch = async () => {
     router.push(`/fulltext-search?q=${search}`);
     setSearch("");
+    setOpen(false);
+  };
+
+  const handleSelect = (contactId: string) => {
+    router.push(`/crm/contacts/${contactId}`);
+    setSearch("");
+    setOpen(false);
+  };
+
+  const openAddContact = async () => {
+    const options = await getContactFormOptions();
+    setFormOptions(options);
+    setDialogOpen(true);
+    setOpen(false);
   };
 
   return (
-    <form
-      onSubmit={(event) => {
-        event.preventDefault();
-        void handleSearch();
-      }}
-      className="flex min-w-0 w-full flex-1 items-center space-x-2"
-    >
-      <Input
-        type="text"
-        className="min-w-0 flex-1"
-        placeholder={"Search something ..."}
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
-      <Button type="submit" className="shrink-0 gap-2">
+    <div className="flex min-w-0 w-full flex-1 items-center space-x-2 relative">
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <div className="flex-1 flex items-center relative">
+            <Input
+              type="text"
+              className="min-w-0 flex-1"
+              placeholder={"Search something ..."}
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                if (!open) setOpen(true);
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSearch();
+              }}
+            />
+            {isPending && search.length >= 2 && (
+              <Loader2 className="absolute right-3 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-[var(--radix-popover-trigger-width)] p-0" 
+          align="start"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
+          <Command shouldFilter={false}>
+            <CommandList>
+              {visibleResults.length > 0 ? (
+                <CommandGroup heading="Contacts">
+                  {visibleResults.map((contact) => (
+                    <CommandItem
+                      key={contact.id}
+                      value={contact.id}
+                      onSelect={handleSelect}
+                      className="cursor-pointer"
+                    >
+                      <div className="flex flex-col">
+                        <span className="font-medium text-sm">
+                          {contact.first_name} {contact.last_name}
+                        </span>
+                        {contact.email && (
+                          <span className="text-xs text-muted-foreground">
+                            {contact.email}
+                          </span>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              ) : (
+                !isPending && search.length >= 2 && (
+                  <div className="p-4 text-center">
+                    <p className="text-sm text-muted-foreground mb-3">No contacts found.</p>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      onClick={openAddContact}
+                      className="w-full flex items-center justify-center gap-2"
+                    >
+                      <UserPlus className="h-4 w-4" />
+                      Add Contact
+                    </Button>
+                  </div>
+                )
+              )}
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+      <Button onClick={handleSearch} className="shrink-0 gap-2">
         <span className="hidden sm:flex">Search</span>
-        <SearchIcon />
+        <SearchIcon className="h-4 w-4" />
       </Button>
-    </form>
+
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Quick Add Contact</DialogTitle>
+            <DialogDescription>
+              Create a new contact record. The name is pre-filled from your search.
+            </DialogDescription>
+          </DialogHeader>
+          {formOptions && (
+            <NewContactForm 
+              accounts={formOptions.accounts}
+              contactTypes={formOptions.contactTypes}
+              onFinish={() => {
+                setDialogOpen(false);
+                router.refresh();
+              }}
+              initialValues={{
+                last_name: search,
+              }}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
   );
 };
 

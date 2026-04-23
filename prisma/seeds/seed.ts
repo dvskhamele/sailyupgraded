@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaTiDBCloud } from "@tidbcloud/prisma-adapter";
 import dotenv from "dotenv";
 import path from "path";
+import { createMariaDbAdapter } from "../../lib/prisma-mariadb";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
@@ -18,7 +18,7 @@ import { seedCurrencies } from "./currencies";
 import { seedInvoices } from "./invoices";
 
 const connectionString = process.env.DATABASE_URL!;
-const adapter = new PrismaTiDBCloud({ url: connectionString });
+const adapter = createMariaDbAdapter(connectionString);
 
 const prisma = new PrismaClient({ adapter });
 

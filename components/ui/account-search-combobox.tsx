@@ -69,33 +69,15 @@ export function AccountSearchCombobox({
         take: PAGE_SIZE,
       });
       setListData(data);
+      setAccumulatedAccounts((prev) =>
+        skip === 0 ? data.accounts : [...prev, ...data.accounts]
+      );
     });
   }, [open, debouncedSearch, skip]);
 
-  // Accumulate across pages
-  useEffect(() => {
-    if (listData?.accounts) {
-      if (skip === 0) {
-        setAccumulatedAccounts(listData.accounts);
-      } else {
-        setAccumulatedAccounts((prev) => [...prev, ...listData.accounts]);
-      }
-    }
-  }, [listData, skip]);
-
-  // Reset on search change
-  useEffect(() => {
-    setSkip(0);
-    setAccumulatedAccounts([]);
-    setListData(null);
-  }, [debouncedSearch]);
-
   // Load selected account name if not in list
   useEffect(() => {
-    if (!value || selectedInList) {
-      if (!value) setSelectedAccount(null);
-      return;
-    }
+    if (!value || selectedInList) return;
     startTransition(async () => {
       const account = await getAccountById(value);
       setSelectedAccount(account);
@@ -106,6 +88,9 @@ export function AccountSearchCombobox({
 
   const handleSelect = (accountId: string) => {
     onChange(accountId === value ? "" : accountId);
+    if (accountId === value) {
+      setSelectedAccount(null);
+    }
     setOpen(false);
   };
 
@@ -168,7 +153,12 @@ export function AccountSearchCombobox({
             <CommandInput
               placeholder="Search accounts..."
               value={search}
-              onValueChange={setSearch}
+              onValueChange={(nextValue) => {
+                setSearch(nextValue);
+                setSkip(0);
+                setAccumulatedAccounts([]);
+                setListData(null);
+              }}
             />
             <CommandList onWheelCapture={(e) => e.stopPropagation()}>
               {isLoading ? (

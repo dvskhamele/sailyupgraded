@@ -38,8 +38,13 @@ export function LoginComponent() {
         provider: "google",
         callbackURL: "/",
       });
-    } catch (error) {
-      toast.error("Something went wrong with Google sign-in.");
+    } catch (error: any) {
+      console.error("Google sign-in error:", error);
+      if (error?.message?.includes("provider not found") || error?.message?.includes("google")) {
+        toast.error("Google sign-in is not configured. Please use email sign-in instead.");
+      } else {
+        toast.error("Something went wrong with Google sign-in.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -52,20 +57,46 @@ export function LoginComponent() {
     }
     setIsLoading(true);
     try {
+      const normalizedEmail = email.trim().toLowerCase();
       setDevOtp("");
 
       const { error } = await authClient.emailOtp.sendVerificationOtp({
-        email,
+        email: normalizedEmail,
         type: "sign-in",
       });
 
+      let usedDevFallback = false;
+
+      if (error) {
+        const fallbackResponse = await fetch("/api/auth/dev-send-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: normalizedEmail }),
+        });
+
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          setEmail(normalizedEmail);
+          setStep("otp");
+          setDevOtp(fallbackData.otp);
+          usedDevFallback = true;
+          toast.success(`Development OTP: ${fallbackData.otp}`);
+        } else {
+          toast.error(error.message || "Failed to send verification code.");
+          return;
+        }
+      }
+
       try {
         const response = await fetch(
-          `/api/auth/test-otp?email=${encodeURIComponent(email)}`
+          `/api/auth/test-otp?email=${encodeURIComponent(normalizedEmail)}`
         );
         if (response.ok) {
           const data = await response.json();
           if (data?.otp) {
+            setEmail(normalizedEmail);
             setStep("otp");
             setDevOtp(data.otp);
             toast.success(
@@ -80,11 +111,16 @@ export function LoginComponent() {
         // Ignore OTP preview failures and fall back to the generic message.
       }
 
+      if (usedDevFallback) {
+        return;
+      }
+
       if (error) {
         toast.error(error.message || "Failed to send verification code.");
         return;
       }
 
+      setEmail(normalizedEmail);
       setStep("otp");
       toast.success("Verification code sent to your email.");
     } catch (error) {
@@ -125,6 +161,7 @@ export function LoginComponent() {
         <CardDescription>Choose your sign-in method</CardDescription>
       </CardHeader>
       <CardContent className="grid gap-4">
+        {/* Google sign-in button */}
         <Button
           variant="outline"
           onClick={loginWithGoogle}
@@ -141,7 +178,7 @@ export function LoginComponent() {
           </div>
           <div className="relative flex justify-center text-xs uppercase">
             <span className="bg-background px-2 text-muted-foreground">
-              Or continue with email
+              Sign in with email
             </span>
           </div>
         </div>

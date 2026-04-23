@@ -11,13 +11,13 @@
 
 import { MongoClient } from 'mongodb';
 import { PrismaClient as PrismaClientPG } from '@prisma/client';
-import { PrismaTiDBCloud } from '@tidbcloud/prisma-adapter';
 import { CheckpointManager } from './migration/checkpoint-manager';
 import { ProgressTracker } from './migration/progress-tracker';
 import { ErrorLogger } from './migration/error-logger';
 import { UuidMapper } from './migration/uuid-mapper';
 import { MigrationOrchestrator } from './migration/orchestrator';
 import { formatDuration, formatNumber } from './migration/utils';
+import { createMariaDbAdapter } from '../lib/prisma-mariadb';
 import * as path from 'path';
 import * as process from 'process';
 
@@ -49,7 +49,7 @@ async function main() {
   if (!pgConnectionString) {
     throw new Error('PostgreSQL connection URL not found. Please set DATABASE_URL_POSTGRES or DATABASE_URL');
   }
-  const pgAdapter = new PrismaTiDBCloud({ url: pgConnectionString });
+  const pgAdapter = createMariaDbAdapter(pgConnectionString);
   const pgClient = new PrismaClientPG({ adapter: pgAdapter });
 
   try {

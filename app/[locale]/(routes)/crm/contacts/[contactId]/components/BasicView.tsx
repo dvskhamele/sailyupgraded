@@ -24,6 +24,7 @@ import { EnvelopeClosedIcon } from "@radix-ui/react-icons";
 import { Badge } from "@/components/ui/badge";
 import { ContactDetailActions } from "./ContactDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
+import { formatAddress } from "@/lib/crm-address";
 // import { EnrichButton } from "./EnrichButton";
 
 interface OppsViewProps {
@@ -267,6 +268,14 @@ export async function BasicView({ data }: OppsViewProps) {
                   ) : (
                     "N/A"
                   )}
+                </p>
+              </div>
+            </div>
+            <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+              <div className="space-y-1">
+                <p className="text-sm font-medium leading-none">Address</p>
+                <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  {formatAddress(data, true) || "N/A"}
                 </p>
               </div>
             </div>

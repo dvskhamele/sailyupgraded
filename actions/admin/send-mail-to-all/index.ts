@@ -77,21 +77,23 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       }
 
       //send via Resend.com
-      await resend.emails.send({
-        from:
-          process.env.NEXT_PUBLIC_APP_NAME +
-          " <" +
-          process.env.EMAIL_FROM +
-          ">",
-        to: user?.email!,
-        subject: title,
-        text: message, // Add this line to fix the types issue
-        react: MessageToAllUsers({
-          title: title,
-          message: message,
-          username: user?.name!,
-        }),
-      });
+      if (resend) {
+        await resend.emails.send({
+          from:
+            process.env.NEXT_PUBLIC_APP_NAME +
+            " <" +
+            process.env.EMAIL_FROM +
+            ">",
+          to: user?.email!,
+          subject: title,
+          text: message, // Add this line to fix the types issue
+          react: MessageToAllUsers({
+            title: title,
+            message: message,
+            username: user?.name!,
+          }),
+        });
+      }
     }
   } catch (error) {
     console.log(error);

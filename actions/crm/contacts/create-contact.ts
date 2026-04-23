@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
+import { getAddressLine1 } from "@/lib/crm-address";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export const createContact = async (data: {
   assigned_to?: string;
@@ -20,6 +22,14 @@ export const createContact = async (data: {
   office_phone?: string;
   mobile_phone?: string;
   website?: string;
+  address?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
+  position?: string;
   status?: boolean;
   social_twitter?: string;
   social_facebook?: string;
@@ -41,22 +51,41 @@ export const createContact = async (data: {
     birthday_month,
     birthday_year,
     contact_type_id,
+    address,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    country,
+    postal_code,
     ...rest
   } = data;
+
+  const resolvedAddressLine1 = getAddressLine1(address, address_line1);
+  const supportedAddressFields = pickSupportedModelFields("crm_Contacts", {
+    address: resolvedAddressLine1 || undefined,
+    address_line1: resolvedAddressLine1 || undefined,
+    address_line2: address_line2 || undefined,
+    city: city || undefined,
+    state: state || undefined,
+    country: country || undefined,
+    postal_code: postal_code || undefined,
+  });
 
   try {
     const contact = await prismadb.crm_Contacts.create({
       data: {
-        v: 0,
+        v: 1,
         createdBy: userId,
         updatedBy: userId,
-        accountsIDs: assigned_account ?? undefined,
-        assigned_to: assigned_to ?? undefined,
-        contact_type_id: contact_type_id ?? undefined,
+        accountsIDs: assigned_account || undefined,
+        assigned_to: assigned_to || undefined,
+        contact_type_id: contact_type_id || undefined,
         birthday:
           birthday_day && birthday_month && birthday_year
             ? birthday_day + "/" + birthday_month + "/" + birthday_year
             : null,
+        ...supportedAddressFields,
         ...rest,
       } as any,
     });
@@ -92,8 +121,18 @@ export const createContact = async (data: {
     void inngest.send({ name: "crm/contact.saved", data: { record_id: contact.id } });
     revalidatePath("/[locale]/crm/contacts", "page");
     return { data: contact };
-  } catch (error) {
-    console.log("[CREATE_CONTACT]", error);
-    return { error: "Failed to create contact" };
+  } catch (error: any) {
+    console.log("[CREATE_CONTACT] Error detail:", {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      data: {
+        assigned_to,
+        assigned_account,
+        contact_type_id,
+        ...rest
+      }
+    });
+    return { error: "Failed to create contact: " + (error.message || "Unknown error") };
   }
 };

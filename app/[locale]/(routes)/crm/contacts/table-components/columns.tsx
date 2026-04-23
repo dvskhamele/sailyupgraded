@@ -10,6 +10,7 @@ import { Opportunity } from "../table-data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import moment from "moment";
+import { formatAddress } from "@/lib/crm-address";
 
 type ConfigItem = { id: string; name: string };
 
@@ -122,6 +123,16 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
     cell: ({ row }) => (
       <div className="">{row.original.status ? "Active" : "Inactive"}</div>
     ),
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    id: "address",
+    accessorFn: (row) => formatAddress(row as any),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Address" />
+    ),
+    cell: ({ row }) => <div className="">{formatAddress(row.original as any) || "N/A"}</div>,
     enableSorting: true,
     enableHiding: true,
   },

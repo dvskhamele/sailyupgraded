@@ -147,7 +147,7 @@ export default function TemplateEditorForm({ initialData, templateId }: Props) {
       </div>
 
       {/* AI Generation */}
-      <div className="flex flex-col gap-3 rounded-md border p-4 bg-muted/30">
+      {/* <div className="flex flex-col gap-3 rounded-md border p-4 bg-muted/30">
         <h3 className="font-semibold text-sm">Generate with AI</h3>
         <div className="flex flex-col gap-2">
           <Label htmlFor="ai-prompt">Describe the email you want</Label>
@@ -167,7 +167,7 @@ export default function TemplateEditorForm({ initialData, templateId }: Props) {
         >
           {isGenerating ? "Generating..." : "Generate"}
         </Button>
-      </div>
+      </div> */}
 
       {/* TipTap Editor */}
       <div className="flex flex-col gap-2">

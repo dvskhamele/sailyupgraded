@@ -3,7 +3,7 @@
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { useRouter } from "next/navigation";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 import {
@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { createSection } from "@/actions/projects/create-section";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 type NewSectionFormProps = {
   boardId: string;
@@ -29,9 +30,8 @@ type NewSectionFormProps = {
 const NewSectionForm = ({ boardId, onClose }: NewSectionFormProps) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
-
   const router = useRouter();
+  const isHydrated = useHydrated();
 
   const formSchema = z.object({
     title: z.string().min(3).max(255),
@@ -43,11 +43,7 @@ const NewSectionForm = ({ boardId, onClose }: NewSectionFormProps) => {
     resolver: zodResolver(formSchema),
   });
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
+  if (!isHydrated) {
     return null;
   }
   //Actions

@@ -31,6 +31,7 @@ import {
 } from "@prisma/client";
 
 import { DotsHorizontalIcon, PlusCircledIcon } from "@radix-ui/react-icons";
+import { FaBraille } from "react-icons/fa";
 
 import {
   DropdownMenu,
@@ -64,6 +65,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -79,12 +81,12 @@ const LOST_DROP_ID = "lost-column";
 
 function initColumns(
   opps: crm_Opportunities[],
-  stages: crm_Opportunities_Sales_Stages[]
+  stages: crm_Opportunities_Sales_Stages[],
 ): Column[] {
   return stages.map((stage) => ({
     ...stage,
     opportunities: opps.filter(
-      (o: any) => o.sales_stage === stage.id && o.status === "ACTIVE"
+      (o: any) => o.sales_stage === stage.id && o.status === "ACTIVE",
     ),
   }));
 }
@@ -131,16 +133,14 @@ function OpportunityCard({
           <span className="font-bold">{opportunity.name}</span>
           <div>
             <DropdownMenu>
-                <DropdownMenuTrigger asChild>
+              <DropdownMenuTrigger asChild>
                 <DotsHorizontalIcon
                   className="w-4 h-4 text-slate-600"
                   onClick={(event) => event.stopPropagation()}
                 />
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-[160px]">
-                <DropdownMenuItem
-                  onClick={() => onOpenEdit(opportunity)}
-                >
+                <DropdownMenuItem onClick={() => onOpenEdit(opportunity)}>
                   Update
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -178,7 +178,7 @@ function OpportunityCard({
                 opportunity.close_date
                   ? new Date(opportunity.close_date)
                   : new Date(),
-                "dd/MM/yyyy"
+                "dd/MM/yyyy",
               )}
             </span>
           </div>
@@ -200,7 +200,7 @@ function OpportunityCard({
         <div className="flex space-x-2">
           {stage.probability !==
             Math.max(
-              ...salesStages.map((s: any) => Number(s.probability || 0))
+              ...salesStages.map((s: any) => Number(s.probability || 0)),
             ) && (
             <ThumbsDown
               className="w-4 h-4 text-red-500"
@@ -216,16 +216,24 @@ function OpportunityCard({
   );
 }
 
-function OpportunityCardStatic({ opportunity, onOpenEdit, stage, salesStages }: any) {
+function OpportunityCardStatic({
+  opportunity,
+  onOpenEdit,
+  stage,
+  salesStages,
+}: any) {
   return (
-    <Card className="my-2 w-full cursor-pointer" onClick={() => onOpenEdit(opportunity)}>
+    <Card
+      className="my-2 w-full cursor-pointer"
+      onClick={() => onOpenEdit(opportunity)}
+    >
       <CardTitle className="p-2 text-sm">
         <div className="flex justify-between p-2">
           <span className="font-bold">{opportunity.name}</span>
           <div>
             {stage.probability !==
               Math.max(
-                ...salesStages.map((s: any) => Number(s.probability || 0))
+                ...salesStages.map((s: any) => Number(s.probability || 0)),
               ) && <ThumbsDown className="w-4 h-4 text-red-500" />}
           </div>
         </div>
@@ -260,7 +268,7 @@ function OpportunityCardStatic({ opportunity, onOpenEdit, stage, salesStages }: 
                 opportunity.close_date
                   ? new Date(opportunity.close_date)
                   : new Date(),
-                "dd/MM/yyyy"
+                "dd/MM/yyyy",
               )}
             </span>
           </div>
@@ -285,7 +293,13 @@ function OpportunityCardStatic({ opportunity, onOpenEdit, stage, salesStages }: 
 }
 
 // Droppable zone inside each column — same pattern as DroppableColumn in Kanban.tsx
-function DroppableStage({ id, children }: { id: string; children: React.ReactNode }) {
+function DroppableStage({
+  id,
+  children,
+}: {
+  id: string;
+  children: React.ReactNode;
+}) {
   const { setNodeRef } = useDroppable({ id });
   return (
     <div ref={setNodeRef} className="min-h-[50px]">
@@ -304,25 +318,33 @@ const CRMKanban = ({
   const [selectedStage, setSelectedStage] = useState("");
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
-  const [isMounted, setIsMounted] = useState(false);
-  const [editingOpportunity, setEditingOpportunity] = useState<crm_Opportunities | null>(null);
+  const [editingOpportunity, setEditingOpportunity] =
+    useState<crm_Opportunities | null>(null);
+  const isHydrated = useHydrated();
 
   const serverDataRef = useRef(data);
   const [columns, setColumns] = useState<Column[]>(() =>
-    initColumns(data, salesStages)
+    initColumns(data, salesStages),
   );
   const [lostCards, setLostCards] = useState<crm_Opportunities[]>(() =>
-    getLostOpportunities(data)
+    getLostOpportunities(data),
   );
   const columnsRef = useRef<Column[]>(columns);
-  columnsRef.current = columns;
 
   const [activeOpportunity, setActiveOpportunity] =
     useState<crm_Opportunities | null>(null);
   const origStageIdRef = useRef<string | null>(null);
   const isDraggingRef = useRef(false);
 
-  const { accounts, contacts, saleTypes, saleStages, campaigns, currencies, lostStage } = crmData;
+  const {
+    accounts,
+    contacts,
+    saleTypes,
+    saleStages,
+    campaigns,
+    currencies,
+    lostStage,
+  } = crmData;
 
   const openEditOpportunity = (opportunity: crm_Opportunities) => {
     setEditingOpportunity(opportunity);
@@ -331,8 +353,8 @@ const CRMKanban = ({
 
   // Sync from server (e.g. after onThumbsDown router.refresh()) — only when not dragging
   useEffect(() => {
-    setIsMounted(true);
-  }, []);
+    columnsRef.current = columns;
+  }, [columns]);
 
   useEffect(() => {
     if (serverDataRef.current !== data && !isDraggingRef.current) {
@@ -340,11 +362,13 @@ const CRMKanban = ({
       setColumns(initColumns(data, salesStages));
       setLostCards(getLostOpportunities(data));
     }
-  }, [data]);
+  }, [data, salesStages]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -422,15 +446,16 @@ const CRMKanban = ({
     }));
     let movedOpp: crm_Opportunities;
     if (fromLost) {
-      movedOpp = { ...lostCards[fromLostIdx], status: "ACTIVE", sales_stage: newColumns[toColIdx].id } as crm_Opportunities;
+      movedOpp = {
+        ...lostCards[fromLostIdx],
+        status: "ACTIVE",
+        sales_stage: newColumns[toColIdx].id,
+      } as crm_Opportunities;
       const nextLost = [...lostCards];
       nextLost.splice(fromLostIdx, 1);
       setLostCards(nextLost);
     } else {
-      [movedOpp] = newColumns[fromColIdx].opportunities.splice(
-        fromOppIdx,
-        1
-      );
+      [movedOpp] = newColumns[fromColIdx].opportunities.splice(fromOppIdx, 1);
       (movedOpp as any).sales_stage = newColumns[toColIdx].id;
       (movedOpp as any).status = "ACTIVE";
     }
@@ -473,8 +498,7 @@ const CRMKanban = ({
 
     const curStageId = current[curColIdx].id;
     const wasCrossStageMove =
-      origStageIdRef.current !== null &&
-      origStageIdRef.current !== curStageId;
+      origStageIdRef.current !== null && origStageIdRef.current !== curStageId;
 
     if (!wasCrossStageMove) return;
 
@@ -528,7 +552,11 @@ const CRMKanban = ({
             salesType={saleTypes}
             saleStages={saleStages}
             campaigns={campaigns}
-            currencies={(currencies ?? []).map((c: any) => ({ code: c.code, name: c.name, symbol: c.symbol }))}
+            currencies={(currencies ?? []).map((c: any) => ({
+              code: c.code,
+              name: c.name,
+              symbol: c.symbol,
+            }))}
             selectedStage={selectedStage}
             onDialogClose={() => setIsDialogOpen(false)}
           />
@@ -538,7 +566,10 @@ const CRMKanban = ({
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Update Opportunity{editingOpportunity?.name ? ` - ${editingOpportunity.name}` : ""}</SheetTitle>
+            <SheetTitle>
+              Update Opportunity
+              {editingOpportunity?.name ? ` - ${editingOpportunity.name}` : ""}
+            </SheetTitle>
             <SheetDescription>Update opportunity details</SheetDescription>
           </SheetHeader>
           {editingOpportunity ? (
@@ -549,32 +580,42 @@ const CRMKanban = ({
                 saleTypes={saleTypes}
                 saleStages={saleStages}
                 campaigns={campaigns}
-                currencies={(currencies ?? []).map((c: any) => ({ code: c.code, name: c.name, symbol: c.symbol }))}
+                currencies={(currencies ?? []).map((c: any) => ({
+                  code: c.code,
+                  name: c.name,
+                  symbol: c.symbol,
+                }))}
               />
             </div>
           ) : null}
         </SheetContent>
       </Sheet>
 
-      {!isMounted ? (
-        <div className="flex w-full h-full overflow-x-auto">
+      {!isHydrated ? (
+        <div className="flex w-full h-full overflow-x-auto h-[500px] gap-4 px-2 pb-2">
           {columns.map((col) => (
             <Card
               key={col.id}
-              className="mx-1 w-full min-w-[300px] overflow-hidden pb-10"
+              className="flex flex-col w-full min-w-[300px] max-w-[320px] bg-background border rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
             >
-              <CardTitle className="flex gap-2 p-3 justify-between">
-                <span className="text-sm font-bold">{col.name}</span>
+              {/* Header */}
+              <CardTitle className="flex items-center justify-between px-4 py-3 border-b">
+                <span className="text-sm font-semibold text-foreground">
+                  {col.name}
+                </span>
+
                 <PlusCircledIcon
-                  className="w-5 h-5 cursor-pointer"
+                  className="w-5 h-5 cursor-pointer text-muted-foreground hover:text-primary transition"
                   onClick={() => {
                     setSelectedStage(col.id);
                     setIsDialogOpen(true);
                   }}
                 />
               </CardTitle>
-              <CardContent className="w-full h-full overflow-y-auto">
-                <div className="min-h-[50px]">
+
+              {/* Content */}
+              <CardContent className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+                <div className="min-h-[50px] space-y-2">
                   {col.opportunities.map((opportunity) => (
                     <OpportunityCardStatic
                       key={opportunity.id}
@@ -589,12 +630,16 @@ const CRMKanban = ({
             </Card>
           ))}
 
-          <Card className="mx-1 w-full min-w-[300px] overflow-hidden pb-10">
-            <CardTitle className="flex gap-2 p-3 justify-between">
-              <span className="text-sm font-bold">{lostStage?.name ?? "Lost"}</span>
+          {/* Lost Column */}
+          <Card className="flex flex-col w-full min-w-[300px] max-w-[320px] bg-background border rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
+            <CardTitle className="flex items-center justify-between px-4 py-3 border-b">
+              <span className="text-sm font-semibold text-red-500">
+                {lostStage?.name ?? "Lost"}
+              </span>
             </CardTitle>
-            <CardContent className="w-full h-full overflow-y-scroll space-y-2">
-              <div className="min-h-[50px]">
+
+            <CardContent className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+              <div className="min-h-[50px] space-y-2">
                 {lostOpportunities.map((opportunity: any) => (
                   <OpportunityCardStatic
                     key={opportunity.id}
@@ -609,93 +654,100 @@ const CRMKanban = ({
           </Card>
         </div>
       ) : (
-      <DndContext
-        id="crm-dashboard-kanban"
-        sensors={sensors}
-        collisionDetection={closestCorners}
-        onDragStart={handleDragStart}
-        onDragOver={handleDragOver}
-        onDragEnd={handleDragEnd}
-      >
-        <div className="flex w-full h-full overflow-x-auto">
-          {columns.map((col) => (
-            <Card
-              key={col.id}
-              className="mx-1 w-full min-w-[300px] overflow-hidden pb-10"
-            >
+        <DndContext
+          id="crm-dashboard-kanban"
+          sensors={sensors}
+          collisionDetection={closestCorners}
+          onDragStart={handleDragStart}
+          onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd}
+        >
+          <div className="flex w-full h-full overflow-x-auto">
+            {columns.map((col) => (
+              <Card
+                key={col.id}
+                className="mx-1 w-full min-w-[300px] overflow-hidden pb-10"
+              >
+                <CardTitle className="flex gap-2 p-3 justify-between">
+                  <span className="text-sm  font-bold">{col.name}</span>
+                  <div className="flex">
+                    <FaBraille 
+                    className="mr-[10px] w-5 h-5 cursor-pointer"
+                    />
+                    <PlusCircledIcon
+                      className="w-5 h-5 cursor-pointer"
+                      onClick={() => {
+                        setSelectedStage(col.id);
+                        setIsDialogOpen(true);
+                      }}
+                    />{" "}
+                  </div>
+                </CardTitle>
+                <CardContent className="w-full h-full overflow-y-auto">
+                  <SortableContext
+                    items={col.opportunities.map((o) => o.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    <DroppableStage id={col.id}>
+                      {col.opportunities.map((opportunity) => (
+                        <OpportunityCard
+                          key={opportunity.id}
+                          opportunity={opportunity}
+                          router={router}
+                          onThumbsDown={onThumbsDown}
+                          onOpenEdit={openEditOpportunity}
+                          stage={col}
+                          salesStages={salesStages}
+                        />
+                      ))}
+                    </DroppableStage>
+                  </SortableContext>
+                </CardContent>
+              </Card>
+            ))}
+
+            {/* Lost Opportunities Column */}
+            <Card className="mx-1 w-full min-w-[300px] overflow-hidden pb-10">
               <CardTitle className="flex gap-2 p-3 justify-between">
-                <span className="text-sm font-bold">{col.name}</span>
-                <PlusCircledIcon
-                  className="w-5 h-5 cursor-pointer"
-                  onClick={() => {
-                    setSelectedStage(col.id);
-                    setIsDialogOpen(true);
-                  }}
-                />
+                <span className="text-sm font-bold">
+                  {lostStage?.name ?? "Lost"}
+                </span>
               </CardTitle>
-              <CardContent className="w-full h-full overflow-y-auto">
-                <SortableContext
-                  items={col.opportunities.map((o) => o.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                  <DroppableStage id={col.id}>
-                    {col.opportunities.map((opportunity) => (
+              <CardContent className="w-full h-full overflow-y-scroll space-y-2">
+                <DroppableStage id={LOST_DROP_ID}>
+                  <SortableContext
+                    items={lostOpportunities.map((o) => o.id)}
+                    strategy={verticalListSortingStrategy}
+                  >
+                    {lostOpportunities.map((opportunity: any) => (
                       <OpportunityCard
                         key={opportunity.id}
                         opportunity={opportunity}
                         router={router}
                         onThumbsDown={onThumbsDown}
                         onOpenEdit={openEditOpportunity}
-                        stage={col}
+                        stage={{ probability: null }}
                         salesStages={salesStages}
                       />
                     ))}
-                  </DroppableStage>
-                </SortableContext>
+                  </SortableContext>
+                </DroppableStage>
               </CardContent>
             </Card>
-          ))}
+          </div>
 
-          {/* Lost Opportunities Column */}
-          <Card className="mx-1 w-full min-w-[300px] overflow-hidden pb-10">
-            <CardTitle className="flex gap-2 p-3 justify-between">
-              <span className="text-sm font-bold">{lostStage?.name ?? "Lost"}</span>
-            </CardTitle>
-            <CardContent className="w-full h-full overflow-y-scroll space-y-2">
-              <DroppableStage id={LOST_DROP_ID}>
-                <SortableContext
-                  items={lostOpportunities.map((o) => o.id)}
-                  strategy={verticalListSortingStrategy}
-                >
-                {lostOpportunities.map((opportunity: any) => (
-                  <OpportunityCard
-                    key={opportunity.id}
-                    opportunity={opportunity}
-                    router={router}
-                    onThumbsDown={onThumbsDown}
-                    onOpenEdit={openEditOpportunity}
-                    stage={{ probability: null }}
-                    salesStages={salesStages}
-                  />
-                ))}
-                </SortableContext>
-              </DroppableStage>
-            </CardContent>
-          </Card>
-        </div>
-
-        <DragOverlay>
-          {activeOpportunity ? (
-            <Card className="my-2 w-[280px] opacity-80 bg-white shadow-lg">
-              <CardTitle className="p-2 text-sm">
-                <div className="flex justify-between p-2">
-                  <span className="font-bold">{activeOpportunity.name}</span>
-                </div>
-              </CardTitle>
-            </Card>
-          ) : null}
-        </DragOverlay>
-      </DndContext>
+          <DragOverlay>
+            {activeOpportunity ? (
+              <Card className="my-2 w-[280px] opacity-80 bg-white shadow-lg">
+                <CardTitle className="p-2 text-sm">
+                  <div className="flex justify-between p-2">
+                    <span className="font-bold">{activeOpportunity.name}</span>
+                  </div>
+                </CardTitle>
+              </Card>
+            ) : null}
+          </DragOverlay>
+        </DndContext>
       )}
     </>
   );

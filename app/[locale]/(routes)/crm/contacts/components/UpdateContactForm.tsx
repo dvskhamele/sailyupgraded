@@ -29,6 +29,8 @@ import { Switch } from "@/components/ui/switch";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { AccountSearchCombobox } from "@/components/ui/account-search-combobox";
 import { updateContact } from "@/actions/crm/contacts/update-contact";
+import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
+import { getAddressLine1 } from "@/lib/crm-address";
 
 //TODO: fix all the types
 type ConfigItem = { id: string; name: string };
@@ -60,6 +62,13 @@ export function UpdateContactForm({
     office_phone: z.string().nullable().optional(),
     mobile_phone: z.string().nullable().optional(),
     website: z.string().nullable().optional(),
+    address: z.string().nullable().optional(),
+    address_line1: z.string().nullable().optional(),
+    address_line2: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    state: z.string().nullable().optional(),
+    country: z.string().nullable().optional(),
+    postal_code: z.string().nullable().optional(),
     position: z.string().nullable().optional(),
     status: z.boolean(),
     contact_type_id: z.string().optional(),
@@ -90,6 +99,13 @@ export function UpdateContactForm({
     office_phone: initialData.office_phone ?? "",
     mobile_phone: initialData.mobile_phone ?? "",
     website: initialData.website ?? "",
+    address: initialData.address ?? "",
+    address_line1: getAddressLine1(initialData.address, initialData.address_line1),
+    address_line2: initialData.address_line2 ?? "",
+    city: initialData.city ?? "",
+    state: initialData.state ?? "",
+    country: initialData.country ?? "",
+    postal_code: initialData.postal_code ?? "",
     position: initialData.position ?? "",
     assigned_account: initialData.accountsIDs ?? "",
     social_twitter: initialData.social_twitter ?? "",
@@ -109,6 +125,13 @@ export function UpdateContactForm({
     mode: "onBlur",
     defaultValues: parsedInitialData,
   });
+
+  const selectedCountry = form.watch("country");
+  const selectedState = form.watch("state");
+  const stateOptions = getStateOptions(selectedCountry, selectedState);
+  const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
+    ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
+    : COUNTRY_OPTIONS;
 
   const onSubmit = async (data: NewAccountFormValues) => {
     const result = await updateContact(data);
@@ -336,6 +359,137 @@ export function UpdateContactForm({
                 />
               </div>
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address_line1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("addressLine1")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={t("addressLine1Placeholder")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address_line2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("addressLine2")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={t("addressLine2Placeholder")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("city")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={t("cityPlaceholder")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("state")}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                      disabled={form.formState.isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("statePlaceholder")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-56">
+                        {stateOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="postal_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("postalCode")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={t("postalCodePlaceholder")}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("country")}</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("state", "");
+                    }}
+                    value={field.value ?? ""}
+                    disabled={form.formState.isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("countryPlaceholder")} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-56">
+                      {countryOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"

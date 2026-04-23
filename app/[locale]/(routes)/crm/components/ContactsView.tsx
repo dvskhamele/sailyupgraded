@@ -67,6 +67,7 @@ const ContactsView = ({ data, crmData }: ContactsViewProps) => {
                 <div className="mt-6 space-y-4">
                   <NewContactForm
                     accounts={accounts}
+                    contactTypes={contactTypes}
                     onFinish={() => setOpen(false)}
                   />
                 </div>

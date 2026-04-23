@@ -23,6 +23,7 @@ import {
 
 import { NewLeadForm } from "../leads/components/NewLeadForm";
 import { LeadDataTable } from "../leads/table-components/data-table";
+import { createColumns } from "../leads/table-components/columns";
 
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 
@@ -37,6 +38,8 @@ const LeadsView = ({ data, crmData }: LeadsViewProps) => {
   const { accounts, leadSources, leadStatuses, leadTypes } = crmData;
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
+
+  const columns = createColumns(leadSources, leadStatuses, leadTypes);
 
   return (
     <Card>
@@ -81,7 +84,7 @@ const LeadsView = ({ data, crmData }: LeadsViewProps) => {
           ) : (
             <LeadDataTable
               data={data}
-              columns={[]}
+              columns={columns}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}

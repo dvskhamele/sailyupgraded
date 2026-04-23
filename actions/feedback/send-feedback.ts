@@ -17,13 +17,15 @@ export async function sendFeedback(data: { feedback: string }) {
   }
 
   try {
-    await resend.emails.send({
-      from:
-        process.env.NEXT_PUBLIC_APP_NAME + " <" + process.env.EMAIL_FROM + ">",
-      to: "info@softbase.cz",
-      subject: "New Feedback from: " + process.env.NEXT_PUBLIC_APP_URL,
-      text: feedback,
-    });
+    if (resend) {
+      await resend.emails.send({
+        from:
+          process.env.NEXT_PUBLIC_APP_NAME + " <" + process.env.EMAIL_FROM + ">",
+        to: "info@softbase.cz",
+        subject: "New Feedback from: " + process.env.NEXT_PUBLIC_APP_URL,
+        text: feedback,
+      });
+    }
     return { success: true };
   } catch (error) {
     console.log("[FEEDBACK_SEND]", error);

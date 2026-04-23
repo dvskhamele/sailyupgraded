@@ -14,8 +14,9 @@ import { toast } from "sonner";
 import { TrashIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { deleteProject } from "@/actions/projects/delete-project";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 type Props = {
   boardId: string;
@@ -26,15 +27,10 @@ const DeleteProjectDialog = ({ boardId, boardName }: Props) => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
-
   const router = useRouter();
+  const isHydrated = useHydrated();
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
+  if (!isHydrated) {
     return null;
   }
 

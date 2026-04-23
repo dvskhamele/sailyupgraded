@@ -5,6 +5,8 @@ import { revalidatePath } from "next/cache";
 import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
+import { getAddressLine1 } from "@/lib/crm-address";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export const createLead = async (data: {
   first_name?: string;
@@ -13,6 +15,12 @@ export const createLead = async (data: {
   jobTitle?: string;
   email?: string;
   phone?: string;
+  address_line1?: string;
+  address_line2?: string;
+  city?: string;
+  state?: string;
+  country?: string;
+  postal_code?: string;
   description?: string;
   lead_source_id?: string;
   lead_status_id?: string;
@@ -33,6 +41,12 @@ export const createLead = async (data: {
     jobTitle,
     email,
     phone,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    country,
+    postal_code,
     description,
     lead_source_id,
     lead_status_id,
@@ -43,18 +57,30 @@ export const createLead = async (data: {
     accountIDs,
   } = data;
 
+  const resolvedAddressLine1 = getAddressLine1(undefined, address_line1);
+  const supportedAddressFields = pickSupportedModelFields("crm_Leads", {
+    address: resolvedAddressLine1 || undefined,
+    address_line1: resolvedAddressLine1 || undefined,
+    address_line2: address_line2 || undefined,
+    city: city || undefined,
+    state: state || undefined,
+    country: country || undefined,
+    postal_code: postal_code || undefined,
+  });
+
   try {
     const lead = await prismadb.crm_Leads.create({
       data: {
         v: 1,
         createdBy: userId,
         updatedBy: userId,
-        firstName: first_name,
+        firstName: first_name || "",
         lastName: last_name,
         company,
         jobTitle,
         email,
         phone,
+        ...supportedAddressFields,
         description,
         lead_source_id: lead_source_id || undefined,
         lead_status_id: lead_status_id || undefined,
@@ -97,8 +123,34 @@ export const createLead = async (data: {
     void inngest.send({ name: "crm/lead.saved", data: { record_id: lead.id } });
     revalidatePath("/[locale]/(routes)/crm/leads", "page");
     return { data: lead };
-  } catch (error) {
-    console.log("[CREATE_LEAD]", error);
-    return { error: "Failed to create lead" };
+  } catch (error: any) {
+    console.log("[CREATE_LEAD] Error detail:", {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      data: {
+        firstName: first_name,
+        lastName: last_name,
+        company,
+        jobTitle,
+        email,
+        phone,
+        address_line1,
+        address_line2,
+        city,
+        state,
+        country,
+        postal_code,
+        description,
+        lead_source_id,
+        lead_status_id,
+        lead_type_id,
+        refered_by,
+        campaign,
+        assigned_to,
+        accountIDs,
+      }
+    });
+    return { error: "Failed to create lead: " + (error.message || "Unknown error") };
   }
 };

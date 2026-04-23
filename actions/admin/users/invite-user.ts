@@ -61,16 +61,18 @@ export const inviteUser = async (data: {
       return { error: "User not created" };
     }
 
-    await resend.emails.send({
-      from: `${process.env.NEXT_PUBLIC_APP_NAME} <${process.env.EMAIL_FROM}>`,
-      to: user.email,
-      subject: `You have been invited to ${process.env.NEXT_PUBLIC_APP_NAME}`,
-      react: InviteUserEmail({
-        invitedByUsername: session.user?.name || "admin",
-        username: user.name!,
-        userLanguage: language,
-      }),
-    });
+    if (resend) {
+      await resend.emails.send({
+        from: `${process.env.NEXT_PUBLIC_APP_NAME} <${process.env.EMAIL_FROM}>`,
+        to: user.email,
+        subject: `You have been invited to ${process.env.NEXT_PUBLIC_APP_NAME}`,
+        react: InviteUserEmail({
+          invitedByUsername: session.user?.name || "admin",
+          username: user.name!,
+          userLanguage: language,
+        }),
+      });
+    }
 
     revalidatePath("/[locale]/(routes)/admin", "page");
     return { data: user };

@@ -11,6 +11,7 @@ import { Lead } from "../table-data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import moment from "moment";
+import { formatAddress } from "@/lib/crm-address";
 
 type ConfigItem = { id: string; name: string };
 
@@ -118,30 +119,41 @@ export const createColumns = (
     enableHiding: false,
   },
   {
+    id: "address",
+    accessorFn: (row) => formatAddress(row as any),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Address" />
+    ),
+    cell: ({ row }) => <div className="w-[150px]">{formatAddress(row.original as any) || "N/A"}</div>,
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
     accessorKey: "status",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => {
-      const status = statuses.find(
-        (status) => status.value === row.getValue("status")
-      );
-
-      if (!status) {
-        return null;
-      }
-
+      const status = row.original.lead_status?.name || row.getValue("status");
+      if (!status) return null;
       return (
         <div className="flex w-[100px] items-center">
-          {status.icon && (
-            <status.icon className="mr-2 h-4 w-4 text-muted-foreground" />
-          )}
-          <span>{status.label}</span>
+          <Badge variant="outline">{status}</Badge>
         </div>
       );
     },
     filterFn: (row, id, value) => {
       return value.includes(row.getValue(id));
+    },
+  },
+  {
+    accessorKey: "lead_source",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Source" />
+    ),
+    cell: ({ row }) => {
+      const source = row.original.lead_source?.name || "Unknown";
+      return <div className="w-[100px]">{source}</div>;
     },
   },
   {

@@ -26,6 +26,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { createLead } from "@/actions/crm/leads/create-lead";
+import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
 
 //TODO: fix all the types
 type ConfigItem = { id: string; name: string };
@@ -49,6 +50,12 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
     jobTitle: z.string().optional(),
     email: z.string().email(t("emailInvalid")).or(z.literal("")).optional(),
     phone: z.string().min(0).max(15).optional(),
+    address_line1: z.string().optional(),
+    address_line2: z.string().optional(),
+    city: z.string().optional(),
+    state: z.string().optional(),
+    country: z.string().optional(),
+    postal_code: z.string().optional(),
     description: z.string().optional(),
     lead_source_id: z.string().optional(),
     lead_status_id: z.string().optional(),
@@ -71,6 +78,12 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
       jobTitle: "",
       email: "",
       phone: "",
+      address_line1: "",
+      address_line2: "",
+      city: "",
+      state: "",
+      country: "",
+      postal_code: "",
       description: "",
       lead_source_id: "",
       lead_status_id: "",
@@ -81,6 +94,13 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
       accountIDs: "",
     },
   });
+
+  const selectedCountry = form.watch("country");
+  const selectedState = form.watch("state");
+  const stateOptions = getStateOptions(selectedCountry, selectedState);
+  const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
+    ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
+    : COUNTRY_OPTIONS;
 
   const onSubmit = async (data: NewLeadFormValues) => {
     const result = await createLead(data);
@@ -202,6 +222,137 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
                 )}
               />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address_line1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("addressLine1")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Street 123"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address_line2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("addressLine2")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Apartment, suite, etc."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("city")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Prague"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("state")}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                      disabled={form.formState.isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("statePlaceholder")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-56">
+                        {stateOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="postal_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("postalCode")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="120 00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("country")}</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("state", "");
+                    }}
+                    value={field.value ?? ""}
+                    disabled={form.formState.isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("countryPlaceholder")} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-56">
+                      {countryOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"

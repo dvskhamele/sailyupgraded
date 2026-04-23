@@ -35,10 +35,11 @@ import { format } from "date-fns";
 import { CalendarIcon } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { updateTask } from "@/actions/projects/update-task";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 type Props = {
   boards: any;
@@ -55,9 +56,8 @@ const UpdateTaskDialog = ({
 }: Props) => {
   const [isLoading, setIsLoading] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
-
   const router = useRouter();
+  const isHydrated = useHydrated();
 
   const formSchema = z.object({
     title: z.string().min(3).max(255),
@@ -82,11 +82,7 @@ const UpdateTaskDialog = ({
     },
   });
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
+  if (!isHydrated) {
     return null;
   }
 

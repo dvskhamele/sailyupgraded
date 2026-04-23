@@ -40,26 +40,32 @@ const AddTargetToListModal = ({
   onOpenChange,
 }: AddTargetToListModalProps) => {
   const router = useRouter();
-  const [targets, setTargets] = useState<Target[]>([]);
+  const [targets, setTargets] = useState<Target[] | null>(null);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFetching, setIsFetching] = useState(false);
-
   useEffect(() => {
     if (!open) return;
-    setIsFetching(true);
+    let cancelled = false;
     getTargets()
       .then((all) => {
-        setTargets(all.filter((t) => !existingTargetIds.includes(t.id)));
+        if (!cancelled) {
+          setTargets(all.filter((t) => !existingTargetIds.includes(t.id)));
+        }
       })
       .catch(() => {
         toast.error("Failed to load targets");
-      })
-      .finally(() => setIsFetching(false));
-  }, [open]);
+      });
 
-  const filtered = targets.filter((t) => {
+    return () => {
+      cancelled = true;
+    };
+  }, [open, existingTargetIds]);
+
+  const isFetching = open && targets === null;
+  const availableTargets = targets ?? [];
+
+  const filtered = availableTargets.filter((t) => {
     const q = search.toLowerCase();
     return (
       t.first_name?.toLowerCase().includes(q) ||

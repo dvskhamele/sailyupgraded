@@ -43,6 +43,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
     const { regularStages, firstStage, lostStage } = await getSalesStageCollections();
     const rows = await prisma.crm_Opportunities_Sales_Stages.findMany({
       include: { _count: { select: { assigned_opportunities_sales_stage: true } } },
+      orderBy: { order: "asc" },
     });
 
     const byId = new Map(rows.map((row: any) => [row.id, row]));
@@ -72,7 +73,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
   const { model, countRelation } = configMap[configType];
   const rows = await (model() as any).findMany({
     include: { _count: { select: { [countRelation]: true } } },
-    orderBy: { name: "asc" },
+    orderBy: { order: "asc" },
   });
   return rows.map((r: any) => ({
     id: r.id,
@@ -84,7 +85,20 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
 export async function createConfigValue(configType: CrmConfigType, name: string): Promise<void> {
   const parsed = nameSchema.parse(name);
   const { model } = configMap[configType];
-  await (model() as any).create({ data: { name: parsed, v: 0, ...(configType === "salesStage" ? { order: 0 } : {}) } });
+  
+  // Get current max order
+  const lastItem = await (model() as any).findFirst({
+    orderBy: { order: "desc" },
+  });
+  const newOrder = lastItem ? (lastItem.order || 0) + 1 : 0;
+
+  await (model() as any).create({ 
+    data: { 
+      name: parsed, 
+      v: 0, 
+      order: newOrder 
+    } 
+  });
   revalidatePath("/", "layout");
 }
 

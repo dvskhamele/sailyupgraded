@@ -62,7 +62,6 @@ export function SimilarRecordsDrawer({
 
   useEffect(() => {
     if (!open) return;
-    setResult(null);
     startTransition(async () => {
       const data = await fetchSimilar(entityType, recordId);
       setResult(data);
@@ -105,7 +104,6 @@ export function SimilarRecordsDrawer({
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setResult(null);
                   startTransition(async () => {
                     const data = await fetchSimilar(entityType, recordId);
                     setResult(data);

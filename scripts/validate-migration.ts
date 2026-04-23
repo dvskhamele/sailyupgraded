@@ -10,7 +10,7 @@
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { PrismaClient } from '@prisma/client';
-import { PrismaTiDBCloud } from '@tidbcloud/prisma-adapter';
+import { createMariaDbAdapter } from '../lib/prisma-mariadb';
 import {
   validateRowCounts,
   validateSampleRecords,
@@ -61,7 +61,7 @@ async function runValidation(): Promise<void> {
     console.error('  ✗ DATABASE_URL or DATABASE_URL_POSTGRES environment variable not set');
     process.exit(1);
   }
-  const pgAdapter = new PrismaTiDBCloud({ url: pgConnectionString });
+  const pgAdapter = createMariaDbAdapter(pgConnectionString);
 
   // Both "mongoDb" and "postgresDb" now validate the PostgreSQL database
   // (the MongoDB source is no longer directly compared; validation checks PG data integrity)

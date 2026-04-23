@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { EntityResultSection } from "@/components/fulltext-search/entity-result-section";
 import {
   unifiedSearch,
@@ -42,24 +42,22 @@ export default function SearchResult() {
   const locale = (params?.locale as string) ?? "en";
 
   const [results, setResults] = useState<UnifiedSearchResults | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, startTransition] = useTransition();
 
   useEffect(() => {
-    if (!query || query.trim().length < 2) {
-      setResults(null);
-      return;
-    }
-    setIsLoading(true);
-    unifiedSearch(query.trim(), locale)
-      .then((res) => {
+    if (!query || query.trim().length < 2) return;
+    startTransition(async () => {
+      try {
+        const res = await unifiedSearch(query.trim(), locale);
         if ("error" in res) {
           console.error("[UNIFIED_SEARCH]", res.error);
           return;
         }
         setResults(res);
-      })
-      .catch((err) => console.error(err))
-      .finally(() => setIsLoading(false));
+      } catch (err) {
+        console.error(err);
+      }
+    });
   }, [query, locale]);
 
   if (!query)

@@ -63,7 +63,7 @@ type ConfigItem = {
 
 type NewTaskFormProps = {
   accounts: crm_Accounts[];
-  contacts: crm_Contacts[];
+  contacts: any[];
   salesType: ConfigItem[];
   saleStages: ConfigItem[];
   campaigns: crm_campaigns[];

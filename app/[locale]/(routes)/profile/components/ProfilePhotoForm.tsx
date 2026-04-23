@@ -1,7 +1,7 @@
 "use client";
 
 import { Users } from "@prisma/client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImageIcon } from "lucide-react";
 
@@ -18,7 +18,7 @@ interface ProfileFormProps {
 }
 
 export function ProfilePhotoForm({ data }: ProfileFormProps) {
-  const [avatar, setAvatar] = useState(data.avatar);
+  const [savedAvatar, setSavedAvatar] = useState<string | null>(null);
   const [pendingAvatar, setPendingAvatar] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const t = useTranslations("ProfileForm");
@@ -26,22 +26,16 @@ export function ProfilePhotoForm({ data }: ProfileFormProps) {
   const router = useRouter();
   const { setAvatar: setAvatarContext } = useAvatarContext();
 
-  useEffect(() => {
-    setAvatar(data.avatar);
-  }, [data.avatar]);
-
-  // Upload completes — show preview, wait for user to confirm
   const handleUploadSuccess = (newAvatar: string, _key: string) => {
     setPendingAvatar(newAvatar);
   };
 
-  // Save button — persist to DB
   const handleSave = async () => {
     if (!pendingAvatar) return;
     setSaving(true);
     try {
       await updateProfilePhoto(pendingAvatar);
-      setAvatar(pendingAvatar);
+      setSavedAvatar(pendingAvatar);
       setAvatarContext(pendingAvatar);
       setPendingAvatar(null);
       toast.success(t("photoUpdatedDescription"), { duration: 5000 });
@@ -54,11 +48,11 @@ export function ProfilePhotoForm({ data }: ProfileFormProps) {
     }
   };
 
-  // Cancel — discard pending upload
   const handleCancel = () => {
     setPendingAvatar(null);
   };
 
+  const avatar = savedAvatar ?? data.avatar;
   const previewUrl = pendingAvatar ?? avatar ?? "/images/nouser.png";
   void previewUrl;
 

@@ -33,19 +33,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createProject } from "@/actions/projects/create-project";
+import { useHydrated } from "@/hooks/use-hydrated";
 
 const NewProjectDialog = () => {
   const [open, setOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const [isMounted, setIsMounted] = useState(false);
-
   const router = useRouter();
   const t = useTranslations("ProjectsPage");
+  const isHydrated = useHydrated();
 
   const formSchema = z.object({
     title: z.string().min(3).max(255),
@@ -59,11 +59,7 @@ const NewProjectDialog = () => {
     resolver: zodResolver(formSchema),
   });
 
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
+  if (!isHydrated) {
     return null;
   }
 

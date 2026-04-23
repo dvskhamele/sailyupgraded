@@ -162,9 +162,9 @@ export function Step2Template({
 
       <div className="flex justify-between">
         <Button variant="outline" onClick={onBack}>
-          ← Back
+          {"<- Back"}
         </Button>
-        <Button onClick={handleNext}>Next →</Button>
+        <Button onClick={handleNext}>{"Next ->"}</Button>
       </div>
     </div>
   );

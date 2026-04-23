@@ -1,17 +1,28 @@
-import { PrismaClient } from "@prisma/client";
-import { PrismaTiDBCloud } from "@tidbcloud/prisma-adapter";
+import { Prisma, PrismaClient } from "@prisma/client";
+import { createMariaDbAdapter } from "./prisma-mariadb";
 
 declare global {
   var cachedPrisma: PrismaClient | undefined;
+  var cachedPrismaUrl: string | undefined;
+  var cachedPrismaSchemaSignature: string | undefined;
+}
+
+const databaseUrl = process.env.DATABASE_URL;
+
+function getPrismaSchemaSignature() {
+  return Prisma.dmmf.datamodel.models
+    .map((model) => `${model.name}:${model.fields.map((field) => field.name).join(",")}`)
+    .join("|");
 }
 
 // Prisma Client configuration with connection pooling and lifecycle management
 const prismaClientSingleton = () => {
-  const connectionString = `${process.env.DATABASE_URL}`;
-  const adapter = new PrismaTiDBCloud({ url: connectionString });
+  if (!databaseUrl) {
+    throw new Error("DATABASE_URL is not set");
+  }
 
   const client = new PrismaClient({
-    adapter,
+    adapter: createMariaDbAdapter(databaseUrl),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
 
@@ -31,14 +42,22 @@ const prismaClientSingleton = () => {
 };
 
 let prisma: PrismaClient;
+const schemaSignature = getPrismaSchemaSignature();
 
 if (process.env.NODE_ENV === "production") {
   prisma = prismaClientSingleton();
 } else {
-  if (!global.cachedPrisma) {
+  const shouldRefreshClient =
+    !global.cachedPrisma ||
+    global.cachedPrismaUrl !== databaseUrl ||
+    global.cachedPrismaSchemaSignature !== schemaSignature;
+
+  if (shouldRefreshClient) {
     global.cachedPrisma = prismaClientSingleton();
+    global.cachedPrismaUrl = databaseUrl;
+    global.cachedPrismaSchemaSignature = schemaSignature;
   }
-  prisma = global.cachedPrisma;
+  prisma = global.cachedPrisma!;
 }
 
 export const prismadb = prisma;

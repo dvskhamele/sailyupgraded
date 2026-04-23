@@ -74,7 +74,6 @@ import { createTaskInBoard } from "@/actions/projects/create-task-in-board";
 import { deleteTask } from "@/actions/projects/delete-task";
 import { updateKanbanPosition } from "@/actions/projects/update-kanban-position";
 
-let timer: any;
 const timeout = 1000;
 
 interface Task {
@@ -221,9 +220,13 @@ const Kanban = (props: any) => {
   );
   const [activeTask, setActiveTask] = useState<Task | null>(null);
   const dataRef = useRef<any[]>(data);
-  dataRef.current = data;
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const origSectionIdRef = useRef<string | null>(null); // section at drag start
   const isDraggingRef = useRef(false);
+
+  useEffect(() => {
+    dataRef.current = data;
+  }, [data]);
 
   // Sync from server after router.refresh() — only when not dragging
   useEffect(() => {
@@ -407,13 +410,15 @@ const Kanban = (props: any) => {
     e: ChangeEvent<HTMLInputElement>,
     sectionId: string
   ) => {
-    clearTimeout(timer);
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
     const newTitle = e.target.value;
     const newData = [...data];
     const index = newData.findIndex((e) => e.id === sectionId);
     newData[index].title = newTitle;
     setData(newData);
-    timer = setTimeout(async () => {
+    timerRef.current = setTimeout(async () => {
       try {
         const result = await updateSectionTitle({ sectionId, newTitle });
         if (result?.success) {

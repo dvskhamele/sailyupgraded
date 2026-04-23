@@ -4,6 +4,8 @@ import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
+import { getAddressLine1 } from "@/lib/crm-address";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export const updateContact = async (data: {
   id: string;
@@ -20,6 +22,14 @@ export const updateContact = async (data: {
   office_phone?: string | null;
   mobile_phone?: string | null;
   website?: string | null;
+  address?: string | null;
+  address_line1?: string | null;
+  address_line2?: string | null;
+  city?: string | null;
+  state?: string | null;
+  country?: string | null;
+  postal_code?: string | null;
+  position?: string | null;
   status?: boolean;
   social_twitter?: string | null;
   social_facebook?: string | null;
@@ -42,10 +52,28 @@ export const updateContact = async (data: {
     birthday_month,
     birthday_year,
     contact_type_id,
+    address,
+    address_line1,
+    address_line2,
+    city,
+    state,
+    country,
+    postal_code,
     ...rest
   } = data;
 
   if (!id) return { error: "id is required" };
+
+  const resolvedAddressLine1 = getAddressLine1(address, address_line1);
+  const supportedAddressFields = pickSupportedModelFields("crm_Contacts", {
+    address: resolvedAddressLine1 || null,
+    address_line1: resolvedAddressLine1 || null,
+    address_line2: address_line2 || null,
+    city: city || null,
+    state: state || null,
+    country: country || null,
+    postal_code: postal_code || null,
+  });
 
   try {
     const before = await prismadb.crm_Contacts.findUnique({ where: { id, deletedAt: null } });
@@ -61,6 +89,7 @@ export const updateContact = async (data: {
           birthday_day && birthday_month && birthday_year
             ? birthday_day + "/" + birthday_month + "/" + birthday_year
             : null,
+        ...supportedAddressFields,
         ...rest,
       } as any,
     });

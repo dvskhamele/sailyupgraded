@@ -37,15 +37,14 @@ export function CommandComponent() {
   const t = useTranslations("CommandComponent");
 
   React.useEffect(() => {
-    if (!searchQuery || searchQuery.length < 2) {
-      setDocResults([]);
-      return;
-    }
+    if (!searchQuery || searchQuery.length < 2) return;
     const timeout = setTimeout(() => {
       searchDocuments(searchQuery).then(setDocResults).catch(() => {});
     }, 300);
     return () => clearTimeout(timeout);
   }, [searchQuery]);
+
+  const visibleResults = searchQuery.length >= 2 ? docResults : [];
 
   React.useEffect(() => {
     const down = (e: KeyboardEvent) => {
@@ -101,9 +100,9 @@ export function CommandComponent() {
               <span>Calculator</span>
             </CommandItem>
           </CommandGroup> */}
-          {docResults.length > 0 && (
+          {visibleResults.length > 0 && (
             <CommandGroup heading="Documents">
-              {docResults.map((doc) => (
+              {visibleResults.map((doc) => (
                 <CommandItem
                   key={doc.id}
                   onSelect={() => {

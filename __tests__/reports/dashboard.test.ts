@@ -1,6 +1,6 @@
 jest.mock("@/lib/prisma", () => ({
   prismadb: {
-    crm_Opportunities: { aggregate: jest.fn(), count: jest.fn() },
+    crm_Opportunities: { findMany: jest.fn(), count: jest.fn() },
     crm_Leads: { count: jest.fn() },
     crm_Contacts: { count: jest.fn() },
     crm_Accounts: { count: jest.fn() },
@@ -8,6 +8,7 @@ jest.mock("@/lib/prisma", () => ({
     crm_campaign_sends: { count: jest.fn() },
     tasks: { count: jest.fn() },
     users: { count: jest.fn() },
+    exchangeRate: { findMany: jest.fn() },
   },
 }));
 
@@ -21,11 +22,12 @@ describe("getDashboardKPIs", () => {
   beforeEach(() => jest.clearAllMocks());
 
   it("returns all 10 KPIs", async () => {
-    (prismadb.crm_Opportunities.aggregate as jest.Mock)
-      .mockResolvedValueOnce({ _sum: { budget: BigInt(100000) } })
-      .mockResolvedValueOnce({ _sum: { budget: BigInt(80000) } })
-      .mockResolvedValueOnce({ _sum: { budget: BigInt(500000) } })
-      .mockResolvedValueOnce({ _sum: { budget: BigInt(400000) } });
+    (prismadb.exchangeRate.findMany as jest.Mock).mockResolvedValue([]);
+    (prismadb.crm_Opportunities.findMany as jest.Mock)
+      .mockResolvedValueOnce([{ budget: 100000, currency: "EUR" }])
+      .mockResolvedValueOnce([{ budget: 80000, currency: "EUR" }])
+      .mockResolvedValueOnce([{ budget: 500000, currency: "EUR" }])
+      .mockResolvedValueOnce([{ budget: 400000, currency: "EUR" }]);
     (prismadb.crm_Leads.count as jest.Mock).mockResolvedValueOnce(50).mockResolvedValueOnce(40);
     (prismadb.crm_Opportunities.count as jest.Mock).mockResolvedValueOnce(25).mockResolvedValueOnce(20);
     (prismadb.crm_Contacts.count as jest.Mock).mockResolvedValueOnce(100).mockResolvedValueOnce(80);

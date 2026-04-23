@@ -57,10 +57,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
   const [fullEmail, setFullEmail] = useState<Awaited<ReturnType<typeof getEmail>> | null>(null);
 
   useEffect(() => {
-    if (!mail?.id) {
-      setFullEmail(null);
-      return;
-    }
+    if (!mail?.id) return;
     let cancelled = false;
     getEmail(mail.id)
       .then((data) => { if (!cancelled) setFullEmail(data); })
@@ -68,7 +65,12 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
     return () => { cancelled = true; };
   }, [mail?.id]);
 
-  const senderName = fullEmail?.fromName ?? fullEmail?.fromEmail ?? "?";
+  const activeEmail =
+    fullEmail && mail?.id && "id" in fullEmail && fullEmail.id === mail.id
+      ? fullEmail
+      : null;
+
+  const senderName = activeEmail?.fromName ?? activeEmail?.fromEmail ?? "?";
   const senderInitials = senderName
     .split(" ")
     .map((c) => c[0])
@@ -188,7 +190,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
               <ComposeModal
                 accountId={activeAccountId ?? ""}
                 mode="reply"
-                replyTo={fullEmail ? (fullEmail as unknown as Mail) : undefined}
+                replyTo={activeEmail ? (activeEmail as unknown as Mail) : undefined}
                 trigger={
                   <Button variant="ghost" size="icon" disabled={!mail}>
                     <Reply className="h-4 w-4" />
@@ -213,7 +215,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
               <ComposeModal
                 accountId={activeAccountId ?? ""}
                 mode="forward"
-                replyTo={fullEmail ? (fullEmail as unknown as Mail) : undefined}
+                replyTo={activeEmail ? (activeEmail as unknown as Mail) : undefined}
                 trigger={
                   <Button variant="ghost" size="icon" disabled={!mail}>
                     <Forward className="h-4 w-4" />
@@ -252,42 +254,42 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
               </Avatar>
               <div className="grid gap-1">
                 <div className="font-semibold">
-                  {fullEmail?.fromName ?? fullEmail?.fromEmail ?? "(unknown)"}
+                  {activeEmail?.fromName ?? activeEmail?.fromEmail ?? "(unknown)"}
                 </div>
                 <div className="line-clamp-1 text-xs">
-                  {fullEmail?.subject ?? "(no subject)"}
+                  {activeEmail?.subject ?? "(no subject)"}
                 </div>
                 <div className="line-clamp-1 text-xs">
                   <span className="font-medium">From:</span>{" "}
-                  {fullEmail?.fromEmail ?? ""}
+                  {activeEmail?.fromEmail ?? ""}
                 </div>
-                {Array.isArray(fullEmail?.toRecipients) && fullEmail.toRecipients.length > 0 && (
+                {Array.isArray(activeEmail?.toRecipients) && activeEmail.toRecipients.length > 0 && (
                   <div className="line-clamp-1 text-xs">
                     <span className="font-medium">To:</span>{" "}
-                    {(fullEmail.toRecipients as { name?: string; email: string }[])
+                    {(activeEmail.toRecipients as { name?: string; email: string }[])
                       .map((r) => r.name ?? r.email).join(", ")}
                   </div>
                 )}
-                {Array.isArray(fullEmail?.ccRecipients) && fullEmail.ccRecipients.length > 0 && (
+                {Array.isArray(activeEmail?.ccRecipients) && activeEmail.ccRecipients.length > 0 && (
                   <div className="line-clamp-1 text-xs">
                     <span className="font-medium">CC:</span>{" "}
-                    {(fullEmail.ccRecipients as { name?: string; email: string }[])
+                    {(activeEmail.ccRecipients as { name?: string; email: string }[])
                       .map((r) => r.name ?? r.email).join(", ")}
                   </div>
                 )}
               </div>
             </div>
-            {fullEmail?.sentAt && (
+            {activeEmail?.sentAt && (
               <div className="ml-auto text-xs text-muted-foreground">
-                {format(new Date(fullEmail.sentAt), "PPpp")}
+                {format(new Date(activeEmail.sentAt), "PPpp")}
               </div>
             )}
           </div>
           <Separator />
           <div className="flex-1 overflow-auto">
-            {fullEmail?.bodyHtml ? (
+            {activeEmail?.bodyHtml ? (
               <iframe
-                srcDoc={fullEmail.bodyHtml}
+                srcDoc={activeEmail.bodyHtml}
                 sandbox="allow-popups allow-popups-to-escape-sandbox"
                 referrerPolicy="no-referrer"
                 className="w-full border-0"
@@ -296,7 +298,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
               />
             ) : (
               <pre className="whitespace-pre-wrap p-4 text-sm font-sans">
-                {fullEmail?.bodyText ?? (fullEmail ? "(No content)" : "Loading...")}
+                {activeEmail?.bodyText ?? (activeEmail ? "(No content)" : "Loading...")}
               </pre>
             )}
           </div>
@@ -306,7 +308,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
               <div className="grid gap-4">
                 <Textarea
                   className="p-4"
-                  placeholder={`Reply to ${fullEmail?.fromName ?? fullEmail?.fromEmail ?? "..."}...`}
+                  placeholder={`Reply to ${activeEmail?.fromName ?? activeEmail?.fromEmail ?? "..."}...`}
                 />
                 <div className="flex items-center">
                   <Label

@@ -87,7 +87,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
         <div className="w-full text-sm">
           <div className="pb-5 space-y-2">
             <FormField
-              control={form.control}
+              control={form.control} 
               name="name"
               render={({ field }) => (
                 <FormItem>

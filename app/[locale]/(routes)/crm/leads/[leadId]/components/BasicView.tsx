@@ -16,6 +16,7 @@ import {
   Globe2,
   Landmark,
   List,
+  MapPin,
   Medal,
   Percent,
   Phone,
@@ -31,6 +32,7 @@ import { EnvelopeClosedIcon, LightningBoltIcon } from "@radix-ui/react-icons";
 import { LucideLandmark } from "lucide-react";
 import { LeadDetailActions } from "./LeadDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
+import { formatAddress } from "@/lib/crm-address";
 
 interface OppsViewProps {
   data: any;
@@ -140,6 +142,15 @@ export async function BasicView({ data }: OppsViewProps) {
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Phone</p>
                   <p className="text-sm text-muted-foreground">{data.phone}</p>
+                </div>
+              </div>
+              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                <MapPin className="mt-px h-5 w-5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Address</p>
+                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                    {formatAddress(data, true) || "N/A"}
+                  </p>
                 </div>
               </div>
             </div>

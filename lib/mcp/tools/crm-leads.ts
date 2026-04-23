@@ -91,9 +91,16 @@ export const crmLeadTools = [
       },
       userId: string
     ) {
-      const { lastName, ...rest } = args;
+      const { lastName, firstName, ...rest } = args;
       const lead = await prismadb.crm_Leads.create({
-        data: { v: 0, lastName, ...rest, assigned_to: userId, createdBy: userId },
+        data: {
+          v: 0,
+          lastName,
+          firstName: firstName || "",
+          ...rest,
+          assigned_to: userId,
+          createdBy: userId,
+        },
       });
       return itemResponse(lead);
     },
@@ -129,7 +136,11 @@ export const crmLeadTools = [
       const { id, ...updateData } = args;
       const lead = await prismadb.crm_Leads.update({
         where: { id },
-        data: { ...updateData, updatedBy: userId },
+        data: {
+          ...updateData,
+          updatedBy: userId,
+          firstName: updateData.firstName || undefined,
+        },
       });
       return itemResponse(lead);
     },

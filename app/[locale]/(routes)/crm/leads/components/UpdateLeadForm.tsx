@@ -28,6 +28,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { AccountSearchCombobox } from "@/components/ui/account-search-combobox";
 import { updateLead } from "@/actions/crm/leads/update-lead";
+import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
+import { getAddressLine1 } from "@/lib/crm-address";
 
 //TODO: fix all the types
 type ConfigItem = { id: string; name: string };
@@ -40,7 +42,13 @@ type NewTaskFormProps = {
   leadTypes: ConfigItem[];
 };
 
-export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses, leadTypes }: NewTaskFormProps) {
+export function UpdateLeadForm({
+  initialData,
+  setOpen,
+  leadSources,
+  leadStatuses,
+  leadTypes,
+}: NewTaskFormProps) {
   const t = useTranslations("CrmLeadForm");
   const c = useTranslations("Common");
 
@@ -50,8 +58,19 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
     lastName: z.string().min(1, t("lastNameRequired")).max(30),
     company: z.string().nullable().optional(),
     jobTitle: z.string().nullable().optional(),
-    email: z.string().email(t("emailInvalid")).nullable().optional().or(z.literal("")),
+    email: z
+      .string()
+      .email(t("emailInvalid"))
+      .nullable()
+      .optional()
+      .or(z.literal("")),
     phone: z.string().min(0).max(15).nullable().optional(),
+    address_line1: z.string().nullable().optional(),
+    address_line2: z.string().nullable().optional(),
+    city: z.string().nullable().optional(),
+    state: z.string().nullable().optional(),
+    country: z.string().nullable().optional(),
+    postal_code: z.string().nullable().optional(),
     description: z.string().nullable().optional(),
     lead_source_id: z.string().nullable().optional(),
     lead_status_id: z.string().nullable().optional(),
@@ -71,11 +90,36 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
     mode: "onBlur",
     defaultValues: {
       ...initialData,
+      firstName: initialData.firstName ?? "",
+      lastName: initialData.lastName ?? "",
+      company: initialData.company ?? "",
+      jobTitle: initialData.jobTitle ?? "",
+      email: initialData.email ?? "",
+      phone: initialData.phone ?? "",
+      address_line1: getAddressLine1(initialData.address, initialData.address_line1),
+      address_line2: initialData.address_line2 ?? "",
+      city: initialData.city ?? "",
+      state: initialData.state ?? "",
+      country: initialData.country ?? "",
+      postal_code: initialData.postal_code ?? "",
+      description: initialData.description ?? "",
+      refered_by: initialData.refered_by ?? "",
+      campaign: initialData.campaign ?? "",
+      assigned_to: initialData.assigned_to ?? "",
+      accountsIDs: initialData.accountsIDs ?? "",
+      
       lead_source_id: initialData.lead_source_id ?? "",
       lead_status_id: initialData.lead_status_id ?? "",
       lead_type_id: initialData.lead_type_id ?? "",
     },
   });
+
+  const selectedCountry = form.watch("country");
+  const selectedState = form.watch("state");
+  const stateOptions = getStateOptions(selectedCountry, selectedState);
+  const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
+    ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
+    : COUNTRY_OPTIONS;
 
   const onSubmit = async (data: NewLeadFormValues) => {
     const result = await updateLead({
@@ -94,12 +138,14 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
     }
   };
 
-  if (!initialData)
-    return <div>{c("somethingWentWrong")}</div>;
+  if (!initialData) return <div>{c("somethingWentWrong")}</div>;
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="h-full px-4 md:px-10">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="h-full px-4 md:px-10"
+      >
         <div className="w-full text-sm">
           <div className="pb-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -163,7 +209,11 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
                   <FormItem>
                     <FormLabel>{t("jobTitle")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="CTO" {...field} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="CTO"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -206,6 +256,137 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
                 )}
               />
             </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address_line1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("addressLine1")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Street 123"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address_line2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("addressLine2")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Apartment, suite, etc."
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <FormField
+                control={form.control}
+                name="city"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("city")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Prague"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="state"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("state")}</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                      disabled={form.formState.isSubmitting}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("statePlaceholder")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent className="max-h-56">
+                        {stateOptions.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="postal_code"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("postalCode")}</FormLabel>
+                    <FormControl>
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="120 00"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("country")}</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("state", "");
+                    }}
+                    value={field.value ?? ""}
+                    disabled={form.formState.isSubmitting}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={t("countryPlaceholder")} />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent className="max-h-56">
+                      {countryOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="description"
@@ -230,13 +411,20 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{t("leadSource")}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
                       <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select source…" /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select source…" />
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {leadSources.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -286,13 +474,20 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lead Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
                       <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select type…" /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select type…" />
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {leadTypes.map((lt) => (
-                          <SelectItem key={lt.id} value={lt.id}>{lt.name}</SelectItem>
+                          <SelectItem key={lt.id} value={lt.id}>
+                            {lt.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -326,13 +521,20 @@ export function UpdateLeadForm({ initialData, setOpen, leadSources, leadStatuses
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lead Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
                       <FormControl>
-                        <SelectTrigger><SelectValue placeholder="Select status…" /></SelectTrigger>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select status…" />
+                        </SelectTrigger>
                       </FormControl>
                       <SelectContent>
                         {leadStatuses.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                          <SelectItem key={s.id} value={s.id}>
+                            {s.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

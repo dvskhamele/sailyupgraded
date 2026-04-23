@@ -1,4 +1,4 @@
-import { Megaphone } from "lucide-react";
+import { FileText } from "lucide-react";
 import { NavItem } from "../nav-main";
 
 type Props = {
@@ -11,17 +11,14 @@ type Props = {
   };
 };
 
-export const getCampaignsMenuItem = ({ localizations }: Props): NavItem => {
+export const getTemplatesMenuItem = ({ localizations }: Props): NavItem => {
   return {
-    title: localizations.title,
-    icon: Megaphone,
+    title: localizations.templates,
+    icon: FileText,
     items: [
-      { title: localizations.campaigns, url: "/campaigns" },
-      // { title: localizations.templates, url: "/campaigns/templates" },
-      // { title: localizations.targets, url: "/campaigns/targets" },
-      // { title: localizations.targetLists, url: "/campaigns/target-lists" },
+      { title: localizations.templates, url: "/campaigns/templates" },
     ],
   };
 };
 
-export default getCampaignsMenuItem;
+export default getTemplatesMenuItem;

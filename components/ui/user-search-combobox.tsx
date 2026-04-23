@@ -67,26 +67,11 @@ export function UserSearchCombobox({
         take: PAGE_SIZE,
       });
       setListData(data);
+      setAccumulatedUsers((prev) =>
+        skip === 0 ? data.users : [...prev, ...data.users]
+      );
     });
   }, [open, debouncedSearch, skip]);
-
-  // Accumulate users across pages
-  useEffect(() => {
-    if (listData?.users) {
-      if (skip === 0) {
-        setAccumulatedUsers(listData.users);
-      } else {
-        setAccumulatedUsers((prev) => [...prev, ...listData.users]);
-      }
-    }
-  }, [listData, skip]);
-
-  // Reset on search change
-  useEffect(() => {
-    setSkip(0);
-    setAccumulatedUsers([]);
-    setListData(null);
-  }, [debouncedSearch]);
 
   // Load selected user if not in list
   useEffect(() => {
@@ -101,6 +86,9 @@ export function UserSearchCombobox({
 
   const handleSelect = (userId: string) => {
     onChange(userId === value ? "" : userId);
+    if (userId === value) {
+      setSingleUser(null);
+    }
     setOpen(false);
   };
 
@@ -133,7 +121,12 @@ export function UserSearchCombobox({
             <CommandInput
               placeholder="Search users..."
               value={search}
-              onValueChange={setSearch}
+              onValueChange={(nextValue) => {
+                setSearch(nextValue);
+                setSkip(0);
+                setAccumulatedUsers([]);
+                setListData(null);
+              }}
             />
             <CommandList onWheelCapture={(e) => e.stopPropagation()}>
               {isLoading ? (
