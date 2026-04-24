@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import { ThumbsDown } from "lucide-react";
@@ -66,6 +66,14 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { CategoryFilter } from "./CategoryFilter";
+import {
+  ALL_CATEGORIES_VALUE,
+  DEFAULT_OPPORTUNITY_CATEGORIES,
+  extractOpportunityCategories,
+  filterOpportunitiesByCategory,
+  mergeCategoryLists,
+} from "@/lib/opportunity-categories";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -79,20 +87,74 @@ type Column = crm_Opportunities_Sales_Stages & {
 
 const LOST_DROP_ID = "lost-column";
 
+function getOpportunityAmount(opportunity: crm_Opportunities) {
+  const amount = (opportunity as any).amount ?? opportunity.budget ?? 0;
+  return Number(amount) || 0;
+}
+
+function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
+  const totalCards = opportunities.length;
+  const totalRevenue = opportunities.reduce(
+    (sum, opportunity) => sum + getOpportunityAmount(opportunity),
+    0,
+  );
+
+  return (
+    <div className="flex items-center px-1 py-2 justify-between mb-2 bg-white border rounded shadow-sm">
+   
+      <div className="flex flex-col gap-1">
+        <div
+          className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full"
+        >
+         {totalRevenue.toLocaleString("en-IN")}
+        </div>
+      </div>
+      <div className="h-6 w-px bg-gray-200 mx-3" />
+
+      <div className="flex flex-col items-end gap-1">
+        <div
+          className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 rounded-full"
+        >
+          {totalCards}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function initColumns(
   opps: crm_Opportunities[],
   stages: crm_Opportunities_Sales_Stages[],
+  selectedCategory: string,
 ): Column[] {
+  const filteredOpportunities = filterOpportunitiesByCategory(
+    opps,
+    selectedCategory,
+  );
+
   return stages.map((stage) => ({
     ...stage,
-    opportunities: opps.filter(
+    opportunities: filteredOpportunities.filter(
       (o: any) => o.sales_stage === stage.id && o.status === "ACTIVE",
     ),
   }));
 }
 
-function getLostOpportunities(opps: crm_Opportunities[]) {
-  return opps.filter((o: any) => o.status === "INACTIVE");
+function getLostOpportunities(
+  opps: crm_Opportunities[],
+  selectedCategory: string,
+) {
+  return filterOpportunitiesByCategory(opps, selectedCategory).filter(
+    (o: any) => o.status === "INACTIVE",
+  );
+}
+
+function getOpportunityDisplayName(opportunity: crm_Opportunities) {
+  return (
+    (opportunity as any).clientName?.trim() ||
+    (opportunity as any).assigned_to_user?.name ||
+    ""
+  );
 }
 
 // Draggable Opportunity Card
@@ -185,7 +247,7 @@ function OpportunityCard({
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <div className="flex text-xs items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Avatar className="w-6 h-6">
             <AvatarImage
               src={
@@ -195,7 +257,9 @@ function OpportunityCard({
               }
             />
           </Avatar>
-          <span className="text-xs">{opportunity.assigned_to_user?.name}</span>
+          <span className="min-w-0 truncate text-sm font-medium text-foreground">
+            {getOpportunityDisplayName(opportunity)}
+          </span>
         </div>
         <div className="flex space-x-2">
           {stage.probability !==
@@ -275,7 +339,7 @@ function OpportunityCardStatic({
         </div>
       </CardContent>
       <CardFooter className="flex justify-between">
-        <div className="flex text-xs items-center gap-2">
+        <div className="flex min-w-0 items-center gap-2">
           <Avatar className="w-6 h-6">
             <AvatarImage
               src={
@@ -285,7 +349,9 @@ function OpportunityCardStatic({
               }
             />
           </Avatar>
-          <span className="text-xs">{opportunity.assigned_to_user?.name}</span>
+          <span className="min-w-0 truncate text-sm font-medium text-foreground">
+            {getOpportunityDisplayName(opportunity)}
+          </span>
         </div>
       </CardFooter>
     </Card>
@@ -316,6 +382,15 @@ const CRMKanban = ({
   const router = useRouter();
 
   const [selectedStage, setSelectedStage] = useState("");
+  const [selectedCategory, setSelectedCategory] =
+    useState(ALL_CATEGORIES_VALUE);
+  const dynamicCategories = useMemo(
+    () => mergeCategoryLists(extractOpportunityCategories(data)),
+    [data],
+  );
+  const [categoryList, setCategoryList] = useState<string[]>(() =>
+    mergeCategoryLists(DEFAULT_OPPORTUNITY_CATEGORIES, dynamicCategories),
+  );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingOpportunity, setEditingOpportunity] =
@@ -324,10 +399,10 @@ const CRMKanban = ({
 
   const serverDataRef = useRef(data);
   const [columns, setColumns] = useState<Column[]>(() =>
-    initColumns(data, salesStages),
+    initColumns(data, salesStages, selectedCategory),
   );
   const [lostCards, setLostCards] = useState<crm_Opportunities[]>(() =>
-    getLostOpportunities(data),
+    getLostOpportunities(data, selectedCategory),
   );
   const columnsRef = useRef<Column[]>(columns);
 
@@ -346,9 +421,26 @@ const CRMKanban = ({
     lostStage,
   } = crmData;
 
+  useEffect(() => {
+    setCategoryList((currentCategories) =>
+      mergeCategoryLists(
+        DEFAULT_OPPORTUNITY_CATEGORIES,
+        dynamicCategories,
+        currentCategories,
+      ),
+    );
+  }, [dynamicCategories]);
+
   const openEditOpportunity = (opportunity: crm_Opportunities) => {
     setEditingOpportunity(opportunity);
     setIsEditOpen(true);
+  };
+
+  const handleAddCategory = (category: string) => {
+    setCategoryList((currentCategories) =>
+      mergeCategoryLists(currentCategories, [category]),
+    );
+    setSelectedCategory(category);
   };
 
   // Sync from server (e.g. after onThumbsDown router.refresh()) — only when not dragging
@@ -359,10 +451,19 @@ const CRMKanban = ({
   useEffect(() => {
     if (serverDataRef.current !== data && !isDraggingRef.current) {
       serverDataRef.current = data;
-      setColumns(initColumns(data, salesStages));
-      setLostCards(getLostOpportunities(data));
+      setColumns(initColumns(data, salesStages, selectedCategory));
+      setLostCards(getLostOpportunities(data, selectedCategory));
     }
-  }, [data, salesStages]);
+  }, [data, salesStages, selectedCategory]);
+
+  useEffect(() => {
+    if (!isDraggingRef.current) {
+      const nextColumns = initColumns(data, salesStages, selectedCategory);
+      columnsRef.current = nextColumns;
+      setColumns(nextColumns);
+      setLostCards(getLostOpportunities(data, selectedCategory));
+    }
+  }, [data, salesStages, selectedCategory]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -509,18 +610,20 @@ const CRMKanban = ({
       });
       if (result?.error) {
         toast.error(result.error);
-        columnsRef.current = initColumns(data, salesStages);
-        setColumns(initColumns(data, salesStages));
-        setLostCards(getLostOpportunities(data));
+        columnsRef.current = initColumns(data, salesStages, selectedCategory);
+        setColumns(initColumns(data, salesStages, selectedCategory));
+        setLostCards(getLostOpportunities(data, selectedCategory));
       } else {
         toast.success("Opportunity stage changed");
       }
     } catch (error) {
       console.log(error);
-      toast.error("Something went wrong");
-      columnsRef.current = initColumns(data, salesStages);
-      setColumns(initColumns(data, salesStages));
-      setLostCards(getLostOpportunities(data));
+      toast.error(
+        error instanceof Error ? error.message : "Something went wrong",
+      );
+      columnsRef.current = initColumns(data, salesStages, selectedCategory);
+      setColumns(initColumns(data, salesStages, selectedCategory));
+      setLostCards(getLostOpportunities(data, selectedCategory));
     }
   };
 
@@ -540,6 +643,15 @@ const CRMKanban = ({
 
   return (
     <>
+      <div className="mb-4">
+        <CategoryFilter
+          categories={categoryList}
+          selectedCategory={selectedCategory}
+          onCategoryChange={setSelectedCategory}
+          onAddCategory={handleAddCategory}
+        />
+      </div>
+
       <Dialog open={isDialogOpen} onOpenChange={() => setIsDialogOpen(false)}>
         <DialogContent className="min-w-[1000px] py-10 overflow-auto">
           <DialogTitle className="sr-only">Create opportunity</DialogTitle>
@@ -557,6 +669,12 @@ const CRMKanban = ({
               name: c.name,
               symbol: c.symbol,
             }))}
+            categoryOptions={categoryList}
+            selectedCategory={
+              selectedCategory === ALL_CATEGORIES_VALUE
+                ? undefined
+                : selectedCategory
+            }
             selectedStage={selectedStage}
             onDialogClose={() => setIsDialogOpen(false)}
           />
@@ -585,6 +703,7 @@ const CRMKanban = ({
                   name: c.name,
                   symbol: c.symbol,
                 }))}
+                categoryOptions={categoryList}
               />
             </div>
           ) : null}
@@ -615,6 +734,7 @@ const CRMKanban = ({
 
               {/* Content */}
               <CardContent className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+                <StageStats opportunities={col.opportunities} />
                 <div className="min-h-[50px] space-y-2">
                   {col.opportunities.map((opportunity) => (
                     <OpportunityCardStatic
@@ -639,6 +759,7 @@ const CRMKanban = ({
             </CardTitle>
 
             <CardContent className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
+              <StageStats opportunities={lostOpportunities} />
               <div className="min-h-[50px] space-y-2">
                 {lostOpportunities.map((opportunity: any) => (
                   <OpportunityCardStatic
@@ -671,9 +792,7 @@ const CRMKanban = ({
                 <CardTitle className="flex gap-2 p-3 justify-between">
                   <span className="text-sm  font-bold">{col.name}</span>
                   <div className="flex">
-                    <FaBraille 
-                    className="mr-[10px] w-5 h-5 cursor-pointer"
-                    />
+                    <FaBraille className="mr-[10px] w-5 h-5 cursor-pointer" />
                     <PlusCircledIcon
                       className="w-5 h-5 cursor-pointer"
                       onClick={() => {
@@ -684,6 +803,7 @@ const CRMKanban = ({
                   </div>
                 </CardTitle>
                 <CardContent className="w-full h-full overflow-y-auto">
+                  <StageStats opportunities={col.opportunities} />
                   <SortableContext
                     items={col.opportunities.map((o) => o.id)}
                     strategy={verticalListSortingStrategy}
@@ -714,6 +834,7 @@ const CRMKanban = ({
                 </span>
               </CardTitle>
               <CardContent className="w-full h-full overflow-y-scroll space-y-2">
+                <StageStats opportunities={lostOpportunities} />
                 <DroppableStage id={LOST_DROP_ID}>
                   <SortableContext
                     items={lostOpportunities.map((o) => o.id)}

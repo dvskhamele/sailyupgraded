@@ -28,6 +28,11 @@ import { OpportunitiesDataTable } from "../opportunities/table-components/data-t
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { useCurrency } from "@/context/currency-context";
 import { Decimal } from "@prisma/client/runtime/client";
+import {
+  DEFAULT_OPPORTUNITY_CATEGORIES,
+  extractOpportunityCategories,
+  mergeCategoryLists,
+} from "@/lib/opportunity-categories";
 
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 
@@ -47,6 +52,10 @@ const OpportunitiesView = ({
   const { displayCurrency } = useCurrency();
 
   const { accounts, contacts, saleTypes, saleStages, campaigns, currencies, exchangeRates } = crmData;
+  const categoryOptions = mergeCategoryLists(
+    DEFAULT_OPPORTUNITY_CATEGORIES,
+    extractOpportunityCategories(data as any[])
+  );
 
   const rates = (exchangeRates ?? []).map((r: { fromCurrency: string; toCurrency: string; rate: unknown }) => ({
     fromCurrency: r.fromCurrency,
@@ -94,6 +103,7 @@ const OpportunitiesView = ({
                     saleStages={saleStages}
                     campaigns={campaigns}
                     currencies={currencies.map((c) => ({ code: c.code, name: c.name, symbol: c.symbol }))}
+                    categoryOptions={categoryOptions}
                     accountId={accountId}
                     onDialogClose={() => setOpen(false)}
                   />

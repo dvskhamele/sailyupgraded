@@ -53,11 +53,14 @@ export const createColumns = (config: OpportunityConfig): ColumnDef<Opportunity>
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Expected close" />
     ),
-    cell: ({ row }) => (
-      <div className="w-[80px]">
-        {moment(row.getValue("close_date")).format("YY-MM-DD")}
-      </div>
-    ),
+    cell: ({ row }) => {
+      const closeDate = row.getValue("close_date") as Date | string | null | undefined;
+      return (
+        <div className="w-[80px]">
+          {closeDate ? moment(closeDate).format("YY-MM-DD") : "—"}
+        </div>
+      );
+    },
     enableSorting: false,
     enableHiding: false,
   },

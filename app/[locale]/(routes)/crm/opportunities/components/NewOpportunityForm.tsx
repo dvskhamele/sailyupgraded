@@ -4,6 +4,7 @@ import { z } from "zod";
 import { useMemo, useState } from "react";
 import { format } from "date-fns";
 import { useForm } from "react-hook-form";
+import { useRouter } from "next/navigation";
 import { CalendarIcon, Pencil } from "lucide-react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -54,6 +55,11 @@ import {
   getConfigValues,
   updateConfigValue,
 } from "@/app/[locale]/(routes)/admin/crm-settings/_actions/crm-settings";
+import {
+  DEFAULT_OPPORTUNITY_CATEGORIES,
+  mergeCategoryLists,
+  normalizeCategoryName,
+} from "@/lib/opportunity-categories";
 
 //TODO: fix all the types
 type ConfigItem = {
@@ -68,6 +74,8 @@ type NewTaskFormProps = {
   saleStages: ConfigItem[];
   campaigns: crm_campaigns[];
   currencies: { code: string; name: string; symbol: string }[];
+  categoryOptions?: string[];
+  selectedCategory?: string;
   selectedStage?: string;
   accountId?: string;
   onDialogClose: () => void;
@@ -80,12 +88,15 @@ export function NewOpportunityForm({
   saleStages,
   campaigns,
   currencies,
+  categoryOptions = [],
+  selectedCategory,
   selectedStage,
   accountId,
   onDialogClose,
 }: NewTaskFormProps) {
   const t = useTranslations("CrmOpportunityForm");
   const c = useTranslations("Common");
+  const router = useRouter();
 
   const [searchAccountValue, setSearchAccountValue] = useState<string>("");
   const [searchContactValue, setSearchContactValue] = useState<string>("");
@@ -103,6 +114,11 @@ export function NewOpportunityForm({
   const [editingSalesStageId, setEditingSalesStageId] = useState<string | null>(null);
   const [editingSalesStageName, setEditingSalesStageName] = useState("");
   const [isEditingSalesStage, setIsEditingSalesStage] = useState(false);
+  const [localCategoryOptions, setLocalCategoryOptions] = useState<string[]>(() =>
+    mergeCategoryLists(DEFAULT_OPPORTUNITY_CATEGORIES, categoryOptions)
+  );
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
 
   const filteredAccounts = useMemo(
     () =>
@@ -127,11 +143,18 @@ export function NewOpportunityForm({
     [contacts, searchContactValue]
   );
 
+  const mergedCategoryOptions = useMemo(
+    () => mergeCategoryLists(DEFAULT_OPPORTUNITY_CATEGORIES, categoryOptions, localCategoryOptions),
+    [categoryOptions, localCategoryOptions]
+  );
+
   const formSchema = z.object({
     name: z.string().min(1, t("nameRequired")),
+    clientName: z.string(),
     close_date: z.date({
       message: "A expected close date is required.",
     }),
+    category: z.string(),
     description: z.string(),
     type: z.string(),
     sales_stage: z.string(),
@@ -153,6 +176,8 @@ export function NewOpportunityForm({
     defaultValues: {
       sales_stage: selectedStage ? selectedStage : "",
       account: accountId ? accountId : "",
+      category: selectedCategory ?? "",
+      clientName: "",
       type: "",
       budget: "",
       currency: "",
@@ -175,6 +200,8 @@ export function NewOpportunityForm({
       form.reset({
         name: "",
         close_date: new Date(),
+        category: selectedCategory ?? "",
+        clientName: "",
         description: "",
         type: "",
         sales_stage: "",
@@ -187,8 +214,26 @@ export function NewOpportunityForm({
         contact: "",
         campaign: "",
       });
+      router.refresh();
       onDialogClose();
     }
+  };
+
+  const handleCreateCategory = (event: React.FormEvent) => {
+    event.preventDefault();
+    const category = normalizeCategoryName(newCategoryName);
+    if (!category) return;
+
+    setLocalCategoryOptions((currentCategories) =>
+      mergeCategoryLists(currentCategories, [category])
+    );
+    form.setValue("category", category, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setNewCategoryName("");
+    setIsCategoryDialogOpen(false);
+    toast.success("Category added");
   };
 
   const handleCreateSalesType = async (event: React.FormEvent) => {
@@ -382,6 +427,28 @@ export function NewOpportunityForm({
           </form>
         </DialogContent>
       </Dialog>
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Category</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateCategory} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label htmlFor="new-opportunity-category">Name</Label>
+              <Input
+                id="new-opportunity-category"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                maxLength={120}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Add category
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
     <Form {...form}>
       <form
         onSubmit={form.handleSubmit(onSubmit)}
@@ -399,6 +466,23 @@ export function NewOpportunityForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="New NextCRM functionality"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="clientName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={form.formState.isSubmitting}
+                      placeholder="John Doe"
                       {...field}
                     />
                   </FormControl>
@@ -466,6 +550,44 @@ export function NewOpportunityForm({
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between gap-2">
+                        <FormLabel>Category</FormLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsCategoryDialogOpen(true)}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="flex overflow-y-auto h-56">
+                          {mergedCategoryOptions.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="type"

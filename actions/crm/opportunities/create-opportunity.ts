@@ -13,6 +13,8 @@ export const createOpportunity = async (data: {
   assigned_to?: string;
   budget?: string;
   campaign?: string;
+  category?: string;
+  clientName?: string;
   close_date?: Date;
   contact?: string;
   currency?: string;
@@ -32,6 +34,8 @@ export const createOpportunity = async (data: {
     assigned_to,
     budget,
     campaign,
+    category,
+    clientName,
     close_date,
     contact,
     currency,
@@ -48,26 +52,29 @@ export const createOpportunity = async (data: {
     const snapshotRate = currency
       ? await getSnapshotRate(currency, defaultCurrency)
       : null;
+
     const opportunity = await prismadb.crm_Opportunities.create({
       data: {
-        account: account || undefined,
-        assigned_to: assigned_to || userId,
+        assigned_account: account ? { connect: { id: account } } : undefined,
+        assigned_to_user: { connect: { id: assigned_to || userId } },
         budget: budget ? parseFloat(budget) : undefined,
-        campaign: campaign || undefined,
-        close_date,
-        contact: contact || undefined,
-        created_by: userId,
+        assigned_campaings: campaign ? { connect: { id: campaign } } : undefined,
+        category: category?.trim() || null,
+        clientName: clientName?.trim() || null,
+        close_date: close_date || null,
+        contact: contact || null,
+        created_by_user: { connect: { id: userId } },
         last_activity_by: userId,
         updatedBy: userId,
-        currency: currency || undefined,
-        description: description || undefined,
+        assigned_currency: currency ? { connect: { code: currency } } : undefined,
+        description: description || null,
         expected_revenue: expected_revenue ? parseFloat(expected_revenue) : undefined,
-        snapshot_rate: snapshotRate ? parseFloat(snapshotRate.toString()) : undefined,
+        snapshot_rate: snapshotRate ? parseFloat(snapshotRate.toString()) : null,
         name,
-        next_step: next_step || undefined,
-        sales_stage: sales_stage || undefined,
+        next_step: next_step || null,
+        assigned_sales_stage: sales_stage ? { connect: { id: sales_stage } } : undefined,
         status: "ACTIVE",
-        type: type || undefined,
+        assigned_type: type ? { connect: { id: type } } : undefined,
       },
     });
 
@@ -106,8 +113,8 @@ export const createOpportunity = async (data: {
       });
     revalidatePath("/[locale]/(routes)/crm/opportunities", "page");
     return { data: serializeDecimals(opportunity) };
-  } catch (error) {
+  } catch (error: any) {
     console.log("[CREATE_OPPORTUNITY]", error);
-    return { error: "Failed to create opportunity" };
+    return { error: error.message || "Failed to create opportunity" };
   }
 };

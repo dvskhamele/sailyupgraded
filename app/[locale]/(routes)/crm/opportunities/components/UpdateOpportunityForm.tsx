@@ -1,7 +1,7 @@
 "use client";
 
 import { z } from "zod";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Pencil } from "lucide-react";
@@ -50,6 +50,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DEFAULT_OPPORTUNITY_CATEGORIES,
+  mergeCategoryLists,
+  normalizeCategoryName,
+} from "@/lib/opportunity-categories";
 
 type ConfigItem = { id: string; name: string };
 
@@ -60,6 +65,7 @@ type UpdateOpportunityFormProps = {
   saleStages: ConfigItem[];
   campaigns: ConfigItem[];
   currencies: { code: string; name: string; symbol: string }[];
+  categoryOptions?: string[];
 };
 
 export function UpdateOpportunityForm({
@@ -69,6 +75,7 @@ export function UpdateOpportunityForm({
   saleStages,
   campaigns,
   currencies,
+  categoryOptions = [],
 }: UpdateOpportunityFormProps) {
   const t = useTranslations("CrmOpportunityForm");
   const c = useTranslations("Common");
@@ -86,13 +93,35 @@ export function UpdateOpportunityForm({
   const [editingSalesStageId, setEditingSalesStageId] = useState<string | null>(null);
   const [editingSalesStageName, setEditingSalesStageName] = useState("");
   const [isEditingSalesStage, setIsEditingSalesStage] = useState(false);
+  const [localCategoryOptions, setLocalCategoryOptions] = useState<string[]>(() =>
+    mergeCategoryLists(
+      DEFAULT_OPPORTUNITY_CATEGORIES,
+      categoryOptions,
+      initialData?.category ? [initialData.category] : []
+    )
+  );
+  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState("");
+
+  const mergedCategoryOptions = useMemo(
+    () =>
+      mergeCategoryLists(
+        DEFAULT_OPPORTUNITY_CATEGORIES,
+        categoryOptions,
+        localCategoryOptions,
+        initialData?.category ? [initialData.category] : []
+      ),
+    [categoryOptions, initialData?.category, localCategoryOptions]
+  );
 
   const formSchema = z.object({
     id: z.uuid(),
     name: z.string().min(1, t("nameRequired")),
+    clientName: z.string().nullable().optional(),
     close_date: z.date({
       message: "A expected close date is required.",
     }),
+    category: z.string().nullable().optional(),
     description: z.string().nullable().optional(),
     type: z.string().nullable().optional(),
     sales_stage: z.string().nullable().optional(),
@@ -114,6 +143,8 @@ export function UpdateOpportunityForm({
     defaultValues: {
       ...initialData,
       close_date: initialData.close_date ? new Date(initialData.close_date) : undefined,
+      category: initialData.category ?? "",
+      clientName: initialData.clientName ?? "",
       description: initialData.description ?? "",
       budget: String(initialData.budget ?? ""),
       currency: initialData.currency ?? "",
@@ -129,16 +160,43 @@ export function UpdateOpportunityForm({
   });
 
   const onSubmit = async (data: NewAccountFormValues) => {
-    const cleaned = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, v === null ? undefined : v])
-    ) as any;
-    const result = await updateOpportunity(cleaned);
-    if (result?.error) {
-      form.setError("root.serverError", { message: result.error });
-    } else {
+    try {
+      const cleaned = Object.fromEntries(
+        Object.entries(data).map(([key, value]) => [key, value === null ? undefined : value])
+      ) as any;
+      const result = await updateOpportunity(cleaned);
+      if (result?.error) {
+        console.log(result.error);
+        form.setError("root.serverError", { message: result.error });
+        toast.error(result.error);
+        return;
+      }
+
       toast.success(t("updateSuccess"));
       setOpen(false);
+    } catch (error) {
+      console.log(error);
+      const message = error instanceof Error ? error.message : "Failed to update opportunity";
+      form.setError("root.serverError", { message });
+      toast.error(message);
     }
+  };
+
+  const handleCreateCategory = (event: React.FormEvent) => {
+    event.preventDefault();
+    const category = normalizeCategoryName(newCategoryName);
+    if (!category) return;
+
+    setLocalCategoryOptions((currentCategories) =>
+      mergeCategoryLists(currentCategories, [category])
+    );
+    form.setValue("category", category, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    setNewCategoryName("");
+    setIsCategoryDialogOpen(false);
+    toast.success("Category added");
   };
 
   const handleCreateSalesType = async (event: React.FormEvent) => {
@@ -335,6 +393,28 @@ export function UpdateOpportunityForm({
           </form>
         </DialogContent>
       </Dialog>
+      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Category</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateCategory} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label htmlFor="edit-opportunity-category">Name</Label>
+              <Input
+                id="edit-opportunity-category"
+                value={newCategoryName}
+                onChange={(e) => setNewCategoryName(e.target.value)}
+                maxLength={120}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Add category
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full px-4 md:px-10">
         <div className="w-full text-sm">
@@ -350,6 +430,24 @@ export function UpdateOpportunityForm({
                       disabled={form.formState.isSubmitting}
                       placeholder="New NextCRM functionality"
                       {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="clientName"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client Name</FormLabel>
+                  <FormControl>
+                    <Input
+                      disabled={form.formState.isSubmitting}
+                      placeholder="John Doe"
+                      {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -416,6 +514,44 @@ export function UpdateOpportunityForm({
             />
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
+                <FormField
+                  control={form.control}
+                  name="category"
+                  render={({ field }) => (
+                    <FormItem>
+                      <div className="flex items-center justify-between gap-2">
+                        <FormLabel>Category</FormLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsCategoryDialogOpen(true)}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value ?? ""}
+                        value={field.value ?? ""}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a category" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="flex overflow-y-auto h-56">
+                          {mergedCategoryOptions.map((category) => (
+                            <SelectItem key={category} value={category}>
+                              {category}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
                 <FormField
                   control={form.control}
                   name="type"

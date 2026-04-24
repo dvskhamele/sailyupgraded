@@ -49,109 +49,78 @@ const crmDashboardContactSelect = Prisma.validator<Prisma.crm_ContactsSelect>()(
 });
 
 /**
- * CRM Data Fetcher - Task Group 2.3
+ * Shared CRM metadata fetcher.
  *
- * Fetches all necessary data for CRM module views.
- * Implements query batching to avoid database connection pool timeouts.
- *
- * References:
- * - DriverAdapterError pool timeout: happens when firing too many parallel queries
- * - Default pool limit: 10 connections
+ * This is used by multiple CRM routes and server components. Keep the queries
+ * serialized and cache the result per request to avoid exhausting the Prisma
+ * MariaDB driver pool under concurrent page loads.
  */
-export const getAllCrmData = (async () => {
-  // Batch 1: Primary CRM Entities (5 queries)
-  const [
-    accounts,
-    opportunities,
-    leads,
-    contacts,
-    contracts,
-  ] = await Promise.all([
-    prismadb.crm_Accounts.findMany({ where: { deletedAt: null } }),
+export const getAllCrmData = cache(async () => {
+  const accounts = await prismadb.crm_Accounts.findMany({
+    where: { deletedAt: null },
+  });
 
-    prismadb.crm_Opportunities.findMany({ where: { deletedAt: null } }),
+  const opportunities = await prismadb.crm_Opportunities.findMany({
+    where: { deletedAt: null },
+  });
 
-    // ❌ crm_Leads me order field nahi hai → remove it
-    prismadb.crm_Leads.findMany({
-      where: { deletedAt: null },
-      select: crmDashboardLeadSelect,
-    }),
+  const leads = await prismadb.crm_Leads.findMany({
+    where: { deletedAt: null },
+    select: crmDashboardLeadSelect,
+  });
 
-    prismadb.crm_Contacts.findMany({
-      where: { deletedAt: null },
-      select: crmDashboardContactSelect,
-    }),
+  const contacts = await prismadb.crm_Contacts.findMany({
+    where: { deletedAt: null },
+    select: crmDashboardContactSelect,
+  });
 
-    prismadb.crm_Contracts.findMany({ where: { deletedAt: null } }),
-  ]);
+  const contracts = await prismadb.crm_Contracts.findMany({
+    where: { deletedAt: null },
+  });
 
-  // Batch 2: Configuration & Metadata (5 queries)
-  const [
-    saleTypes,
-    saleStages,
-    campaigns,
-    industries,
-    contactTypes,
-  ] = await Promise.all([
-    // ❌ no order field → use name
-    prismadb.crm_Opportunities_Type.findMany({
-      orderBy: { name: "asc" },
-    }),
+  const saleTypes = await prismadb.crm_Opportunities_Type.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    getSalesStageCollections(), // ✅ yahi se stages ka order control hoga
+  const saleStages = await getSalesStageCollections();
 
-    prismadb.crm_campaigns.findMany({ where: { deletedAt: null } }),
+  const campaigns = await prismadb.crm_campaigns.findMany({
+    where: { deletedAt: null },
+  });
 
-    // ❌ no order field
-    prismadb.crm_Industry_Type.findMany({
-      orderBy: { name: "asc" },
-    }),
+  const industries = await prismadb.crm_Industry_Type.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    // ❌ no order field
-    prismadb.crm_Contact_Types.findMany({
-      orderBy: { name: "asc" },
-    }),
-  ]);
+  const contactTypes = await prismadb.crm_Contact_Types.findMany({
+    orderBy: { name: "asc" },
+  });
 
-  // Batch 3: Remaining metadata and regional settings (6 queries)
-  const [
-    leadSources,
-    leadStatuses,
-    leadTypes,
-    currencies,
-    exchangeRates,
-    productCategories,
-  ] = await Promise.all([
-    // ❌ no order field
-    prismadb.crm_Lead_Sources.findMany({
-      orderBy: { name: "asc" },
-    }),
+  const leadSources = await prismadb.crm_Lead_Sources.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    // ✅ ONLY THIS SHOULD USE order
-    prismadb.crm_Lead_Statuses.findMany({
-      orderBy: { name: "asc" },
-    }),
+  const leadStatuses = await prismadb.crm_Lead_Statuses.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    // ❌ no order field
-    prismadb.crm_Lead_Types.findMany({
-      orderBy: { name: "asc" },
-    }),
+  const leadTypes = await prismadb.crm_Lead_Types.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    prismadb.currency.findMany({
-      where: { isEnabled: true },
-      orderBy: { code: "asc" },
-    }),
+  const currencies = await prismadb.currency.findMany({
+    where: { isEnabled: true },
+    orderBy: { code: "asc" },
+  });
 
-    prismadb.exchangeRate.findMany(),
+  const exchangeRates = await prismadb.exchangeRate.findMany();
 
-    // ✅ already correct (has order field)
-    prismadb.crm_ProductCategories.findMany({
-      where: { isActive: true },
-      orderBy: { order: "asc" },
-    }),
-  ]);
+  const productCategories = await prismadb.crm_ProductCategories.findMany({
+    where: { isActive: true },
+    orderBy: { order: "asc" },
+  });
 
-  const data = {
+  return {
     accounts,
     opportunities: serializeDecimalsList(opportunities),
     leads,
@@ -168,12 +137,10 @@ export const getAllCrmData = (async () => {
     leadTypes,
     currencies,
     productCategories,
-    exchangeRates: exchangeRates.map((r: any) => ({
-      fromCurrency: r.fromCurrency,
-      toCurrency: r.toCurrency,
-      rate: Number(r.rate),
+    exchangeRates: exchangeRates.map((rate: any) => ({
+      fromCurrency: rate.fromCurrency,
+      toCurrency: rate.toCurrency,
+      rate: Number(rate.rate),
     })),
   };
-
-  return data;
 });

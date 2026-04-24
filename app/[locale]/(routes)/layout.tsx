@@ -127,7 +127,7 @@ export default async function AppLayout({
           - Footer will appear at the bottom of the content, not fixed at viewport bottom
         */}
         <div className="flex flex-col flex-grow overflow-y-auto h-full w-full min-w-0">
-          <div className="flex-grow py-5 w-full min-w-0">
+          <div className="flex-grow w-full min-w-0">
             <div className="w-full px-4 min-w-0">
               {children}
             </div>

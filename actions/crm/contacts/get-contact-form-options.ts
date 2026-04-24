@@ -11,7 +11,7 @@ export const getContactFormOptions = async () => {
     }),
     prismadb.crm_Contact_Types.findMany({ 
       select: { id: true, name: true },
-      orderBy: { order: "asc" }
+      orderBy: { name: "asc" }
     }),
   ]);
 

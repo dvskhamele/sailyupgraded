@@ -183,6 +183,7 @@ model crm_Opportunities {
   budget               Decimal                         @default(0) @db.Decimal(18, 2)
   campaign             String?
   close_date           DateTime?
+  clientName           String?
   contact              String?
   created_by           String?
   createdBy            String?
@@ -194,6 +195,7 @@ model crm_Opportunities {
   last_activity_by     String?
   currency             String?                         @db.VarChar(3)
   snapshot_rate        Decimal?                        @db.Decimal(18, 8)
+  category             String?
   description          String?
   expected_revenue     Decimal                         @default(0) @db.Decimal(18, 2)
   name                 String?
@@ -420,8 +422,8 @@ model crm_Contacts {
   social_youtube       String?
   social_tiktok        String?
   contact_type_id      String?
-  tags                 Json
-  notes                Json
+  tags                 Json?
+  notes                Json?
   accountsIDs          String?
   deletedAt            DateTime?
   deletedBy            String?

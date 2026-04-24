@@ -8,7 +8,10 @@ export const opportunitySchema = z.object({
   name: z.string(),
   description: z.string().nullable(),
   next_step: z.string().nullable(),
-  close_date: z.date(),
+  close_date: z.union([z.date(), z.string(), z.null()]).nullable().transform((val) => {
+    if (!val) return null;
+    return val instanceof Date ? val : new Date(val);
+  }),
   status: z.string().nullable(),
   budget: z.union([z.number(), z.bigint()]).nullable().transform((val) =>
     typeof val === 'bigint' ? Number(val) : val

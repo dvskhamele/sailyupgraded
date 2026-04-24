@@ -42,7 +42,7 @@ const Header = ({ id, lang }: Props) => {
           <FulltextSearch />
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <SetLanguage userId={id} />
+          {/* <SetLanguage userId={id} /> */}
           <CurrencySwitcher />
           {/* <CommandComponent /> */}
           {/* <Feedback /> */}
