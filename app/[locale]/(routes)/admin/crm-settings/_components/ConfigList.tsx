@@ -1,6 +1,6 @@
       "use client";
 
-      import { useEffect, useState } from "react";
+      import { useMemo, useState } from "react";
       import {
         DndContext,
         closestCenter,
@@ -110,14 +110,27 @@
       }
 
       export function ConfigList({ configType, label, values }: ConfigListProps) {
-        const [items, setItems] = useState<ConfigValue[]>(values);
+        const [optimisticItemOrder, setOptimisticItemOrder] = useState<string[] | null>(
+          null
+        );
         const [editItem, setEditItem] = useState<ConfigValue | null>(null);
         const [deleteItem, setDeleteItem] = useState<ConfigValue | null>(null);
         const router = useRouter();
+        const items = useMemo(() => {
+          if (!optimisticItemOrder) {
+            return values;
+          }
 
-        useEffect(() => {
-          setItems(values);
-        }, [values]);
+          const itemsById = new Map(values.map((item) => [item.id, item]));
+          const orderedItems = optimisticItemOrder
+            .map((id) => itemsById.get(id))
+            .filter((item): item is ConfigValue => Boolean(item));
+          const missingItems = values.filter(
+            (item) => !optimisticItemOrder.includes(item.id)
+          );
+
+          return [...orderedItems, ...missingItems];
+        }, [optimisticItemOrder, values]);
 
         const sensors = useSensors(useSensor(PointerSensor));
 
@@ -139,7 +152,7 @@
           }
 
           const newItems = arrayMove(items, oldIndex, newIndex);
-          setItems(newItems);
+          setOptimisticItemOrder(newItems.map((item) => item.id));
 
           // ✅ save to DB - sending ONLY array as requested
           try {
@@ -154,8 +167,7 @@
             router.refresh();
           } catch (error) {
             console.error("Failed to save reorder:", error);
-            // Optional: rollback state on failure
-            setItems(items);
+            setOptimisticItemOrder(null);
           }
         };
 

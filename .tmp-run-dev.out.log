@@ -1,0 +1,142 @@
+
+> nextcrm-app@0.10.1 dev
+> next dev --webpack
+
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.31.200:3000
+- Environments: .env.local, .env
+✓ Ready in 767ms
+
+○ Compiling /[locale]/sign-in ...
+ HEAD /en/sign-in 200 in 19.5s (proxy.ts: 266ms)
+ HEAD /en/sign-in 200 in 166ms (next.js: 23ms, proxy.ts: 20ms, application-code: 122ms)
+○ Compiling /[locale] ...
+ GET /en 200 in 31.9s (next.js: 22.7s, proxy.ts: 27ms, application-code: 9.1s)
+○ Compiling /[locale]/crm/dashboard ...
+ GET /en/crm/dashboard 200 in 30.9s (next.js: 13.4s, proxy.ts: 14ms, application-code: 17.5s)
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/crm/opportunities 500 in 24.1s (next.js: 23.5s, proxy.ts: 6ms, application-code: 651ms)
+ GET /en/crm/dashboard 500 in 173ms (next.js: 44ms, proxy.ts: 52ms, application-code: 76ms)
+ GET /en/crm/opportunities 500 in 175ms (next.js: 58ms, proxy.ts: 53ms, application-code: 65ms)
+ GET /en/c 500 in 6.3s (next.js: 6.2s, proxy.ts: 14ms, application-code: 55ms)
+ GET /en 500 in 71ms (next.js: 21ms, proxy.ts: 18ms, application-code: 32ms)
+ GET /en 500 in 62ms (next.js: 16ms, proxy.ts: 18ms, application-code: 28ms)
+ GET /en 500 in 95ms (next.js: 26ms, proxy.ts: 26ms, application-code: 43ms)
+ GET /en 200 in 14.1s (next.js: 1890ms, proxy.ts: 48ms, application-code: 12.1s)
+ GET /en/crm/dashboard 200 in 15.8s (next.js: 168ms, proxy.ts: 21ms, application-code: 15.6s)
+○ Compiling /[locale]/crm/contacts ...
+○ Compiling /[locale]/crm/accounts ...
+ GET /en/crm/contacts 200 in 44s (next.js: 25.8s, proxy.ts: 36ms, application-code: 18.1s)
+ GET /en/crm/accounts 200 in 21.8s (next.js: 5.1s, proxy.ts: 23ms, application-code: 16.6s)
+○ Compiling /[locale]/profile ...
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/profile 200 in 56s (next.js: 47s, proxy.ts: 17ms, application-code: 8.8s)
+ GET /en/crm/opportunities 200 in 53s (next.js: 31.8s, proxy.ts: 20ms, application-code: 21.2s)
+ GET /en/profile 200 in 5.5s (next.js: 78ms, proxy.ts: 13ms, application-code: 5.4s)
+ GET /en/profile 200 in 8.5s (next.js: 10ms, proxy.ts: 12ms, application-code: 8.5s)
+ GET /en/crm/opportunities 200 in 16.5s (next.js: 44ms, proxy.ts: 11ms, application-code: 16.4s)
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/crm/dashboard 200 in 17.2s (next.js: 436ms, proxy.ts: 71ms, application-code: 16.7s)
+ GET /en/crm/opportunities 200 in 34.1s (next.js: 6.7s, proxy.ts: 43ms, application-code: 27.4s)
+ GET /en/crm/dashboard 200 in 20.4s (next.js: 841ms, proxy.ts: 43ms, application-code: 19.5s)
+○ Compiling /[locale]/crm/opportunities/[opportunityId] ...
+ GET /en/crm/opportunities/api-opportunity-1777027052 200 in 84s (next.js: 59s, proxy.ts: 48ms, application-code: 25.0s)
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/crm/opportunities/api-opportunity-1777027052? 200 in 25.2s (next.js: 50ms, proxy.ts: 25ms, application-code: 25.1s)
+ GET /en/crm/opportunities 200 in 34.5s (next.js: 11.0s, proxy.ts: 942ms, application-code: 22.5s)
+ GET /en/crm/dashboard 200 in 17.8s (next.js: 190ms, proxy.ts: 19ms, application-code: 17.6s)
+○ Compiling /[locale]/profile ...
+ GET /en/profile 200 in 24.2s (next.js: 16.0s, proxy.ts: 8ms, application-code: 8.2s)
+ GET /en/profile 200 in 6.2s (next.js: 22ms, proxy.ts: 25ms, application-code: 6.1s)
+ GET /en/profile?tab=administration 200 in 9.8s (next.js: 102ms, proxy.ts: 57ms, application-code: 9.7s)
+ GET /en/profile 200 in 5.0s (next.js: 33ms, proxy.ts: 31ms, application-code: 4.9s)
+ GET /en/profile 200 in 5.6s (next.js: 15ms, proxy.ts: 14ms, application-code: 5.5s)
+ GET /en/profile?tab=administration 200 in 2.4s (next.js: 21ms, proxy.ts: 8ms, application-code: 2.4s)
+○ Compiling /[locale]/admin/crm-settings ...
+ GET /en/crm/dashboard 200 in 22.2s (next.js: 259ms, proxy.ts: 25ms, application-code: 21.9s)
+ GET /en/admin/crm-settings 200 in 33.4s (next.js: 25.2s, proxy.ts: 7ms, application-code: 8.2s)
+ GET /en/admin/crm-settings 200 in 6.6s (next.js: 91ms, proxy.ts: 57ms, application-code: 6.4s)
+prisma:error 
+Invalid `prisma.crm_Opportunities_Sales_Stages.findMany()` invocation:
+
+
+read ECONNRESET
+ GET /en/crm/dashboard 200 in 30.2s (next.js: 1828ms, proxy.ts: 45ms, application-code: 28.4s)
+ GET /en/crm/dashboard 200 in 19.6s (next.js: 35ms, proxy.ts: 19ms, application-code: 19.5s)
+○ Compiling /_not-found ...
+ GET /en/crm/dashboard 200 in 6.0s (next.js: 5.0s, proxy.ts: 83ms, application-code: 886ms)
+ GET /en/crm/dashboard 200 in 26.7s (next.js: 1301ms, proxy.ts: 165ms, application-code: 25.2s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 10780ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 11035ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 10779ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/dashboard 200 in 17.9s (next.js: 539ms, proxy.ts: 78ms, application-code: 17.3s)
+○ Compiling /[locale]/sign-in ...
+ GET /en/sign-in 200 in 17.4s (next.js: 15.3s, proxy.ts: 10ms, application-code: 2.1s)
+ GET /en/sign-in 200 in 2.0s (next.js: 1667ms, proxy.ts: 56ms, application-code: 284ms)
+ GET /en/sign-in 200 in 2.1s (next.js: 548ms, proxy.ts: 91ms, application-code: 1435ms)
+○ Compiling /api/auth/email-otp/send-verification-otp ...
+ POST /api/auth/email-otp/send-verification-otp 200 in 31.4s (next.js: 25.5s, proxy.ts: 14ms, application-code: 5.9s)
+○ Compiling /api/auth/test-otp ...
+ GET /api/auth/test-otp?email=test%40gmail.com 200 in 10.6s (next.js: 8.2s, proxy.ts: 130ms, application-code: 2.3s)
+○ Compiling /api/auth/sign-in/email-otp ...
+ POST /api/auth/sign-in/email-otp 200 in 38.8s (next.js: 24.5s, proxy.ts: 22ms, application-code: 14.3s)
+○ Compiling /[locale] ...
+ GET /en 200 in 24.5s (next.js: 11.2s, proxy.ts: 7ms, application-code: 13.3s)
+ GET /en/crm/dashboard 200 in 15.8s (next.js: 376ms, proxy.ts: 50ms, application-code: 15.4s)
+ GET /en 200 in 9.7s (next.js: 589ms, proxy.ts: 88ms, application-code: 9.0s)
+ GET /en/crm/dashboard 200 in 14.6s (next.js: 41ms, proxy.ts: 8ms, application-code: 14.6s)
+ GET /en/crm/dashboard 200 in 25.2s (next.js: 3.5s, proxy.ts: 192ms, application-code: 21.4s)
+ GET /en/profile 200 in 4.0s (next.js: 116ms, proxy.ts: 8ms, application-code: 3.9s)
+ GET /en/profile?tab=administration 200 in 3.5s (next.js: 26ms, proxy.ts: 11ms, application-code: 3.5s)
+ GET /en/admin/crm-settings 200 in 1770ms (next.js: 103ms, proxy.ts: 7ms, application-code: 1659ms)
+ GET /en/profile?tab=administration 200 in 4.1s (next.js: 23ms, proxy.ts: 10ms, application-code: 4.0s)
+ POST /en/crm/dashboard 200 in 27.7s (next.js: 39ms, proxy.ts: 15ms, application-code: 27.7s)
+  └─ ƒ updateOpportunity({"id":"79ba3278-ee4a-4493-bf40-177ecae589d7","sales_stage":"6d9cbf08-6d8b-4592-bb26-5e8ea1fe6b21"}) in 16455ms ..//actions/crm/opportunities/update-opportunity.ts
+ GET /en/admin/crm-settings 200 in 3.5s (next.js: 25ms, proxy.ts: 9ms, application-code: 3.5s)
+ GET /en/admin/crm-settings 200 in 5.8s (next.js: 131ms, proxy.ts: 8ms, application-code: 5.6s)
+○ Compiling /[locale]/crm ...
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/crm 200 in 74s (next.js: 54s, proxy.ts: 8ms, application-code: 19.5s)
+ GET /en/crm/dashboard 200 in 36.2s (next.js: 1297ms, proxy.ts: 25ms, application-code: 34.9s)
+ GET /en/crm/opportunities 200 in 42s (next.js: 24.7s, proxy.ts: 27ms, application-code: 17.0s)
+○ Compiling /api/opportunity/update-stage ...
+ POST /api/opportunity/update-stage 200 in 21.3s (next.js: 15.5s, application-code: 5.8s)
+ POST /api/opportunity/update-stage 200 in 12.3s (next.js: 3.7s, application-code: 8.6s)
+ POST /api/opportunity/update-stage 200 in 14.7s (next.js: 6.1s, application-code: 8.6s)
+ GET /en/crm/opportunities 200 in 15.5s (next.js: 778ms, proxy.ts: 66ms, application-code: 14.7s)
+ GET /en/crm/opportunities 200 in 13.4s (next.js: 11ms, proxy.ts: 7ms, application-code: 13.4s)
+ GET /en/crm/opportunities 200 in 14.1s (next.js: 11ms, proxy.ts: 17ms, application-code: 14.1s)
+
+Could not open client.mjs in the editor.
+
+When running on Windows, file names are checked against an access list to protect against remote code execution attacks. File names may consist only of alphanumeric characters (all languages), periods, dashes, slashes, and underscores.
+
+ GET /en/crm/opportunities? 500 in 462ms (next.js: 48ms, proxy.ts: 135ms, application-code: 279ms)
+ GET /en/crm/opportunities? 200 in 13.8s (next.js: 5.6s, proxy.ts: 52ms, application-code: 8.1s)
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.31.200:3000
+- Environments: .env.local, .env
+✓ Ready in 13.6s
+
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/crm/opportunities? 200 in 47s (next.js: 10.4s, proxy.ts: 4.6s, application-code: 31.7s)
+○ Compiling /[locale]/crm/dashboard ...
+ GET /en/crm/dashboard 200 in 28.5s (next.js: 11.6s, proxy.ts: 8ms, application-code: 16.9s)
+ POST /en/crm/dashboard 200 in 33.1s (next.js: 49ms, proxy.ts: 44ms, application-code: 33.0s)
+  └─ ƒ updateOpportunity({"id":"51066eea-c947-49a6-9083-e26669c2fe51","sales_stage":"6d9cbf08-6d8b-4592-bb26-5e8ea1fe6b21"}) in 17950ms ..//actions/crm/opportunities/update-opportunity.ts
+ POST /en/crm/dashboard 200 in 30.5s (next.js: 155ms, proxy.ts: 51ms, application-code: 30.3s)
+  └─ ƒ updateOpportunity({"id":"79ba3278-ee4a-4493-bf40-177ecae589d7","sales_stage":"6d9cbf08-6d8b-4592-bb26-5e8ea1fe6b21"}) in 18945ms ..//actions/crm/opportunities/update-opportunity.ts
+○ Compiling /[locale]/profile ...
+ POST /en/crm/dashboard 200 in 26.5s (next.js: 22ms, proxy.ts: 13ms, application-code: 26.5s)
+  └─ ƒ createOpportunity({"account":"","assigned_to":"","budget":"","...":"12 items not stringified"}) in 7379ms ..//actions/crm/opportunities/create-opportunity.ts
+ GET /en/crm/dashboard 200 in 21.2s (next.js: 31ms, proxy.ts: 18ms, application-code: 21.2s)
+ GET /en/profile 200 in 2.2s (next.js: 39ms, proxy.ts: 21ms, application-code: 2.2s)
+ GET /en/profile 200 in 19.3s (next.js: 15.1s, proxy.ts: 9ms, application-code: 4.3s)
+ GET /en/profile?tab=administration 200 in 4.1s (next.js: 33ms, proxy.ts: 13ms, application-code: 4.1s)
+○ Compiling /[locale]/admin/crm-settings ...
+ GET /en/admin/crm-settings 200 in 23.7s (next.js: 17.3s, proxy.ts: 7ms, application-code: 6.3s)

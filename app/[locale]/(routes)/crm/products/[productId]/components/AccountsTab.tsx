@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import moment from "moment";
-import { Decimal } from "@prisma/client/runtime/client";
+import Decimal from "decimal.js";
 import { formatCurrency } from "@/lib/currency-format";
 
 import {

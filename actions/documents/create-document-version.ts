@@ -37,6 +37,7 @@ export async function createDocumentVersion(input: CreateVersionInput) {
         document_file_mimeType: input.mimeType,
         content_hash: input.contentHash ?? null,
         processing_status: "PENDING",
+        connected_documents: [],
         version: newVersion,
         parent_document_id: input.parentDocumentId,
         createdBy: session.user.id,

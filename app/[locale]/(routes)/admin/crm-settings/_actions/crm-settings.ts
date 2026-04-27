@@ -19,13 +19,13 @@ export type ConfigValue = { id: string; name: string; usageCount: number; isProt
 const nameSchema = z.string().trim().min(1, "Name is required").max(100, "Max 100 characters");
 
 const configMap = {
-  industry:        { model: () => prisma.crm_Industry_Type,               countRelation: "accounts",                              updateMany: null },
-  contactType:     { model: () => prisma.crm_Contact_Types,               countRelation: "contacts",                              updateMany: () => prisma.crm_Contacts },
-  leadSource:      { model: () => prisma.crm_Lead_Sources,                countRelation: "leads",                                 updateMany: () => prisma.crm_Leads },
-  leadStatus:      { model: () => prisma.crm_Lead_Statuses,               countRelation: "leads",                                 updateMany: () => prisma.crm_Leads },
-  leadType:        { model: () => prisma.crm_Lead_Types,                  countRelation: "leads",                                 updateMany: () => prisma.crm_Leads },
-  opportunityType: { model: () => prisma.crm_Opportunities_Type,          countRelation: "assigned_opportunities",                updateMany: null },
-  salesStage:      { model: () => prisma.crm_Opportunities_Sales_Stages,  countRelation: "assigned_opportunities_sales_stage",    updateMany: () => prisma.crm_Opportunities },
+  industry:        { model: () => prisma.crm_Industry_Type,               countRelation: "accounts",                              updateMany: null, hasOrder: true },
+  contactType:     { model: () => prisma.crm_Contact_Types,               countRelation: "contacts",                              updateMany: () => prisma.crm_Contacts, hasOrder: false },
+  leadSource:      { model: () => prisma.crm_Lead_Sources,                countRelation: "leads",                                 updateMany: () => prisma.crm_Leads, hasOrder: false },
+  leadStatus:      { model: () => prisma.crm_Lead_Statuses,               countRelation: "leads",                                 updateMany: () => prisma.crm_Leads, hasOrder: true },
+  leadType:        { model: () => prisma.crm_Lead_Types,                  countRelation: "leads",                                 updateMany: () => prisma.crm_Leads, hasOrder: false },
+  opportunityType: { model: () => prisma.crm_Opportunities_Type,          countRelation: "assigned_opportunities",                updateMany: null, hasOrder: true },
+  salesStage:      { model: () => prisma.crm_Opportunities_Sales_Stages,  countRelation: "assigned_opportunities_sales_stage",    updateMany: () => prisma.crm_Opportunities, hasOrder: true },
 } as const;
 
 const fkField: Record<CrmConfigType, string | null> = {
@@ -70,10 +70,10 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
     return values;
   }
 
-  const { model, countRelation } = configMap[configType];
+  const { model, countRelation, hasOrder } = configMap[configType];
   const rows = await (model() as any).findMany({
     include: { _count: { select: { [countRelation]: true } } },
-    orderBy: { order: "asc" },
+    orderBy: hasOrder ? { order: "asc" } : { name: "asc" },
   });
   return rows.map((r: any) => ({
     id: r.id,
@@ -84,20 +84,22 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
 
 export async function createConfigValue(configType: CrmConfigType, name: string): Promise<void> {
   const parsed = nameSchema.parse(name);
-  const { model } = configMap[configType];
-  
-  // Get current max order
-  const lastItem = await (model() as any).findFirst({
-    orderBy: { order: "desc" },
-  });
-  const newOrder = lastItem ? (lastItem.order || 0) + 1 : 0;
+  const { model, hasOrder } = configMap[configType];
 
-  await (model() as any).create({ 
-    data: { 
-      name: parsed, 
-      v: 0, 
-      order: newOrder 
-    } 
+  let orderData = {};
+  if (hasOrder) {
+    const lastItem = await (model() as any).findFirst({
+      orderBy: { order: "desc" },
+    });
+    orderData = { order: lastItem ? (lastItem.order || 0) + 1 : 0 };
+  }
+
+  await (model() as any).create({
+    data: {
+      name: parsed,
+      v: 0,
+      ...orderData,
+    }
   });
   revalidatePath("/", "layout");
 }

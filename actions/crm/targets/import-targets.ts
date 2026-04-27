@@ -69,6 +69,8 @@ export async function importTargets(
       industry: row.industry || null,
       employees: row.employees || null,
       description: row.description || null,
+      tags: [],
+      notes: [],
       created_by: (session.user as any).id,
     });
   });

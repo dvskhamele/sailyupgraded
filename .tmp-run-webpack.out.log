@@ -1,0 +1,24 @@
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.31.200:3000
+- Environments: .env.local, .env
+✓ Ready in 1031ms
+
+○ Compiling proxy ...
+○ Compiling /[locale]/sign-in ...
+○ Compiling /[locale] ...
+ GET /en 200 in 2.4min (next.js: 2.1min, proxy.ts: 51ms, application-code: 17.8s)
+ GET /en 200 in 54s (next.js: 35.6s, proxy.ts: 50ms, application-code: 18.2s)
+ HEAD /en/sign-in 200 in 1346ms (next.js: 144ms, proxy.ts: 19ms, application-code: 1183ms)
+ GET /en/crm/dashboard 200 in 402ms (next.js: 43ms, proxy.ts: 22ms, application-code: 337ms)
+prisma:error pool timeout: failed to retrieve a connection from pool after 14086ms
+    (pool connections: active=2 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 14085ms
+    (pool connections: active=2 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 13235ms
+    (pool connections: active=2 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 12321ms
+    (pool connections: active=2 idle=0 limit=10)
+ GET /en/crm/dashboard 200 in 34.6s (next.js: 9.6s, proxy.ts: 18ms, application-code: 25.0s)
+ HEAD /en/sign-in 200 in 2.2s (next.js: 389ms, proxy.ts: 474ms, application-code: 1336ms)
+[?25h

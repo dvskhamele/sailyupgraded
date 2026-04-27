@@ -27,7 +27,15 @@ export const createTarget = async (data: {
 
   try {
     const target = await prismadb.crm_Targets.create({
-      data: { last_name: last_name ?? "", email, mobile_phone, ...rest, created_by: (session.user as any).id },
+      data: {
+        last_name: last_name ?? "",
+        email,
+        mobile_phone,
+        ...rest,
+        tags: [],
+        notes: [],
+        created_by: (session.user as any).id,
+      },
     });
     revalidatePath("/[locale]/(routes)/crm/targets", "page");
     return { data: target };

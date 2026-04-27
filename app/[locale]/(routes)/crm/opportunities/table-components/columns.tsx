@@ -12,7 +12,7 @@ import { DataTableRowActions } from "./data-table-row-actions";
 import moment from "moment";
 import Link from "next/link";
 import { formatCurrency, convertAmount, type Rate } from "@/lib/currency-format";
-import { Decimal } from "@prisma/client/runtime/client";
+import Decimal from "decimal.js";
 
 type ConfigItem = { id: string; name: string };
 

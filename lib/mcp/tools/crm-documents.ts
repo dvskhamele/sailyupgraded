@@ -135,6 +135,7 @@ export const crmDocumentTools = [
           created_by_user: userId,
           createdBy: userId,
           processing_status: "PENDING",
+          connected_documents: [],
         },
       });
 

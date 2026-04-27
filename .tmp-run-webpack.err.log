@@ -1,0 +1,140 @@
+⚠ ./app/[locale]/(routes)/components/Footer.tsx
+Should not import the named export 'version' (imported as 'version') from default-exporting module (only default export is available soon)
+
+Import trace for requested module:
+./app/[locale]/(routes)/components/Footer.tsx
+./app/[locale]/(routes)/layout.tsx
+⚠ ./app/[locale]/(routes)/components/Footer.tsx
+Should not import the named export 'version' (imported as 'version') from default-exporting module (only default export is available soon)
+
+Import trace for requested module:
+./app/[locale]/(routes)/components/Footer.tsx
+./app/[locale]/(auth)/layout.tsx
+⚠ ./app/[locale]/(routes)/components/Footer.tsx
+Should not import the named export 'version' (imported as 'version') from default-exporting module (only default export is available soon)
+
+Import trace for requested module:
+./app/[locale]/(routes)/components/Footer.tsx
+./app/[locale]/(auth)/layout.tsx
+⚠ ./app/[locale]/(routes)/components/Footer.tsx
+Should not import the named export 'version' (imported as 'version') from default-exporting module (only default export is available soon)
+
+Import trace for requested module:
+./app/[locale]/(routes)/components/Footer.tsx
+./app/[locale]/(auth)/layout.tsx
+[2m2026-04-26T08:22:07.535Z[0m [31mERROR[0m [1m[Better Auth]:[0m Failed to query fallback join for model Users: {
+  where: [
+    {
+      operator: 'eq',
+      connector: 'AND',
+      field: 'id',
+      value: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+      mode: 'sensitive'
+    }
+  ],
+  limit: 1
+}
+Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 12321ms
+    (pool connections: active=2 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 12321ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 12321ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[2m2026-04-26T08:22:08.789Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 12321ms
+    (pool connections: active=2 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 12321ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 12321ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 14086ms
+    (pool connections: active=2 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:59:20)
+    at async CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:8:19)
+  57 |  */
+  58 | export const getAllCrmData = cache(async () => {
+> 59 |   const accounts = await prismadb.crm_Accounts.findMany({
+     |                    ^
+  60 |     where: { deletedAt: null },
+  61 |   });
+  62 | {
+  clientVersion: '7.7.0',
+  digest: '4162832160',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 14086ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 14086ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 14085ms
+    (pool connections: active=2 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:59:20)
+    at async CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:8:19)
+  57 |  */
+  58 | export const getAllCrmData = cache(async () => {
+> 59 |   const accounts = await prismadb.crm_Accounts.findMany({
+     |                    ^
+  60 |     where: { deletedAt: null },
+  61 |   });
+  62 | {
+  clientVersion: '7.7.0',
+  digest: '2892219104',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 14085ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 14085ms\n' +
+      '    (pool connections: active=2 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}

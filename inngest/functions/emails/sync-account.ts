@@ -155,6 +155,7 @@ export const emailSyncAccount = inngest.createFunction(
             fromEmail: msg.fromEmail,
             toRecipients: msg.to,
             ccRecipients: msg.cc,
+            bccRecipients: [],
             sentAt: msg.sentAt,
           })),
           skipDuplicates: true,

@@ -25,16 +25,23 @@ import { createColumns } from "../opportunities/table-components/columns";
 import { NewOpportunityForm } from "../opportunities/components/NewOpportunityForm";
 import { OpportunitiesDataTable } from "../opportunities/table-components/data-table";
 
-import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { useCurrency } from "@/context/currency-context";
-import { Decimal } from "@prisma/client/runtime/client";
+import Decimal from "decimal.js";
 import {
   DEFAULT_OPPORTUNITY_CATEGORIES,
   extractOpportunityCategories,
   mergeCategoryLists,
 } from "@/lib/opportunity-categories";
 
-type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
+type CrmData = {
+  accounts: unknown[];
+  contacts: unknown[];
+  saleTypes: unknown[];
+  saleStages: unknown[];
+  campaigns: unknown[];
+  currencies: { code: string; name: string; symbol: string }[];
+  exchangeRates?: { fromCurrency: string; toCurrency: string; rate: unknown }[];
+};
 
 interface OpportunitiesViewProps {
   data: any[];

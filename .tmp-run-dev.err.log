@@ -1,0 +1,1122 @@
+⨯ node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+⨯ node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] Uncaught ModuleBuildError: Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408361
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at Object.processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408286)
+    at processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:5308)
+    at iteratePitchingLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:4667)
+    at runLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:8590)
+    at NormalModule._doBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408148)
+    at NormalModule.build (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:410161)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82482
+    at NormalModule.needBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:414145)
+    at Compilation._buildModule (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82199)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378173
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at AsyncQueue._startProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378044)
+    at AsyncQueue._ensureProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1377893)
+    at process.processImmediate (node:internal/timers:484:21)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+⨯ node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] Uncaught ModuleBuildError: Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408361
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at Object.processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408286)
+    at processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:5308)
+    at iteratePitchingLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:4667)
+    at runLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:8590)
+    at NormalModule._doBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408148)
+    at NormalModule.build (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:410161)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82482
+    at NormalModule.needBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:414145)
+    at Compilation._buildModule (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82199)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378173
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at AsyncQueue._startProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378044)
+    at AsyncQueue._ensureProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1377893)
+    at process.processImmediate (node:internal/timers:484:21)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] Uncaught ModuleBuildError: Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408361
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at Object.processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408286)
+    at processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:5308)
+    at iteratePitchingLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:4667)
+    at runLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:8590)
+    at NormalModule._doBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408148)
+    at NormalModule.build (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:410161)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82482
+    at NormalModule.needBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:414145)
+    at Compilation._buildModule (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82199)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378173
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at AsyncQueue._startProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378044)
+    at AsyncQueue._ensureProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1377893)
+    at process.processImmediate (node:internal/timers:484:21)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] Uncaught ModuleBuildError: Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408361
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at Object.processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408286)
+    at processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:5308)
+    at iteratePitchingLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:4667)
+    at runLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:8590)
+    at NormalModule._doBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408148)
+    at NormalModule.build (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:410161)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82482
+    at NormalModule.needBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:414145)
+    at Compilation._buildModule (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82199)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378173
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at AsyncQueue._startProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378044)
+    at AsyncQueue._ensureProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1377893)
+    at process.processImmediate (node:internal/timers:484:21)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] Uncaught ModuleBuildError: Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408361
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at Object.processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408286)
+    at processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:5308)
+    at iteratePitchingLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:4667)
+    at runLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:8590)
+    at NormalModule._doBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408148)
+    at NormalModule.build (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:410161)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82482
+    at NormalModule.needBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:414145)
+    at Compilation._buildModule (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82199)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378173
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at AsyncQueue._startProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378044)
+    at AsyncQueue._ensureProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1377893)
+    at process.processImmediate (node:internal/timers:484:21)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+⨯ TypeError: Cannot read properties of null (reading 'name')
+    at BasicView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\components\BasicView.tsx:120:40)
+  118 |               <p className="text-sm font-medium leading-none">Assigned to</p>
+  119 |               <p className="text-sm text-muted-foreground">
+> 120 |                 {data.assigned_to_user.name}
+      |                                        ^
+  121 |               </p>
+  122 |             </div>
+  123 |           </div> {
+  digest: '1180182199'
+}
+[browser] Uncaught TypeError: Cannot read properties of null (reading 'name')
+    at BasicView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\components\BasicView.tsx:120:40)
+  118 |               <p className="text-sm font-medium leading-none">Assigned to</p>
+  119 |               <p className="text-sm text-muted-foreground">
+> 120 |                 {data.assigned_to_user.name}
+      |                                        ^
+  121 |               </p>
+  122 |             </div>
+  123 |           </div>
+⨯ TypeError: Cannot read properties of null (reading 'name')
+    at BasicView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\components\BasicView.tsx:120:40)
+  118 |               <p className="text-sm font-medium leading-none">Assigned to</p>
+  119 |               <p className="text-sm text-muted-foreground">
+> 120 |                 {data.assigned_to_user.name}
+      |                                        ^
+  121 |               </p>
+  122 |             </div>
+  123 |           </div> {
+  digest: '1180182199'
+}
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.crm_Opportunities_Sales_Stages.findMany()` invocation:
+
+
+read ECONNRESET
+    at async ensureProtectedSalesStages (lib\crm-sales-stages.ts:27:24)
+    at async eval (lib\crm-sales-stages.ts:71:21)
+    at async eval (actions\crm\get-crm-data.ts:85:22)
+    at async CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:11:36)
+  25 | export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[]) {
+  26 |   const stages =
+> 27 |     existingStages ?? (await prismadb.crm_Opportunities_Sales_Stages.findMany({
+     |                        ^
+  28 |       orderBy: { order: "asc" }
+  29 |     }));
+  30 | {
+  code: 'ECONNRESET',
+  meta: { modelName: 'crm_Opportunities_Sales_Stages' },
+  clientVersion: '7.7.0',
+  digest: '2858131475'
+}
+[browser] Uncaught PrismaClientKnownRequestError: 
+Invalid `prisma.crm_Opportunities_Sales_Stages.findMany()` invocation:
+
+
+read ECONNRESET
+    at  ensureProtectedSalesStages (lib\crm-sales-stages.ts:27:24)
+    at  eval (lib\crm-sales-stages.ts:71:21)
+    at  eval (actions\crm\get-crm-data.ts:85:22)
+    at  CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:11:36)
+  25 | export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[]) {
+  26 |   const stages =
+> 27 |     existingStages ?? (await prismadb.crm_Opportunities_Sales_Stages.findMany({
+     |                        ^
+  28 |       orderBy: { order: "asc" }
+  29 |     }));
+  30 |
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/DashboardOpportunitiesSummary.tsx
+Error:   x Expression expected
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\DashboardOpportunitiesSummary.tsx:60:1]
+ 57 |   }, [opportunityItems, recentOpportunities]);
+ 58 | 
+ 59 |   return (
+ 60 |     ?
+    :     ^
+ 61 |   );
+ 62 | }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/DashboardOpportunitiesSummary.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/DashboardOpportunitiesSummary.tsx
+Error:   x Expected '</', got '?'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\DashboardOpportunitiesSummary.tsx:112:1]
+ 109 |     //     </CardContent>
+ 110 |     //   </Card>
+ 111 |     // </div>
+ 112 |     <> <?</>
+     :         ^
+ 113 |   );
+ 114 | }
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/DashboardOpportunitiesSummary.tsx
+./app/[locale]/(routes)/crm/dashboard/page.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/DashboardOpportunitiesSummary.tsx
+Error:   x Expression expected
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\DashboardOpportunitiesSummary.tsx:60:1]
+ 57 |   }, [opportunityItems, recentOpportunities]);
+ 58 | 
+ 59 |   return (
+ 60 |     ?
+    :     ^
+ 61 |   );
+ 62 | }
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/DashboardOpportunitiesSummary.tsx 
+⨯ Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+    at ignore-listed frames {
+  digest: '3335930703'
+}
+[browser] Uncaught Error: Element type is invalid: expected a string (for built-in components) or a class/function (for composite components) but got: object. You likely forgot to export your component from the file it's defined in, or you might have mixed up default and named imports.
+
+Check the render method of `CrmDashboardPage`.
+    at CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:23:9)
+  21 |     >
+  22 |       <div className="h-full w-full overflow-hidden">
+> 23 |         <DashboardOpportunitiesSummary opportunities={serializedOpportunities} />
+     |         ^
+  24 |         <CRMKanban
+  25 |           salesStages={crmData.saleStages}
+  26 |           opportunities={serializedOpportunities}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[2m2026-04-26T09:25:14.587Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 11035ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 11035ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 11035ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:21629627, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 9503ms'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10780ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:59:20)
+    at async CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:11:36)
+  57 |  */
+  58 | export const getAllCrmData = cache(async () => {
+> 59 |   const accounts = await prismadb.crm_Accounts.findMany({
+     |                    ^
+  60 |     where: { deletedAt: null },
+  61 |   });
+  62 | {
+  clientVersion: '7.7.0',
+  digest: '4046040175',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10780ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10780ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:21629627, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 9503ms'
+  }
+}
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[browser] An optimistic state update occurred outside a transition or action. To fix, move the update to an action, or wrap with startTransition. 
+    at handleDragEnd (app\[locale]\(routes)\crm\components\OpportunitiesView.tsx:352:5)
+  350 |     nextColumns[destinationColumnIndex].opportunities.splice(targetIndex, 0, nextOpportun...
+  351 |
+> 352 |     setBoardColumns(nextColumns);
+      |     ^
+  353 |
+  354 |     console.log("[OpportunitiesView] handleDragEnd optimistic update:", {
+  355 |       id: activeId, (app\[locale]\(routes)
+[browser] An optimistic state update occurred outside a transition or action. To fix, move the update to an action, or wrap with startTransition. 
+    at handleDragEnd (app\[locale]\(routes)\crm\components\OpportunitiesView.tsx:352:5)
+  350 |     nextColumns[destinationColumnIndex].opportunities.splice(targetIndex, 0, nextOpportun...
+  351 |
+> 352 |     setBoardColumns(nextColumns);
+      |     ^
+  353 |
+  354 |     console.log("[OpportunitiesView] handleDragEnd optimistic update:", {
+  355 |       id: activeId, (app\[locale]\(routes)
+[browser] An optimistic state update occurred outside a transition or action. To fix, move the update to an action, or wrap with startTransition. 
+    at handleDragEnd (app\[locale]\(routes)\crm\components\OpportunitiesView.tsx:352:5)
+  350 |     nextColumns[destinationColumnIndex].opportunities.splice(targetIndex, 0, nextOpportun...
+  351 |
+> 352 |     setBoardColumns(nextColumns);
+      |     ^
+  353 |
+  354 |     console.log("[OpportunitiesView] handleDragEnd optimistic update:", {
+  355 |       id: activeId, (app\[locale]\(routes)
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] Uncaught ReferenceError: buildColumns is not defined
+    at OpportunitiesView.useMemo[baseColumns] (app\[locale]\(routes)\crm\components\OpportunitiesView.tsx:88:11)
+    at OpportunitiesView (app\[locale]\(routes)\crm\components\OpportunitiesView.tsx:87:30)
+    at AccountsPage (app\[locale]\(routes)\crm\opportunities\page.tsx:23:9)
+  86 |   );
+  87 |   const baseColumns = useMemo(
+> 88 |     () => buildColumns(data ?? [], saleStages ?? []),
+     |           ^
+  89 |     [data, saleStages],
+  90 |   );
+  91 |   const [boardColumns, setBoardColumns] = useOptimistic(
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+⨯ node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] Uncaught ModuleBuildError: Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408361
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at Object.processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408286)
+    at processResource (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:5308)
+    at iteratePitchingLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:4667)
+    at runLoaders (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\loader-runner\LoaderRunner.js:1:8590)
+    at NormalModule._doBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:408148)
+    at NormalModule.build (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:410161)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82482
+    at NormalModule.needBuild (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:414145)
+    at Compilation._buildModule (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:82199)
+    at C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378173
+    at Hook.eval [as callAsync] (eval at create (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:14:9224), <anonymous>:6:1)
+    at AsyncQueue._startProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1378044)
+    at AsyncQueue._ensureProcessing (C:\Users\hp\sailyupgraded\node_modules\next\dist\compiled\webpack\bundle5.js:29:1377893)
+    at process.processImmediate (node:internal/timers:484:21)
+    at process.callbackTrampoline (node:internal/async_hooks:130:17)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+    at <unknown> (Webpack supports "data:" and "file:" URIs by default.)
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs. 
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Server is approaching the used memory threshold, restarting...
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.

@@ -1,7 +1,7 @@
 "use client";
 
 import { z } from "zod";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Pencil } from "lucide-react";
@@ -103,15 +103,11 @@ export function UpdateOpportunityForm({
   const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState("");
 
-  const mergedCategoryOptions = useMemo(
-    () =>
-      mergeCategoryLists(
-        DEFAULT_OPPORTUNITY_CATEGORIES,
-        categoryOptions,
-        localCategoryOptions,
-        initialData?.category ? [initialData.category] : []
-      ),
-    [categoryOptions, initialData?.category, localCategoryOptions]
+  const mergedCategoryOptions = mergeCategoryLists(
+    DEFAULT_OPPORTUNITY_CATEGORIES,
+    categoryOptions,
+    localCategoryOptions,
+    initialData?.category ? [initialData.category] : []
   );
 
   const formSchema = z.object({

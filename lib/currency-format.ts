@@ -1,4 +1,4 @@
-import { Decimal } from "@prisma/client/runtime/client";
+import Decimal from "decimal.js";
 
 type Rate = { fromCurrency: string; toCurrency: string; rate: Decimal };
 

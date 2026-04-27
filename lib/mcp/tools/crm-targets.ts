@@ -95,7 +95,7 @@ export const crmTargetTools = [
     ) {
       const { last_name, ...rest } = args;
       const target = await prismadb.crm_Targets.create({
-        data: { last_name, ...rest, created_by: userId },
+        data: { last_name, ...rest, tags: [], notes: [], created_by: userId },
       });
       return itemResponse(target);
     },

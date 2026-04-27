@@ -26,8 +26,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import {
-  crm_Opportunities,
-  crm_Opportunities_Sales_Stages,
+  type crm_Opportunities,
+  type crm_Opportunities_Sales_Stages,
 } from "@prisma/client";
 
 import { DotsHorizontalIcon, PlusCircledIcon } from "@radix-ui/react-icons";
@@ -388,8 +388,15 @@ const CRMKanban = ({
     () => mergeCategoryLists(extractOpportunityCategories(data)),
     [data],
   );
-  const [categoryList, setCategoryList] = useState<string[]>(() =>
-    mergeCategoryLists(DEFAULT_OPPORTUNITY_CATEGORIES, dynamicCategories),
+  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const categoryList = useMemo(
+    () =>
+      mergeCategoryLists(
+        DEFAULT_OPPORTUNITY_CATEGORIES,
+        dynamicCategories,
+        customCategories,
+      ),
+    [customCategories, dynamicCategories],
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -411,6 +418,14 @@ const CRMKanban = ({
   const origStageIdRef = useRef<string | null>(null);
   const isDraggingRef = useRef(false);
 
+  useEffect(() => {
+    console.log("[CRMKanban] opportunities prop:", {
+      total: data?.length ?? 0,
+      salesStages: salesStages?.length ?? 0,
+      sample: data?.slice?.(0, 3),
+    });
+  }, [data, salesStages]);
+
   const {
     accounts,
     contacts,
@@ -421,23 +436,13 @@ const CRMKanban = ({
     lostStage,
   } = crmData;
 
-  useEffect(() => {
-    setCategoryList((currentCategories) =>
-      mergeCategoryLists(
-        DEFAULT_OPPORTUNITY_CATEGORIES,
-        dynamicCategories,
-        currentCategories,
-      ),
-    );
-  }, [dynamicCategories]);
-
   const openEditOpportunity = (opportunity: crm_Opportunities) => {
     setEditingOpportunity(opportunity);
     setIsEditOpen(true);
   };
 
   const handleAddCategory = (category: string) => {
-    setCategoryList((currentCategories) =>
+    setCustomCategories((currentCategories) =>
       mergeCategoryLists(currentCategories, [category]),
     );
     setSelectedCategory(category);

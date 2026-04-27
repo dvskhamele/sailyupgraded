@@ -14,6 +14,7 @@ export default async function getGithubRepoStars(): Promise<number> {
         "https://api.github.com/repos/pdovhomilja/nextcrm-app",
       {
         headers,
+        signal: AbortSignal.timeout(3000),
         next: { revalidate: 3600 },
       }
     );

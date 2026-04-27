@@ -35,7 +35,7 @@ export const enrichTarget = inngest.createFunction(
     retries: 3,
   },
   async ({ event, step }) => {
-    const { targetId, enrichmentId: incomingEnrichmentId, triggeredBy, force } = event.data as {
+    const { targetId, enrichmentId: incomingEnrichmentId, fields, triggeredBy, force } = event.data as {
       targetId: string;
       enrichmentId?: string;
       fields?: EnrichmentField[];
@@ -47,7 +47,12 @@ export const enrichTarget = inngest.createFunction(
     const enrichmentId = await step.run("ensure-enrichment-log", async () => {
       if (incomingEnrichmentId) return incomingEnrichmentId;
       const row = await prismadb.crm_Target_Enrichment.create({
-        data: { targetId, status: "RUNNING", triggeredBy: triggeredBy ?? null },
+        data: {
+          targetId,
+          status: "RUNNING",
+          fields: fields?.map((field) => field.name) ?? [],
+          triggeredBy: triggeredBy ?? null,
+        },
         select: { id: true },
       });
       return row.id;

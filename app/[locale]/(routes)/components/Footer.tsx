@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { version } from "@/package.json";
+import packageJson from "@/package.json";
 
 
 const Footer = async () => {
@@ -8,7 +8,7 @@ const Footer = async () => {
       <div className="hidden md:flex pr-5">
         <Link href="/crm/dashboard">
           <h1 className="text-muted-foreground hover:text-foreground transition-colors">
-            Saily - v{version}
+            Saily - v{packageJson.version}
           </h1>
         </Link>
       </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { Users } from "@prisma/client";
+import type { Users } from "@prisma/client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImageIcon } from "lucide-react";

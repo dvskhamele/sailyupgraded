@@ -7,7 +7,12 @@ jest.mock("@/lib/prisma", () => ({
     $executeRaw: jest.fn(),
   },
 }));
-jest.mock("@/inngest/client", () => ({ inngest: { send: jest.fn() } }));
+jest.mock("@/inngest/client", () => ({
+  inngest: {
+    send: jest.fn(),
+    createFunction: jest.fn((config, handler) => ({ fn: handler })),
+  },
+}));
 
 import { prismadb } from "@/lib/prisma";
 import { embedEmail } from "@/inngest/functions/emails/embed-email";

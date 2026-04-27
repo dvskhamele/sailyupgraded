@@ -81,6 +81,7 @@ export const projectTools = [
           description: args.description,
           icon: args.icon,
           visibility: args.visibility,
+          sharedWith: [userId],
           user: userId,
           createdBy: userId,
           updatedBy: userId,

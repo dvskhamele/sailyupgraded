@@ -13,6 +13,7 @@ const CrmDashboardPage = async () => {
       description=""   
     >
       <div className="h-full w-full overflow-hidden">
+        {/* <DashboardOpportunitiesSummary opportunities={serializedOpportunities} /> */}
         <CRMKanban
           salesStages={crmData.saleStages}
           opportunities={crmData.opportunities}

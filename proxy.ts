@@ -1,9 +1,6 @@
-import createMiddleware from "next-intl/middleware";
 import { routing } from "./i18n/routing";
-import { getSessionCookie } from "better-auth/cookies";
 import { NextRequest, NextResponse } from "next/server";
-
-const intlMiddleware = createMiddleware(routing);
+const AUTH_PATHS = ["/sign-in", "/register", "/pending", "/inactive"];
 
 // Admin-only API paths — cookie presence checked here, role checked server-side
 const ADMIN_ONLY_PATHS = [
@@ -14,6 +11,29 @@ const ADMIN_ONLY_PATHS = [
   "/api/user/inviteuser",
   "/api/admin",
 ];
+
+function getLocalePrefix(pathname: string) {
+  const segment = pathname.split("/")[1];
+  return routing.locales.includes(segment as (typeof routing.locales)[number])
+    ? segment
+    : routing.defaultLocale;
+}
+
+function hasLocalePrefix(pathname: string) {
+  const segment = pathname.split("/")[1];
+  return routing.locales.includes(segment as (typeof routing.locales)[number]);
+}
+
+function hasSessionCookie(req: NextRequest) {
+  const cookieNames = [
+    "better-auth.session_token",
+    "better-auth-session_token",
+    "__Secure-better-auth.session_token",
+    "__Secure-better-auth-session_token",
+  ];
+
+  return cookieNames.some((name) => Boolean(req.cookies.get(name)));
+}
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
@@ -28,7 +48,7 @@ export async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  const sessionCookie = getSessionCookie(req);
+  const sessionCookie = hasSessionCookie(req);
 
   // Admin-only routes — require session cookie (role checked server-side)
   if (ADMIN_ONLY_PATHS.some((p) => path.startsWith(p))) {
@@ -40,18 +60,29 @@ export async function proxy(req: NextRequest) {
 
   // Non-API routes — redirect to sign-in if no session cookie
   if (!path.startsWith("/api")) {
+    if (!hasLocalePrefix(path)) {
+      const normalizedPath = path === "/" ? "" : path;
+      if (!sessionCookie) {
+        return NextResponse.redirect(
+          new URL(`/${routing.defaultLocale}/sign-in`, req.nextUrl)
+        );
+      }
+
+      return NextResponse.redirect(
+        new URL(`/${routing.defaultLocale}${normalizedPath}`, req.nextUrl)
+      );
+    }
+
     if (!sessionCookie) {
-      // Allow auth pages (sign-in, register, pending, inactive)
-      const authPaths = ["/sign-in", "/register", "/pending", "/inactive"];
-      const isAuthPage = authPaths.some((p) => path.includes(p));
+      const isAuthPage = AUTH_PATHS.some((p) => path.includes(p));
       if (!isAuthPage) {
-        return NextResponse.redirect(new URL("/sign-in", req.nextUrl));
+        const locale = getLocalePrefix(path);
+        return NextResponse.redirect(new URL(`/${locale}/sign-in`, req.nextUrl));
       }
     }
   }
 
-  // Non-API routes — delegate to next-intl
-  return intlMiddleware(req);
+  return NextResponse.next();
 }
 
 export const config = {

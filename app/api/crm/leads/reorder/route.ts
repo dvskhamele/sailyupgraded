@@ -2,6 +2,17 @@ import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prisma";
 import { revalidateTag } from "next/cache";
 
+const configTypeSupportsOrder: Record<string, boolean> = {
+  salesStage: true,
+  leadStatus: true,
+  leadSource: false,
+  leadType: false,
+  industry: true,
+  contactType: false,
+  opportunityType: true,
+  leads: true,
+};
+
 export async function POST(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -18,6 +29,10 @@ export async function POST(req: Request) {
         { error: "Invalid data format" },
         { status: 400 }
       );
+    }
+
+    if (!configTypeSupportsOrder[configType]) {
+      return NextResponse.json({ success: true, skipped: true });
     }
 
     // Determine which model to update based on configType
@@ -38,25 +53,16 @@ export async function POST(req: Request) {
             data: { order: index },
           });
         case "leadSource":
-          return prismadb.crm_Lead_Sources.update({
-            where: { id: item.id },
-            data: { order: index },
-          });
+          return null;
         case "leadType":
-          return prismadb.crm_Lead_Types.update({
-            where: { id: item.id },
-            data: { order: index },
-          });
+          return null;
         case "industry":
           return prismadb.crm_Industry_Type.update({
             where: { id: item.id },
             data: { order: index },
           });
         case "contactType":
-          return prismadb.crm_Contact_Types.update({
-            where: { id: item.id },
-            data: { order: index },
-          });
+          return null;
         case "opportunityType":
           return prismadb.crm_Opportunities_Type.update({
             where: { id: item.id },
