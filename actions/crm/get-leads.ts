@@ -12,7 +12,21 @@ export const getLeads = cache(async () => {
         },
       },
       // Include assigned accounts
-      assigned_accounts: true,
+      assigned_accounts: {
+        include: {
+          accountProducts: {
+            where: { status: "ACTIVE" },
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
       // Include lead source, status, type
       lead_source: true,
       lead_status: true,

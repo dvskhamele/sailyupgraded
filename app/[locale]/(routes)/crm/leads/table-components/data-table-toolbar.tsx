@@ -12,10 +12,15 @@ import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
+  productOptions?: {
+    label: string;
+    value: string;
+  }[];
 }
 
 export function DataTableToolbar<TData>({
   table,
+  productOptions = [],
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
 
@@ -48,6 +53,13 @@ export function DataTableToolbar<TData>({
             column={table.getColumn("status")}
             title="Status"
             options={statuses}
+          />
+        )}
+        {table.getColumn("products") && productOptions.length > 0 && (
+          <DataTableFacetedFilter
+            column={table.getColumn("products")}
+            title="Products"
+            options={productOptions}
           />
         )}
         {/*        {table.getColumn("priority") && (

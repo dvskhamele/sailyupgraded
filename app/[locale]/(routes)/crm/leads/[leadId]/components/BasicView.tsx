@@ -5,48 +5,44 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { crm_Opportunities } from "@prisma/client";
 import {
   CalendarDays,
-  ClipboardList,
   CoinsIcon,
-  Combine,
   File,
-  Globe,
   Globe2,
   Landmark,
-  List,
   MapPin,
   Medal,
-  Percent,
   Phone,
-  SquareStack,
-  Text,
   User,
 } from "lucide-react";
 import moment from "moment";
-import { Clapperboard } from "lucide-react";
 import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
 import { EnvelopeClosedIcon, LightningBoltIcon } from "@radix-ui/react-icons";
-import { LucideLandmark } from "lucide-react";
 import { LeadDetailActions } from "./LeadDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
+import { ProductDropdown } from "./ProductDropdown";
 
 interface OppsViewProps {
   data: any;
 }
 
 export async function BasicView({ data }: OppsViewProps) {
-  //console.log(data, "data");
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
   const { leadSources, leadStatuses, leadTypes } = crmData;
+  const accountProductOptions =
+    data?.assigned_accounts?.accountProducts?.map((item: any) => ({
+      id: item.product?.id,
+      name: item.product?.name,
+    })).filter((product: { id?: string; name?: string }) => product.id && product.name) ?? [];
+
   if (!data) return <div>Opportunity not found</div>;
+
   return (
-    <div className="pb-3 space-y-5">
-      {/*      <pre>{JSON.stringify(data, null, 2)}</pre> */}
+    <div className="space-y-5 pb-3">
       <Card>
         <CardHeader className="pb-3">
           <div className="flex w-full justify-between">
@@ -65,7 +61,7 @@ export async function BasicView({ data }: OppsViewProps) {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 w-full gap-5 ">
+          <div className="grid w-full grid-cols-2 gap-5">
             <div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <User className="mt-px h-5 w-5" />
@@ -108,14 +104,14 @@ export async function BasicView({ data }: OppsViewProps) {
                 </div>
               </div>
               <div className="-mx-2 flex items-start justify-between space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
-                <div className="flex mt-px gap-5">
+                <div className="mt-px flex gap-5">
                   <EnvelopeClosedIcon className="mt-px h-5 w-5" />
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">Email</p>
                     {data?.email ? (
                       <Link
                         href={`mailto:${data.email}`}
-                        className="flex items-center  gap-5 text-sm text-muted-foreground"
+                        className="flex items-center gap-5 text-sm text-muted-foreground"
                       >
                         {data.email}
                         <EnvelopeClosedIcon />
@@ -148,7 +144,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 <MapPin className="mt-px h-5 w-5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Address</p>
-                  <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                  <p className="whitespace-pre-wrap text-sm text-muted-foreground">
                     {formatAddress(data, true) || "N/A"}
                   </p>
                 </div>
@@ -200,18 +196,31 @@ export async function BasicView({ data }: OppsViewProps) {
                   </p>
                 </div>
               </div>
-              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
-                <LightningBoltIcon className="mt-px h-5 w-5" />
+              <div className="-mx-2 flex items-start justify-between gap-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                <div className="flex items-start space-x-4">
+                  <LightningBoltIcon className="mt-px h-5 w-5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">Status</p>
+                    <p className="text-sm text-muted-foreground">
+                      {data.lead_status?.name ?? "—"}
+                    </p>
+                  </div>
+                </div>
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Status</p>
-                  <p className="text-sm text-muted-foreground">{data.lead_status?.name ?? "—"}</p>
+                  <p className="text-sm font-medium leading-none">Product</p>
+                  <ProductDropdown
+                    products={accountProductOptions}
+                    placeholder="Select account product"
+                  />
                 </div>
               </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Type</p>
-                  <p className="text-sm text-muted-foreground">{data.lead_type?.name ?? "—"}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {data.lead_type?.name ?? "—"}
+                  </p>
                 </div>
               </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">

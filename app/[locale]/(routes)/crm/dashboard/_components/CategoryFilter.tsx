@@ -6,19 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { cn } from "@/lib/utils";
 import {
   ADD_CATEGORY_VALUE,
   ALL_CATEGORIES_VALUE,
@@ -63,22 +57,64 @@ export function CategoryFilter({
 
   return (
     <>
-      <div className="flex w-full flex-col gap-2 sm:max-w-md">
-        <Label htmlFor="crm-category-filter">Category</Label>
-        <Select value={selectedCategory} onValueChange={handleValueChange}>
-          <SelectTrigger id="crm-category-filter" className="w-full">
-            <SelectValue placeholder="Filter by category" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value={ALL_CATEGORIES_VALUE}>All Categories</SelectItem>
-            {categories.map((category) => (
-              <SelectItem key={category} value={category}>
+      <div className="w-full flex flex-col gap-3">
+        <Label className="text-sm font-semibold text-slate-700">Products</Label>
+
+        <div
+          role="group"
+          aria-label="Filter opportunities by product category"
+          className="flex flex-wrap gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200"
+        >
+          {/* ALL BUTTON */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleValueChange(ALL_CATEGORIES_VALUE)}
+            className={cn(
+              "rounded-full px-4 py-1.5 text-sm transition-all duration-200 border shadow-sm hover:shadow-md",
+              "border-slate-200 bg-white text-slate-700 hover:bg-slate-100",
+              selectedCategory === ALL_CATEGORIES_VALUE &&
+                "bg-sky-600 text-white border-sky-600 shadow-md hover:bg-sky-600",
+            )}
+          >
+            All Products
+          </Button>
+
+          {/* CATEGORY BUTTONS */}
+          {categories.map((category) => {
+            const isSelected = selectedCategory === category;
+
+            return (
+              <Button
+                key={category}
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => handleValueChange(category)}
+                className={cn(
+                  "rounded-full px-4 py-1.5 text-sm transition-all duration-200 border shadow-sm hover:shadow-md",
+                  "border-slate-200 bg-white text-slate-700 hover:bg-slate-100",
+                  isSelected &&
+                    "bg-sky-600 text-white border-sky-600 shadow-md hover:bg-sky-600 scale-105",
+                )}
+              >
                 {category}
-              </SelectItem>
-            ))}
-            <SelectItem value={ADD_CATEGORY_VALUE}>+ Add Category</SelectItem>
-          </SelectContent>
-        </Select>
+              </Button>
+            );
+          })}
+
+          {/* ADD BUTTON */}
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => handleValueChange(ADD_CATEGORY_VALUE)}
+            className="rounded-full px-4 py-1.5 text-sm border-2 border-dashed border-sky-400 bg-sky-50 text-sky-700 transition-all duration-200 hover:bg-sky-100 hover:scale-105"
+          >
+            + Add Products
+          </Button>
+        </div>
       </div>
 
       <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
@@ -106,7 +142,11 @@ export function CategoryFilter({
                 }}
               />
             </div>
-            <Button type="button" className="w-full" onClick={handleAddCategory}>
+            <Button
+              type="button"
+              className="w-full"
+              onClick={handleAddCategory}
+            >
               Add category
             </Button>
           </div>

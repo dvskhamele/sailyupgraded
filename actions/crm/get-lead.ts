@@ -18,8 +18,22 @@ export const getLead = async (leadId: string) => {
           name: true,
         },
       },
-      // Include assigned accounts
-      assigned_accounts: true,
+      // Include assigned accounts and their linked products
+      assigned_accounts: {
+        include: {
+          accountProducts: {
+            where: { status: "ACTIVE" },
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  name: true,
+                },
+              },
+            },
+          },
+        },
+      },
       // Include documents through DocumentsToLeads junction table
       documents: {
         include: {

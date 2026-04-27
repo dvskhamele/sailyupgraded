@@ -147,6 +147,31 @@ export const createColumns = (
     },
   },
   {
+    id: "products",
+    accessorFn: (row) =>
+      ((row as any).assigned_accounts?.accountProducts ?? [])
+        .map((item: any) => item.product?.id)
+        .filter(Boolean),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Products" />
+    ),
+    cell: ({ row }) => {
+      const productNames = ((row.original as any).assigned_accounts?.accountProducts ?? [])
+        .map((item: any) => item.product?.name)
+        .filter(Boolean);
+      return <div className="w-[180px]">{productNames.join(", ") || "N/A"}</div>;
+    },
+    filterFn: (row, _id, value) => {
+      const selectedProductIds = value as string[];
+      const rowProductIds = ((row.original as any).assigned_accounts?.accountProducts ?? [])
+        .map((item: any) => item.product?.id)
+        .filter(Boolean);
+      return selectedProductIds.some((productId) => rowProductIds.includes(productId));
+    },
+    enableSorting: false,
+    enableHiding: true,
+  },
+  {
     accessorKey: "lead_source",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Source" />

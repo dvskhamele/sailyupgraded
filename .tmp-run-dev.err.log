@@ -2428,3 +2428,510 @@ Import trace for requested module:
   }
 }
 [Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10103ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:59:20)
+    at async ProductsPage (app\[locale]\(routes)\crm\products\page.tsx:11:43)
+  57 |  */
+  58 | export const getAllCrmData = cache(async () => {
+> 59 |   const accounts = await prismadb.crm_Accounts.findMany({
+     |                    ^
+  60 |     where: { deletedAt: null },
+  61 |   });
+  62 | {
+  clientVersion: '7.7.0',
+  digest: '2966984536',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10103ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10103ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22612236, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 10642ms\n' +
+      '    (pool connections: active=0 idle=6 limit=10)'
+  }
+}
+[2m2026-04-27T10:41:52.440Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 17809ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 17809ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 17809ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22612236, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 10642ms\n' +
+      '    (pool connections: active=0 idle=6 limit=10)'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 16651ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:59:20)
+    at async LeadsPage (app\[locale]\(routes)\crm\leads\page.tsx:14:19)
+  57 |  */
+  58 | export const getAllCrmData = cache(async () => {
+> 59 |   const accounts = await prismadb.crm_Accounts.findMany({
+     |                    ^
+  60 |     where: { deletedAt: null },
+  61 |   });
+  62 | {
+  clientVersion: '7.7.0',
+  digest: '541132370',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 16651ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 16651ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22612236, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 10642ms\n' +
+      '    (pool connections: active=0 idle=6 limit=10)'
+  }
+}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: Decimal, currency: ..., snapshot_rate: ..., status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                         ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: ..., currency: ..., snapshot_rate: Decimal, status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                                                            ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., name: ..., description: Null, sku: ..., type: ..., status: ..., unit_price: Decimal, unit_cost: ..., currency: ..., tax_rate: ..., unit: ..., is_recurring: ..., billing_period: ..., categoryId: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., deletedAt: ..., deletedBy: ..., category: ..., created_by_user: ..., _count: ...}
+                                                                                        ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: Decimal, currency: ..., snapshot_rate: ..., status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                         ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: ..., currency: ..., snapshot_rate: Decimal, status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                                                            ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., name: ..., description: Null, sku: ..., type: ..., status: ..., unit_price: Decimal, unit_cost: ..., currency: ..., tax_rate: ..., unit: ..., is_recurring: ..., billing_period: ..., categoryId: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., deletedAt: ..., deletedBy: ..., category: ..., created_by_user: ..., _count: ...}
+                                                                                        ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: Decimal, currency: ..., snapshot_rate: ..., status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                         ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: ..., currency: ..., snapshot_rate: Decimal, status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                                                            ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., name: ..., description: Null, sku: ..., type: ..., status: ..., unit_price: Decimal, unit_cost: ..., currency: ..., tax_rate: ..., unit: ..., is_recurring: ..., billing_period: ..., categoryId: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., deletedAt: ..., deletedBy: ..., category: ..., created_by_user: ..., _count: ...}
+                                                                                        ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: Decimal, currency: ..., snapshot_rate: ..., status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                         ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: ..., currency: ..., snapshot_rate: Decimal, status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                                                            ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., name: ..., description: Null, sku: ..., type: ..., status: ..., unit_price: Decimal, unit_cost: ..., currency: ..., tax_rate: ..., unit: ..., is_recurring: ..., billing_period: ..., categoryId: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., deletedAt: ..., deletedBy: ..., category: ..., created_by_user: ..., _count: ...}
+                                                                                        ^^^^^^^
+⨯ TypeError: Cannot read properties of null (reading 'name')
+    at BasicView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\components\BasicView.tsx:120:40)
+  118 |               <p className="text-sm font-medium leading-none">Assigned to</p>
+  119 |               <p className="text-sm text-muted-foreground">
+> 120 |                 {data.assigned_to_user.name}
+      |                                        ^
+  121 |               </p>
+  122 |             </div>
+  123 |           </div> {
+  digest: '1180182199'
+}
+⨯ TypeError: Cannot read properties of null (reading 'name')
+    at BasicView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\components\BasicView.tsx:120:40)
+  118 |               <p className="text-sm font-medium leading-none">Assigned to</p>
+  119 |               <p className="text-sm text-muted-foreground">
+> 120 |                 {data.assigned_to_user.name}
+      |                                        ^
+  121 |               </p>
+  122 |             </div>
+  123 |           </div> {
+  digest: '1180182199'
+}
+⨯ TypeError: Cannot read properties of null (reading 'name')
+    at BasicView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\components\BasicView.tsx:120:40)
+  118 |               <p className="text-sm font-medium leading-none">Assigned to</p>
+  119 |               <p className="text-sm text-muted-foreground">
+> 120 |                 {data.assigned_to_user.name}
+      |                                        ^
+  121 |               </p>
+  122 |             </div>
+  123 |           </div> {
+  digest: '1180182199'
+}
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: Decimal, currency: ..., snapshot_rate: ..., status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                         ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., accountId: ..., productId: ..., quantity: ..., custom_price: ..., currency: ..., snapshot_rate: Decimal, status: ..., start_date: ..., end_date: ..., renewal_date: ..., notes: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., product: ...}
+                                                                                                            ^^^^^^^
+Only plain objects can be passed to Client Components from Server Components. Decimal objects are not supported.
+  {id: ..., name: ..., description: Null, sku: ..., type: ..., status: ..., unit_price: Decimal, unit_cost: ..., currency: ..., tax_rate: ..., unit: ..., is_recurring: ..., billing_period: ..., categoryId: ..., v: ..., createdAt: ..., updatedAt: ..., createdBy: ..., updatedBy: ..., deletedAt: ..., deletedBy: ..., category: ..., created_by_user: ..., _count: ...}
+                                                                                        ^^^^^^^
+[2m2026-04-27T14:42:50.830Z[0m [31mERROR[0m [1m[Better Auth]:[0m Failed to query fallback join for model Users: {
+  where: [
+    {
+      operator: 'eq',
+      connector: 'AND',
+      field: 'id',
+      value: '902c6fd6-baed-4067-b18c-edf5b0a0b8ee',
+      mode: 'sensitive'
+    }
+  ],
+  limit: 1
+}
+Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10734ms
+    (pool connections: active=1 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10734ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10734ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[2m2026-04-27T14:42:52.758Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10734ms
+    (pool connections: active=1 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10734ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10734ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.crm_Leads.findMany()` invocation:
+
+
+read ECONNRESET
+    at async eval (actions\crm\get-crm-data.ts:67:17)
+    at async CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:8:19)
+  65 |   });
+  66 |
+> 67 |   const leads = await prismadb.crm_Leads.findMany({
+     |                 ^
+  68 |     where: { deletedAt: null },
+  69 |     select: crmDashboardLeadSelect,
+  70 |   }); {
+  code: 'ECONNRESET',
+  meta: { modelName: 'crm_Leads' },
+  clientVersion: '7.7.0',
+  digest: '1298629549'
+}
+[2m2026-04-27T14:45:12.534Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10007ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10007ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10007ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22797764, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 7947ms'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+⨯ ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error 
+[browser] Uncaught ModuleBuildError: Module build failed (from ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js):
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+
+Caused by:
+    Syntax Error
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+Error:   x Expected '</', got 'ident'
+    ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CategoryFilter.tsx:73:1]
+ 70 |             <SelectValue placeholder="Filter by category" />
+ 71 |           </SelectTrigger>
+ 72 |           <SelectContent>
+ 73 |             <SelectItem value={ALL_CATEGOflex w-full flex-col gap-2 sm:max-w-mdRIES_VALUE}>All Products</SelectItem>
+    :                                               ^
+ 74 |             {categories.map((category) => (
+ 75 |               <SelectItem key={category} value={category}>
+ 76 |                 {category}
+    `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CategoryFilter.tsx
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx 
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Server is approaching the used memory threshold, restarting...
+[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.

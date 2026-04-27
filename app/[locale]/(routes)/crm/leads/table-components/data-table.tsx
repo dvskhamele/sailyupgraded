@@ -31,6 +31,7 @@ import { PanelTopClose, PanelTopOpen } from "lucide-react";
 import { createColumns } from "./columns";
 
 type ConfigItem = { id: string; name: string };
+type FilterOption = { label: string; value: string };
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,6 +39,7 @@ interface DataTableProps<TData, TValue> {
   leadSources?: ConfigItem[];
   leadStatuses?: ConfigItem[];
   leadTypes?: ConfigItem[];
+  productOptions?: FilterOption[];
 }
 
 export function LeadDataTable<TData, TValue>({
@@ -45,11 +47,12 @@ export function LeadDataTable<TData, TValue>({
   leadSources = [],
   leadStatuses = [],
   leadTypes = [],
+  productOptions = [],
 }: DataTableProps<TData, TValue>) {
   const columns = createColumns(leadSources, leadStatuses, leadTypes) as ColumnDef<TData, TValue>[];
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
-    React.useState<VisibilityState>({});
+    React.useState<VisibilityState>({ products: false });
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
@@ -104,7 +107,7 @@ export function LeadDataTable<TData, TValue>({
         </div>
       ) : (
         <>
-          <DataTableToolbar table={table} />
+          <DataTableToolbar table={table} productOptions={productOptions} />
           <div className="rounded-md border overflow-x-auto">
             <Table data-testid="leads-table">
               <TableHeader>
