@@ -196,17 +196,17 @@ function OpportunityCard({
       style={style}
       {...attributes}
       {...listeners}
-      className="my-2 w-full cursor-grab active:cursor-grabbing"
+      className="my-2 w-full cursor-grab border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-cyan-50 shadow-sm active:cursor-grabbing"
       onClick={() => onOpenEdit(opportunity)}
     >
-      <CardTitle className="p-2 text-sm">
+      <CardTitle className="border-b border-sky-100 bg-gradient-to-r from-sky-100 to-cyan-100 p-2 text-sm">
         <div className="flex justify-between p-2">
-          <span className="font-bold">{opportunity.name}</span>
+          <span className="font-bold text-sky-950">{opportunity.name}</span>
           <div>
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <DotsHorizontalIcon
-                  className="w-4 h-4 text-slate-600"
+                  className="w-4 h-4 text-sky-700"
                   onClick={(event) => event.stopPropagation()}
                 />
               </DropdownMenuTrigger>
@@ -219,9 +219,9 @@ function OpportunityCard({
           </div>
         </div>
       </CardTitle>
-      <CardContent className="text-xs text-muted-foreground">
+      <CardContent className="bg-white/70 text-xs text-slate-700">
         <div className="flex flex-col space-y-1">
-          <div className="overflow-hidden">
+          <div className="overflow-hidden rounded-md bg-sky-50 px-2 py-1 text-slate-700">
             <HoverCard>
               <HoverCardTrigger>
                 {opportunity.description?.substring(0, 200)}
@@ -232,17 +232,17 @@ function OpportunityCard({
             </HoverCard>
           </div>
           <div className="space-x-1">
-            <span>Amount:</span>
-            <span>{opportunity.budget?.toString()}</span>
+            <span className="font-medium text-sky-800">Amount:</span>
+            <span className="font-semibold text-emerald-700">{opportunity.budget?.toString()}</span>
           </div>
           <div className="space-x-1">
-            <span>Expected closing:</span>
+            <span className="font-medium text-sky-800">Expected closing:</span>
             <span
               className={
                 opportunity.close_date &&
                 new Date(opportunity.close_date) < new Date()
-                  ? "text-red-500"
-                  : ""
+                  ? "font-semibold text-rose-500"
+                  : "font-semibold text-violet-700"
               }
             >
               {format(
@@ -255,7 +255,7 @@ function OpportunityCard({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex items-start justify-between gap-3">
+      <CardFooter className="flex items-start justify-between gap-3 border-t border-sky-100 bg-gradient-to-r from-white to-sky-50">
         <div className="flex min-w-0 items-start gap-2">
           <Avatar className="w-6 h-6">
             <AvatarImage
@@ -267,14 +267,14 @@ function OpportunityCard({
           />
           </Avatar>
           <div className="flex min-w-0 flex-col">
-            <span className="min-w-0 truncate text-sm font-medium text-foreground">
+            <span className="min-w-0 truncate text-sm font-medium text-slate-800">
               {getOpportunityClientName(opportunity) ||
                 getOpportunityDisplayName(opportunity)}
             </span>
             {getOpportunityCategory(opportunity) ? (
               <Badge
                 variant="secondary"
-                className="mt-1 w-fit shrink-0 whitespace-nowrap mt-[10px] mb-[-15px]"
+              className="mt-1 w-fit shrink-0 whitespace-nowrap mt-[10px] mb-[-15px] border-0 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white"
               >
                 {getOpportunityCategory(opportunity)}
               </Badge>
@@ -287,7 +287,7 @@ function OpportunityCard({
               ...salesStages.map((s: any) => Number(s.probability || 0)),
             ) && (
             <ThumbsDown
-              className="w-4 h-4 text-red-500"
+              className="w-4 h-4 text-rose-500"
               onClick={(event) => {
                 event.stopPropagation();
                 onThumbsDown(opportunity.id);
@@ -308,23 +308,23 @@ function OpportunityCardStatic({
 }: any) {
   return (
     <Card
-      className="my-2 w-full cursor-pointer"
+      className="my-2 w-full cursor-pointer border border-amber-100 bg-gradient-to-br from-white via-amber-50 to-orange-50 shadow-sm"
       onClick={() => onOpenEdit(opportunity)}
     >
-      <CardTitle className="p-2 text-sm">
+      <CardTitle className="border-b border-amber-100 bg-gradient-to-r from-amber-100 to-orange-100 p-2 text-sm">
         <div className="flex justify-between p-2">
-          <span className="font-bold">{opportunity.name}</span>
+          <span className="font-bold text-amber-950">{opportunity.name}</span>
           <div>
             {stage.probability !==
               Math.max(
                 ...salesStages.map((s: any) => Number(s.probability || 0)),
-              ) && <ThumbsDown className="w-4 h-4 text-red-500" />}
+              ) && <ThumbsDown className="w-4 h-4 text-rose-500" />}
           </div>
         </div>
       </CardTitle>
-      <CardContent className="text-xs text-muted-foreground">
+      <CardContent className="bg-white/70 text-xs text-slate-700">
         <div className="flex flex-col space-y-1">
-          <div className="overflow-hidden">
+          <div className="overflow-hidden rounded-md bg-amber-50 px-2 py-1 text-slate-700">
             <HoverCard>
               <HoverCardTrigger>
                 {opportunity.description?.substring(0, 200)}
@@ -335,17 +335,17 @@ function OpportunityCardStatic({
             </HoverCard>
           </div>
           <div className="space-x-1">
-            <span>Amount:</span>
-            <span>{opportunity.budget?.toString()}</span>
+            <span className="font-medium text-amber-800">Amount:</span>
+            <span className="font-semibold text-emerald-700">{opportunity.budget?.toString()}</span>
           </div>
           <div className="space-x-1">
-            <span>Expected closing:</span>
+            <span className="font-medium text-amber-800">Expected closing:</span>
             <span
               className={
                 opportunity.close_date &&
                 new Date(opportunity.close_date) < new Date()
-                  ? "text-red-500"
-                  : ""
+                  ? "font-semibold text-rose-500"
+                  : "font-semibold text-violet-700"
               }
             >
               {format(
@@ -358,7 +358,7 @@ function OpportunityCardStatic({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex items-start justify-between gap-3">
+      <CardFooter className="flex items-start justify-between gap-3 border-t border-amber-100 bg-gradient-to-r from-white to-amber-50">
         <div className="flex min-w-0 items-start gap-2">
           <Avatar className="w-6 h-6">
             <AvatarImage
@@ -370,14 +370,14 @@ function OpportunityCardStatic({
           />
           </Avatar>
           <div className="flex min-w-0 flex-col">
-            <span className="min-w-0 truncate text-sm font-medium text-foreground">
+            <span className="min-w-0 truncate text-sm font-medium text-slate-800">
               {getOpportunityClientName(opportunity) ||
                 getOpportunityDisplayName(opportunity)}
             </span>
             {getOpportunityCategory(opportunity) ? (
               <Badge
                 variant="secondary"
-                className="mt-1 w-fit shrink-0 whitespace-nowrap"
+                className="mt-1 w-fit shrink-0 whitespace-nowrap border-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white"
               >
                 {getOpportunityCategory(opportunity)}
               </Badge>

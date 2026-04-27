@@ -304,3 +304,347 @@ prisma:error pool timeout: failed to retrieve a connection from pool after 10007
  POST /en/crm/dashboard 200 in 24.6s (next.js: 23ms, proxy.ts: 16ms, application-code: 24.6s)
   └─ ƒ updateOpportunity({"account":"","assigned_to":"","budget":"200","...":"13 items not stringified"}) in 19107ms ..//actions/crm/opportunities/update-opportunity.ts
  GET /en/crm/dashboard 200 in 16.3s (next.js: 20ms, proxy.ts: 16ms, application-code: 16.3s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 18545ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 18546ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/dashboard 200 in 44s (next.js: 1501ms, proxy.ts: 9.4s, application-code: 33.0s)
+○ Compiling /[locale]/sign-in ...
+ GET /en/sign-in 200 in 20.7s (next.js: 19.3s, proxy.ts: 17ms, application-code: 1385ms)
+○ Compiling /api/auth/email-otp/send-verification-otp ...
+ POST /api/auth/email-otp/send-verification-otp 200 in 17.9s (next.js: 12.6s, proxy.ts: 20ms, application-code: 5.2s)
+○ Compiling /api/auth/test-otp ...
+ GET /api/auth/test-otp?email=test%40gmail.com 200 in 7.9s (next.js: 6.2s, proxy.ts: 54ms, application-code: 1627ms)
+○ Compiling /api/auth/sign-in/email-otp ...
+prisma:error pool timeout: failed to retrieve a connection from pool after 12996ms
+    (pool connections: active=0 idle=0 limit=10)
+ POST /api/auth/sign-in/email-otp 500 in 75s (next.js: 49s, proxy.ts: 54ms, application-code: 25.5s)
+ GET /en/sign-in 200 in 7.1s (next.js: 2.8s, proxy.ts: 417ms, application-code: 3.9s)
+ POST /api/auth/sign-in/email-otp 200 in 18.4s (next.js: 37ms, proxy.ts: 93ms, application-code: 18.2s)
+○ Compiling /[locale] ...
+ GET /en/sign-in 200 in 2.3s (next.js: 227ms, proxy.ts: 71ms, application-code: 1977ms)
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.31.200:3000
+- Environments: .env.local, .env
+✓ Ready in 1930ms
+
+○ Compiling /[locale] ...
+ GET /en 200 in 42s (next.js: 29.9s, proxy.ts: 721ms, application-code: 11.3s)
+○ Compiling /[locale]/crm/dashboard ...
+ GET /en/crm/dashboard 200 in 39.3s (next.js: 18.3s, proxy.ts: 13ms, application-code: 20.9s)
+ POST /en/crm/dashboard 200 in 39.8s (next.js: 57ms, proxy.ts: 53ms, application-code: 39.7s)
+  └─ ƒ updateOpportunity({"account":"","assigned_to":"","budget":"45000","...":"13 items not stringified"}) in 21962ms ..//actions/crm/opportunities/update-opportunity.ts
+ GET /en/crm/dashboard 200 in 13.7s (next.js: 43ms, proxy.ts: 12ms, application-code: 13.7s)
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/crm/opportunities 200 in 15.9s (next.js: 41ms, proxy.ts: 49ms, application-code: 15.8s)
+ GET /en/crm/opportunities 200 in 63s (next.js: 42s, proxy.ts: 33ms, application-code: 20.0s)
+○ Compiling /[locale]/crm/opportunities/[opportunityId] ...
+ GET /en/crm/dashboard 200 in 18.5s (next.js: 46ms, proxy.ts: 19ms, application-code: 18.5s)
+ GET /en/crm/dashboard 200 in 21.8s (next.js: 134ms, proxy.ts: 13ms, application-code: 21.6s)
+ GET /en/crm/dashboard 200 in 19.2s (next.js: 43ms, proxy.ts: 39ms, application-code: 19.1s)
+ GET /en/crm/opportunities/30e418c9-16f9-4d59-b3b5-bb286c232e5d 200 in 62s (next.js: 39.5s, proxy.ts: 10ms, application-code: 22.2s)
+○ Compiling /_error ...
+ GET /en/crm/dashboard 500 in 20.6s (next.js: 16.8s, proxy.ts: 29ms, application-code: 3.7s)
+ GET /en/crm/dashboard 500 in 9.8s (next.js: 9.4s, proxy.ts: 382ms, application-code: 68ms)
+ GET /en/crm/dashboard 500 in 8.2s (next.js: 8.1s, proxy.ts: 64ms, application-code: 68ms)
+ GET /en/crm/dashboard 500 in 392ms (next.js: 287ms, proxy.ts: 36ms, application-code: 68ms)
+ GET /en/crm/dashboard 500 in 35ms (next.js: 11ms, proxy.ts: 9ms, application-code: 15ms)
+ GET /en/crm/dashboard 500 in 1581ms (proxy.ts: 42ms)
+ GET /en/crm/dashboard 200 in 5.9s (next.js: 1170ms, proxy.ts: 52ms, application-code: 4.6s)
+ GET /en/crm/dashboard 200 in 18.0s (next.js: 56ms, proxy.ts: 356ms, application-code: 17.6s)
+ GET /en/crm/dashboard 200 in 29.9s (next.js: 900ms, proxy.ts: 73ms, application-code: 28.9s)
+ GET /en/crm/dashboard 200 in 33.1s (next.js: 280ms, proxy.ts: 21ms, application-code: 32.8s)
+ GET /en/crm/dashboard 200 in 18.1s (next.js: 477ms, proxy.ts: 26ms, application-code: 17.6s)
+ GET /en/crm/dashboard 200 in 20.1s (next.js: 180ms, proxy.ts: 515ms, application-code: 19.4s)
+ GET /en/crm/dashboard 200 in 3.1s (next.js: 27ms, proxy.ts: 17ms, application-code: 3.1s)
+ GET /en/crm/dashboard 200 in 12.4s (next.js: 32ms, proxy.ts: 31ms, application-code: 12.3s)
+ GET /en/crm/dashboard 200 in 4.7s (next.js: 4.2s, proxy.ts: 47ms, application-code: 434ms)
+ GET /en/crm/dashboard 200 in 22.3s (next.js: 780ms, proxy.ts: 75ms, application-code: 21.4s)
+ GET /en/crm/dashboard 200 in 5.5s (next.js: 4.5s, proxy.ts: 68ms, application-code: 963ms)
+ GET /en/crm/dashboard 200 in 23.9s (next.js: 861ms, proxy.ts: 117ms, application-code: 23.0s)
+ GET /en/crm/dashboard 200 in 17.8s (next.js: 469ms, proxy.ts: 24ms, application-code: 17.3s)
+ GET /en/crm/dashboard 200 in 19.1s (next.js: 41ms, proxy.ts: 15ms, application-code: 19.0s)
+ GET /en/crm/dashboard 200 in 14.5min (next.js: 10.7min, proxy.ts: 306ms, application-code: 3.8min)
+prisma:error pool timeout: failed to retrieve a connection from pool after 2721191ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 2721261ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/dashboard 200 in 30.1s (next.js: 2.8s, proxy.ts: 2.6s, application-code: 24.7s)
+ GET /en/crm/dashboard 200 in 16.8s (next.js: 885ms, proxy.ts: 47ms, application-code: 15.8s)
+ GET /en/crm/dashboard 200 in 19.6s (next.js: 867ms, proxy.ts: 65ms, application-code: 18.7s)
+○ Compiling /[locale]/profile ...
+ POST /en/profile 200 in 199ms (next.js: 56ms, proxy.ts: 37ms, application-code: 107ms)
+ GET /en/profile 200 in 50s (next.js: 42s, proxy.ts: 18ms, application-code: 8.0s)
+ GET /en/profile 200 in 6.4s (next.js: 15ms, proxy.ts: 14ms, application-code: 6.4s)
+ GET /en/profile?tab=administration 200 in 2.6s (next.js: 45ms, proxy.ts: 31ms, application-code: 2.5s)
+○ Compiling /[locale]/admin/crm-settings ...
+ GET /en/admin/crm-settings 200 in 37.5s (next.js: 33.0s, proxy.ts: 11ms, application-code: 4.5s)
+ GET /en/admin/crm-settings 200 in 4.9s (next.js: 51ms, proxy.ts: 22ms, application-code: 4.9s)
+○ Compiling /[locale]/crm/leads ...
+{
+  id: '42bd845e-e904-4710-9830-4deb3f23a97a',
+  v: 1,
+  createdAt: 2026-04-22T16:00:41.326Z,
+  createdBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  updatedAt: 2026-04-22T16:00:41.326Z,
+  updatedBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  firstName: 'hary',
+  lastName: 'Walker',
+  company: 'IDFC',
+  jobTitle: 'Manager',
+  email: 'hary@gmail.com',
+  phone: '32324178954',
+  description: 'this is Leads page ',
+  lead_source_id: null,
+  lead_status_id: null,
+  lead_type_id: null,
+  refered_by: 'hary walker',
+  campaign: null,
+  assigned_to: 'USER_SWAGGER_180119',
+  accountsIDs: null,
+  deletedAt: null,
+  deletedBy: null,
+  address: 'street 532',
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  country: null,
+  postal_code: null,
+  state: null,
+  order: 0,
+  assigned_to_user: { name: 'Swagger Test User' },
+  assigned_accounts: null,
+  lead_source: null,
+  lead_status: null,
+  lead_type: null,
+  documents: []
+} leads
+ GET /en/crm/leads 200 in 15.8s (next.js: 53ms, proxy.ts: 28ms, application-code: 15.7s)
+{
+  id: '42bd845e-e904-4710-9830-4deb3f23a97a',
+  v: 1,
+  createdAt: 2026-04-22T16:00:41.326Z,
+  createdBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  updatedAt: 2026-04-22T16:00:41.326Z,
+  updatedBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  firstName: 'hary',
+  lastName: 'Walker',
+  company: 'IDFC',
+  jobTitle: 'Manager',
+  email: 'hary@gmail.com',
+  phone: '32324178954',
+  description: 'this is Leads page ',
+  lead_source_id: null,
+  lead_status_id: null,
+  lead_type_id: null,
+  refered_by: 'hary walker',
+  campaign: null,
+  assigned_to: 'USER_SWAGGER_180119',
+  accountsIDs: null,
+  deletedAt: null,
+  deletedBy: null,
+  address: 'street 532',
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  country: null,
+  postal_code: null,
+  state: null,
+  order: 0,
+  assigned_to_user: { name: 'Swagger Test User' },
+  assigned_accounts: null,
+  lead_source: null,
+  lead_status: null,
+  lead_type: null,
+  documents: []
+} leads
+ GET /en/crm/leads 200 in 44s (next.js: 25.1s, proxy.ts: 18ms, application-code: 18.7s)
+ GET /en/crm/dashboard 200 in 16.4s (next.js: 420ms, proxy.ts: 40ms, application-code: 15.9s)
+ GET /en/crm/dashboard 200 in 16.7s (next.js: 627ms, proxy.ts: 17ms, application-code: 16.0s)
+ POST /en/crm/dashboard 200 in 11.9s (next.js: 484ms, proxy.ts: 354ms, application-code: 11.1s)
+  └─ ƒ getUserById("902c6fd6-baed-4067-b18c-edf5b0a0b8ee") in 4612ms ..//actions/user/get-user-by-id.ts
+ POST /en/crm/dashboard 200 in 3.9s (next.js: 58ms, proxy.ts: 39ms, application-code: 3.8s)
+  └─ ƒ getUserById("902c6fd6-baed-4067-b18c-edf5b0a0b8ee") in 3709ms ..//actions/user/get-user-by-id.ts
+ POST /en/crm/dashboard 200 in 30.7s (next.js: 19ms, proxy.ts: 84ms, application-code: 30.6s)
+  └─ ƒ updateOpportunity({"account":"","assigned_to":"902c6fd6-baed-4067-b18c-edf5b0a0b8ee","budget":"0","...":"13 items not stringified"}) in 16719ms ..//actions/crm/opportunities/update-opportunity.ts
+prisma:error pool timeout: failed to retrieve a connection from pool after 14710ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 14966ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/dashboard 200 in 24.2s (next.js: 568ms, proxy.ts: 343ms, application-code: 23.3s)
+○ Compiling /[locale]/sign-in ...
+ GET /en/sign-in 200 in 30.4s (next.js: 26.9s, proxy.ts: 11ms, application-code: 3.5s)
+○ Compiling /api/auth/email-otp/send-verification-otp ...
+ POST /api/auth/email-otp/send-verification-otp 200 in 13.9s (next.js: 9.0s, proxy.ts: 126ms, application-code: 4.8s)
+ GET /api/auth/test-otp?email=test%40gmail.com 200 in 5.8s (next.js: 3.6s, proxy.ts: 15ms, application-code: 2.1s)
+○ Compiling /api/auth/sign-in/email-otp ...
+ POST /api/auth/sign-in/email-otp 200 in 37.5s (next.js: 22.0s, proxy.ts: 17ms, application-code: 15.4s)
+ GET /en 200 in 6.1s (next.js: 388ms, proxy.ts: 15ms, application-code: 5.7s)
+ GET /en/crm/dashboard 200 in 14.6s (next.js: 140ms, proxy.ts: 12ms, application-code: 14.5s)
+ POST /en/crm/dashboard 200 in 16.4s (next.js: 1825ms, proxy.ts: 3.3s, application-code: 11.2s)
+  └─ ƒ getUserById("902c6fd6-baed-4067-b18c-edf5b0a0b8ee") in 6818ms ..//actions/user/get-user-by-id.ts
+ POST /en/crm/dashboard 200 in 3.9s (next.js: 104ms, proxy.ts: 83ms, application-code: 3.7s)
+  └─ ƒ getUserById("902c6fd6-baed-4067-b18c-edf5b0a0b8ee") in 3550ms ..//actions/user/get-user-by-id.ts
+ POST /en/crm/dashboard 200 in 28.8s (next.js: 47ms, proxy.ts: 24ms, application-code: 28.7s)
+  └─ ƒ updateOpportunity({"account":"","assigned_to":"902c6fd6-baed-4067-b18c-edf5b0a0b8ee","budget":"0","...":"13 items not stringified"}) in 15540ms ..//actions/crm/opportunities/update-opportunity.ts
+○ Compiling /[locale]/crm/products ...
+ GET /en/crm/products 200 in 72s (next.js: 55s, proxy.ts: 54ms, application-code: 16.9s)
+○ Compiling /[locale]/crm/leads ...
+{
+  id: '42bd845e-e904-4710-9830-4deb3f23a97a',
+  v: 1,
+  createdAt: 2026-04-22T16:00:41.326Z,
+  createdBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  updatedAt: 2026-04-22T16:00:41.326Z,
+  updatedBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  firstName: 'hary',
+  lastName: 'Walker',
+  company: 'IDFC',
+  jobTitle: 'Manager',
+  email: 'hary@gmail.com',
+  phone: '32324178954',
+  description: 'this is Leads page ',
+  lead_source_id: null,
+  lead_status_id: null,
+  lead_type_id: null,
+  refered_by: 'hary walker',
+  campaign: null,
+  assigned_to: 'USER_SWAGGER_180119',
+  accountsIDs: null,
+  deletedAt: null,
+  deletedBy: null,
+  address: 'street 532',
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  country: null,
+  postal_code: null,
+  state: null,
+  order: 0,
+  assigned_to_user: { name: 'Swagger Test User' },
+  assigned_accounts: null,
+  lead_source: null,
+  lead_status: null,
+  lead_type: null,
+  documents: []
+} leads
+ GET /en/crm/leads 200 in 51s (next.js: 28.8s, proxy.ts: 1757ms, application-code: 20.9s)
+{
+  id: '42bd845e-e904-4710-9830-4deb3f23a97a',
+  v: 1,
+  createdAt: 2026-04-22T16:00:41.326Z,
+  createdBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  updatedAt: 2026-04-22T16:00:41.326Z,
+  updatedBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  firstName: 'hary',
+  lastName: 'Walker',
+  company: 'IDFC',
+  jobTitle: 'Manager',
+  email: 'hary@gmail.com',
+  phone: '32324178954',
+  description: 'this is Leads page ',
+  lead_source_id: null,
+  lead_status_id: null,
+  lead_type_id: null,
+  refered_by: 'hary walker',
+  campaign: null,
+  assigned_to: 'USER_SWAGGER_180119',
+  accountsIDs: null,
+  deletedAt: null,
+  deletedBy: null,
+  address: 'street 532',
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  country: null,
+  postal_code: null,
+  state: null,
+  order: 0,
+  assigned_to_user: { name: 'Swagger Test User' },
+  assigned_accounts: null,
+  lead_source: null,
+  lead_status: null,
+  lead_type: null,
+  documents: []
+} leads
+ GET /en/crm/leads 200 in 23.8s (next.js: 121ms, proxy.ts: 72ms, application-code: 23.6s)
+ GET /en/crm/leads 200 in 823ms (next.js: 77ms, proxy.ts: 254ms, application-code: 492ms)
+{
+  id: '42bd845e-e904-4710-9830-4deb3f23a97a',
+  v: 1,
+  createdAt: 2026-04-22T16:00:41.326Z,
+  createdBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  updatedAt: 2026-04-22T16:00:41.326Z,
+  updatedBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  firstName: 'hary',
+  lastName: 'Walker',
+  company: 'IDFC',
+  jobTitle: 'Manager',
+  email: 'hary@gmail.com',
+  phone: '32324178954',
+  description: 'this is Leads page ',
+  lead_source_id: null,
+  lead_status_id: null,
+  lead_type_id: null,
+  refered_by: 'hary walker',
+  campaign: null,
+  assigned_to: 'USER_SWAGGER_180119',
+  accountsIDs: null,
+  deletedAt: null,
+  deletedBy: null,
+  address: 'street 532',
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  country: null,
+  postal_code: null,
+  state: null,
+  order: 0,
+  assigned_to_user: { name: 'Swagger Test User' },
+  assigned_accounts: null,
+  lead_source: null,
+  lead_status: null,
+  lead_type: null,
+  documents: []
+} leads
+{
+  id: '42bd845e-e904-4710-9830-4deb3f23a97a',
+  v: 1,
+  createdAt: 2026-04-22T16:00:41.326Z,
+  createdBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  updatedAt: 2026-04-22T16:00:41.326Z,
+  updatedBy: '355abf51-7e94-4d4e-b10b-3331f1749f6c',
+  firstName: 'hary',
+  lastName: 'Walker',
+  company: 'IDFC',
+  jobTitle: 'Manager',
+  email: 'hary@gmail.com',
+  phone: '32324178954',
+  description: 'this is Leads page ',
+  lead_source_id: null,
+  lead_status_id: null,
+  lead_type_id: null,
+  refered_by: 'hary walker',
+  campaign: null,
+  assigned_to: 'USER_SWAGGER_180119',
+  accountsIDs: null,
+  deletedAt: null,
+  deletedBy: null,
+  address: 'street 532',
+  address_line1: null,
+  address_line2: null,
+  city: null,
+  country: null,
+  postal_code: null,
+  state: null,
+  order: 0,
+  assigned_to_user: { name: 'Swagger Test User' },
+  assigned_accounts: null,
+  lead_source: null,
+  lead_status: null,
+  lead_type: null,
+  documents: []
+} leads
+ GET /en/crm/leads 200 in 20.5s (next.js: 713ms, proxy.ts: 48ms, application-code: 19.8s)
+ GET /en/crm/products 200 in 18.3s (next.js: 636ms, proxy.ts: 152ms, application-code: 17.5s)
