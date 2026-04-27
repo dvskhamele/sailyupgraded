@@ -26,8 +26,8 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 
 import {
-  type crm_Opportunities,
-  type crm_Opportunities_Sales_Stages,
+  crm_Opportunities,
+  crm_Opportunities_Sales_Stages,
 } from "@prisma/client";
 
 import { DotsHorizontalIcon, PlusCircledIcon } from "@radix-ui/react-icons";
@@ -48,6 +48,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Card, CardContent, CardFooter, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 
 import { NewOpportunityForm } from "../../opportunities/components/NewOpportunityForm";
 import { UpdateOpportunityForm } from "../../opportunities/components/UpdateOpportunityForm";
@@ -157,6 +158,14 @@ function getOpportunityDisplayName(opportunity: crm_Opportunities) {
   );
 }
 
+function getOpportunityClientName(opportunity: crm_Opportunities) {
+  return (opportunity as any).clientName?.trim() || "";
+}
+
+function getOpportunityCategory(opportunity: crm_Opportunities) {
+  return (opportunity as any).category?.trim() || "";
+}
+
 // Draggable Opportunity Card
 function OpportunityCard({
   opportunity,
@@ -246,8 +255,8 @@ function OpportunityCard({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="flex min-w-0 items-center gap-2">
+      <CardFooter className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2">
           <Avatar className="w-6 h-6">
             <AvatarImage
               src={
@@ -255,11 +264,22 @@ function OpportunityCard({
                   ? opportunity.assigned_to_user.avatar
                   : `${process.env.NEXT_PUBLIC_APP_URL}/images/nouser.png`
               }
-            />
+          />
           </Avatar>
-          <span className="min-w-0 truncate text-sm font-medium text-foreground">
-            {getOpportunityDisplayName(opportunity)}
-          </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="min-w-0 truncate text-sm font-medium text-foreground">
+              {getOpportunityClientName(opportunity) ||
+                getOpportunityDisplayName(opportunity)}
+            </span>
+            {getOpportunityCategory(opportunity) ? (
+              <Badge
+                variant="secondary"
+                className="mt-1 w-fit shrink-0 whitespace-nowrap mt-[10px] mb-[-15px]"
+              >
+                {getOpportunityCategory(opportunity)}
+              </Badge>
+            ) : null}
+          </div>
         </div>
         <div className="flex space-x-2">
           {stage.probability !==
@@ -338,8 +358,8 @@ function OpportunityCardStatic({
           </div>
         </div>
       </CardContent>
-      <CardFooter className="flex justify-between">
-        <div className="flex min-w-0 items-center gap-2">
+      <CardFooter className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-2">
           <Avatar className="w-6 h-6">
             <AvatarImage
               src={
@@ -347,11 +367,22 @@ function OpportunityCardStatic({
                   ? opportunity.assigned_to_user.avatar
                   : `${process.env.NEXT_PUBLIC_APP_URL}/images/nouser.png`
               }
-            />
+          />
           </Avatar>
-          <span className="min-w-0 truncate text-sm font-medium text-foreground">
-            {getOpportunityDisplayName(opportunity)}
-          </span>
+          <div className="flex min-w-0 flex-col">
+            <span className="min-w-0 truncate text-sm font-medium text-foreground">
+              {getOpportunityClientName(opportunity) ||
+                getOpportunityDisplayName(opportunity)}
+            </span>
+            {getOpportunityCategory(opportunity) ? (
+              <Badge
+                variant="secondary"
+                className="mt-1 w-fit shrink-0 whitespace-nowrap"
+              >
+                {getOpportunityCategory(opportunity)}
+              </Badge>
+            ) : null}
+          </div>
         </div>
       </CardFooter>
     </Card>
@@ -417,14 +448,6 @@ const CRMKanban = ({
     useState<crm_Opportunities | null>(null);
   const origStageIdRef = useRef<string | null>(null);
   const isDraggingRef = useRef(false);
-
-  useEffect(() => {
-    console.log("[CRMKanban] opportunities prop:", {
-      total: data?.length ?? 0,
-      salesStages: salesStages?.length ?? 0,
-      sample: data?.slice?.(0, 3),
-    });
-  }, [data, salesStages]);
 
   const {
     accounts,

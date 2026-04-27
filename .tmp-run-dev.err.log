@@ -1120,3 +1120,989 @@ You may need an additional plugin to handle "node:" URIs.
 [Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
 [Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
 [Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[browser] An optimistic state update occurred outside a transition or action. To fix, move the update to an action, or wrap with startTransition. 
+    at handleDragEnd (app\[locale]\(routes)\crm\components\OpportunitiesView.tsx:363:5)
+  361 |     );
+  362 |
+> 363 |     setBoardColumns(nextColumns);
+      |     ^
+  364 |
+  365 |     console.log("[OpportunitiesView] optimistic stage update", {
+  366 |       id: activeId, (app\[locale]\(routes)
+[browser] An optimistic state update occurred outside a transition or action. To fix, move the update to an action, or wrap with startTransition. 
+    at handleDragEnd (app\[locale]\(routes)\crm\components\OpportunitiesView.tsx:363:5)
+  361 |     );
+  362 |
+> 363 |     setBoardColumns(nextColumns);
+      |     ^
+  364 |
+  365 |     console.log("[OpportunitiesView] optimistic stage update", {
+  366 |       id: activeId, (app\[locale]\(routes)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⨯ node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx
+⨯ node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:async_hooks
+Module build failed: UnhandledSchemeError: Reading from "node:async_hooks" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:async_hooks
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:crypto
+Module build failed: UnhandledSchemeError: Reading from "node:crypto" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:crypto
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:events
+Module build failed: UnhandledSchemeError: Reading from "node:events" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:events
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:fs
+Module build failed: UnhandledSchemeError: Reading from "node:fs" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:fs
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:module
+Module build failed: UnhandledSchemeError: Reading from "node:module" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:module
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:os
+Module build failed: UnhandledSchemeError: Reading from "node:os" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:os
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:path
+Module build failed: UnhandledSchemeError: Reading from "node:path" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:path
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:process
+Module build failed: UnhandledSchemeError: Reading from "node:process" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:process
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[browser] node:url
+Module build failed: UnhandledSchemeError: Reading from "node:url" is not handled by plugins (Unhandled scheme).
+Webpack supports "data:" and "file:" URIs by default.
+You may need an additional plugin to handle "node:" URIs.
+Import trace for requested module:
+node:url
+./node_modules/@prisma/client/runtime/client.mjs
+./app/[locale]/(routes)/crm/components/OpportunitiesView.tsx 
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[browser] In HTML, <div> cannot be a descendant of <p>.
+This will cause a hydration error.
+
+  ...
+    <Card className="mx-1 w-ful...">
+      <div ref={undefined} className="rounded-lg...">
+        <CardTitle>
+        <CardContent className="w-full h-f...">
+          <div ref={undefined} className="p-6 pt-0 w...">
+            <StageStats>
+            <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
+              <DroppableStage id="8a9353e7-f...">
+                <div ref={function} className="min-h-[50px]">
+                  <OpportunityCard opportunity={{id:"1f0276...",v:0, ...}} router={{...}} ...>
+                    <Card ref={function} style={{...}} role="button" tabIndex={0} aria-disabled={false} ...>
+                      <div ref={function} className="rounded-lg..." style={{...}} role="button" tabIndex={0} ...>
+                        <CardTitle>
+                        <CardContent>
+                        <CardFooter className="flex justi...">
+                          <div ref={undefined} className="items-cent...">
+                            <div className="flex min-w...">
+                              <_c>
+                              <div className="flex min-w...">
+                                <span>
+>                               <p>
+                                  <Badge variant="secondary" className="shrink-0">
+>                                   <div
+>                                     className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs fo..."
+>                                   >
+                            ...
+ 
+[browser] <p> cannot contain a nested <div>.
+See this log for the ancestor stack trace. 
+[browser] In HTML, <div> cannot be a descendant of <p>.
+This will cause a hydration error.
+
+  ...
+    <Card className="mx-1 w-ful...">
+      <div ref={undefined} className="rounded-lg...">
+        <CardTitle>
+        <CardContent className="w-full h-f...">
+          <div ref={undefined} className="p-6 pt-0 w...">
+            <StageStats>
+            <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
+              <DroppableStage id="8a9353e7-f...">
+                <div ref={function} className="min-h-[50px]">
+                  <OpportunityCard opportunity={{id:"1f0276...",v:0, ...}} router={{...}} ...>
+                    <Card ref={function} style={{...}} role="button" tabIndex={0} aria-disabled={false} ...>
+                      <div ref={function} className="rounded-lg..." style={{...}} role="button" tabIndex={0} ...>
+                        <CardTitle>
+                        <CardContent>
+                        <CardFooter className="flex justi...">
+                          <div ref={undefined} className="items-cent...">
+                            <div className="flex min-w...">
+                              <_c>
+                              <div className="flex min-w...">
+                                <span>
+>                               <p>
+                                  <Badge variant="secondary" className="shrink-0">
+>                                   <div
+>                                     className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs fo..."
+>                                   >
+                            ...
+ 
+[browser] <p> cannot contain a nested <div>.
+See this log for the ancestor stack trace. 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expression expected
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:275:1]
+ 272 |                 getOpportunityDisplayName(opportunity)}
+ 273 |             </span
+ 274 |             
+ 275 |           </div>
+     :           ^
+ 276 |         </div>
+ 277 |         <div className="flex space-x-2">
+ 277 |           {stage.probability !==
+     `----
+  x Unterminated regexp literal
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:275:1]
+ 272 |                 getOpportunityDisplayName(opportunity)}
+ 273 |             </span
+ 274 |             
+ 275 |           </div>
+     :            ^^^^^
+ 276 |         </div>
+ 277 |         <div className="flex space-x-2">
+ 277 |           {stage.probability !==
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+./app/[locale]/(routes)/crm/dashboard/page.tsx 
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[browser] In HTML, <div> cannot be a descendant of <p>.
+This will cause a hydration error.
+
+  ...
+    <div className="flex w-ful...">
+      <Card className="mx-1 w-ful...">
+        <div ref={undefined} className="rounded-lg...">
+          <CardTitle>
+          <CardContent className="w-full h-f...">
+            <div ref={undefined} className="p-6 pt-0 w...">
+              <StageStats>
+              <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
+                <DroppableStage id="8a9353e7-f...">
+                  <div ref={function} className="min-h-[50px]">
+                    <OpportunityCard opportunity={{id:"1f0276...",v:0, ...}} router={{...}} ...>
+                      <Card ref={function} style={{...}} role="button" tabIndex={0} aria-disabled={false} ...>
+                        <div ref={function} className="rounded-lg..." style={{...}} role="button" tabIndex={0} ...>
+                          <CardTitle>
+                          <CardContent>
+                          <CardFooter className="flex justi...">
+                            <div ref={undefined} className="items-cent...">
+                              <div>
+>                             <p>
+                                <Badge variant="secondary" className="shrink-0">
+>                                 <div
+>                                   className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font..."
+>                                 >
+                              ...
+      ...
+      ...
+ 
+[browser] <p> cannot contain a nested <div>.
+See this log for the ancestor stack trace. 
+[browser] In HTML, <div> cannot be a descendant of <p>.
+This will cause a hydration error.
+
+  ...
+    <div className="flex w-ful...">
+      <Card className="mx-1 w-ful...">
+        <div ref={undefined} className="rounded-lg...">
+          <CardTitle>
+          <CardContent className="w-full h-f...">
+            <div ref={undefined} className="p-6 pt-0 w...">
+              <StageStats>
+              <SortableContext items={[...]} strategy={function verticalListSortingStrategy}>
+                <DroppableStage id="8a9353e7-f...">
+                  <div ref={function} className="min-h-[50px]">
+                    <OpportunityCard opportunity={{id:"1f0276...",v:0, ...}} router={{...}} ...>
+                      <Card ref={function} style={{...}} role="button" tabIndex={0} aria-disabled={false} ...>
+                        <div ref={function} className="rounded-lg..." style={{...}} role="button" tabIndex={0} ...>
+                          <CardTitle>
+                          <CardContent>
+                          <CardFooter className="flex justi...">
+                            <div ref={undefined} className="items-cent...">
+                              <div>
+>                             <p>
+                                <Badge variant="secondary" className="shrink-0">
+>                                 <div
+>                                   className="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font..."
+>                                 >
+                              ...
+      ...
+      ...
+ 
+[browser] <p> cannot contain a nested <div>.
+See this log for the ancestor stack trace. 
+[browser] Received `true` for a non-boolean attribute `m`.
+
+If you want to write it to the DOM, pass a string instead: m="true" or m={value.toString()}. 
+[browser] Received `true` for a non-boolean attribute `mb-1`.
+
+If you want to write it to the DOM, pass a string instead: mb-1="true" or mb-1={value.toString()}. 
+[browser] Received `true` for a non-boolean attribute `mb-1`.
+
+If you want to write it to the DOM, pass a string instead: mb-1="true" or mb-1={value.toString()}. 
+[browser] Can't perform a React state update on a component that hasn't mounted yet. This indicates that you have a side-effect in your render function that asynchronously tries to update the component. Move this work to useEffect instead. 
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] Uncaught ReferenceError: getOpportunityCategory is not defined
+    at OpportunityCard (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:280:12)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:817:25)
+    at Array.map (<anonymous>)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:816:42)
+    at Array.map (<anonymous>)
+    at CRMKanban (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:791:22)
+    at CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:17:9)
+  278 |       </CardFooter>
+  279 |        <div className="flex items-center">
+> 280 |           {getOpportunityCategory(opportunity) ? (
+      |            ^
+  281 |             <Badge variant="secondary" className="shrink-0">
+  282 |               {getOpportunityCategory(opportunity)}
+  283 |             </Badge>
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] Uncaught ChunkLoadError: Loading chunk app/[locale]/(routes)/crm/dashboard/page failed.
+(timeout: http://localhost:3000/_next/static/chunks/app/%5Blocale%5D/(routes)/crm/dashboard/page.js)
+    at Header (app\[locale]\(routes)\components\Header.tsx:41:11)
+    at AppLayout (app\[locale]\(routes)\layout.tsx:119:9)
+  39 |         <div className="flex min-w-0 flex-1 items-center gap-2">
+  40 |           <SidebarTrigger className="-ml-1" />
+> 41 |           <Separator orientation="vertical" className="mr-2 h-4" />
+     |           ^
+  42 |           <FulltextSearch />
+  43 |         </div>
+  44 |         <div className="flex shrink-0 items-center gap-2">
+[browser] Uncaught ReferenceError: getOpportunityCategory is not defined
+    at OpportunityCard (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:262:9)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:826:25)
+    at Array.map (<anonymous>)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:825:42)
+    at Array.map (<anonymous>)
+    at CRMKanban (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:800:22)
+    at CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:17:9)
+  260 |       <CardFooter className="flex items-center justify-between gap-3">
+  261 |         {/* ✅ User section fix */}
+> 262 |         <div className="flex min-w-0 items-center gap-2">
+      |         ^
+  263 |           <Avatar className="w-6 h-6">
+  264 |             <AvatarImage
+  265 |               src={opportunity.assigned_to_user?.avatar || "/images/nouser.png"}
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 11889ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:81:21)
+    at async CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:8:19)
+  79 |   });
+  80 |
+> 81 |   const saleTypes = await prismadb.crm_Opportunities_Type.findMany({
+     |                     ^
+  82 |     orderBy: { name: "asc" },
+  83 |   });
+  84 | {
+  clientVersion: '7.7.0',
+  digest: '1689783012',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 11889ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 11889ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22399062, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 13535ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)'
+  }
+}
+[browser] Uncaught DriverAdapterError: pool timeout: failed to retrieve a connection from pool after 11889ms
+    (pool connections: active=0 idle=0 limit=10)
+    at  eval (actions\crm\get-crm-data.ts:81:21)
+    at  CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:8:19)
+  79 |   });
+  80 |
+> 81 |   const saleTypes = await prismadb.crm_Opportunities_Type.findMany({
+     |                     ^
+  82 |     orderBy: { name: "asc" },
+  83 |   });
+  84 |
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⨯ ReferenceError: getOpportunityCategory is not defined
+    at OpportunityCardStatic (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:368:13)
+  366 |           </Avatar>
+  367 |           <div className="flex min-w-0 flex-col">
+> 368 |             <span className="min-w-0 truncate text-sm font-medium text-foreground">
+      |             ^
+  369 |               {getOpportunityClientName(opportunity) ||
+  370 |                 getOpportunityDisplayName(opportunity)}
+  371 |             </span> {
+  digest: '4212414947'
+}
+[browser] Uncaught ReferenceError: getOpportunityCategory is not defined
+    at OpportunityCard (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:266:13)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:837:25)
+    at Array.map (<anonymous>)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:836:42)
+    at Array.map (<anonymous>)
+    at CRMKanban (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:811:22)
+    at CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:17:9)
+  264 |           </Avatar>
+  265 |           <div className="flex min-w-0 flex-col">
+> 266 |             <span className="min-w-0 truncate text-sm font-medium text-foreground">
+      |             ^
+  267 |               {getOpportunityClientName(opportunity) ||
+  268 |                 getOpportunityDisplayName(opportunity)}
+  269 |             </span>
+⨯ ReferenceError: getOpportunityCategory is not defined
+    at OpportunityCardStatic (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:369:13)
+  367 |           </Avatar>
+  368 |           <div className="flex min-w-0 flex-col">
+> 369 |             <span className="min-w-0 truncate text-sm font-medium text-foreground">
+      |             ^
+  370 |               {getOpportunityClientName(opportunity) ||
+  371 |                 getOpportunityDisplayName(opportunity)}
+  372 |             </span> {
+  digest: '4008637260'
+}
+[browser] Uncaught ReferenceError: getOpportunityCategory is not defined
+    at OpportunityCard (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:266:13)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:837:25)
+    at Array.map (<anonymous>)
+    at eval (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:836:42)
+    at Array.map (<anonymous>)
+    at CRMKanban (app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:811:22)
+    at CrmDashboardPage (app\[locale]\(routes)\crm\dashboard\page.tsx:17:9)
+  264 |           </Avatar>
+  265 |           <div className="flex min-w-0 flex-col">
+> 266 |             <span className="min-w-0 truncate text-sm font-medium text-foreground">
+      |             ^
+  267 |               {getOpportunityClientName(opportunity) ||
+  268 |                 getOpportunityDisplayName(opportunity)}
+  269 |             </span>
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+./app/[locale]/(routes)/crm/dashboard/page.tsx 
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+./app/[locale]/(routes)/crm/dashboard/page.tsx 
+⨯ ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+./app/[locale]/(routes)/crm/dashboard/page.tsx
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+./app/[locale]/(routes)/crm/dashboard/page.tsx 
+⨯ ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error
+
+Import trace for requested module:
+./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+./app/[locale]/(routes)/crm/dashboard/page.tsx
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error 
+[browser] Uncaught ModuleBuildError: Module build failed (from ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js):
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+
+Caused by:
+    Syntax Error
+[browser] Uncaught ModuleBuildError: Module build failed (from ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js):
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+
+Caused by:
+    Syntax Error
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error 
+[browser] Uncaught ModuleBuildError: Module build failed (from ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js):
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+
+Caused by:
+    Syntax Error
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error 
+[browser] Uncaught ModuleBuildError: Module build failed (from ./node_modules/next/dist/build/webpack/loaders/next-swc-loader.js):
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+
+Caused by:
+    Syntax Error
+[browser] ./app/[locale]/(routes)/crm/dashboard/_components/CRMKanban.tsx
+Error:   x Expected '</', got 'jsx text'
+     ,-[C:\Users\hp\sailyupgraded\app\[locale]\(routes)\crm\dashboard\_components\CRMKanban.tsx:284:1]
+ 281 |                   </Badge>
+ 282 |                 ) : null}
+ 283 |                 <span/>
+ 284 | ,->           </div>
+ 285 | `->         </div>
+ 286 |             <div className="flex space-x-2">
+ 287 |               {stage.probability !==
+ 287 |                 Math.max(
+     `----
+
+Caused by:
+    Syntax Error 
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[2m2026-04-27T05:56:01.830Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10219ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async getUserById (actions\user\get-user-by-id.ts:7:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10219ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10219ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22404715, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 5356ms'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+⨯ Error: Unauthorized
+    at getUserById (actions\user\get-user-by-id.ts:8:23)
+   6 | export async function getUserById(userId: string) {
+   7 |   const session = await getSession();
+>  8 |   if (!session) throw new Error("Unauthorized");
+     |                       ^
+   9 |
+  10 |   const user = await prismadb.users.findFirst({
+  11 |     where: { id: userId, userStatus: "ACTIVE" }, {
+  digest: '4052593964'
+}
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10005ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async getDocumentsByOpportunityId (actions\documents\get-documents-by-opportunityId.ts:5:16)
+    at async OpportunityView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\page.tsx:35:5)
+  3 | export const getDocumentsByOpportunityId = async (opportunityId: string) => {
+  4 |   // Query through DocumentsToOpportunities junction table
+> 5 |   const data = await prismadb.documents.findMany({
+    |                ^
+  6 |     where: {
+  7 |       opportunities: {
+  8 |         some: { {
+  clientVersion: '7.7.0',
+  digest: '2197241187',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10005ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10005ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22405203, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 8305ms'
+  }
+}
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10000ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:59:20)
+    at async OpportunityView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\page.tsx:35:5)
+  57 |  */
+  58 | export const getAllCrmData = cache(async () => {
+> 59 |   const accounts = await prismadb.crm_Accounts.findMany({
+     |                    ^
+  60 |     where: { deletedAt: null },
+  61 |   });
+  62 | {
+  clientVersion: '7.7.0',
+  digest: '1815010303',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10000ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10000ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22405203, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 8305ms'
+  }
+}
+[2m2026-04-27T06:01:06.005Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10008ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10008ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10008ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22405203, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 8305ms'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error: getaddrinfo ENOTFOUND api.github.com
+      at ignore-listed frames {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.github.com'
+  }
+}
+TypeError: fetch failed
+    at ignore-listed frames {
+  [cause]: Error: getaddrinfo ENOTFOUND api.github.com
+      at ignore-listed frames {
+    errno: -3008,
+    code: 'ENOTFOUND',
+    syscall: 'getaddrinfo',
+    hostname: 'api.github.com'
+  }
+}
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10004ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (actions\crm\get-crm-data.ts:59:20)
+    at async OpportunityView (app\[locale]\(routes)\crm\opportunities\[opportunityId]\page.tsx:35:5)
+  57 |  */
+  58 | export const getAllCrmData = cache(async () => {
+> 59 |   const accounts = await prismadb.crm_Accounts.findMany({
+     |                    ^
+  60 |     where: { deletedAt: null },
+  61 |   });
+  62 | {
+  clientVersion: '7.7.0',
+  digest: '1160493055',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10004ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10004ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22405203, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 8305ms'
+  }
+}
+[2m2026-04-27T06:06:18.297Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 10007ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 10007ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 10007ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:22405203, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 8305ms'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
