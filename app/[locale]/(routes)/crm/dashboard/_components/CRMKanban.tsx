@@ -126,6 +126,7 @@ function initColumns(
   stages: crm_Opportunities_Sales_Stages[],
   selectedCategory: string,
 ): Column[] {
+  const fallbackStageId = stages[0]?.id;
   const filteredOpportunities = filterOpportunitiesByCategory(
     opps,
     selectedCategory,
@@ -134,7 +135,9 @@ function initColumns(
   return stages.map((stage) => ({
     ...stage,
     opportunities: filteredOpportunities.filter(
-      (o: any) => o.sales_stage === stage.id && o.status === "ACTIVE",
+      (o: any) =>
+        (o.sales_stage ?? fallbackStageId) === stage.id &&
+        o.status === "ACTIVE",
     ),
   }));
 }
