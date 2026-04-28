@@ -67,28 +67,6 @@ export function LoginComponent() {
 
       let usedDevFallback = false;
 
-      if (error) {
-        const fallbackResponse = await fetch("/api/auth/dev-send-otp", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ email: normalizedEmail }),
-        });
-
-        if (fallbackResponse.ok) {
-          const fallbackData = await fallbackResponse.json();
-          setEmail(normalizedEmail);
-          setStep("otp");
-          setDevOtp(fallbackData.otp);
-          usedDevFallback = true;
-          toast.success(`Development OTP: ${fallbackData.otp}`);
-        } else {
-          toast.error(error.message || "Failed to send verification code.");
-          return;
-        }
-      }
-
       try {
         const response = await fetch(
           `/api/auth/test-otp?email=${encodeURIComponent(normalizedEmail)}`
@@ -109,6 +87,28 @@ export function LoginComponent() {
         }
       } catch {
         // Ignore OTP preview failures and fall back to the generic message.
+      }
+
+      if (error) {
+        const fallbackResponse = await fetch("/api/auth/dev-send-otp", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ email: normalizedEmail }),
+        });
+
+        if (fallbackResponse.ok) {
+          const fallbackData = await fallbackResponse.json();
+          setEmail(normalizedEmail);
+          setStep("otp");
+          setDevOtp(fallbackData.otp);
+          usedDevFallback = true;
+          toast.success(`Development OTP: ${fallbackData.otp}`);
+        } else {
+          toast.error(error.message || "Failed to send verification code.");
+          return;
+        }
       }
 
       if (usedDevFallback) {

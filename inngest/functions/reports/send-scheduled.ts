@@ -1,6 +1,5 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
-import { Resend } from "resend";
 import { generateCSV } from "@/actions/reports/export-csv";
 import { parseSearchParamsToFilters } from "@/actions/reports/types";
 import * as salesActions from "@/actions/reports/sales";
@@ -9,8 +8,7 @@ import * as accountsActions from "@/actions/reports/accounts";
 import * as activityActions from "@/actions/reports/activity";
 import * as campaignsActions from "@/actions/reports/campaigns";
 import * as usersActions from "@/actions/reports/users";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
+import resendHelper from "@/lib/resend";
 
 async function getReportData(category: string, filters: any) {
   switch (category) {
@@ -72,6 +70,11 @@ export const reportSendScheduled = inngest.createFunction(
           const dateRange = `${filtersRaw.from ?? "all"} to ${filtersRaw.to ?? "now"}`;
           const pdfBuffer = await generatePDF(schedule.reportConfig.name, dateRange, data, headers as [string, string]);
           attachments.push({ filename: `${schedule.reportConfig.category}-report.pdf`, content: pdfBuffer });
+        }
+
+        const resend = await resendHelper();
+        if (!resend) {
+          throw new Error("Resend is not configured");
         }
 
         await resend.emails.send({

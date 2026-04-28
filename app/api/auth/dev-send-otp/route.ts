@@ -5,13 +5,16 @@ import { prismadb } from "@/lib/prisma";
 const otpIdentifier = (email: string) => `sign-in-otp-${email.toLowerCase()}`;
 const fallbackOtpIdentifier = (email: string) =>
   `fallback-otp-${email.toLowerCase()}`;
+const allowOtpBypass =
+  process.env.NODE_ENV !== "production" ||
+  process.env.VERCEL_ENV === "preview";
 
 function generateOtp() {
   return randomInt(0, 1_000_000).toString().padStart(6, "0");
 }
 
 export async function POST(request: NextRequest) {
-  if (process.env.NODE_ENV === "production") {
+  if (!allowOtpBypass) {
     return NextResponse.json({ error: "Not available" }, { status: 404 });
   }
 

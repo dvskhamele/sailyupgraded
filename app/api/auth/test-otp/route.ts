@@ -1,7 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismadb } from "@/lib/prisma";
 
+const allowOtpPreview =
+  process.env.NODE_ENV !== "production" ||
+  process.env.VERCEL_ENV === "preview";
+
 export async function GET(request: NextRequest) {
+  if (!allowOtpPreview) {
+    return NextResponse.json(
+      { success: false, error: "Not available" },
+      { status: 404 }
+    );
+  }
+
   try {
     const email = request.nextUrl.searchParams.get("email");
     if (!email) {
@@ -14,7 +25,12 @@ export async function GET(request: NextRequest) {
     const normalizedEmail = email.trim().toLowerCase();
     const verification = await prismadb.verification.findFirst({
       where: {
-        identifier: `test-otp-${normalizedEmail}`,
+        identifier: {
+          in: [
+            `test-otp-${normalizedEmail}`,
+            `fallback-otp-${normalizedEmail}`,
+          ],
+        },
         expiresAt: { gt: new Date() },
       },
       orderBy: { createdAt: "desc" },
@@ -27,7 +43,13 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, otp: verification.value });
+    return NextResponse.json({
+      success: true,
+      otp: verification.value,
+      source: verification.identifier.startsWith("fallback-otp-")
+        ? "fallback"
+        : "test",
+    });
   } catch (error) {
     console.error("[Test-OTP] Failed to fetch OTP", error);
     return NextResponse.json(
