@@ -29,6 +29,7 @@ const CreateProductForm = ({
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
   const [isRecurring, setIsRecurring] = useState(false);
+  const defaultCurrency = currencies[0]?.code;
 
   const { execute, fieldErrors, isLoading } = useAction(createProduct, {
     onSuccess: () => {
@@ -103,16 +104,19 @@ const CreateProductForm = ({
           id="type"
           label="Type"
           type="hidden"
+          placeholder="Select type"
           data={[
             { id: "PRODUCT", name: "Product" },
             { id: "SERVICE", name: "Service" },
           ]}
           errors={fieldErrors}
+          defaultValue="PRODUCT"
         />
         <FormSelect
           id="status"
           label="Status"
           type="hidden"
+          placeholder="Select status"
           data={[
             { id: "DRAFT", name: "Draft" },
             { id: "ACTIVE", name: "Active" },
@@ -139,11 +143,13 @@ const CreateProductForm = ({
           id="currency"
           label="Currency"
           type="hidden"
+          placeholder="Select currency"
           data={currencies.map((c) => ({
             id: c.code,
             name: `${c.symbol} ${c.code} — ${c.name}`,
           }))}
           errors={fieldErrors}
+          defaultValue={defaultCurrency}
         />
         <div className="grid grid-cols-2 gap-4">
           <FormInput
@@ -163,6 +169,7 @@ const CreateProductForm = ({
           id="categoryId"
           label="Category"
           type="hidden"
+          placeholder="Select category"
           data={categories.map((c) => ({ id: c.id, name: c.name }))}
           errors={fieldErrors}
         />
@@ -179,6 +186,7 @@ const CreateProductForm = ({
             id="billing_period"
             label="Billing Period"
             type="hidden"
+            placeholder="Select billing period"
             data={[
               { id: "MONTHLY", name: "Monthly" },
               { id: "QUARTERLY", name: "Quarterly" },

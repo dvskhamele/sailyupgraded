@@ -13,17 +13,14 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/lib/utils";
-import {
-  ADD_CATEGORY_VALUE,
-  ALL_CATEGORIES_VALUE,
-  normalizeCategoryName,
-} from "@/lib/opportunity-categories";
+import { ALL_CATEGORIES_VALUE } from "@/lib/opportunity-categories";
 
 interface CategoryFilterProps {
   categories: string[];
   selectedCategory: string;
   onCategoryChange: (category: string) => void;
-  onAddCategory: (category: string) => void;
+  onAddCategory?: (category: string) => Promise<boolean | void> | boolean | void;
+  allowCreate?: boolean;
 }
 
 export function CategoryFilter({
@@ -31,12 +28,14 @@ export function CategoryFilter({
   selectedCategory,
   onCategoryChange,
   onAddCategory,
+  allowCreate = true,
 }: CategoryFilterProps) {
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleValueChange = (value: string) => {
-    if (value === ADD_CATEGORY_VALUE) {
+    if (value === "__add_category__") {
       setIsAddDialogOpen(true);
       return;
     }
@@ -44,15 +43,22 @@ export function CategoryFilter({
     onCategoryChange(value);
   };
 
-  const handleAddCategory = () => {
-    const normalizedCategory = normalizeCategoryName(newCategory);
-    if (!normalizedCategory) {
+  const handleAddCategory = async () => {
+    const normalizedCategory = newCategory.trim();
+    if (!normalizedCategory || isSubmitting) {
       return;
     }
 
-    onAddCategory(normalizedCategory);
-    setNewCategory("");
-    setIsAddDialogOpen(false);
+    try {
+      setIsSubmitting(true);
+      const wasAdded = await onAddCategory?.(normalizedCategory);
+      if (wasAdded !== false) {
+        setNewCategory("");
+        setIsAddDialogOpen(false);
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -62,7 +68,7 @@ export function CategoryFilter({
 
         <div
           role="group"
-          aria-label="Filter opportunities by product category"
+          aria-label="Filter opportunities by product"
           className="flex flex-wrap gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200"
         >
           {/* ALL BUTTON */}
@@ -105,35 +111,38 @@ export function CategoryFilter({
           })}
 
           {/* ADD BUTTON */}
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            onClick={() => handleValueChange(ADD_CATEGORY_VALUE)}
-            className="rounded-full px-4 py-1.5 text-sm border-2 border-dashed border-sky-400 bg-sky-50 text-sky-700 transition-all duration-200 hover:bg-sky-100 hover:scale-105"
-          >
-            + Add Products
-          </Button>
+          {allowCreate ? (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => handleValueChange("__add_category__")}
+              className="rounded-full px-4 py-1.5 text-sm border-2 border-dashed border-sky-400 bg-sky-50 text-sky-700 transition-all duration-200 hover:bg-sky-100 hover:scale-105"
+            >
+              + Add Products
+            </Button>
+          ) : null}
         </div>
       </div>
 
-      <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+      <Dialog open={allowCreate && isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Category</DialogTitle>
+            <DialogTitle>Add Product</DialogTitle>
             <DialogDescription>
-              Create a custom opportunity category and apply it immediately.
+              Add a product chip and apply it immediately.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="new-opportunity-category">Category name</Label>
+              <Label htmlFor="new-opportunity-category">Product name</Label>
               <Input
                 id="new-opportunity-category"
                 value={newCategory}
                 onChange={(event) => setNewCategory(event.target.value)}
-                placeholder="Enter a category"
+                placeholder="Enter a product"
                 maxLength={120}
+                disabled={isSubmitting}
                 onKeyDown={(event) => {
                   if (event.key === "Enter") {
                     event.preventDefault();
@@ -146,8 +155,9 @@ export function CategoryFilter({
               type="button"
               className="w-full"
               onClick={handleAddCategory}
+              disabled={isSubmitting || !newCategory.trim()}
             >
-              Add category
+              {isSubmitting ? "Adding..." : "Add product"}
             </Button>
           </div>
         </DialogContent>

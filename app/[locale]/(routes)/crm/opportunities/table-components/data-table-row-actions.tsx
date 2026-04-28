@@ -87,6 +87,7 @@ export function DataTableRowActions<TData>({
               saleStages={config.saleStages}
               campaigns={config.campaigns}
               currencies={config.currencies}
+              categoryOptions={config.productOptions}
             />
           </div>
         </SheetContent>

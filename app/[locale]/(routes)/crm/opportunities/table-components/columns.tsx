@@ -23,6 +23,7 @@ export type OpportunityConfig = {
   currencies: { code: string; name: string; symbol: string }[];
   displayCurrency?: string;
   exchangeRates?: Rate[];
+  productOptions?: string[];
 };
 
 export const createColumns = (config: OpportunityConfig): ColumnDef<Opportunity>[] => [

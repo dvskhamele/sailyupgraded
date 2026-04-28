@@ -50,11 +50,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import {
-  DEFAULT_OPPORTUNITY_CATEGORIES,
-  mergeCategoryLists,
-  normalizeCategoryName,
-} from "@/lib/opportunity-categories";
 
 type ConfigItem = { id: string; name: string };
 
@@ -93,21 +88,12 @@ export function UpdateOpportunityForm({
   const [editingSalesStageId, setEditingSalesStageId] = useState<string | null>(null);
   const [editingSalesStageName, setEditingSalesStageName] = useState("");
   const [isEditingSalesStage, setIsEditingSalesStage] = useState(false);
-  const [localCategoryOptions, setLocalCategoryOptions] = useState<string[]>(() =>
-    mergeCategoryLists(
-      DEFAULT_OPPORTUNITY_CATEGORIES,
-      categoryOptions,
-      initialData?.category ? [initialData.category] : []
+  const mergedCategoryOptions = Array.from(
+    new Set(
+      [...categoryOptions, initialData?.category ?? ""]
+        .map((value) => value.trim())
+        .filter(Boolean)
     )
-  );
-  const [isCategoryDialogOpen, setIsCategoryDialogOpen] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState("");
-
-  const mergedCategoryOptions = mergeCategoryLists(
-    DEFAULT_OPPORTUNITY_CATEGORIES,
-    categoryOptions,
-    localCategoryOptions,
-    initialData?.category ? [initialData.category] : []
   );
 
   const formSchema = z.object({
@@ -176,23 +162,6 @@ export function UpdateOpportunityForm({
       form.setError("root.serverError", { message });
       toast.error(message);
     }
-  };
-
-  const handleCreateCategory = (event: React.FormEvent) => {
-    event.preventDefault();
-    const category = normalizeCategoryName(newCategoryName);
-    if (!category) return;
-
-    setLocalCategoryOptions((currentCategories) =>
-      mergeCategoryLists(currentCategories, [category])
-    );
-    form.setValue("category", category, {
-      shouldDirty: true,
-      shouldValidate: true,
-    });
-    setNewCategoryName("");
-    setIsCategoryDialogOpen(false);
-    toast.success("Category added");
   };
 
   const handleCreateSalesType = async (event: React.FormEvent) => {
@@ -389,28 +358,6 @@ export function UpdateOpportunityForm({
           </form>
         </DialogContent>
       </Dialog>
-      <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Add Product</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={handleCreateCategory} className="space-y-4 pt-2">
-            <div className="space-y-1">
-              <Label htmlFor="edit-opportunity-category">Name</Label>
-              <Input
-                id="edit-opportunity-category"
-                value={newCategoryName}
-                onChange={(e) => setNewCategoryName(e.target.value)}
-                maxLength={120}
-                required
-              />
-            </div>
-            <Button type="submit" className="w-full">
-              Add Product
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
       <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full px-4 md:px-10">
         <div className="w-full text-sm">
@@ -515,17 +462,7 @@ export function UpdateOpportunityForm({
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <div className="flex items-center justify-between gap-2">
-                        <FormLabel>Category</FormLabel>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsCategoryDialogOpen(true)}
-                        >
-                          Add
-                        </Button>
-                      </div>
+                      <FormLabel>Product</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value ?? ""}
@@ -533,14 +470,13 @@ export function UpdateOpportunityForm({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a category" />
+                            <SelectValue placeholder="Select a product" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="flex overflow-y-auto h-56">
-                          {mergedCategoryOptions.map((category) => (
-                            <SelectItem key={category} value={category}>
-                              {
-                            }
+                          {mergedCategoryOptions.map((product) => (
+                            <SelectItem key={product} value={product}>
+                              {product}
                             </SelectItem>
                           ))}
                         </SelectContent>

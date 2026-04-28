@@ -120,6 +120,16 @@ export const getAllCrmData = cache(async () => {
     orderBy: { order: "asc" },
   });
 
+  const products = await prismadb.crm_Products.findMany({
+    where: { deletedAt: null },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+    },
+    orderBy: { name: "asc" },
+  });
+
   return {
     accounts,
     opportunities: serializeDecimalsList(opportunities),
@@ -137,6 +147,7 @@ export const getAllCrmData = cache(async () => {
     leadTypes,
     currencies,
     productCategories,
+    products,
     exchangeRates: exchangeRates.map((rate: any) => ({
       fromCurrency: rate.fromCurrency,
       toCurrency: rate.toCurrency,

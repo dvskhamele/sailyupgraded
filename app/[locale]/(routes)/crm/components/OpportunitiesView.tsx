@@ -28,11 +28,6 @@ import { OpportunitiesDataTable } from "../opportunities/table-components/data-t
 import { useCurrency } from "@/context/currency-context";
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 import Decimal from "decimal.js";
-import {
-  DEFAULT_OPPORTUNITY_CATEGORIES,
-  extractOpportunityCategories,
-  mergeCategoryLists,
-} from "@/lib/opportunity-categories";
 
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 
@@ -51,10 +46,24 @@ const OpportunitiesView = ({
   const t = useTranslations("CrmPage");
   const { displayCurrency } = useCurrency();
 
-  const { accounts, contacts, saleTypes, saleStages, campaigns, currencies, exchangeRates } = crmData;
-  const categoryOptions = mergeCategoryLists(
-    DEFAULT_OPPORTUNITY_CATEGORIES,
-    extractOpportunityCategories(data as any[])
+  const {
+    accounts,
+    contacts,
+    saleTypes,
+    saleStages,
+    campaigns,
+    currencies,
+    exchangeRates,
+    products,
+  } = crmData;
+  // Category-based options are temporarily disabled; reuse the existing field with product names.
+  const productOptions = Array.from(
+    new Set(
+      (products ?? [])
+        .filter((product: { status: string }) => product.status === "ACTIVE")
+        .map((product: { name: string }) => product.name.trim())
+        .filter(Boolean)
+    )
   );
 
   const rates = (exchangeRates ?? []).map((r: { fromCurrency: string; toCurrency: string; rate: unknown }) => ({
@@ -70,6 +79,7 @@ const OpportunitiesView = ({
     currencies: currencies.map((c: { code: string; name: string; symbol: string }) => ({ code: c.code, name: c.name, symbol: c.symbol })),
     displayCurrency,
     exchangeRates: rates,
+    productOptions,
   });
 
   return (
@@ -103,7 +113,7 @@ const OpportunitiesView = ({
                     saleStages={saleStages}
                     campaigns={campaigns}
                     currencies={currencies.map((c) => ({ code: c.code, name: c.name, symbol: c.symbol }))}
-                    categoryOptions={categoryOptions}
+                    categoryOptions={productOptions}
                     accountId={accountId}
                     onDialogClose={() => setOpen(false)}
                   />

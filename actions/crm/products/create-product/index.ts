@@ -24,6 +24,29 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   }
 
   try {
+    const parsedUnitPrice = Number(unit_price);
+    if (!Number.isFinite(parsedUnitPrice) || parsedUnitPrice < 0) {
+      return { error: "Valid unit price is required" };
+    }
+
+    const parsedUnitCost =
+      unit_cost && unit_cost.trim() !== "" ? Number(unit_cost) : undefined;
+    if (
+      parsedUnitCost !== undefined &&
+      (!Number.isFinite(parsedUnitCost) || parsedUnitCost < 0)
+    ) {
+      return { error: "Unit cost must be a valid non-negative number" };
+    }
+
+    const parsedTaxRate =
+      tax_rate && tax_rate.trim() !== "" ? Number(tax_rate) : undefined;
+    if (
+      parsedTaxRate !== undefined &&
+      (!Number.isFinite(parsedTaxRate) || parsedTaxRate < 0 || parsedTaxRate > 100)
+    ) {
+      return { error: "Tax rate must be between 0 and 100" };
+    }
+
     if (sku) {
       const existing = await prismadb.crm_Products.findUnique({ where: { sku } });
       if (existing) {
@@ -34,19 +57,19 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     const product = await prismadb.crm_Products.create({
       data: {
         name,
-        description: description || undefined,
-        sku: sku || undefined,
+        description: description?.trim() || null,
+        sku: sku?.trim() || null,
         type,
         status: status || "DRAFT",
-        unit_price: parseFloat(unit_price),
-        unit_cost: unit_cost ? parseFloat(unit_cost) : undefined,
-        currency,
-        tax_rate: tax_rate ? parseFloat(tax_rate) : undefined,
-        unit: unit || undefined,
+        unit_price: parsedUnitPrice,
+        unit_cost: parsedUnitCost ?? null,
+        assigned_currency: { connect: { code: currency } },
+        tax_rate: parsedTaxRate ?? null,
+        unit: unit?.trim() || null,
         is_recurring: is_recurring || false,
-        billing_period: is_recurring ? billing_period : undefined,
-        categoryId: categoryId || undefined,
-        createdBy: userId,
+        billing_period: is_recurring ? billing_period : null,
+        category: categoryId ? { connect: { id: categoryId } } : undefined,
+        created_by_user: { connect: { id: userId } },
         updatedBy: userId,
       },
     });
@@ -59,11 +82,17 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       userId,
     });
 
-    revalidatePath("/[locale]/(routes)/crm/products", "page");
+    revalidatePath("/[locale]/crm/products", "page");
+    revalidatePath("/[locale]/crm/dashboard", "page");
     return { data: { id: product.id, name: product.name } };
   } catch (error) {
     console.log("[CREATE_PRODUCT]", error);
-    return { error: "Failed to create product" };
+    return {
+      error:
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to create product",
+    };
   }
 };
 

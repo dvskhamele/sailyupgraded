@@ -54,6 +54,7 @@ import { NewOpportunityForm } from "../../opportunities/components/NewOpportunit
 import { UpdateOpportunityForm } from "../../opportunities/components/UpdateOpportunityForm";
 import { setInactiveOpportunity } from "@/actions/crm/opportunity/dashboard/set-inactive";
 import { updateOpportunity } from "@/actions/crm/opportunities/update-opportunity";
+import { createProduct } from "@/actions/crm/products/create-product";
 import {
   HoverCard,
   HoverCardContent,
@@ -70,10 +71,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { CategoryFilter } from "./CategoryFilter";
 import {
   ALL_CATEGORIES_VALUE,
-  DEFAULT_OPPORTUNITY_CATEGORIES,
-  extractOpportunityCategories,
   filterOpportunitiesByCategory,
-  mergeCategoryLists,
 } from "@/lib/opportunity-categories";
 
 interface CRMKanbanProps {
@@ -162,7 +160,7 @@ function getOpportunityClientName(opportunity: crm_Opportunities) {
   return (opportunity as any).clientName?.trim() || "";
 }
 
-function getOpportunityCategory(opportunity: crm_Opportunities) {
+function getOpportunityProduct(opportunity: crm_Opportunities) {
   return (opportunity as any).category?.trim() || "";
 }
 
@@ -271,12 +269,12 @@ function OpportunityCard({
               {getOpportunityClientName(opportunity) ||
                 getOpportunityDisplayName(opportunity)}
             </span>
-            {getOpportunityCategory(opportunity) ? (
+            {getOpportunityProduct(opportunity) ? (
               <Badge
                 variant="secondary"
               className="mt-1 w-fit shrink-0 whitespace-nowrap mt-[10px] mb-[-15px] border-0 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white"
               >
-                {getOpportunityCategory(opportunity)}
+                {getOpportunityProduct(opportunity)}
               </Badge>
             ) : null}
           </div>
@@ -374,12 +372,12 @@ function OpportunityCardStatic({
               {getOpportunityClientName(opportunity) ||
                 getOpportunityDisplayName(opportunity)}
             </span>
-            {getOpportunityCategory(opportunity) ? (
+            {getOpportunityProduct(opportunity) ? (
               <Badge
                 variant="secondary"
                 className="mt-1 w-fit shrink-0 whitespace-nowrap border-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white"
               >
-                {getOpportunityCategory(opportunity)}
+                {getOpportunityProduct(opportunity)}
               </Badge>
             ) : null}
           </div>
@@ -415,19 +413,21 @@ const CRMKanban = ({
   const [selectedStage, setSelectedStage] = useState("");
   const [selectedCategory, setSelectedCategory] =
     useState(ALL_CATEGORIES_VALUE);
-  const dynamicCategories = useMemo(
-    () => mergeCategoryLists(extractOpportunityCategories(data)),
-    [data],
-  );
-  const [customCategories, setCustomCategories] = useState<string[]>([]);
+  const [customProducts, setCustomProducts] = useState<string[]>([]);
   const categoryList = useMemo(
     () =>
-      mergeCategoryLists(
-        DEFAULT_OPPORTUNITY_CATEGORIES,
-        dynamicCategories,
-        customCategories,
+      Array.from(
+        new Set(
+          [
+            ...(((crmData?.products as Array<{ name: string; status: string }> | undefined) ?? [])
+              .filter((product) => product.status === "ACTIVE")
+              .map((product) => product.name.trim())),
+            ...customProducts,
+          ]
+            .filter(Boolean)
+        )
       ),
-    [customCategories, dynamicCategories],
+    [crmData, customProducts],
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -464,11 +464,55 @@ const CRMKanban = ({
     setIsEditOpen(true);
   };
 
-  const handleAddCategory = (category: string) => {
-    setCustomCategories((currentCategories) =>
-      mergeCategoryLists(currentCategories, [category]),
+  const handleAddProduct = async (product: string) => {
+    const normalizedProduct = product.trim();
+    if (!normalizedProduct) {
+      return false;
+    }
+
+    const existingProduct = categoryList.find(
+      (item) => item.toLowerCase() === normalizedProduct.toLowerCase(),
     );
-    setSelectedCategory(category);
+
+    if (existingProduct) {
+      setSelectedCategory(existingProduct);
+      return true;
+    }
+
+    const fallbackCurrency = currencies?.[0]?.code;
+    if (!fallbackCurrency) {
+      toast.error("No active currency found. Add a currency before creating products.");
+      return false;
+    }
+
+    const result = await createProduct({
+      name: normalizedProduct,
+      type: "PRODUCT",
+      status: "ACTIVE",
+      unit_price: "0",
+      currency: fallbackCurrency,
+      is_recurring: false,
+    });
+
+    if (result?.error) {
+      toast.error(result.error);
+      return false;
+    }
+
+    if (result?.fieldErrors) {
+      toast.error("Product could not be created");
+      return false;
+    }
+
+    setCustomProducts((currentProducts) =>
+      currentProducts.includes(normalizedProduct)
+        ? currentProducts
+        : [...currentProducts, normalizedProduct]
+    );
+    setSelectedCategory(normalizedProduct);
+    toast.success("Product created successfully");
+    router.refresh();
+    return true;
   };
 
   // Sync from server (e.g. after onThumbsDown router.refresh()) — only when not dragging
@@ -676,7 +720,8 @@ const CRMKanban = ({
           categories={categoryList}
           selectedCategory={selectedCategory}
           onCategoryChange={setSelectedCategory}
-          onAddCategory={handleAddCategory}
+          onAddCategory={handleAddProduct}
+          allowCreate
         />
       </div>
 

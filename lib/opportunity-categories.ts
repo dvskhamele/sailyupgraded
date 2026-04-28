@@ -1,9 +1,11 @@
 export const DEFAULT_OPPORTUNITY_CATEGORIES = [
+ "Group Life Insurance",
   "Term Life Insurance",
   "Whole Life Insurance",
-  "Universal Life Insurance",
-  "Variable Life Insurance",
-  "Variable Universal Life Insurance (VUL)",
+  "Index Universal Life",
+  "Annuities Insurance",
+  "Estate Planning Insurance",
+  "Debt Remediation Insurance",
 ] as const;
 
 export const ALL_CATEGORIES_VALUE = "__all_categories__";
