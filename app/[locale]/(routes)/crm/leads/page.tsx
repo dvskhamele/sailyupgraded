@@ -8,14 +8,15 @@ import LeadsView from "../components/LeadsView";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { getLeads } from "@/actions/crm/get-leads";
 import { getProductsFull } from "@/actions/crm/products/get-products";
+import { serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getTranslations } from "next-intl/server";
 
 const LeadsPage = async () => {
   const t = await getTranslations("CrmPage");
   const crmData = await getAllCrmData();
-  const [leads, products] = await Promise.all([getLeads(), getProductsFull()]);
+  const [leads, rawProducts] = await Promise.all([getLeads(), getProductsFull()]);
+  const products = serializeDecimalsList(rawProducts);
 
-  console.log(leads[0], "leads");
   return (
     <Container
       title={t("leads.pageTitle")}

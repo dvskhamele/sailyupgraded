@@ -1408,3 +1408,27 @@ Argument `created_by_user` is missing.
 ○ Compiling /[locale] ...
  GET /en 200 in 46s (next.js: 37.4s, proxy.ts: 63ms, application-code: 8.5s)
  GET /en/crm/dashboard 200 in 17.1s (next.js: 448ms, proxy.ts: 23ms, application-code: 16.6s)
+ GET /en/crm/dashboard 200 in 20.3s (next.js: 1079ms, proxy.ts: 33ms, application-code: 19.2s)
+ GET /en/crm/dashboard 200 in 23.8s (next.js: 1493ms, proxy.ts: 35ms, application-code: 22.2s)
+ GET /en/crm/dashboard 200 in 20.9s (next.js: 357ms, proxy.ts: 27ms, application-code: 20.5s)
+ GET /en/crm/dashboard 200 in 2.6s (next.js: 40ms, proxy.ts: 18ms, application-code: 2.6s)
+ GET /en/crm/dashboard 200 in 17.2s (next.js: 10ms, proxy.ts: 8ms, application-code: 17.1s)
+ GET /en/crm/dashboard 200 in 18.1s (next.js: 256ms, proxy.ts: 75ms, application-code: 17.8s)
+ GET /en/crm/dashboard 200 in 21.2s (next.js: 924ms, proxy.ts: 320ms, application-code: 19.9s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 14458ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/dashboard 200 in 68s (next.js: 448ms, proxy.ts: 131ms, application-code: 68s)
+ GET /en/crm/dashboard 200 in 41s (next.js: 4.4s, proxy.ts: 410ms, application-code: 35.9s)
+ GET /en/crm/dashboard 200 in 16.8s (next.js: 70ms, proxy.ts: 39ms, application-code: 16.7s)
+ GET /en/crm/dashboard 200 in 14.7s (next.js: 108ms, proxy.ts: 51ms, application-code: 14.5s)
+ GET /en/crm/dashboard 200 in 19.3s (next.js: 61ms, proxy.ts: 26ms, application-code: 19.2s)
+ POST /en/crm/dashboard 200 in 2.8s (next.js: 89ms, proxy.ts: 77ms, application-code: 2.6s)
+  └─ ƒ getUserById("902c6fd6-baed-4067-b18c-edf5b0a0b8ee") in 2554ms ..//actions/user/get-user-by-id.ts
+ POST /en/crm/dashboard 200 in 3.0s (next.js: 16ms, proxy.ts: 50ms, application-code: 3.0s)
+  └─ ƒ getUserById("902c6fd6-baed-4067-b18c-edf5b0a0b8ee") in 2930ms ..//actions/user/get-user-by-id.ts
+ POST /en/crm/dashboard 200 in 50s (next.js: 767ms, proxy.ts: 2.3s, application-code: 47s)
+  └─ ƒ updateOpportunity({"id":"12c72c09-4321-4de7-857e-ecfef2500534","sales_stage":"a2a7570b-44d9-4a51-9073-2d153461c062"}) in 22170ms ..//actions/crm/opportunities/update-opportunity.ts
+ GET /en/crm/dashboard 200 in 16.8s (next.js: 110ms, proxy.ts: 48ms, application-code: 16.6s)
+ GET /en/crm/dashboard 200 in 15.7s (next.js: 47ms, proxy.ts: 13ms, application-code: 15.6s)
+ GET /en/crm/dashboard 200 in 18.4s (next.js: 83ms, proxy.ts: 21ms, application-code: 18.3s)
+ GET /en/crm/dashboard 200 in 12.8s (next.js: 65ms, proxy.ts: 23ms, application-code: 12.7s)

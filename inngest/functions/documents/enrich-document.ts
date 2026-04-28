@@ -6,18 +6,32 @@ import {
   computeContentHash,
 } from "@/inngest/lib/embedding-utils";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
-import { minioClient, MINIO_BUCKET } from "@/lib/minio";
+import { getMinioBucket, getMinioClient } from "@/lib/minio";
 import OpenAI from "openai";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+let cachedOpenAI: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (cachedOpenAI) {
+    return cachedOpenAI;
+  }
+
+  const apiKey = process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    throw new Error("OPENAI_API_KEY is not defined");
+  }
+
+  cachedOpenAI = new OpenAI({ apiKey });
+  return cachedOpenAI;
+}
 
 const CHUNK_SIZE = 512; // tokens (approx 4 chars per token)
 const CHUNK_OVERLAP = 50;
 const MAX_SINGLE_EMBED_CHARS = 8000 * 4; // ~8000 tokens
 
 async function fetchFileBuffer(key: string): Promise<Buffer> {
-  const response = await minioClient.send(
-    new GetObjectCommand({ Bucket: MINIO_BUCKET, Key: key })
+  const response = await getMinioClient().send(
+    new GetObjectCommand({ Bucket: getMinioBucket(), Key: key })
   );
   const chunks: Uint8Array[] = [];
   for await (const chunk of response.Body as AsyncIterable<Uint8Array>) {
@@ -138,7 +152,7 @@ export const enrichDocument = inngest.createFunction(
     // Step 3: Generate summary
     const summary = await step.run("generate-summary", async () => {
       const truncated = contentText.slice(0, 12000); // ~3000 tokens for summary input
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAIClient().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {
@@ -161,7 +175,7 @@ export const enrichDocument = inngest.createFunction(
     // Step 4: AI classification
     await step.run("ai-classify", async () => {
       const truncated = contentText.slice(0, 4000);
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAIClient().chat.completions.create({
         model: "gpt-4o-mini",
         messages: [
           {

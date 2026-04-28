@@ -2,7 +2,7 @@ import { z } from "zod";
 import { prismadb } from "@/lib/prisma";
 import { PutObjectCommand, GetObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
-import { minioClient, MINIO_BUCKET, MINIO_PUBLIC_URL } from "@/lib/minio";
+import { getMinioBucket, getMinioClient, getMinioPublicUrl } from "@/lib/minio";
 import { randomUUID } from "crypto";
 import {
   paginationSchema,
@@ -122,7 +122,7 @@ export const crmDocumentTools = [
         ? args.document_name.split(".").pop()?.trim() || "bin"
         : "bin";
       const key = `documents/${randomUUID()}.${ext}`;
-      const fileUrl = `${MINIO_PUBLIC_URL}/${MINIO_BUCKET}/${key}`;
+      const fileUrl = `${getMinioPublicUrl()}/${getMinioBucket()}/${key}`;
 
       const doc = await prismadb.documents.create({
         data: {
@@ -140,11 +140,11 @@ export const crmDocumentTools = [
       });
 
       const command = new PutObjectCommand({
-        Bucket: MINIO_BUCKET,
+        Bucket: getMinioBucket(),
         Key: key,
         ContentType: args.contentType,
       });
-      const presignedUrl = await getSignedUrl(minioClient, command, { expiresIn: 600 });
+      const presignedUrl = await getSignedUrl(getMinioClient(), command, { expiresIn: 600 });
 
       return itemResponse({ ...doc, presignedUrl, expiresIn: 600 });
     },
@@ -160,11 +160,11 @@ export const crmDocumentTools = [
       if (!doc) notFound("Document");
       if (!doc.key) validationError("Document has no storage key");
       const command = new PutObjectCommand({
-        Bucket: MINIO_BUCKET,
+        Bucket: getMinioBucket(),
         Key: doc.key!,
         ContentType: doc.document_file_mimeType,
       });
-      const presignedUrl = await getSignedUrl(minioClient, command, { expiresIn: 600 });
+      const presignedUrl = await getSignedUrl(getMinioClient(), command, { expiresIn: 600 });
       return itemResponse({ id: doc.id, url: presignedUrl, expiresIn: 600 });
     },
   },
@@ -179,10 +179,10 @@ export const crmDocumentTools = [
       if (!doc) notFound("Document");
       if (!doc.key) validationError("Document has no storage key");
       const command = new GetObjectCommand({
-        Bucket: MINIO_BUCKET,
+        Bucket: getMinioBucket(),
         Key: doc.key!,
       });
-      const presignedUrl = await getSignedUrl(minioClient, command, { expiresIn: 3600 });
+      const presignedUrl = await getSignedUrl(getMinioClient(), command, { expiresIn: 3600 });
       return itemResponse({ id: doc.id, url: presignedUrl, expiresIn: 3600 });
     },
   },

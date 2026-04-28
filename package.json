@@ -9,7 +9,10 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "prisma generate && next build",
+    "build:vercel": "vercel build",
     "db:push": "prisma db push",
+    "deploy:preview": "vercel deploy --yes --archive=tgz --no-wait",
+    "deploy:prod": "vercel deploy --prod --yes --archive=tgz --no-wait",
     "start": "next start",
     "lint": "eslint . --max-warnings=0",
     "migrate:mongo-to-postgres": "pnpm exec tsx scripts/migrate-mongo-to-postgres.ts",

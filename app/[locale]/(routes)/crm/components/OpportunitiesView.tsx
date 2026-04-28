@@ -26,6 +26,7 @@ import { NewOpportunityForm } from "../opportunities/components/NewOpportunityFo
 import { OpportunitiesDataTable } from "../opportunities/table-components/data-table";
 
 import { useCurrency } from "@/context/currency-context";
+import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 import Decimal from "decimal.js";
 import {
   DEFAULT_OPPORTUNITY_CATEGORIES,
@@ -33,15 +34,7 @@ import {
   mergeCategoryLists,
 } from "@/lib/opportunity-categories";
 
-type CrmData = {
-  accounts: unknown[];
-  contacts: unknown[];
-  saleTypes: unknown[];
-  saleStages: unknown[];
-  campaigns: unknown[];
-  currencies: { code: string; name: string; symbol: string }[];
-  exchangeRates?: { fromCurrency: string; toCurrency: string; rate: unknown }[];
-};
+type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 
 interface OpportunitiesViewProps {
   data: any[];

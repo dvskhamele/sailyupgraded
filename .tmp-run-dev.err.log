@@ -2935,3 +2935,35 @@ Import trace for requested module:
 [browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
 [browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
 [browser] Warning: Missing `Description` or `aria-describedby={undefined}` for {DialogContent}.
+[2m2026-04-27T18:22:25.722Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 14458ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async eval (lib\auth-server.ts:10:12)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+   8 | export const getSession = cache(async () => {
+   9 |   try {
+> 10 |     return await auth.api.getSession({
+     |            ^
+  11 |       headers: await headers(),
+  12 |     });
+  13 |   } catch (error) { {
+  clientVersion: '7.7.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 14458ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 14458ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:-1, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 14436ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.

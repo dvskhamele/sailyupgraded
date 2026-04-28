@@ -392,7 +392,7 @@ export function UpdateOpportunityForm({
       <Dialog open={isCategoryDialogOpen} onOpenChange={setIsCategoryDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Add Category</DialogTitle>
+            <DialogTitle>Add Product</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleCreateCategory} className="space-y-4 pt-2">
             <div className="space-y-1">
@@ -406,7 +406,7 @@ export function UpdateOpportunityForm({
               />
             </div>
             <Button type="submit" className="w-full">
-              Add category
+              Add Product
             </Button>
           </form>
         </DialogContent>
@@ -539,7 +539,8 @@ export function UpdateOpportunityForm({
                         <SelectContent className="flex overflow-y-auto h-56">
                           {mergedCategoryOptions.map((category) => (
                             <SelectItem key={category} value={category}>
-                              {category}
+                              {
+                            }
                             </SelectItem>
                           ))}
                         </SelectContent>
