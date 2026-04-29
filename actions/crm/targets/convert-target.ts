@@ -1,5 +1,7 @@
 "use server";
 import { getSession } from "@/lib/auth-server";
+import { normalizeContactRole } from "@/lib/contact-options";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
@@ -57,6 +59,10 @@ export async function convertTarget(
           social_twitter: target.social_x ?? undefined,
           social_instagram: target.social_instagram ?? undefined,
           social_facebook: target.social_facebook ?? undefined,
+          status: true,
+          ...pickSupportedModelFields("crm_Contacts", {
+            role: normalizeContactRole("Customer"),
+          }),
           accountsIDs: acct.id,
           created_by: (session.user as any).id,
         },

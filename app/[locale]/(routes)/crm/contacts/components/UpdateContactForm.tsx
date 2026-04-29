@@ -25,11 +25,11 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 
-import { Switch } from "@/components/ui/switch";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { AccountSearchCombobox } from "@/components/ui/account-search-combobox";
 import { updateContact } from "@/actions/crm/contacts/update-contact";
 import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
+import { CONTACT_ROLE_OPTIONS, CONTACT_STATUS_OPTIONS, normalizeContactRole } from "@/lib/contact-options";
 import { getAddressLine1 } from "@/lib/crm-address";
 
 //TODO: fix all the types
@@ -71,6 +71,7 @@ export function UpdateContactForm({
     postal_code: z.string().nullable().optional(),
     position: z.string().nullable().optional(),
     status: z.boolean(),
+    role: z.enum(CONTACT_ROLE_OPTIONS),
     contact_type_id: z.string().optional(),
     assigned_to: z.string(),
     assigned_account: z.string().nullable().optional(),
@@ -92,7 +93,8 @@ export function UpdateContactForm({
     email: initialData.email ?? "",
     contact_type_id: initialData.contact_type_id ?? "",
     assigned_to: initialData.assigned_to ?? "",
-    status: initialData.status ?? false,
+    status: initialData.status ?? true,
+    role: normalizeContactRole(initialData.role),
     first_name: initialData.first_name ?? "",
     description: initialData.description ?? "",
     personal_email: initialData.personal_email ?? "",
@@ -566,18 +568,56 @@ export function UpdateContactForm({
                   control={form.control}
                   name="status"
                   render={({ field }) => (
-                    <FormItem className="flex flex-row items-center justify-between rounded-lg border p-4">
-                      <div className="space-y-0.5">
-                        <FormLabel className="text-sm">
-                          {t("isActive")}
-                        </FormLabel>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
+                    <FormItem>
+                      <FormLabel>Status</FormLabel>
+                      <Select
+                        onValueChange={(value) => field.onChange(value === "active")}
+                        value={field.value ? "active" : "inactive"}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select status" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CONTACT_STATUS_OPTIONS.map((option) => (
+                            <SelectItem
+                              key={option.label}
+                              value={option.value ? "active" : "inactive"}
+                            >
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="role"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Role</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select role" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CONTACT_ROLE_OPTIONS.map((role) => (
+                            <SelectItem key={role} value={role}>
+                              {role}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
                     </FormItem>
                   )}
                 />

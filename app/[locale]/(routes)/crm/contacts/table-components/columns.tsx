@@ -115,40 +115,6 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
     enableHiding: true,
   },
   {
-    id: "status",
-    accessorFn: (row) => (row.status ? "Active" : "Inactive"),
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Status" />
-    ),
-    cell: ({ row }) => (
-      <div className="">{row.getValue("status") as string}</div>
-    ),
-    filterFn: (row, columnId, filterValue) => {
-      if (!Array.isArray(filterValue) || filterValue.length === 0) {
-        return true;
-      }
-      return filterValue.includes(row.getValue(columnId));
-    },
-    enableSorting: true,
-    enableHiding: true,
-  },
-  {
-    id: "role",
-    accessorFn: (row) => (row as any).contact_type?.name ?? "",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Role" />
-    ),
-    cell: ({ row }) => <div className="">{(row.getValue("role") as string) || "N/A"}</div>,
-    filterFn: (row, columnId, filterValue) => {
-      if (!Array.isArray(filterValue) || filterValue.length === 0) {
-        return true;
-      }
-      return filterValue.includes(row.getValue(columnId));
-    },
-    enableSorting: true,
-    enableHiding: true,
-  },
-  {
     id: "address",
     accessorFn: (row) => formatAddress(row as any),
     header: ({ column }) => (

@@ -1,6 +1,6 @@
-import { Prisma } from "@prisma/client";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
-export const crmContactListSelect = Prisma.validator<Prisma.crm_ContactsSelect>()({
+const contactScalarListFields = pickSupportedModelFields("crm_Contacts", {
   id: true,
   account: true,
   assigned_to: true,
@@ -22,8 +22,15 @@ export const crmContactListSelect = Prisma.validator<Prisma.crm_ContactsSelect>(
   mobile_phone: true,
   website: true,
   address: true,
+  address_line1: true,
+  address_line2: true,
+  city: true,
+  state: true,
+  country: true,
+  postal_code: true,
   position: true,
   status: true,
+  role: true,
   social_twitter: true,
   social_facebook: true,
   social_linkedin: true,
@@ -32,15 +39,19 @@ export const crmContactListSelect = Prisma.validator<Prisma.crm_ContactsSelect>(
   social_youtube: true,
   social_tiktok: true,
   contact_type_id: true,
+  tags: true,
+  notes: true,
+  accountsIDs: true,
+} as const);
+
+export const crmContactListSelect = {
+  ...contactScalarListFields,
   contact_type: {
     select: {
       id: true,
       name: true,
     },
   },
-  tags: true,
-  notes: true,
-  accountsIDs: true,
   assigned_to_user: {
     select: {
       name: true,
@@ -77,43 +88,36 @@ export const crmContactListSelect = Prisma.validator<Prisma.crm_ContactsSelect>(
       },
     },
   },
-});
+} as const;
 
-export const crmContactDetailSelect = Prisma.validator<Prisma.crm_ContactsSelect>()({
-  id: true,
-  account: true,
-  assigned_to: true,
-  birthday: true,
-  created_by: true,
-  createdBy: true,
-  created_on: true,
-  cratedAt: true,
-  last_activity: true,
-  updatedAt: true,
-  updatedBy: true,
-  last_activity_by: true,
-  description: true,
-  email: true,
-  personal_email: true,
-  first_name: true,
-  last_name: true,
-  office_phone: true,
-  mobile_phone: true,
-  website: true,
-  address: true,
-  position: true,
-  status: true,
-  social_twitter: true,
-  social_facebook: true,
-  social_linkedin: true,
-  social_skype: true,
-  social_instagram: true,
-  social_youtube: true,
-  social_tiktok: true,
-  contact_type_id: true,
-  tags: true,
-  notes: true,
-  accountsIDs: true,
+export const crmContactDetailSelect = {
+  ...contactScalarListFields,
+  contact_type: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  assigned_accounts: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  assigned_to_user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
+  crate_by_user: {
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+  },
   opportunities: {
     select: {
       opportunity: {
@@ -148,30 +152,4 @@ export const crmContactDetailSelect = Prisma.validator<Prisma.crm_ContactsSelect
       },
     },
   },
-  contact_type: {
-    select: {
-      id: true,
-      name: true,
-    },
-  },
-  assigned_accounts: {
-    select: {
-      id: true,
-      name: true,
-    },
-  },
-  assigned_to_user: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  },
-  crate_by_user: {
-    select: {
-      id: true,
-      name: true,
-      email: true,
-    },
-  },
-});
+} as const;

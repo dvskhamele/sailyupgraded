@@ -1,10 +1,10 @@
 import { cache } from "react";
-import { Prisma } from "@prisma/client";
 import { prismadb } from "@/lib/prisma";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 
-const crmDashboardLeadSelect = Prisma.validator<Prisma.crm_LeadsSelect>()({
+const crmDashboardLeadSelect = {
   id: true,
   createdAt: true,
   firstName: true,
@@ -20,9 +20,9 @@ const crmDashboardLeadSelect = Prisma.validator<Prisma.crm_LeadsSelect>()({
   campaign: true,
   assigned_to: true,
   accountsIDs: true,
-});
+} as const;
 
-const crmDashboardContactSelect = Prisma.validator<Prisma.crm_ContactsSelect>()({
+const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
   id: true,
   account: true,
   assigned_to: true,
@@ -44,9 +44,10 @@ const crmDashboardContactSelect = Prisma.validator<Prisma.crm_ContactsSelect>()(
   website: true,
   position: true,
   status: true,
+  role: true,
   contact_type_id: true,
   accountsIDs: true,
-});
+} as const);
 
 /**
  * Shared CRM metadata fetcher.

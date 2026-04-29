@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
+import { normalizeContactRole } from "@/lib/contact-options";
 import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export const updateContact = async (data: {
@@ -31,6 +32,7 @@ export const updateContact = async (data: {
   postal_code?: string | null;
   position?: string | null;
   status?: boolean;
+  role?: string | null;
   social_twitter?: string | null;
   social_facebook?: string | null;
   social_linkedin?: string | null;
@@ -74,6 +76,9 @@ export const updateContact = async (data: {
     country: country || null,
     postal_code: postal_code || null,
   });
+  const supportedRoleFields = pickSupportedModelFields("crm_Contacts", {
+    role: normalizeContactRole(data.role),
+  });
 
   try {
     const before = await prismadb.crm_Contacts.findUnique({ where: { id, deletedAt: null } });
@@ -89,6 +94,7 @@ export const updateContact = async (data: {
           birthday_day && birthday_month && birthday_year
             ? birthday_day + "/" + birthday_month + "/" + birthday_year
             : null,
+        ...supportedRoleFields,
         ...supportedAddressFields,
         ...rest,
       } as any,

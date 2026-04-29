@@ -6,6 +6,7 @@ import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
+import { normalizeContactRole } from "@/lib/contact-options";
 import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export const createContact = async (data: {
@@ -31,6 +32,7 @@ export const createContact = async (data: {
   postal_code?: string;
   position?: string;
   status?: boolean;
+  role?: string;
   social_twitter?: string;
   social_facebook?: string;
   social_linkedin?: string;
@@ -71,6 +73,9 @@ export const createContact = async (data: {
     country: country || undefined,
     postal_code: postal_code || undefined,
   });
+  const supportedRoleFields = pickSupportedModelFields("crm_Contacts", {
+    role: normalizeContactRole(data.role),
+  });
 
   try {
     const contact = await prismadb.crm_Contacts.create({
@@ -87,6 +92,7 @@ export const createContact = async (data: {
           birthday_day && birthday_month && birthday_year
             ? birthday_day + "/" + birthday_month + "/" + birthday_year
             : null,
+        ...supportedRoleFields,
         ...supportedAddressFields,
         ...rest,
       } as any,

@@ -414,6 +414,7 @@ model crm_Contacts {
   website              String?
   position             String?
   status               Boolean                   @default(true)
+  role                 String                    @default("Customer")
   social_twitter       String?
   social_facebook      String?
   social_linkedin      String?

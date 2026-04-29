@@ -3,8 +3,6 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import Papa from "papaparse";
-import { Download } from "lucide-react";
 
 import {
   Card,
@@ -15,6 +13,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { createColumns } from "../contacts/table-components/columns";
+import { ImportContactsDialog } from "../contacts/components/ImportContactsDialog";
 import { NewContactForm } from "../contacts/components/NewContactForm";
 import { ContactsDataTable } from "../contacts/table-components/data-table";
 import {
@@ -43,37 +42,6 @@ const ContactsView = ({ data, crmData }: ContactsViewProps) => {
 
   const { accounts, contactTypes } = crmData;
 
-  const handleExportContacts = () => {
-    if (!data?.length) {
-      return;
-    }
-
-    const rows = data.map((contact: any) => ({
-      "First Name": contact.first_name ?? "",
-      "Last Name": contact.last_name ?? "",
-      Email: contact.email ?? "",
-      "Personal Email": contact.personal_email ?? "",
-      "Office Phone": contact.office_phone ?? "",
-      "Mobile Phone": contact.mobile_phone ?? "",
-      Website: contact.website ?? "",
-      Position: contact.position ?? "",
-      Status: contact.status ? "Active" : "Inactive",
-      Role: contact.contact_type?.name ?? "",
-      Account: contact.assigned_accounts?.name ?? "",
-      "Assigned To": contact.assigned_to_user?.name ?? "",
-      Address: contact.address ?? "",
-    }));
-
-    const csv = Papa.unparse(rows);
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "contacts-export.csv";
-    a.click();
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -86,16 +54,7 @@ const ContactsView = ({ data, crmData }: ContactsViewProps) => {
             </CardTitle>
           </div>
           <div className="flex space-x-2">
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleExportContacts}
-              disabled={!data?.length}
-              data-testid="export-contacts-btn"
-            >
-              <Download className="mr-2 h-4 w-4" />
-              Export Excel
-            </Button>
+            <ImportContactsDialog />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button size="sm" aria-label={t("contacts.addNew")} data-testid="add-contact-btn">+</Button>

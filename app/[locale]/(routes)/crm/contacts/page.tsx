@@ -23,7 +23,10 @@ const AccountsPage = async ({ searchParams }: Props) => {
 
   const filteredContacts = normalizedRole
     ? contacts.filter((contact: any) => {
-        const role = contact.contact_type?.name?.toLowerCase() ?? "";
+        const role =
+          contact.role?.toLowerCase() ??
+          contact.contact_type?.name?.toLowerCase() ??
+          "customer";
 
         if (normalizedRole === "customer") {
           return role === "customer" || role === "client";
@@ -33,12 +36,16 @@ const AccountsPage = async ({ searchParams }: Props) => {
           return role === "agent";
         }
 
+        if (normalizedRole === "partner") {
+          return role === "partner";
+        }
+
         if (normalizedRole === "vendor") {
           return role === "vendor";
         }
 
         if (normalizedRole === "others") {
-          return !["customer", "client", "agent", "vendor"].includes(role);
+          return !["customer", "client", "agent", "partner", "vendor"].includes(role);
         }
 
         return true;

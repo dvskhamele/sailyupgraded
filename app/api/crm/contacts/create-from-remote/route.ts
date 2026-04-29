@@ -1,5 +1,7 @@
 import { prismadb } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { normalizeContactRole } from "@/lib/contact-options";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export async function POST(req: Request) {
   const apiKey = req.headers.get("NEXTCRM_TOKEN");
@@ -35,6 +37,10 @@ export async function POST(req: Request) {
         last_name: surname,
         email,
         mobile_phone: phone,
+        status: true,
+        ...pickSupportedModelFields("crm_Contacts", {
+          role: normalizeContactRole("Customer"),
+        }),
         tags: [tag],
         notes: ["Account: " + company, "Message: " + message],
       },
