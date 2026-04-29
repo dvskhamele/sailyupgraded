@@ -29,6 +29,7 @@ export const createLead = async (data: {
   campaign?: string;
   assigned_to?: string;
   accountIDs?: string;
+  productId?: string;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -55,6 +56,7 @@ export const createLead = async (data: {
     campaign,
     assigned_to,
     accountIDs,
+    productId,
   } = data;
 
   const resolvedAddressLine1 = getAddressLine1(undefined, address_line1);
@@ -67,7 +69,6 @@ export const createLead = async (data: {
     country: country || undefined,
     postal_code: postal_code || undefined,
   });
-
   try {
     const lead = await prismadb.crm_Leads.create({
       data: {
@@ -149,6 +150,7 @@ export const createLead = async (data: {
         campaign,
         assigned_to,
         accountIDs,
+        productId,
       }
     });
     return { error: "Failed to create lead: " + (error.message || "Unknown error") };

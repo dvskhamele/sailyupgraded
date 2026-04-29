@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/utils";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
+import getContactsMenuItem from "./menu-items/Contacts";
 import getCrmMenuItem from "./menu-items/Crm";
 // import getProjectsMenuItem from "./menu-items/Projects";
 // import getEmailsMenuItem from "./menu-items/Emails";
@@ -91,6 +92,7 @@ export function AppSidebar({
 
   const navItems = [
     getCrmMenuItem({ localizations: dict.crm }),
+    getContactsMenuItem(),
     getTemplatesMenuItem({
       localizations: dict.campaigns,
     }),

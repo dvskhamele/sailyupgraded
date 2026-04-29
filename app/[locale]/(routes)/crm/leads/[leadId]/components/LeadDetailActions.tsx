@@ -19,9 +19,15 @@ import {
 import { UpdateLeadForm } from "../../components/UpdateLeadForm";
 
 type ConfigItem = { id: string; name: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
 interface LeadDetailActionsProps {
   lead: any;
+  accounts: AccountItem[];
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
@@ -29,6 +35,7 @@ interface LeadDetailActionsProps {
 
 export function LeadDetailActions({
   lead,
+  accounts,
   leadSources,
   leadStatuses,
   leadTypes,
@@ -49,6 +56,7 @@ export function LeadDetailActions({
             <UpdateLeadForm
               initialData={lead}
               setOpen={setUpdateOpen}
+              accounts={accounts}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}

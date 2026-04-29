@@ -23,7 +23,6 @@ import { EnvelopeClosedIcon, LightningBoltIcon } from "@radix-ui/react-icons";
 import { LeadDetailActions } from "./LeadDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
-import { ProductDropdown } from "./ProductDropdown";
 
 interface OppsViewProps {
   data: any;
@@ -32,12 +31,12 @@ interface OppsViewProps {
 export async function BasicView({ data }: OppsViewProps) {
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const { leadSources, leadStatuses, leadTypes } = crmData;
-  const accountProductOptions =
-    data?.assigned_accounts?.accountProducts?.map((item: any) => ({
-      id: item.product?.id,
-      name: item.product?.name,
-    })).filter((product: { id?: string; name?: string }) => product.id && product.name) ?? [];
+  const { accounts, leadSources, leadStatuses, leadTypes } = crmData;
+  const fallbackProductNames =
+    data?.assigned_accounts?.accountProducts
+      ?.map((item: any) => item.product?.name)
+      .filter(Boolean)
+      .join(", ") ?? "";
 
   if (!data) return <div>Opportunity not found</div>;
 
@@ -54,6 +53,7 @@ export async function BasicView({ data }: OppsViewProps) {
             </div>
             <LeadDetailActions
               lead={data}
+              accounts={accounts}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
@@ -208,10 +208,9 @@ export async function BasicView({ data }: OppsViewProps) {
                 </div>
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Product</p>
-                  <ProductDropdown
-                    products={accountProductOptions}
-                    placeholder="Select account product"
-                  />
+                  <p className="text-sm text-muted-foreground">
+                    {fallbackProductNames || "—"}
+                  </p>
                 </div>
               </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">

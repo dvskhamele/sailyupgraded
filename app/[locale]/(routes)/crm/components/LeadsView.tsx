@@ -28,11 +28,10 @@ import { createColumns } from "../leads/table-components/columns";
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
-
 interface LeadsViewProps {
   data: any[];
   crmData: CrmData;
-  products?: { id: string; name: string }[];
+  products?: { id: string; name: string; status?: string | null }[];
 }
 
 const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
@@ -40,7 +39,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
 
-  const columns = createColumns(leadSources, leadStatuses, leadTypes);
+  const columns = createColumns(leadSources, leadStatuses, leadTypes, accounts);
 
   return (
     <Card>
@@ -86,6 +85,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
             <LeadDataTable
               data={data}
               columns={columns}
+              accounts={accounts}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}

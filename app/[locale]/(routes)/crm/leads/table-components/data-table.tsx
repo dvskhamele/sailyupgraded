@@ -32,10 +32,16 @@ import { createColumns } from "./columns";
 
 type ConfigItem = { id: string; name: string };
 type FilterOption = { label: string; value: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  accounts?: AccountItem[];
   leadSources?: ConfigItem[];
   leadStatuses?: ConfigItem[];
   leadTypes?: ConfigItem[];
@@ -44,12 +50,13 @@ interface DataTableProps<TData, TValue> {
 
 export function LeadDataTable<TData, TValue>({
   data,
+  accounts = [],
   leadSources = [],
   leadStatuses = [],
   leadTypes = [],
   productOptions = [],
 }: DataTableProps<TData, TValue>) {
-  const columns = createColumns(leadSources, leadStatuses, leadTypes) as ColumnDef<TData, TValue>[];
+  const columns = createColumns(leadSources, leadStatuses, leadTypes, accounts) as ColumnDef<TData, TValue>[];
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({ products: false });

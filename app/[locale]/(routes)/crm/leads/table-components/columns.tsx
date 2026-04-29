@@ -14,11 +14,17 @@ import moment from "moment";
 import { formatAddress } from "@/lib/crm-address";
 
 type ConfigItem = { id: string; name: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
 export const createColumns = (
   leadSources: ConfigItem[],
   leadStatuses: ConfigItem[],
   leadTypes: ConfigItem[],
+  accounts: AccountItem[] = [],
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "createdAt",
@@ -134,7 +140,7 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Status" />
     ),
     cell: ({ row }) => {
-      const status = row.original.lead_status?.name || row.getValue("status");
+      const status = row.original.lead_status?.name || row.original.status || row.getValue("status");
       if (!status) return null;
       return (
         <div className="flex w-[100px] items-center">
@@ -143,15 +149,17 @@ export const createColumns = (
       );
     },
     filterFn: (row, id, value) => {
-      return value.includes(row.getValue(id));
+      const status = row.original.lead_status?.name || row.original.status || row.getValue(id);
+      return value.includes(status);
     },
   },
   {
     id: "products",
-    accessorFn: (row) =>
-      ((row as any).assigned_accounts?.accountProducts ?? [])
+    accessorFn: (row) => {
+      return ((row as any).assigned_accounts?.accountProducts ?? [])
         .map((item: any) => item.product?.id)
-        .filter(Boolean),
+        .filter(Boolean);
+    },
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Products" />
     ),
@@ -186,6 +194,7 @@ export const createColumns = (
     cell: ({ row }) => (
       <DataTableRowActions
         row={row}
+        accounts={accounts}
         leadSources={leadSources}
         leadStatuses={leadStatuses}
         leadTypes={leadTypes}

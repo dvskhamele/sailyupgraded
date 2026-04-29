@@ -69,7 +69,6 @@ export const updateLead = async (data: {
     country: country || null,
     postal_code: postal_code || null,
   });
-
   if (!id) return { error: "id is required" };
 
   try {

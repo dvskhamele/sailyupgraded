@@ -30,9 +30,14 @@ import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
 
 //TODO: fix all the types
 type ConfigItem = { id: string; name: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
 type NewTaskFormProps = {
-  accounts: any[];
+  accounts: AccountItem[];
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
@@ -64,6 +69,7 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
     campaign: z.string().optional(),
     assigned_to: z.string().optional(),
     accountIDs: z.string().optional(),
+    productId: z.string().optional(),
   });
 
   type NewLeadFormValues = z.infer<typeof formSchema>;
@@ -92,18 +98,28 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
       campaign: "",
       assigned_to: "",
       accountIDs: "",
+      productId: "",
     },
   });
 
   const selectedCountry = form.watch("country");
   const selectedState = form.watch("state");
+  const selectedAccountId = form.watch("accountIDs");
   const stateOptions = getStateOptions(selectedCountry, selectedState);
   const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
     ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
     : COUNTRY_OPTIONS;
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
+  const accountProducts =
+    selectedAccount?.accountProducts
+      ?.map((item) => item.product)
+      .filter((product): product is { id: string; name: string } => Boolean(product?.id && product?.name)) ?? [];
 
   const onSubmit = async (data: NewLeadFormValues) => {
-    const result = await createLead(data);
+    const result = await createLead({
+      ...data,
+      productId: data.productId ?? undefined,
+    });
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {
@@ -450,8 +466,6 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
                   </FormItem>
                 )}
               />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
                 name="campaign"
@@ -488,33 +502,74 @@ export function NewLeadForm({ accounts, leadSources, leadStatuses, leadTypes, on
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="accountIDs"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("assignAccount")}</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    defaultValue={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("assignAccountPlaceholder")} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {accounts.map((account) => (
-                        <SelectItem key={account.id} value={account.id}>
-                          {account.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="accountIDs"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("assignAccount")}</FormLabel>
+                    <Select
+                      onValueChange={(value) => {
+                        field.onChange(value);
+                        form.setValue("productId", "");
+                      }}
+                      value={field.value ?? ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={t("assignAccountPlaceholder")} />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {accounts.map((account) => (
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="productId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Product</FormLabel>
+                    <Select
+                      disabled={!selectedAccountId || accountProducts.length === 0}
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue
+                            placeholder={
+                              !selectedAccountId
+                                ? "Select account first"
+                                : accountProducts.length > 0
+                                  ? "Select product"
+                                  : "No active products for selected account"
+                            }
+                          />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {accountProducts.map((product) => (
+                          <SelectItem key={product.id} value={product.id}>
+                            {product.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
         </div>
         <div className="grid gap-2 py-5">

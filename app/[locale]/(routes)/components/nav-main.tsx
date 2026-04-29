@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useSearchParams } from "next/navigation"
 import { type LucideIcon, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -54,6 +54,7 @@ export interface NavSubItem {
   url: string
   isActive?: boolean
   exact?: boolean
+  items?: NavSubItem[]
 }
 
 interface NavMainProps {
@@ -63,22 +64,93 @@ interface NavMainProps {
 
 export function NavMain({ items, dict }: NavMainProps) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
 
   // Helper function to check if a route is active
-  const isRouteActive = (url: string, exact?: boolean): boolean => {
+  const isRouteActive = (url?: string, exact?: boolean): boolean => {
+    if (!url) {
+      return false
+    }
+
+    const [targetPath, targetQuery] = url.split("?")
+    const normalizedPathname = pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "")
+
+    if (targetQuery) {
+      const targetParams = new URLSearchParams(targetQuery)
+      const pathMatches = exact
+        ? pathname === targetPath || normalizedPathname === targetPath
+        : pathname.startsWith(targetPath) || normalizedPathname.startsWith(targetPath)
+
+      if (!pathMatches) {
+        return false
+      }
+
+      return Array.from(targetParams.entries()).every(([key, value]) => searchParams.get(key) === value)
+    }
+
     if (url === "/" || url === "") {
       return pathname === "/" || pathname === ""
     }
     if (exact) {
-      return pathname === url || pathname.replace(/^\/[a-z]{2}(?=\/|$)/, "") === url
+      return pathname === url || normalizedPathname === url
     }
-    return pathname.startsWith(url)
+    return pathname.startsWith(url) || normalizedPathname.startsWith(url)
   }
 
   // Helper to check if any sub-item is active
   const hasActiveChild = (subItems?: NavSubItem[]): boolean => {
     if (!subItems) return false
-    return subItems.some((item) => isRouteActive(item.url))
+    return subItems.some((item) => isRouteActive(item.url, item.exact) || hasActiveChild(item.items))
+  }
+
+  const renderSubItems = (subItems: NavSubItem[], depth = 0) => {
+    return subItems.map((subItem) => {
+      const isActive = isRouteActive(subItem.url, subItem.exact)
+      const hasNestedItems = !!subItem.items?.length
+      const hasActiveNestedChild = hasActiveChild(subItem.items)
+
+      if (hasNestedItems) {
+        return (
+          <Collapsible
+            key={`${subItem.title}-${subItem.url}`}
+            asChild
+            defaultOpen={hasActiveNestedChild || isActive}
+            className="group/collapsible"
+          >
+            <SidebarMenuSubItem>
+              <div className={cn("w-full", depth > 0 && "pl-2")}>
+                <CollapsibleTrigger asChild>
+                  <SidebarMenuSubButton isActive={isActive || hasActiveNestedChild}>
+                    <span>{subItem.title}</span>
+                    <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                  </SidebarMenuSubButton>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <SidebarMenuSub>
+                    {renderSubItems(subItem.items!, depth + 1)}
+                  </SidebarMenuSub>
+                </CollapsibleContent>
+              </div>
+            </SidebarMenuSubItem>
+          </Collapsible>
+        )
+      }
+
+      return (
+        <SidebarMenuSubItem key={`${subItem.title}-${subItem.url}`}>
+          <div className={cn(depth > 0 && "pl-2")}>
+            <SidebarMenuSubButton
+              asChild
+              isActive={isActive}
+            >
+              <Link href={subItem.url}>
+                <span>{subItem.title}</span>
+              </Link>
+            </SidebarMenuSubButton>
+          </div>
+        </SidebarMenuSubItem>
+      )
+    })
   }
 
   return (
@@ -111,21 +183,7 @@ export function NavMain({ items, dict }: NavMainProps) {
                     )}
                   </SidebarMenuButton>
                   <SidebarMenuSub>
-                    {item.items.map((subItem) => {
-                      const isActive = isRouteActive(subItem.url, subItem.exact)
-                      return (
-                        <SidebarMenuSubItem key={subItem.title}>
-                          <SidebarMenuSubButton
-                            asChild
-                            isActive={isActive}
-                          >
-                            <Link href={subItem.url}>
-                              <span>{subItem.title}</span>
-                            </Link>
-                          </SidebarMenuSubButton>
-                        </SidebarMenuSubItem>
-                      )
-                    })}
+                    {renderSubItems(item.items)}
                   </SidebarMenuSub>
                 </SidebarMenuItem>
               )
@@ -151,21 +209,7 @@ export function NavMain({ items, dict }: NavMainProps) {
                   </CollapsibleTrigger>
                   <CollapsibleContent>
                     <SidebarMenuSub>
-                      {item.items.map((subItem) => {
-                        const isActive = isRouteActive(subItem.url, subItem.exact)
-                        return (
-                          <SidebarMenuSubItem key={subItem.title}>
-                            <SidebarMenuSubButton
-                              asChild
-                              isActive={isActive}
-                            >
-                              <Link href={subItem.url}>
-                                <span>{subItem.title}</span>
-                              </Link>
-                            </SidebarMenuSubButton>
-                          </SidebarMenuSubItem>
-                        )
-                      })}
+                      {renderSubItems(item.items)}
                     </SidebarMenuSub>
                   </CollapsibleContent>
                 </SidebarMenuItem>

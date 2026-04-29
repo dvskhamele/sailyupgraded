@@ -9,6 +9,18 @@ import { DataTableViewOptions } from "./data-table-view-options";
 
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 
+const statusOptions = [
+  { label: "Active", value: "Active" },
+  { label: "Inactive", value: "Inactive" },
+];
+
+const roleOptions = [
+  { label: "Agent", value: "Agent" },
+  { label: "Customer", value: "Customer" },
+  { label: "Partner", value: "Partner" },
+  { label: "Vendor", value: "Vendor" },
+];
+
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
 }
@@ -20,7 +32,7 @@ export function DataTableToolbar<TData>({
 
   return (
     <div className="flex items-center justify-between">
-      <div className="flex flex-1 items-center space-x-2">
+      <div className="flex flex-1 flex-wrap items-center gap-2">
         <Input
           placeholder="Filter in last name ..."
           value={
@@ -31,6 +43,20 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
+        {table.getColumn("status") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("status")}
+            title="Status"
+            options={statusOptions}
+          />
+        )}
+        {table.getColumn("role") && (
+          <DataTableFacetedFilter
+            column={table.getColumn("role")}
+            title="Role"
+            options={roleOptions}
+          />
+        )}
         {isFiltered && (
           <Button
             variant="ghost"

@@ -33,10 +33,16 @@ import { getAddressLine1 } from "@/lib/crm-address";
 
 //TODO: fix all the types
 type ConfigItem = { id: string; name: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
 type NewTaskFormProps = {
   initialData: any;
   setOpen: (value: boolean) => void;
+  accounts: AccountItem[];
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
@@ -45,6 +51,7 @@ type NewTaskFormProps = {
 export function UpdateLeadForm({
   initialData,
   setOpen,
+  accounts,
   leadSources,
   leadStatuses,
   leadTypes,
@@ -116,10 +123,16 @@ export function UpdateLeadForm({
 
   const selectedCountry = form.watch("country");
   const selectedState = form.watch("state");
+  const selectedAccountId = form.watch("accountsIDs");
   const stateOptions = getStateOptions(selectedCountry, selectedState);
   const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
     ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
     : COUNTRY_OPTIONS;
+  const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
+  const accountProducts =
+    selectedAccount?.accountProducts
+      ?.map((item) => item.product)
+      .filter((product): product is { id: string; name: string } => Boolean(product?.id && product?.name)) ?? [];
 
   const onSubmit = async (data: NewLeadFormValues) => {
     const result = await updateLead({
@@ -543,24 +556,52 @@ export function UpdateLeadForm({
                 )}
               />
             </div>
-            <FormField
-              control={form.control}
-              name="accountsIDs"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("assignAccount")}</FormLabel>
-                  <FormControl>
-                    <AccountSearchCombobox
-                      value={field.value ?? ""}
-                      onChange={field.onChange}
-                      placeholder={t("assignAccountPlaceholder")}
-                      disabled={form.formState.isSubmitting}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="accountsIDs"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{t("assignAccount")}</FormLabel>
+                    <FormControl>
+                      <AccountSearchCombobox
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        placeholder={t("assignAccountPlaceholder")}
+                        disabled={form.formState.isSubmitting}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <div className="space-y-2">
+                <div className="text-sm font-medium leading-none">Product</div>
+                <Select disabled value="">
+                  <SelectTrigger>
+                    <SelectValue
+                      placeholder={
+                        !selectedAccountId
+                          ? "Select account first"
+                          : accountProducts.length > 0
+                            ? accountProducts.map((product) => product.name).join(", ")
+                            : "No active products for selected account"
+                      }
                     />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {accountProducts.map((product) => (
+                      <SelectItem key={product.id} value={product.id}>
+                        {product.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Product is derived from the assigned account&apos;s active products.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
         <div className="grid gap-2 py-5">

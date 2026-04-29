@@ -19,7 +19,10 @@ const databaseProvider = (databaseUrl.startsWith("postgres") || databaseUrl.star
 export const auth = betterAuth({
   database: prismaAdapter(prismadb, { provider: databaseProvider }),
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-must-change",
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
+  baseURL:
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"),
   advanced: {
     database: {
       generateId: "uuid",

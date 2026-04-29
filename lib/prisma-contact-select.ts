@@ -32,6 +32,12 @@ export const crmContactListSelect = Prisma.validator<Prisma.crm_ContactsSelect>(
   social_youtube: true,
   social_tiktok: true,
   contact_type_id: true,
+  contact_type: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
   tags: true,
   notes: true,
   accountsIDs: true,

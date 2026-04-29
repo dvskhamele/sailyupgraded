@@ -1,7 +1,7 @@
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prismadb } from "@/lib/prisma";
-import { serializeDecimalsList } from "@/lib/serialize-decimals";
+import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 
 const crmDashboardLeadSelect = Prisma.validator<Prisma.crm_LeadsSelect>()({
@@ -58,6 +58,19 @@ const crmDashboardContactSelect = Prisma.validator<Prisma.crm_ContactsSelect>()(
 export const getAllCrmData = cache(async () => {
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { deletedAt: null },
+    include: {
+      accountProducts: {
+        where: { status: "ACTIVE" },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   const opportunities = await prismadb.crm_Opportunities.findMany({
@@ -130,7 +143,7 @@ export const getAllCrmData = cache(async () => {
     orderBy: { name: "asc" },
   });
 
-  return {
+  return serializeDecimals({
     accounts,
     opportunities: serializeDecimalsList(opportunities),
     leads,
@@ -153,5 +166,5 @@ export const getAllCrmData = cache(async () => {
       toCurrency: rate.toCurrency,
       rate: Number(rate.rate),
     })),
-  };
+  });
 });

@@ -34,9 +34,15 @@ import {
 import { deleteLead } from "@/actions/crm/leads/delete-lead";
 
 type ConfigItem = { id: string; name: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
+  accounts: AccountItem[];
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
@@ -44,6 +50,7 @@ interface DataTableRowActionsProps<TData> {
 
 export function DataTableRowActions<TData>({
   row,
+  accounts,
   leadSources,
   leadStatuses,
   leadTypes,
@@ -92,6 +99,7 @@ export function DataTableRowActions<TData>({
             <UpdateLeadForm
               initialData={row.original}
               setOpen={setUpdateOpen}
+              accounts={accounts}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
