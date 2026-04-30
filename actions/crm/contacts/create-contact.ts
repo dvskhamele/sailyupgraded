@@ -7,9 +7,10 @@ import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
-import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
+import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 
 export const createContact = async (data: {
+  serial?: string;
   assigned_to?: string;
   assigned_account?: string;
   birthday_day?: string;
@@ -47,6 +48,7 @@ export const createContact = async (data: {
 
   const userId = session.user.id;
   const {
+    serial,
     assigned_to,
     assigned_account,
     birthday_day,
@@ -64,7 +66,7 @@ export const createContact = async (data: {
   } = data;
 
   const resolvedAddressLine1 = getAddressLine1(address, address_line1);
-  const supportedAddressFields = pickSupportedModelFields("crm_Contacts", {
+  const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
     address: resolvedAddressLine1 || undefined,
     address_line1: resolvedAddressLine1 || undefined,
     address_line2: address_line2 || undefined,
@@ -73,29 +75,31 @@ export const createContact = async (data: {
     country: country || undefined,
     postal_code: postal_code || undefined,
   });
-  const supportedRoleFields = pickSupportedModelFields("crm_Contacts", {
+  const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {
     role: normalizeContactRole(data.role),
+  });
+  const supportedCreateFields = await pickExistingDbModelFields("crm_Contacts", {
+    v: 1,
+    serial: serial ? Number(serial) : undefined,
+    createdBy: userId,
+    updatedBy: userId,
+    accountsIDs: assigned_account || undefined,
+    assigned_to: assigned_to || undefined,
+    contact_type_id: contact_type_id || undefined,
+    tags: [],
+    notes: {},
+    birthday:
+      birthday_day && birthday_month && birthday_year
+        ? `${birthday_day}/${birthday_month}/${birthday_year}`
+        : null,
+    ...supportedRoleFields,
+    ...supportedAddressFields,
+    ...rest,
   });
 
   try {
     const contact = await prismadb.crm_Contacts.create({
-      data: {
-        v: 1,
-        createdBy: userId,
-        updatedBy: userId,
-        accountsIDs: assigned_account || undefined,
-        assigned_to: assigned_to || undefined,
-        contact_type_id: contact_type_id || undefined,
-        tags: [],
-        notes: {},
-        birthday:
-          birthday_day && birthday_month && birthday_year
-            ? birthday_day + "/" + birthday_month + "/" + birthday_year
-            : null,
-        ...supportedRoleFields,
-        ...supportedAddressFields,
-        ...rest,
-      } as any,
+      data: supportedCreateFields as any,
     });
 
     if (assigned_to && assigned_to !== userId) {

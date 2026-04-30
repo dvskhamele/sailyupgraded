@@ -393,6 +393,7 @@ model crm_Lead_Types {
 model crm_Contacts {
   id                   String                    @id @default(uuid())
   v                    Int                       @default(0) @map("__v")
+  serial               Int?
   account              String?
   assigned_to          String?
   birthday             String?

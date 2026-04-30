@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuCheckboxItem,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { cn } from "@/lib/utils";
 import { ALL_CATEGORIES_VALUE } from "@/lib/opportunity-categories";
 
@@ -74,65 +83,84 @@ export function CategoryFilter({
   return (
     <>
       <div className="w-full flex flex-col gap-3">
-        <Label className="text-sm font-semibold text-slate-700">Products</Label>
+<div className="flex items-start gap-4">
+  {/* Label */}
+  <Label className="w-32 pt-2 text-sm font-semibold text-slate-700">
+    Products
+  </Label>
 
-        <div
-          role="group"
-          aria-label="Filter opportunities by product"
-          className="flex flex-wrap gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200"
-        >
-          {/* ALL BUTTON */}
+  {/* Dropdown Container */}
+  <div className="flex-1">
+    <div className="rounded-xl border border-slate-200 bg-slate-50">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
           <Button
             type="button"
             variant="outline"
-            size="sm"
-            onClick={() => handleValueChange(ALL_CATEGORIES_VALUE)}
-            className={cn(
-              "rounded-full px-4 py-1.5 text-sm transition-all duration-200 border shadow-sm hover:shadow-md",
-              "border-slate-200 bg-white text-slate-700 hover:bg-slate-100",
-              selectedCategories.length === 0 &&
-                "bg-sky-600 text-white border-sky-600 shadow-md hover:bg-sky-600",
-            )}
+            className="w-full justify-between border-slate-200 bg-white text-slate-700 hover:bg-slate-100"
+          >
+            <span className="truncate">
+              {selectedCategories.length === 0
+                ? "All Products"
+                : `${selectedCategories.length} product${
+                    selectedCategories.length > 1 ? "s" : ""
+                  } selected`}
+            </span>
+
+            <ChevronDown className="h-4 w-4 shrink-0 opacity-60" />
+          </Button>
+        </DropdownMenuTrigger>
+
+        <DropdownMenuContent
+          align="start"
+          className="w-[var(--radix-dropdown-menu-trigger-width)] max-h-80 overflow-y-auto"
+        >
+          <DropdownMenuCheckboxItem
+            checked={selectedCategories.length === 0}
+            onCheckedChange={() =>
+              handleValueChange(ALL_CATEGORIES_VALUE)
+            }
           >
             All Products
-          </Button>
+          </DropdownMenuCheckboxItem>
 
-          {/* CATEGORY BUTTONS */}
-          {categories.map((category) => {
-            const isSelected = selectedCategories.includes(category);
+          <DropdownMenuSeparator />
 
-            return (
-              <Button
-                key={category}
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => handleValueChange(category)}
-                className={cn(
-                  "rounded-full px-4 py-1.5 text-sm transition-all duration-200 border shadow-sm hover:shadow-md",
-                  "border-slate-200 bg-white text-slate-700 hover:bg-slate-100",
-                  isSelected &&
-                    "bg-sky-600 text-white border-sky-600 shadow-md hover:bg-sky-600 scale-105",
-                )}
-              >
-                {category}
-              </Button>
-            );
-          })}
-
-          {/* ADD BUTTON */}
-          {allowCreate ? (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => handleValueChange("__add_category__")}
-              className="rounded-full px-4 py-1.5 text-sm border-2 border-dashed border-sky-400 bg-sky-50 text-sky-700 transition-all duration-200 hover:bg-sky-100 hover:scale-105"
+          {categories.map((category) => (
+            <DropdownMenuCheckboxItem
+              key={category}
+              checked={selectedCategories.includes(category)}
+              onCheckedChange={() =>
+                handleValueChange(category)
+              }
             >
-              + Add Products
-            </Button>
-          ) : null}
-        </div>
+              {category}
+            </DropdownMenuCheckboxItem>
+          ))}
+
+          {allowCreate && (
+            <>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem
+                onClick={() =>
+                  handleValueChange("__add_category__")
+                }
+              >
+                + Add Products
+              </DropdownMenuItem>
+            </>
+          )}
+        </DropdownMenuContent>
+      </DropdownMenu>
+
+      {selectedCategories.length > 0 && (
+        <p className="mt-2 text-xs text-slate-600">
+          {selectedCategories.join(", ")}
+        </p>
+      )}
+    </div>
+  </div>
+</div>
       </div>
 
       <Dialog open={allowCreate && isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>

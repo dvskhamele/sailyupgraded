@@ -1,7 +1,7 @@
 "use client";
 
 import { z } from "zod";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Pencil } from "lucide-react";
@@ -90,12 +90,23 @@ export function UpdateOpportunityForm({
   const [editingSalesStageId, setEditingSalesStageId] = useState<string | null>(null);
   const [editingSalesStageName, setEditingSalesStageName] = useState("");
   const [isEditingSalesStage, setIsEditingSalesStage] = useState(false);
-  const mergedCategoryOptions = Array.from(
-    new Set(
-      [...categoryOptions, initialData?.category ?? ""]
-        .map((value) => value.trim())
-        .filter(Boolean)
-    )
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
+  const [newProductName, setNewProductName] = useState("");
+  const [customCategoryOptions, setCustomCategoryOptions] = useState<string[]>([]);
+  const selectedCategories = useMemo(
+    () => parseOpportunityProducts(initialData?.category),
+    [initialData?.category]
+  );
+  const mergedCategoryOptions = useMemo(
+    () =>
+      Array.from(
+        new Set(
+          [...categoryOptions, ...selectedCategories, ...customCategoryOptions]
+            .map((value) => value.trim())
+            .filter(Boolean)
+        )
+      ),
+    [categoryOptions, customCategoryOptions, selectedCategories]
   );
 
   const formSchema = z.object({
@@ -127,7 +138,7 @@ export function UpdateOpportunityForm({
     defaultValues: {
       ...initialData,
       close_date: initialData.close_date ? new Date(initialData.close_date) : undefined,
-      category: parseOpportunityProducts(initialData.category),
+      category: selectedCategories,
       clientName: initialData.clientName ?? "",
       description: initialData.description ?? "",
       budget: String(initialData.budget ?? ""),
@@ -251,11 +262,70 @@ export function UpdateOpportunityForm({
     }
   };
 
+  const handleCreateProductOption = (event: React.FormEvent) => {
+    event.preventDefault();
+    const createdName = newProductName.trim();
+
+    if (!createdName) return;
+
+    const alreadyExists = mergedCategoryOptions.some(
+      (value) => value.toLowerCase() === createdName.toLowerCase()
+    );
+
+    if (alreadyExists) {
+      const normalizedValue =
+        mergedCategoryOptions.find(
+          (value) => value.toLowerCase() === createdName.toLowerCase()
+        ) ?? createdName;
+      form.setValue(
+        "category",
+        Array.from(new Set([...(form.getValues("category") ?? []), normalizedValue])),
+        { shouldDirty: true, shouldValidate: true }
+      );
+      toast.success("Product selected");
+      setNewProductName("");
+      setIsProductDialogOpen(false);
+      return;
+    }
+
+    setCustomCategoryOptions((current) => [...current, createdName]);
+    form.setValue(
+      "category",
+      Array.from(new Set([...(form.getValues("category") ?? []), createdName])),
+      { shouldDirty: true, shouldValidate: true }
+    );
+    toast.success("Product added");
+    setNewProductName("");
+    setIsProductDialogOpen(false);
+  };
+
   if (!initialData)
     return <div>{c("somethingWentWrong")}</div>;
 
   return (
     <>
+      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Product</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateProductOption} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label htmlFor="new-product-name">Product name</Label>
+              <Input
+                id="new-product-name"
+                value={newProductName}
+                onChange={(e) => setNewProductName(e.target.value)}
+                maxLength={255}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Add product
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Dialog open={isSalesTypeDialogOpen} onOpenChange={setIsSalesTypeDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -464,7 +534,17 @@ export function UpdateOpportunityForm({
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Products</FormLabel>
+                      <div className="flex items-center justify-between gap-2">
+                        <FormLabel>Products</FormLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsProductDialogOpen(true)}
+                        >
+                          Add
+                        </Button>
+                      </div>
                       <FormControl>
                         <MultiSelect
                           options={mergedCategoryOptions.map((product) => ({

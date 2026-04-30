@@ -1,7 +1,9 @@
-import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
+import { cache } from "react";
+import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 
-const contactScalarListFields = pickSupportedModelFields("crm_Contacts", {
+const contactScalarListFieldValues = {
   id: true,
+  serial: true,
   account: true,
   assigned_to: true,
   birthday: true,
@@ -42,10 +44,9 @@ const contactScalarListFields = pickSupportedModelFields("crm_Contacts", {
   tags: true,
   notes: true,
   accountsIDs: true,
-} as const);
+} as const;
 
-export const crmContactListSelect = {
-  ...contactScalarListFields,
+const contactListRelationSelect = {
   contact_type: {
     select: {
       id: true,
@@ -90,8 +91,7 @@ export const crmContactListSelect = {
   },
 } as const;
 
-export const crmContactDetailSelect = {
-  ...contactScalarListFields,
+const contactDetailRelationSelect = {
   contact_type: {
     select: {
       id: true,
@@ -153,3 +153,17 @@ export const crmContactDetailSelect = {
     },
   },
 } as const;
+
+const getContactScalarListFields = cache(async () =>
+  pickExistingDbModelFields("crm_Contacts", contactScalarListFieldValues)
+);
+
+export const getCrmContactListSelect = cache(async () => ({
+  ...(await getContactScalarListFields()),
+  ...contactListRelationSelect,
+}));
+
+export const getCrmContactDetailSelect = cache(async () => ({
+  ...(await getContactScalarListFields()),
+  ...contactDetailRelationSelect,
+}));

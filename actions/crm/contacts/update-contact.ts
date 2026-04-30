@@ -6,10 +6,11 @@ import { inngest } from "@/inngest/client";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
-import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
+import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 
 export const updateContact = async (data: {
   id: string;
+  serial?: string | null;
   assigned_to?: string;
   assigned_account?: string | null;
   birthday_day?: string | null;
@@ -48,6 +49,7 @@ export const updateContact = async (data: {
   const userId = session.user.id;
   const {
     id,
+    serial,
     assigned_to,
     assigned_account,
     birthday_day,
@@ -67,7 +69,7 @@ export const updateContact = async (data: {
   if (!id) return { error: "id is required" };
 
   const resolvedAddressLine1 = getAddressLine1(address, address_line1);
-  const supportedAddressFields = pickSupportedModelFields("crm_Contacts", {
+  const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
     address: resolvedAddressLine1 || null,
     address_line1: resolvedAddressLine1 || null,
     address_line2: address_line2 || null,
@@ -76,28 +78,30 @@ export const updateContact = async (data: {
     country: country || null,
     postal_code: postal_code || null,
   });
-  const supportedRoleFields = pickSupportedModelFields("crm_Contacts", {
+  const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {
     role: normalizeContactRole(data.role),
+  });
+  const supportedUpdateFields = await pickExistingDbModelFields("crm_Contacts", {
+    v: 0,
+    serial: serial ? Number(serial) : null,
+    updatedBy: userId,
+    accountsIDs: assigned_account || undefined,
+    assigned_to: assigned_to || undefined,
+    contact_type_id: contact_type_id || undefined,
+    birthday:
+      birthday_day && birthday_month && birthday_year
+        ? `${birthday_day}/${birthday_month}/${birthday_year}`
+        : null,
+    ...supportedRoleFields,
+    ...supportedAddressFields,
+    ...rest,
   });
 
   try {
     const before = await prismadb.crm_Contacts.findUnique({ where: { id, deletedAt: null } });
     const contact = await prismadb.crm_Contacts.update({
       where: { id },
-      data: {
-        v: 0,
-        updatedBy: userId,
-        accountsIDs: assigned_account || undefined,
-        assigned_to: assigned_to || undefined,
-        contact_type_id: contact_type_id || undefined,
-        birthday:
-          birthday_day && birthday_month && birthday_year
-            ? birthday_day + "/" + birthday_month + "/" + birthday_year
-            : null,
-        ...supportedRoleFields,
-        ...supportedAddressFields,
-        ...rest,
-      } as any,
+      data: supportedUpdateFields as any,
     });
     const changes = before ? diffObjects(before as Record<string, unknown>, contact as Record<string, unknown>) : null;
     await writeAuditLog({

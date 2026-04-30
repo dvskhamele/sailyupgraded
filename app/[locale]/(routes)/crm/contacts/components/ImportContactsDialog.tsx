@@ -37,7 +37,37 @@ import {
 } from "@/components/ui/table";
 
 type RawRow = Record<string, string>;
-type MappingKey = "name" | "email" | "phone";
+type MappingKey =
+  | "serial"
+  | "name"
+  | "first_name"
+  | "last_name"
+  | "email"
+  | "personal_email"
+  | "mobile_phone"
+  | "office_phone"
+  | "website"
+  | "position"
+  | "description"
+  | "birthday"
+  | "address"
+  | "address_line1"
+  | "address_line2"
+  | "city"
+  | "state"
+  | "country"
+  | "postal_code"
+  | "status"
+  | "role"
+  | "contact_type_id"
+  | "assigned_to"
+  | "assigned_account"
+  | "social_twitter"
+  | "social_facebook"
+  | "social_linkedin"
+  | "social_skype"
+  | "social_youtube"
+  | "social_tiktok";
 type ColumnMapping = Record<MappingKey, string>;
 type DuplicateMode = "skip" | "update";
 type ImportFailure = {
@@ -53,28 +83,72 @@ type ImportResult = {
 };
 
 const SKIP_VALUE = "__skip__";
+const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
+  { key: "serial", label: "Serial" },
+  { key: "name", label: "Full name" },
+  { key: "first_name", label: "First name" },
+  { key: "last_name", label: "Last name" },
+  { key: "email", label: "Email" },
+  { key: "personal_email", label: "Personal email" },
+  { key: "mobile_phone", label: "Mobile phone" },
+  { key: "office_phone", label: "Office phone" },
+  { key: "website", label: "Website" },
+  { key: "position", label: "Position" },
+  { key: "description", label: "Description" },
+  { key: "birthday", label: "Birthday" },
+  { key: "address", label: "Address" },
+  { key: "address_line1", label: "Address line 1" },
+  { key: "address_line2", label: "Address line 2" },
+  { key: "city", label: "City" },
+  { key: "state", label: "State / Region" },
+  { key: "country", label: "Country" },
+  { key: "postal_code", label: "Postal code" },
+  { key: "status", label: "Status" },
+  { key: "role", label: "Role" },
+  { key: "contact_type_id", label: "Contact type" },
+  { key: "assigned_to", label: "Assigned user" },
+  { key: "assigned_account", label: "Assigned account" },
+  { key: "social_twitter", label: "Twitter" },
+  { key: "social_facebook", label: "Facebook" },
+  { key: "social_linkedin", label: "LinkedIn" },
+  { key: "social_skype", label: "Skype" },
+  { key: "social_youtube", label: "YouTube" },
+  { key: "social_tiktok", label: "TikTok" },
+];
+const DEFAULT_MAPPING = Object.fromEntries(
+  IMPORT_FIELDS.map(({ key }) => [key, SKIP_VALUE]),
+) as ColumnMapping;
 const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
-  name: [
-    "name",
-    "full name",
-    "full_name",
-    "contact name",
-    "last name",
-    "lastname",
-    "last_name",
-    "surname",
-  ],
+  serial: ["serial", "sr no", "sr_no", "sequence"],
+  name: ["name", "full name", "full_name", "contact name"],
+  first_name: ["first name", "firstname", "first_name", "given name"],
+  last_name: ["last name", "lastname", "last_name", "surname", "family name"],
   email: ["email", "e-mail", "email address", "mail"],
-  phone: [
-    "phone",
-    "mobile",
-    "mobile phone",
-    "mobile_phone",
-    "office phone",
-    "office_phone",
-    "telephone",
-    "tel",
-  ],
+  personal_email: ["personal email", "personal_email", "private email"],
+  mobile_phone: ["mobile", "mobile phone", "mobile_phone", "cell", "cell phone"],
+  office_phone: ["office phone", "office_phone", "telephone", "tel", "work phone", "phone"],
+  website: ["website", "web", "url", "site"],
+  position: ["position", "job title", "title", "designation"],
+  description: ["description", "notes", "note", "details"],
+  birthday: ["birthday", "birth date", "birthdate", "dob"],
+  address: ["address", "full address"],
+  address_line1: ["address line 1", "address_line1", "street", "street 1"],
+  address_line2: ["address line 2", "address_line2", "street 2"],
+  city: ["city", "town"],
+  state: ["state", "region", "province"],
+  country: ["country"],
+  postal_code: ["postal code", "postal_code", "zip", "zip code", "pincode"],
+  status: ["status", "active", "is active", "is_active"],
+  role: ["role"],
+  contact_type_id: ["contact type", "contact_type", "contact_type_id", "type"],
+  assigned_to: ["assigned to", "assigned_to", "owner", "user", "assignee"],
+  assigned_account: ["account", "assigned account", "assigned_account", "company"],
+  social_twitter: ["twitter", "x"],
+  social_facebook: ["facebook"],
+  social_linkedin: ["linkedin", "linkedin url", "linkedin profile"],
+  social_skype: ["skype"],
+  social_youtube: ["youtube"],
+  social_tiktok: ["tiktok", "tik tok"],
 };
 
 function normalizeHeader(value: string) {
@@ -82,11 +156,7 @@ function normalizeHeader(value: string) {
 }
 
 function suggestMapping(headers: string[]): ColumnMapping {
-  const defaults: ColumnMapping = {
-    name: SKIP_VALUE,
-    email: SKIP_VALUE,
-    phone: SKIP_VALUE,
-  };
+  const defaults: ColumnMapping = { ...DEFAULT_MAPPING };
 
   for (const key of Object.keys(defaults) as MappingKey[]) {
     const match = headers.find((header) => {
@@ -113,9 +183,7 @@ export function ImportContactsDialog() {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<RawRow[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({
-    name: SKIP_VALUE,
-    email: SKIP_VALUE,
-    phone: SKIP_VALUE,
+    ...DEFAULT_MAPPING,
   });
   const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
   const [result, setResult] = useState<ImportResult | null>(null);
@@ -125,11 +193,7 @@ export function ImportContactsDialog() {
     setFileName("");
     setHeaders([]);
     setRows([]);
-    setMapping({
-      name: SKIP_VALUE,
-      email: SKIP_VALUE,
-      phone: SKIP_VALUE,
-    });
+    setMapping({ ...DEFAULT_MAPPING });
     setDuplicateMode("skip");
     setResult(null);
     setIsUploading(false);
@@ -149,38 +213,52 @@ export function ImportContactsDialog() {
 
   const mappedPreview = useMemo(() => {
     return rows.slice(0, 10).map((row, index) => {
-      const email =
-        mapping.email !== SKIP_VALUE ? String(row[mapping.email] ?? "").trim() : "";
-      const name =
+      const email = mapping.email !== SKIP_VALUE ? String(row[mapping.email] ?? "").trim() : "";
+      const firstName =
+        mapping.first_name !== SKIP_VALUE ? String(row[mapping.first_name] ?? "").trim() : "";
+      const lastName =
+        mapping.last_name !== SKIP_VALUE ? String(row[mapping.last_name] ?? "").trim() : "";
+      const fullName =
         mapping.name !== SKIP_VALUE ? String(row[mapping.name] ?? "").trim() : "";
-      const phone =
-        mapping.phone !== SKIP_VALUE ? String(row[mapping.phone] ?? "").trim() : "";
+      const mobilePhone =
+        mapping.mobile_phone !== SKIP_VALUE ? String(row[mapping.mobile_phone] ?? "").trim() : "";
+      const officePhone =
+        mapping.office_phone !== SKIP_VALUE ? String(row[mapping.office_phone] ?? "").trim() : "";
+      const status =
+        mapping.status !== SKIP_VALUE ? String(row[mapping.status] ?? "").trim() : "";
+      const name = fullName || [firstName, lastName].filter(Boolean).join(" ");
 
       return {
         row: index + 2,
         name,
         email,
-        phone,
-        valid: Boolean(name) && Boolean(email || phone),
+        phone: mobilePhone || officePhone,
+        status,
+        valid: Boolean(name || lastName) && Boolean(email || mobilePhone || officePhone),
       };
     });
   }, [mapping, rows]);
 
   const validRowCount = useMemo(() => {
     return rows.filter((row) => {
-      const hasName =
-        mapping.name !== SKIP_VALUE &&
-        String(row[mapping.name] ?? "").trim().length > 0;
+      const hasName = (
+        (mapping.name !== SKIP_VALUE && String(row[mapping.name] ?? "").trim().length > 0) ||
+        (mapping.last_name !== SKIP_VALUE &&
+          String(row[mapping.last_name] ?? "").trim().length > 0)
+      );
       const hasEmail =
         mapping.email !== SKIP_VALUE &&
         String(row[mapping.email] ?? "").trim().length > 0;
-      const hasPhone =
-        mapping.phone !== SKIP_VALUE &&
-        String(row[mapping.phone] ?? "").trim().length > 0;
+      const hasMobilePhone =
+        mapping.mobile_phone !== SKIP_VALUE &&
+        String(row[mapping.mobile_phone] ?? "").trim().length > 0;
+      const hasOfficePhone =
+        mapping.office_phone !== SKIP_VALUE &&
+        String(row[mapping.office_phone] ?? "").trim().length > 0;
 
-      return hasName && (hasEmail || hasPhone);
+      return hasName && (hasEmail || hasMobilePhone || hasOfficePhone);
     }).length;
-  }, [mapping.email, mapping.name, mapping.phone, rows]);
+  }, [mapping, rows]);
 
   const skippedInvalidCount = rows.length - validRowCount;
 
@@ -238,8 +316,10 @@ export function ImportContactsDialog() {
   const handleImport = async () => {
     if (
       rows.length === 0 ||
-      mapping.name === SKIP_VALUE ||
-      (mapping.email === SKIP_VALUE && mapping.phone === SKIP_VALUE)
+      (mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
+      (mapping.email === SKIP_VALUE &&
+        mapping.mobile_phone === SKIP_VALUE &&
+        mapping.office_phone === SKIP_VALUE)
     ) {
       return;
     }
@@ -316,8 +396,8 @@ export function ImportContactsDialog() {
             <DialogTitle>Import Contacts</DialogTitle>
             <DialogDescription>
               Review the selected CSV or Excel file, map the columns, and import
-              valid contacts. Each row must include a name and at least one of
-              email or phone.
+              valid contacts. Each row must include a full name or last name, and
+              at least one of email, mobile phone, or office phone.
             </DialogDescription>
           </DialogHeader>
 
@@ -343,18 +423,18 @@ export function ImportContactsDialog() {
                     Match your uploaded columns to the contact fields we import.
                   </p>
                 </div>
-                <div className="grid gap-4 md:grid-cols-4">
-                  {(["name", "email", "phone"] as MappingKey[]).map((field) => (
-                    <div key={field} className="space-y-2">
-                      <p className="text-sm font-medium capitalize">{field}</p>
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+                  {IMPORT_FIELDS.map((field) => (
+                    <div key={field.key} className="space-y-2">
+                      <p className="text-sm font-medium">{field.label}</p>
                       <Select
-                        value={mapping[field]}
+                        value={mapping[field.key]}
                         onValueChange={(value) =>
-                          setMapping((current) => ({ ...current, [field]: value }))
+                          setMapping((current) => ({ ...current, [field.key]: value }))
                         }
                       >
                         <SelectTrigger>
-                          <SelectValue placeholder={`Select ${field} column`} />
+                          <SelectValue placeholder={`Select ${field.label} column`} />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value={SKIP_VALUE}>Skip</SelectItem>
@@ -440,6 +520,7 @@ export function ImportContactsDialog() {
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Phone</TableHead>
+                        <TableHead>Imported status</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -450,6 +531,7 @@ export function ImportContactsDialog() {
                           <TableCell>{row.name || "N/A"}</TableCell>
                           <TableCell>{row.email || "Missing email"}</TableCell>
                           <TableCell>{row.phone || "N/A"}</TableCell>
+                          <TableCell>{row.status || "N/A"}</TableCell>
                           <TableCell>
                             {row.valid ? (
                               <span className="text-green-600">Ready</span>
@@ -471,8 +553,10 @@ export function ImportContactsDialog() {
                 disabled={
                   isUploading ||
                   rows.length === 0 ||
-                  mapping.name === SKIP_VALUE ||
-                  (mapping.email === SKIP_VALUE && mapping.phone === SKIP_VALUE)
+                  (mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
+                  (mapping.email === SKIP_VALUE &&
+                    mapping.mobile_phone === SKIP_VALUE &&
+                    mapping.office_phone === SKIP_VALUE)
                 }
               >
                 {isUploading ? (
@@ -485,10 +569,12 @@ export function ImportContactsDialog() {
                 )}
               </Button>
               {headers.length > 0 &&
-              (mapping.name === SKIP_VALUE ||
-                (mapping.email === SKIP_VALUE && mapping.phone === SKIP_VALUE)) ? (
+              ((mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
+                (mapping.email === SKIP_VALUE &&
+                  mapping.mobile_phone === SKIP_VALUE &&
+                  mapping.office_phone === SKIP_VALUE)) ? (
                 <p className="text-xs text-destructive">
-                  Name mapping and at least one of email or phone are required.
+                  Full name or last name, and at least one of email, mobile phone, or office phone are required.
                 </p>
               ) : null}
             </div>

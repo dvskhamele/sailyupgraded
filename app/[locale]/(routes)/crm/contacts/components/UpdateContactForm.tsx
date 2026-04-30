@@ -51,6 +51,7 @@ export function UpdateContactForm({
 
   const formSchema = z.object({
     id: z.uuid(),
+    serial: z.string().optional().nullable(),
     birthday_year: z.string().optional().nullable(),
     birthday_month: z.string().optional().nullable(),
     birthday_day: z.string().optional().nullable(),
@@ -89,6 +90,7 @@ export function UpdateContactForm({
   // Coerce null → "" (strings) or false (booleans) to keep inputs controlled and pass Zod validation
   const parsedInitialData = {
     ...initialData,
+    serial: initialData.serial != null ? String(initialData.serial) : "",
     last_name: initialData.last_name ?? "",
     email: initialData.email ?? "",
     contact_type_id: initialData.contact_type_id ?? "",
@@ -159,6 +161,27 @@ export function UpdateContactForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full px-4 md:px-10">
         <div className="w-full text-sm">
           <div className="pb-5 space-y-2">
+            <FormField
+              control={form.control}
+              name="serial"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("serial")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      disabled={form.formState.isSubmitting}
+                      placeholder="1"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="first_name"

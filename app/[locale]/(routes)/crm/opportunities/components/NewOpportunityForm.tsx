@@ -63,6 +63,8 @@ type ConfigItem = {
   name: string;
 };
 
+type CategoryOption = string | { value: string; label: string };
+
 type NewTaskFormProps = {
   accounts: crm_Accounts[];
   contacts: any[];
@@ -70,7 +72,7 @@ type NewTaskFormProps = {
   saleStages: ConfigItem[];
   campaigns: crm_campaigns[];
   currencies: { code: string; name: string; symbol: string }[];
-  categoryOptions?: string[];
+  categoryOptions?: CategoryOption[];
   selectedCategories?: string[];
   selectedStage?: string;
   accountId?: string;
@@ -110,6 +112,9 @@ export function NewOpportunityForm({
   const [editingSalesStageId, setEditingSalesStageId] = useState<string | null>(null);
   const [editingSalesStageName, setEditingSalesStageName] = useState("");
   const [isEditingSalesStage, setIsEditingSalesStage] = useState(false);
+  const [isProductDialogOpen, setIsProductDialogOpen] = useState(false);
+  const [newProductName, setNewProductName] = useState("");
+  const [customCategoryOptions, setCustomCategoryOptions] = useState<string[]>([]);
 
   const filteredAccounts = useMemo(
     () =>
@@ -134,16 +139,32 @@ export function NewOpportunityForm({
     [contacts, searchContactValue]
   );
 
+  const normalizedCategoryOptions = useMemo(
+    () =>
+      categoryOptions
+        .map((option) =>
+          typeof option === "string"
+            ? { value: option.trim(), label: option.trim() }
+            : { value: option.value.trim(), label: option.label.trim() }
+        )
+        .filter((option) => option.value),
+    [categoryOptions]
+  );
+
   const mergedCategoryOptions = useMemo(
     () =>
       Array.from(
         new Set(
-          [...categoryOptions, ...selectedCategories]
+          [
+            ...normalizedCategoryOptions.map((option) => option.value),
+            ...selectedCategories,
+            ...customCategoryOptions,
+          ]
             .map((value) => value.trim())
             .filter(Boolean)
         )
       ),
-    [categoryOptions, selectedCategories]
+    [normalizedCategoryOptions, selectedCategories, customCategoryOptions]
   );
 
   const formSchema = z.object({
@@ -302,8 +323,67 @@ export function NewOpportunityForm({
     }
   };
 
+  const handleCreateProductOption = (event: React.FormEvent) => {
+    event.preventDefault();
+    const createdName = newProductName.trim();
+
+    if (!createdName) return;
+
+    const alreadyExists = mergedCategoryOptions.some(
+      (value) => value.toLowerCase() === createdName.toLowerCase()
+    );
+
+    if (alreadyExists) {
+      const normalizedValue =
+        mergedCategoryOptions.find(
+          (value) => value.toLowerCase() === createdName.toLowerCase()
+        ) ?? createdName;
+      form.setValue(
+        "category",
+        Array.from(new Set([...(form.getValues("category") ?? []), normalizedValue])),
+        { shouldDirty: true, shouldValidate: true }
+      );
+      toast.success("Product selected");
+      setNewProductName("");
+      setIsProductDialogOpen(false);
+      return;
+    }
+
+    setCustomCategoryOptions((current) => [...current, createdName]);
+    form.setValue(
+      "category",
+      Array.from(new Set([...(form.getValues("category") ?? []), createdName])),
+      { shouldDirty: true, shouldValidate: true }
+    );
+    toast.success("Product added");
+    setNewProductName("");
+    setIsProductDialogOpen(false);
+  };
+
   return (
     <>
+      <Dialog open={isProductDialogOpen} onOpenChange={setIsProductDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Product</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateProductOption} className="space-y-4 pt-2">
+            <div className="space-y-1">
+              <Label htmlFor="new-product-name">Product name</Label>
+              <Input
+                id="new-product-name"
+                value={newProductName}
+                onChange={(e) => setNewProductName(e.target.value)}
+                maxLength={255}
+                required
+              />
+            </div>
+            <Button type="submit" className="w-full">
+              Add product
+            </Button>
+          </form>
+        </DialogContent>
+      </Dialog>
       <Dialog open={isSalesTypeDialogOpen} onOpenChange={setIsSalesTypeDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -514,12 +594,24 @@ export function NewOpportunityForm({
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Products</FormLabel>
+                      <div className="flex items-center justify-between gap-2">
+                        <FormLabel>Products</FormLabel>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setIsProductDialogOpen(true)}
+                        >
+                          Add
+                        </Button>
+                      </div>
                       <FormControl>
                         <MultiSelect
                           options={mergedCategoryOptions.map((product) => ({
                             value: product,
-                            label: product,
+                            label:
+                              normalizedCategoryOptions.find((option) => option.value === product)
+                                ?.label ?? product,
                           }))}
                           value={field.value ?? []}
                           onChange={field.onChange}

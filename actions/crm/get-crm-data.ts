@@ -140,6 +140,8 @@ export const getAllCrmData = cache(async () => {
       id: true,
       name: true,
       status: true,
+      unit_price: true,
+      currency: true,
     },
     orderBy: { name: "asc" },
   });

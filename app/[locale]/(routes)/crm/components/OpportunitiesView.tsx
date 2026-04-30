@@ -37,6 +37,27 @@ interface OpportunitiesViewProps {
   accountId?: string;
 }
 
+type ProductOption = {
+  value: string;
+  label: string;
+};
+
+function formatProductPriceLabel(price: unknown, currency: string) {
+  const amount = Number(price);
+  if (!Number.isFinite(amount)) return null;
+
+  try {
+    return new Intl.NumberFormat(undefined, {
+      style: "currency",
+      currency,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }).format(amount);
+  } catch {
+    return `${amount.toFixed(2)} ${currency}`;
+  }
+}
+
 const OpportunitiesView = ({
   data,
   crmData,
@@ -64,6 +85,27 @@ const OpportunitiesView = ({
         .map((product: { name: string }) => product.name.trim())
         .filter(Boolean)
     )
+  );
+  const productLabelOptions: ProductOption[] = Array.from(
+    new Map(
+      (products ?? [])
+        .filter((product: { status: string }) => product.status === "ACTIVE")
+        .map((product: { name: string; unit_price?: unknown; currency?: string }) => {
+          const value = product.name.trim();
+          const formattedPrice = product.unit_price != null && product.currency
+            ? formatProductPriceLabel(product.unit_price, product.currency)
+            : null;
+
+          return [
+            value,
+            {
+              value,
+              label: formattedPrice ? `${value} - ${formattedPrice}` : value,
+            },
+          ] as const;
+        })
+        .filter(([value]) => Boolean(value))
+    ).values()
   );
 
   const rates = (exchangeRates ?? []).map((r: { fromCurrency: string; toCurrency: string; rate: unknown }) => ({
@@ -113,7 +155,7 @@ const OpportunitiesView = ({
                     saleStages={saleStages}
                     campaigns={campaigns}
                     currencies={currencies.map((c) => ({ code: c.code, name: c.name, symbol: c.symbol }))}
-                    categoryOptions={productOptions}
+                    categoryOptions={productLabelOptions}
                     accountId={accountId}
                     onDialogClose={() => setOpen(false)}
                   />

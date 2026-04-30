@@ -40,6 +40,7 @@ type ContactTypeOption = {
 };
 
 const contactFormSchema = z.object({
+  serial: z.string().optional(),
   birthday_year: z.string().optional(),
   birthday_month: z.string().optional(),
   birthday_day: z.string().optional(),
@@ -104,6 +105,7 @@ export function NewContactForm({
     resolver: zodResolver(validatedFormSchema),
     mode: "onBlur",
     defaultValues: {
+      serial: "",
       first_name: "",
       last_name: "",
       description: "",
@@ -161,6 +163,26 @@ export function NewContactForm({
       <form onSubmit={form.handleSubmit(onSubmit)} className="h-full">
         <div className="w-full text-sm">
           <div className="pb-5 space-y-2">
+            <FormField
+              control={form.control}
+              name="serial"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{t("serial")}</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      disabled={form.formState.isSubmitting}
+                      placeholder="1"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="first_name"
@@ -306,7 +328,7 @@ export function NewContactForm({
                     <FormItem className="flex-1">
                       <Select onValueChange={field.onChange} value={field.value}>
                         <FormControl>
-                          <SelectTrigger>
+                          <SelectTrigger> 
                             <SelectValue placeholder={t("month")} />
                           </SelectTrigger>
                         </FormControl>

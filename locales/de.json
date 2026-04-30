@@ -164,6 +164,7 @@
     "websiteInvalid": "Webseite muss eine gültige URL sein"
   },
   "CrmContactForm": {
+    "serial": "Seriennummer",
     "firstName": "Vorname",
     "lastName": "Nachname",
     "mobilePhone": "Mobiltelefon",

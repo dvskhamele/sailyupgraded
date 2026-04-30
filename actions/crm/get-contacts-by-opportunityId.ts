@@ -1,7 +1,8 @@
 import { prismadb } from "@/lib/prisma";
-import { crmContactListSelect } from "@/lib/prisma-contact-select";
+import { getCrmContactListSelect } from "@/lib/prisma-contact-select";
 
 export const getContactsByOpportunityId = async (opportunityId: string) => {
+  const select = await getCrmContactListSelect();
   const data = await prismadb.crm_Contacts.findMany({
     where: {
       deletedAt: null,
@@ -12,7 +13,7 @@ export const getContactsByOpportunityId = async (opportunityId: string) => {
         },
       },
     },
-    select: crmContactListSelect,
+    select,
   });
   return data;
 };
