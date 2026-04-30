@@ -5,6 +5,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { crm_Opportunities } from "@prisma/client";
 import {
   CalendarDays,
@@ -26,6 +27,7 @@ import { formatCurrency, convertAmount, getExchangeRates, getDefaultCurrency } f
 import { Decimal } from "@prisma/client/runtime/client";
 import { cookies } from "next/headers";
 import { serializeDecimals } from "@/lib/serialize-decimals";
+import { parseOpportunityProducts } from "@/lib/opportunity-products";
 
 interface OppsViewProps {
   data: {
@@ -45,15 +47,8 @@ export async function BasicView({ data }: OppsViewProps) {
   const defaultCurrency = await getDefaultCurrency();
   const displayCurrency = cookieStore.get("display_currency")?.value || defaultCurrency;
   const rates = await getExchangeRates();
-  const productOptions = Array.from(
-    new Set(
-      (products ?? [])
-        .filter((product: { status: string }) => product.status === "ACTIVE")
-        .map((product: { name: string }) => product.name.trim())
-        .filter(Boolean)
-    )
-  );
   if (!data) return <div>Opportunity not found</div>;
+  const selectedProducts = parseOpportunityProducts(data.category);
 
   const fromCurrency = data.currency || "EUR";
   const budgetAmount = new Decimal(data.budget?.toString() ?? "0");
@@ -74,7 +69,14 @@ export async function BasicView({ data }: OppsViewProps) {
             saleStages={saleStages}
             campaigns={campaigns}
             currencies={currencies.map((c: { code: string; name: string; symbol: string }) => ({ code: c.code, name: c.name, symbol: c.symbol }))}
-            categoryOptions={productOptions}
+            categoryOptions={Array.from(
+              new Set(
+                (products ?? [])
+                  .filter((product: { status: string }) => product.status === "ACTIVE")
+                  .map((product: { name: string }) => product.name.trim())
+                  .filter(Boolean)
+              )
+            )}
           />
         </div>
       </CardHeader>
@@ -119,6 +121,23 @@ export async function BasicView({ data }: OppsViewProps) {
               <p className="text-sm text-muted-foreground">
                 {data.description}
               </p>
+            </div>
+          </div>
+          <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+            <SquareStack className="mt-px h-5 w-5" />
+            <div className="space-y-1">
+              <p className="text-sm font-medium leading-none">Products</p>
+              <div className="flex flex-wrap gap-2">
+                {selectedProducts.length > 0 ? (
+                  selectedProducts.map((product) => (
+                    <Badge key={product} variant="secondary">
+                      {product}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground">Not assigned</p>
+                )}
+              </div>
             </div>
           </div>
           <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">

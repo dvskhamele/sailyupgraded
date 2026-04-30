@@ -70,9 +70,9 @@ import {
 import { useHydrated } from "@/hooks/use-hydrated";
 import { CategoryFilter } from "./CategoryFilter";
 import {
-  ALL_CATEGORIES_VALUE,
   filterOpportunitiesByCategory,
 } from "@/lib/opportunity-categories";
+import { parseOpportunityProducts } from "@/lib/opportunity-products";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -124,12 +124,12 @@ function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
 function initColumns(
   opps: crm_Opportunities[],
   stages: crm_Opportunities_Sales_Stages[],
-  selectedCategory: string,
+  selectedCategories: string[],
 ): Column[] {
   const fallbackStageId = stages[0]?.id;
   const filteredOpportunities = filterOpportunitiesByCategory(
     opps,
-    selectedCategory,
+    selectedCategories,
   );
 
   return stages.map((stage) => ({
@@ -144,9 +144,9 @@ function initColumns(
 
 function getLostOpportunities(
   opps: crm_Opportunities[],
-  selectedCategory: string,
+  selectedCategories: string[],
 ) {
-  return filterOpportunitiesByCategory(opps, selectedCategory).filter(
+  return filterOpportunitiesByCategory(opps, selectedCategories).filter(
     (o: any) => o.status === "INACTIVE",
   );
 }
@@ -164,7 +164,7 @@ function getOpportunityClientName(opportunity: crm_Opportunities) {
 }
 
 function getOpportunityProduct(opportunity: crm_Opportunities) {
-  return (opportunity as any).category?.trim() || "";
+  return parseOpportunityProducts((opportunity as any).category);
 }
 
 // Draggable Opportunity Card
@@ -176,6 +176,7 @@ function OpportunityCard({
   stage,
   salesStages,
 }: any) {
+  const opportunityProducts = getOpportunityProduct(opportunity);
   const {
     attributes,
     listeners,
@@ -272,13 +273,18 @@ function OpportunityCard({
               {getOpportunityClientName(opportunity) ||
                 getOpportunityDisplayName(opportunity)}
             </span>
-            {getOpportunityProduct(opportunity) ? (
-              <Badge
-                variant="secondary"
-              className="mt-1 w-fit shrink-0 whitespace-nowrap mt-[10px] mb-[-15px] border-0 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white"
-              >
-                {getOpportunityProduct(opportunity)}
-              </Badge>
+            {opportunityProducts.length > 0 ? (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {opportunityProducts.map((product) => (
+                  <Badge
+                    key={product}
+                    variant="secondary"
+                    className="w-fit shrink-0 whitespace-nowrap border-0 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white"
+                  >
+                    {product}
+                  </Badge>
+                ))}
+              </div>
             ) : null}
           </div>
         </div>
@@ -307,6 +313,7 @@ function OpportunityCardStatic({
   stage,
   salesStages,
 }: any) {
+  const opportunityProducts = getOpportunityProduct(opportunity);
   return (
     <Card
       className="my-2 w-full cursor-pointer border border-amber-100 bg-gradient-to-br from-white via-amber-50 to-orange-50 shadow-sm"
@@ -375,13 +382,18 @@ function OpportunityCardStatic({
               {getOpportunityClientName(opportunity) ||
                 getOpportunityDisplayName(opportunity)}
             </span>
-            {getOpportunityProduct(opportunity) ? (
-              <Badge
-                variant="secondary"
-                className="mt-1 w-fit shrink-0 whitespace-nowrap border-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white"
-              >
-                {getOpportunityProduct(opportunity)}
-              </Badge>
+            {opportunityProducts.length > 0 ? (
+              <div className="mt-1 flex flex-wrap gap-1">
+                {opportunityProducts.map((product) => (
+                  <Badge
+                    key={product}
+                    variant="secondary"
+                    className="w-fit shrink-0 whitespace-nowrap border-0 bg-gradient-to-r from-amber-500 to-orange-500 text-white"
+                  >
+                    {product}
+                  </Badge>
+                ))}
+              </div>
             ) : null}
           </div>
         </div>
@@ -414,8 +426,7 @@ const CRMKanban = ({
   const router = useRouter();
 
   const [selectedStage, setSelectedStage] = useState("");
-  const [selectedCategory, setSelectedCategory] =
-    useState(ALL_CATEGORIES_VALUE);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [customProducts, setCustomProducts] = useState<string[]>([]);
   const categoryList = useMemo(
     () =>
@@ -440,10 +451,10 @@ const CRMKanban = ({
 
   const serverDataRef = useRef(data);
   const [columns, setColumns] = useState<Column[]>(() =>
-    initColumns(data, salesStages, selectedCategory),
+    initColumns(data, salesStages, selectedCategories),
   );
   const [lostCards, setLostCards] = useState<crm_Opportunities[]>(() =>
-    getLostOpportunities(data, selectedCategory),
+    getLostOpportunities(data, selectedCategories),
   );
   const columnsRef = useRef<Column[]>(columns);
 
@@ -478,7 +489,11 @@ const CRMKanban = ({
     );
 
     if (existingProduct) {
-      setSelectedCategory(existingProduct);
+      setSelectedCategories((current) =>
+        current.includes(existingProduct)
+          ? current
+          : [...current, existingProduct],
+      );
       return true;
     }
 
@@ -512,7 +527,11 @@ const CRMKanban = ({
         ? currentProducts
         : [...currentProducts, normalizedProduct]
     );
-    setSelectedCategory(normalizedProduct);
+    setSelectedCategories((current) =>
+      current.includes(normalizedProduct)
+        ? current
+        : [...current, normalizedProduct],
+    );
     toast.success("Product created successfully");
     router.refresh();
     return true;
@@ -526,19 +545,19 @@ const CRMKanban = ({
   useEffect(() => {
     if (serverDataRef.current !== data && !isDraggingRef.current) {
       serverDataRef.current = data;
-      setColumns(initColumns(data, salesStages, selectedCategory));
-      setLostCards(getLostOpportunities(data, selectedCategory));
+      setColumns(initColumns(data, salesStages, selectedCategories));
+      setLostCards(getLostOpportunities(data, selectedCategories));
     }
-  }, [data, salesStages, selectedCategory]);
+  }, [data, salesStages, selectedCategories]);
 
   useEffect(() => {
     if (!isDraggingRef.current) {
-      const nextColumns = initColumns(data, salesStages, selectedCategory);
+      const nextColumns = initColumns(data, salesStages, selectedCategories);
       columnsRef.current = nextColumns;
       setColumns(nextColumns);
-      setLostCards(getLostOpportunities(data, selectedCategory));
+      setLostCards(getLostOpportunities(data, selectedCategories));
     }
-  }, [data, salesStages, selectedCategory]);
+  }, [data, salesStages, selectedCategories]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -685,9 +704,9 @@ const CRMKanban = ({
       });
       if (result?.error) {
         toast.error(result.error);
-        columnsRef.current = initColumns(data, salesStages, selectedCategory);
-        setColumns(initColumns(data, salesStages, selectedCategory));
-        setLostCards(getLostOpportunities(data, selectedCategory));
+        columnsRef.current = initColumns(data, salesStages, selectedCategories);
+        setColumns(initColumns(data, salesStages, selectedCategories));
+        setLostCards(getLostOpportunities(data, selectedCategories));
       } else {
         toast.success("Opportunity stage changed");
       }
@@ -696,9 +715,9 @@ const CRMKanban = ({
       toast.error(
         error instanceof Error ? error.message : "Something went wrong",
       );
-      columnsRef.current = initColumns(data, salesStages, selectedCategory);
-      setColumns(initColumns(data, salesStages, selectedCategory));
-      setLostCards(getLostOpportunities(data, selectedCategory));
+      columnsRef.current = initColumns(data, salesStages, selectedCategories);
+      setColumns(initColumns(data, salesStages, selectedCategories));
+      setLostCards(getLostOpportunities(data, selectedCategories));
     }
   };
 
@@ -721,8 +740,8 @@ const CRMKanban = ({
       <div className="mb-4">
         <CategoryFilter
           categories={categoryList}
-          selectedCategory={selectedCategory}
-          onCategoryChange={setSelectedCategory}
+          selectedCategories={selectedCategories}
+          onCategoryChange={setSelectedCategories}
           onAddCategory={handleAddProduct}
           allowCreate
         />
@@ -746,11 +765,7 @@ const CRMKanban = ({
               symbol: c.symbol,
             }))}
             categoryOptions={categoryList}
-            selectedCategory={
-              selectedCategory === ALL_CATEGORIES_VALUE
-                ? undefined
-                : selectedCategory
-            }
+            selectedCategories={selectedCategories}
             selectedStage={selectedStage}
             onDialogClose={() => setIsDialogOpen(false)}
           />

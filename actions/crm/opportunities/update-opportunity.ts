@@ -6,6 +6,7 @@ import { inngest } from "@/inngest/client";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getSnapshotRate, getDefaultCurrency } from "@/lib/currency";
 import { serializeDecimals } from "@/lib/serialize-decimals";
+import { serializeOpportunityProducts } from "@/lib/opportunity-products";
 
 export const updateOpportunity = async (data: {
   id: string;
@@ -13,7 +14,6 @@ export const updateOpportunity = async (data: {
   assigned_to?: string;
   budget?: string;
   campaign?: string | null;
-  category?: string;
   clientName?: string;
   close_date?: Date;
   contact?: string;
@@ -24,6 +24,7 @@ export const updateOpportunity = async (data: {
   next_step?: string;
   sales_stage?: string;
   type?: string;
+  category?: string[] | string;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -35,7 +36,6 @@ export const updateOpportunity = async (data: {
     assigned_to,
     budget,
     campaign,
-    category,
     clientName,
     close_date,
     contact,
@@ -46,6 +46,7 @@ export const updateOpportunity = async (data: {
     next_step,
     sales_stage,
     type,
+    category,
   } = data;
 
   if (!id) return { error: "id is required" };
@@ -67,7 +68,7 @@ export const updateOpportunity = async (data: {
         assigned_to_user: assigned_to ? { connect: { id: assigned_to } } : { disconnect: true },
         budget: budget ? parseFloat(budget) : undefined,
         assigned_campaings: campaign ? { connect: { id: campaign } } : { disconnect: true },
-        category: category || null,
+        category: serializeOpportunityProducts(category),
         clientName: clientName || null,
         close_date,
         contact: contact || null,

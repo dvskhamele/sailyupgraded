@@ -6,7 +6,7 @@ dotenv.config({ path: ".env.local", override: true });
 
 export default defineConfig({
   datasource: {
-    url: env("DATABASE_URL"),
+    url: env("DATABASE_URL") || "mysql://root:password@localhost:3306/nextcrm",
   },
   migrations: {
     seed: "npx tsx prisma/seeds/seed.ts",

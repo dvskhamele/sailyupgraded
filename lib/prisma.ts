@@ -18,7 +18,7 @@ function getPrismaSchemaSignature() {
 // Prisma Client configuration with connection pooling and lifecycle management
 const prismaClientSingleton = () => {
   if (!databaseUrl) {
-    throw new Error("DATABASE_URL is not set");
+    throw new Error("DATABASE_URL is not set. Please provide DATABASE_URL environment variable.");
   }
 
   const client = new PrismaClient({
@@ -41,12 +41,17 @@ const prismaClientSingleton = () => {
   return client;
 };
 
-let prisma: PrismaClient;
+let _prisma: PrismaClient | undefined;
 const schemaSignature = getPrismaSchemaSignature();
 
-if (process.env.NODE_ENV === "production") {
-  prisma = prismaClientSingleton();
-} else {
+const getPrisma = (): PrismaClient => {
+  if (process.env.NODE_ENV === "production") {
+    if (!_prisma) {
+      _prisma = prismaClientSingleton();
+    }
+    return _prisma;
+  }
+
   const shouldRefreshClient =
     !global.cachedPrisma ||
     global.cachedPrismaUrl !== databaseUrl ||
@@ -57,7 +62,17 @@ if (process.env.NODE_ENV === "production") {
     global.cachedPrismaUrl = databaseUrl;
     global.cachedPrismaSchemaSignature = schemaSignature;
   }
-  prisma = global.cachedPrisma!;
-}
+  return global.cachedPrisma!;
+};
 
-export const prismadb = prisma;
+// Use a proxy to lazily initialize the Prisma client only when accessed
+export const prismadb = new Proxy({} as PrismaClient, {
+  get(target, prop, receiver) {
+    const client = getPrisma();
+    const value = Reflect.get(client, prop, receiver);
+    if (typeof value === "function") {
+      return value.bind(client);
+    }
+    return value;
+  },
+});

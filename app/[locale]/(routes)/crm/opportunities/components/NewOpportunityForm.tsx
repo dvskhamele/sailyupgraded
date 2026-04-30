@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import {
   Popover,
   PopoverContent,
@@ -70,7 +71,7 @@ type NewTaskFormProps = {
   campaigns: crm_campaigns[];
   currencies: { code: string; name: string; symbol: string }[];
   categoryOptions?: string[];
-  selectedCategory?: string;
+  selectedCategories?: string[];
   selectedStage?: string;
   accountId?: string;
   onDialogClose: () => void;
@@ -84,7 +85,7 @@ export function NewOpportunityForm({
   campaigns,
   currencies,
   categoryOptions = [],
-  selectedCategory,
+  selectedCategories = [],
   selectedStage,
   accountId,
   onDialogClose,
@@ -137,12 +138,12 @@ export function NewOpportunityForm({
     () =>
       Array.from(
         new Set(
-          [...categoryOptions, selectedCategory ?? ""]
+          [...categoryOptions, ...selectedCategories]
             .map((value) => value.trim())
             .filter(Boolean)
         )
       ),
-    [categoryOptions, selectedCategory]
+    [categoryOptions, selectedCategories]
   );
 
   const formSchema = z.object({
@@ -151,7 +152,7 @@ export function NewOpportunityForm({
     close_date: z.date({
       message: "A expected close date is required.",
     }),
-    category: z.string(),
+    category: z.array(z.string()),
     description: z.string(),
     type: z.string(),
     sales_stage: z.string(),
@@ -173,7 +174,7 @@ export function NewOpportunityForm({
     defaultValues: {
       sales_stage: selectedStage ? selectedStage : "",
       account: accountId ? accountId : "",
-      category: selectedCategory ?? "",
+      category: selectedCategories,
       clientName: "",
       type: "",
       budget: "",
@@ -197,7 +198,7 @@ export function NewOpportunityForm({
       form.reset({
         name: "",
         close_date: new Date(),
-        category: selectedCategory ?? "",
+        category: selectedCategories,
         clientName: "",
         description: "",
         type: "",
@@ -513,25 +514,19 @@ export function NewOpportunityForm({
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Product</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a product" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="flex overflow-y-auto h-56">
-                          {mergedCategoryOptions.map((product) => (
-                            <SelectItem key={product} value={product}>
-                              {product}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Products</FormLabel>
+                      <FormControl>
+                        <MultiSelect
+                          options={mergedCategoryOptions.map((product) => ({
+                            value: product,
+                            label: product,
+                          }))}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                          placeholder="Select products"
+                          disabled={form.formState.isSubmitting}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

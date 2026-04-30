@@ -10,11 +10,14 @@ import resendHelper from "@/lib/resend";
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
 const otpFallbackIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
 const databaseUrl = process.env.DATABASE_URL ?? "";
-const databaseProvider = (databaseUrl.startsWith("postgres") || databaseUrl.startsWith("postgresql"))
-  ? "postgresql"
-  : (databaseUrl.startsWith("mysql") || databaseUrl.startsWith("mariadb"))
-    ? "mysql"
-    : "sqlite";
+const databaseProvider =
+  databaseUrl.startsWith("postgres") || databaseUrl.startsWith("postgresql")
+    ? "postgresql"
+    : databaseUrl.startsWith("mysql") || databaseUrl.startsWith("mariadb")
+      ? "mysql"
+      : databaseUrl === ""
+        ? "mysql" // Default to mysql for the project's primary DB type
+        : "sqlite";
 
 export const auth = betterAuth({
   database: prismaAdapter(prismadb, { provider: databaseProvider }),

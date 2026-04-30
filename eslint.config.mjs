@@ -10,6 +10,11 @@ const config = [
       // components. Downgrading to 'warn' avoids blocking the build while keeping
       // --max-warnings=0 in CI for real errors.
       "react-hooks/incompatible-library": "off",
+      "react-hooks/set-state-in-effect": "warn",
+      "react-hooks/refs": "warn",
+      "react-hooks/static-components": "warn",
+      "react-hooks/globals": "warn",
+      "react-hooks/preserve-manual-memoization": "warn",
     },
   },
 ];

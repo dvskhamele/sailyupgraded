@@ -17,15 +17,15 @@ import { ALL_CATEGORIES_VALUE } from "@/lib/opportunity-categories";
 
 interface CategoryFilterProps {
   categories: string[];
-  selectedCategory: string;
-  onCategoryChange: (category: string) => void;
+  selectedCategories: string[];
+  onCategoryChange: (categories: string[]) => void;
   onAddCategory?: (category: string) => Promise<boolean | void> | boolean | void;
   allowCreate?: boolean;
 }
 
 export function CategoryFilter({
   categories,
-  selectedCategory,
+  selectedCategories,
   onCategoryChange,
   onAddCategory,
   allowCreate = true,
@@ -40,7 +40,17 @@ export function CategoryFilter({
       return;
     }
 
-    onCategoryChange(value);
+    if (value === ALL_CATEGORIES_VALUE) {
+      onCategoryChange([]);
+      return;
+    }
+
+    if (selectedCategories.includes(value)) {
+      onCategoryChange(selectedCategories.filter((category) => category !== value));
+      return;
+    }
+
+    onCategoryChange([...selectedCategories, value]);
   };
 
   const handleAddCategory = async () => {
@@ -80,7 +90,7 @@ export function CategoryFilter({
             className={cn(
               "rounded-full px-4 py-1.5 text-sm transition-all duration-200 border shadow-sm hover:shadow-md",
               "border-slate-200 bg-white text-slate-700 hover:bg-slate-100",
-              selectedCategory === ALL_CATEGORIES_VALUE &&
+              selectedCategories.length === 0 &&
                 "bg-sky-600 text-white border-sky-600 shadow-md hover:bg-sky-600",
             )}
           >
@@ -89,7 +99,7 @@ export function CategoryFilter({
 
           {/* CATEGORY BUTTONS */}
           {categories.map((category) => {
-            const isSelected = selectedCategory === category;
+            const isSelected = selectedCategories.includes(category);
 
             return (
               <Button

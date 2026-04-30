@@ -29,6 +29,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Popover,
@@ -50,6 +51,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { parseOpportunityProducts } from "@/lib/opportunity-products";
 
 type ConfigItem = { id: string; name: string };
 
@@ -103,10 +105,10 @@ export function UpdateOpportunityForm({
     close_date: z.date({
       message: "A expected close date is required.",
     }),
-    category: z.string().nullable().optional(),
     description: z.string().nullable().optional(),
     type: z.string().nullable().optional(),
     sales_stage: z.string().nullable().optional(),
+    category: z.array(z.string()).optional(),
     budget: z.string().nullable().optional(),
     currency: z.string().nullable().optional(),
     expected_revenue: z.string().nullable().optional(),
@@ -125,7 +127,7 @@ export function UpdateOpportunityForm({
     defaultValues: {
       ...initialData,
       close_date: initialData.close_date ? new Date(initialData.close_date) : undefined,
-      category: initialData.category ?? "",
+      category: parseOpportunityProducts(initialData.category),
       clientName: initialData.clientName ?? "",
       description: initialData.description ?? "",
       budget: String(initialData.budget ?? ""),
@@ -462,25 +464,19 @@ export function UpdateOpportunityForm({
                   name="category"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Product</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value ?? ""}
-                        value={field.value ?? ""}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a product" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="flex overflow-y-auto h-56">
-                          {mergedCategoryOptions.map((product) => (
-                            <SelectItem key={product} value={product}>
-                              {product}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormLabel>Products</FormLabel>
+                      <FormControl>
+                        <MultiSelect
+                          options={mergedCategoryOptions.map((product) => ({
+                            value: product,
+                            label: product,
+                          }))}
+                          value={field.value ?? []}
+                          onChange={field.onChange}
+                          placeholder="Select products"
+                          disabled={form.formState.isSubmitting}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
