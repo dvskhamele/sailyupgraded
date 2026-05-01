@@ -38,6 +38,9 @@ function getTrustedAuthOrigins() {
 
 const appUrl = getCanonicalAppUrl();
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
+const allowOtpPreview =
+  process.env.NODE_ENV !== "production" ||
+  process.env.VERCEL_ENV === "preview";
 const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 const seededTestUserEmail = (
   process.env.TEST_USER_EMAIL || "test@nextcrm.app"
@@ -142,6 +145,16 @@ export const auth = betterAuth({
             throw new Error("Email service not configured or EMAIL_FROM missing");
           }
         } catch (e) {
+          if (!allowOtpPreview) {
+            console.error(
+              `[Auth] OTP email send failed for ${email} and preview fallback is disabled`,
+              e
+            );
+            throw e instanceof Error
+              ? e
+              : new Error("Failed to send verification code");
+          }
+
           // Preserve sign-in flow when email delivery is unavailable by storing
           // a short-lived fallback OTP the UI can display directly.
           try {
