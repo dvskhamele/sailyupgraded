@@ -35,6 +35,20 @@ export function LoginComponent() {
   const [otp, setOtp] = useState("");
   const [devOtp, setDevOtp] = useState("");
 
+  const completeOtpLogin = async (loginEmail: string, loginOtp: string) => {
+    const { error } = await authClient.signIn.emailOtp({
+      email: loginEmail,
+      otp: loginOtp,
+    });
+
+    if (error) {
+      throw new Error(error.message || "Invalid or expired code.");
+    }
+
+    toast.success("Login successful.");
+    window.location.href = "/";
+  };
+
   const loginWithGoogle = async () => {
     setIsLoading(true);
     try {
@@ -80,13 +94,8 @@ export function LoginComponent() {
             const data = await response.json();
             if (data?.otp) {
               setEmail(normalizedEmail);
-              setStep("otp");
               setDevOtp(data.otp);
-              toast.success(
-                data.source === "fallback"
-                  ? `Email unavailable. Use code: ${data.otp}`
-                  : `Development OTP: ${data.otp}`
-              );
+              await completeOtpLogin(normalizedEmail, data.otp);
               return;
             }
           }
@@ -108,10 +117,9 @@ export function LoginComponent() {
           if (fallbackResponse.ok) {
             const fallbackData = await fallbackResponse.json();
             setEmail(normalizedEmail);
-            setStep("otp");
             setDevOtp(fallbackData.otp);
             usedDevFallback = true;
-            toast.success(`Development OTP: ${fallbackData.otp}`);
+            await completeOtpLogin(normalizedEmail, fallbackData.otp);
           } else {
             toast.error(error.message || "Failed to send verification code.");
             return;
@@ -148,18 +156,9 @@ export function LoginComponent() {
     }
     setIsLoading(true);
     try {
-      const { error } = await authClient.signIn.emailOtp({
-        email,
-        otp,
-      });
-      if (error) {
-        toast.error(error.message || "Invalid or expired code.");
-        return;
-      }
-      toast.success("Login successful.");
-      window.location.href = "/";
+      await completeOtpLogin(email, otp);
     } catch (error) {
-      toast.error("Verification failed.");
+      toast.error(error instanceof Error ? error.message : "Verification failed.");
     } finally {
       setIsLoading(false);
     }
