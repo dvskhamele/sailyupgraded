@@ -8,6 +8,10 @@ import { Users } from "@prisma/client";
 
 const PendingPage = async () => {
   const session = await getSession();
+  const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const seededTestUserEmail = (
+    process.env.TEST_USER_EMAIL || "test@nextcrm.app"
+  ).trim().toLowerCase();
 
   if (session?.user.userStatus !== "PENDING") {
     return redirect("/");
@@ -21,8 +25,26 @@ const PendingPage = async () => {
   });
 
   const usersCount = await prismadb.users.count();
+  const nonSeedUsersCount = await prismadb.users.count({
+    where: {
+      email: {
+        not: seededTestUserEmail,
+      },
+    },
+  });
+  const normalizedSessionEmail = session?.user.email?.trim().toLowerCase();
+  const shouldActivateConfiguredAdmin =
+    Boolean(configuredAdminEmail) &&
+    normalizedSessionEmail === configuredAdminEmail;
+  const shouldActivateFirstRealUser =
+    normalizedSessionEmail !== seededTestUserEmail && nonSeedUsersCount === 1;
 
-  if (session?.user.id && adminUsers.length === 0 && usersCount === 1) {
+  if (
+    session?.user.id &&
+    ((adminUsers.length === 0 && usersCount === 1) ||
+      shouldActivateConfiguredAdmin ||
+      shouldActivateFirstRealUser)
+  ) {
     await prismadb.users.update({
       where: { id: session.user.id },
       data: {

@@ -38,6 +38,10 @@ function getTrustedAuthOrigins() {
 
 const appUrl = getCanonicalAppUrl();
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
+const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+const seededTestUserEmail = (
+  process.env.TEST_USER_EMAIL || "test@nextcrm.app"
+).trim().toLowerCase();
 const otpFallbackIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const databaseProvider =
@@ -177,18 +181,30 @@ export const auth = betterAuth({
   callbacks: {
     async onUserCreated(user: { id: string }) {
       // Check if this is the first user — make them admin
-      const count = await prismadb.users.count();
-      if (count === 1) {
+      const dbUser = await prismadb.users.findUnique({ where: { id: user.id } });
+      if (!dbUser) return;
+
+      const normalizedEmail = dbUser.email.trim().toLowerCase();
+      const shouldPromoteConfiguredAdmin =
+        Boolean(configuredAdminEmail) && normalizedEmail === configuredAdminEmail;
+      const shouldPromoteFirstRealUser =
+        normalizedEmail !== seededTestUserEmail &&
+        (await prismadb.users.count({
+          where: {
+            email: {
+              not: seededTestUserEmail,
+            },
+          },
+        })) === 1;
+
+      if (shouldPromoteConfiguredAdmin || shouldPromoteFirstRealUser) {
         await prismadb.users.update({
           where: { id: user.id },
           data: { role: "admin", userStatus: "ACTIVE" },
         });
       } else if (!isDemo) {
         // Notify admins about new pending user
-        const dbUser = await prismadb.users.findUnique({ where: { id: user.id } });
-        if (dbUser) {
-          await newUserNotify(dbUser);
-        }
+        await newUserNotify(dbUser);
       }
     },
   },

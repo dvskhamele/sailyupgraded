@@ -119,7 +119,10 @@ async function main() {
   console.log("Lead Types seeded");
 
   // Test User for E2E Testing
-  const testUserEmail = process.env.TEST_USER_EMAIL || "test@nextcrm.app";
+  const testUserEmail =
+    process.env.ADMIN_EMAIL ||
+    process.env.TEST_USER_EMAIL ||
+    "test@nextcrm.app";
   await prisma.users.upsert({
     where: { email: testUserEmail },
     update: {
