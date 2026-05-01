@@ -25,7 +25,8 @@ import {
 type Step = "email" | "otp";
 const allowDevOtpPreview =
   process.env.NODE_ENV !== "production" ||
-  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview";
+  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ||
+  process.env.NEXT_PUBLIC_ENABLE_OTP_PREVIEW === "true";
 
 export function LoginComponent() {
   const [isLoading, setIsLoading] = useState(false);

@@ -7,7 +7,8 @@ const fallbackOtpIdentifier = (email: string) =>
   `fallback-otp-${email.toLowerCase()}`;
 const allowOtpBypass =
   process.env.NODE_ENV !== "production" ||
-  process.env.VERCEL_ENV === "preview";
+  process.env.VERCEL_ENV === "preview" ||
+  process.env.ENABLE_OTP_PREVIEW === "true";
 
 function generateOtp() {
   return randomInt(0, 1_000_000).toString().padStart(6, "0");

@@ -40,7 +40,8 @@ const appUrl = getCanonicalAppUrl();
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
 const allowOtpPreview =
   process.env.NODE_ENV !== "production" ||
-  process.env.VERCEL_ENV === "preview";
+  process.env.VERCEL_ENV === "preview" ||
+  process.env.ENABLE_OTP_PREVIEW === "true";
 const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 const seededTestUserEmail = (
   process.env.TEST_USER_EMAIL || "test@nextcrm.app"

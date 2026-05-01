@@ -3,7 +3,8 @@ import { prismadb } from "@/lib/prisma";
 
 const allowOtpPreview =
   process.env.NODE_ENV !== "production" ||
-  process.env.VERCEL_ENV === "preview";
+  process.env.VERCEL_ENV === "preview" ||
+  process.env.ENABLE_OTP_PREVIEW === "true";
 
 export async function GET(request: NextRequest) {
   if (!allowOtpPreview) {
