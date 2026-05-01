@@ -5,12 +5,9 @@ export const getContactsMenuItem = (): NavItem => {
   return {
     title: "Contacts",
     icon: Contact,
+    url: "/crm/contacts",
+    alwaysOpen: true,
     items: [
-      {
-        title: "Contact",
-        url: "/crm/contacts",
-        exact: true,
-      },
       {
         title: "Leads",
         url: "/crm/leads",
@@ -25,11 +22,6 @@ export const getContactsMenuItem = (): NavItem => {
         title: "Agents",
         url: "/crm/contacts?role=agent",
         exact: true,
-      },
-      {
-        title: "Vendors",
-        url: "/crm/contacts?role=vendor",
-        exact: true, 
       },
       {
         title: "Others",

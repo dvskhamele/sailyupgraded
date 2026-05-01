@@ -35,10 +35,10 @@ export const getCrmMenuItem = ({ localizations }: Props): NavItem => {
         title: localizations.products,
         url: "/crm/products",
       },
-      {
-        title: "Overview",
-        url: "/crm",
-      },
+      // {
+      //   title: "Overview",
+      //   url: "/crm",
+      // },
     ],
   };
 };
