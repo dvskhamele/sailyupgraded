@@ -1,3 +1,5 @@
+import type { Prisma } from "@prisma/client";
+
 export const CONTACT_ROLE_OPTIONS = [
   "Agent",
   "Customer",
@@ -20,7 +22,9 @@ export function normalizeContactRole(role?: string | null): ContactRole {
   return "Customer";
 }
 
-export function buildContactRoleFilter(role?: string | null) {
+export function buildContactRoleFilter(
+  role?: string | null
+): Prisma.crm_ContactsWhereInput {
   const normalizedRole = role?.trim().toLowerCase();
 
   if (!normalizedRole) {
@@ -55,14 +59,9 @@ export function buildContactRoleFilter(role?: string | null) {
 
   if (normalizedRole === "others" || normalizedRole === "other") {
     return {
-      OR: [
-        { role: null },
-        {
-          role: {
-            notIn: ["Customer", "Client", "Agent", "Vendor"],
-          },
-        },
-      ],
+      role: {
+        notIn: ["Customer", "Client", "Agent", "Vendor", "Partner"],
+      },
     };
   }
 
