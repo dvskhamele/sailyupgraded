@@ -1,6 +1,9 @@
 import { routing } from "./i18n/routing";
 import { NextRequest, NextResponse } from "next/server";
 const AUTH_PATHS = ["/sign-in", "/register", "/pending", "/inactive"];
+const bypassLogin =
+  process.env.BYPASS_LOGIN === "true" ||
+  process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";
 
 // Admin-only API paths — cookie presence checked here, role checked server-side
 const ADMIN_ONLY_PATHS = [
@@ -37,6 +40,10 @@ function hasSessionCookie(req: NextRequest) {
 
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
+
+  if (bypassLogin && !path.startsWith("/api/auth")) {
+    return NextResponse.next();
+  }
 
   // Inngest webhook — pass through, Inngest handles its own auth via signing key
   if (path.startsWith("/api/inngest")) {
