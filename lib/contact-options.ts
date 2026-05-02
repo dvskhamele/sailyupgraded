@@ -19,3 +19,52 @@ export function normalizeContactRole(role?: string | null): ContactRole {
 
   return "Customer";
 }
+
+export function buildContactRoleFilter(role?: string | null) {
+  const normalizedRole = role?.trim().toLowerCase();
+
+  if (!normalizedRole) {
+    return {};
+  }
+
+  if (normalizedRole === "customer" || normalizedRole === "customers" || normalizedRole === "client") {
+    return {
+      role: {
+        in: ["Customer", "Client"],
+      },
+    };
+  }
+
+  if (normalizedRole === "agent" || normalizedRole === "agents") {
+    return {
+      role: "Agent",
+    };
+  }
+
+  if (normalizedRole === "vendor" || normalizedRole === "vendors") {
+    return {
+      role: "Vendor",
+    };
+  }
+
+  if (normalizedRole === "partner" || normalizedRole === "partners") {
+    return {
+      role: "Partner",
+    };
+  }
+
+  if (normalizedRole === "others" || normalizedRole === "other") {
+    return {
+      OR: [
+        { role: null },
+        {
+          role: {
+            notIn: ["Customer", "Client", "Agent", "Vendor"],
+          },
+        },
+      ],
+    };
+  }
+
+  return {};
+}

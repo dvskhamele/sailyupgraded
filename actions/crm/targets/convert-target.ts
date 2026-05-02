@@ -66,6 +66,7 @@ export async function convertTarget(
           accountsIDs: acct.id,
           created_by: (session.user as any).id,
         },
+        select: { id: true },
       });
 
       await tx.crm_Targets.update({

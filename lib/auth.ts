@@ -7,6 +7,36 @@ import { ac, admin, member, viewer } from "@/lib/auth-permissions";
 import { newUserNotify } from "@/lib/new-user-notify";
 import resendHelper from "@/lib/resend";
 
+function getCanonicalAppUrl() {
+  if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  if (process.env.NEXT_PUBLIC_APP_URL) return process.env.NEXT_PUBLIC_APP_URL;
+  return "http://localhost:3000";
+}
+
+function getTrustedAuthOrigins() {
+  const origins = new Set<string>();
+
+  const addOrigin = (value?: string) => {
+    if (!value) return;
+    try {
+      const normalized = value.includes("://") ? value : `https://${value}`;
+      origins.add(new URL(normalized).origin);
+    } catch {
+      // Ignore invalid env values instead of crashing auth boot.
+    }
+  };
+
+  addOrigin(process.env.BETTER_AUTH_URL);
+  addOrigin(process.env.NEXT_PUBLIC_APP_URL);
+  addOrigin(process.env.VERCEL_URL);
+  addOrigin(process.env.VERCEL_PROJECT_PRODUCTION_URL);
+  origins.add("https://*.vercel.app");
+
+  return Array.from(origins);
+}
+
+const appUrl = getCanonicalAppUrl();
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
 const otpFallbackIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
 const databaseUrl = process.env.DATABASE_URL ?? "";
@@ -22,10 +52,8 @@ const databaseProvider =
 export const auth = betterAuth({
   database: prismaAdapter(prismadb, { provider: databaseProvider }),
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-must-change",
-  baseURL:
-    process.env.BETTER_AUTH_URL ||
-    process.env.NEXT_PUBLIC_APP_URL ||
-    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000"),
+  baseURL: appUrl,
+  trustedOrigins: getTrustedAuthOrigins(),
   advanced: {
     database: {
       generateId: "uuid",

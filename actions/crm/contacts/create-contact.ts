@@ -7,7 +7,13 @@ import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
+import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+
+function isMissingContactSerialColumnError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.toLowerCase().includes("crm_contacts.serial") || message.toLowerCase().includes("crm_contacts`.`serial");
+}
 
 export const createContact = async (data: {
   serial?: string;
@@ -98,9 +104,25 @@ export const createContact = async (data: {
   });
 
   try {
-    const contact = await prismadb.crm_Contacts.create({
-      data: supportedCreateFields as any,
-    });
+    const contactSelect = await getCrmContactDetailSelect();
+    let contact;
+
+    try {
+      contact = await prismadb.crm_Contacts.create({
+        data: supportedCreateFields as any,
+        select: contactSelect,
+      });
+    } catch (error) {
+      if (!isMissingContactSerialColumnError(error) || !("serial" in supportedCreateFields)) {
+        throw error;
+      }
+
+      const { serial: _serial, ...fallbackCreateFields } = supportedCreateFields as Record<string, unknown>;
+      contact = await prismadb.crm_Contacts.create({
+        data: fallbackCreateFields as any,
+        select: contactSelect,
+      });
+    }
 
     if (assigned_to && assigned_to !== userId) {
       const notifyRecipient = await prismadb.users.findFirst({

@@ -6,7 +6,13 @@ import { inngest } from "@/inngest/client";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
+import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+
+function isMissingContactSerialColumnError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.toLowerCase().includes("crm_contacts.serial") || message.toLowerCase().includes("crm_contacts`.`serial");
+}
 
 export const updateContact = async (data: {
   id: string;
@@ -98,11 +104,32 @@ export const updateContact = async (data: {
   });
 
   try {
-    const before = await prismadb.crm_Contacts.findUnique({ where: { id, deletedAt: null } });
-    const contact = await prismadb.crm_Contacts.update({
-      where: { id },
-      data: supportedUpdateFields as any,
+    const contactSelect = await getCrmContactDetailSelect();
+    const before = await prismadb.crm_Contacts.findUnique({
+      where: { id, deletedAt: null },
+      select: contactSelect,
     });
+    let contact;
+
+    try {
+      contact = await prismadb.crm_Contacts.update({
+        where: { id },
+        data: supportedUpdateFields as any,
+        select: contactSelect,
+      });
+    } catch (error) {
+      if (!isMissingContactSerialColumnError(error) || !("serial" in supportedUpdateFields)) {
+        throw error;
+      }
+
+      const { serial: _serial, ...fallbackUpdateFields } = supportedUpdateFields as Record<string, unknown>;
+      contact = await prismadb.crm_Contacts.update({
+        where: { id },
+        data: fallbackUpdateFields as any,
+        select: contactSelect,
+      });
+    }
+
     const changes = before ? diffObjects(before as Record<string, unknown>, contact as Record<string, unknown>) : null;
     await writeAuditLog({
       entityType: "contact",

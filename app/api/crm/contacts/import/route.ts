@@ -497,6 +497,7 @@ export async function POST(request: NextRequest) {
             updatedBy: userId,
             ...contactPayload,
           } as any,
+          select: { id: true },
         });
         updated += 1;
       } else {
@@ -509,6 +510,7 @@ export async function POST(request: NextRequest) {
             tags: [],
             notes: {},
           } as any,
+          select: { id: true },
         });
 
         if (candidate.normalizedEmail) {

@@ -44,6 +44,7 @@ export async function POST(req: Request) {
         tags: [tag],
         notes: ["Account: " + company, "Message: " + message],
       },
+      select: { id: true },
     });
     return NextResponse.json({ message: "Contact created" });
   } catch (error) {

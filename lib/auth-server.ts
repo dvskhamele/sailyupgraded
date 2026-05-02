@@ -1,11 +1,10 @@
-import { cache } from "react";
 import { auth } from "@/lib/auth";
 import { headers } from "next/headers";
 
 // TODO: Add requireRole() helper for viewer restriction enforcement
 // when viewer role is first assigned to users
 
-export const getSession = cache(async () => {
+export async function getSession() {
   try {
     return await auth.api.getSession({
       headers: await headers(),
@@ -14,4 +13,4 @@ export const getSession = cache(async () => {
     console.error("[AUTH_GET_SESSION]", error);
     return null;
   }
-});
+}

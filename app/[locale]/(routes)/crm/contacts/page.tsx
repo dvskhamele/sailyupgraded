@@ -15,42 +15,10 @@ type Props = {
 
 const AccountsPage = async ({ searchParams }: Props) => {
   const t = await getTranslations("CrmPage");
-  const crmData = await getAllCrmData();
-  const contacts = await getContacts();
   const params = await searchParams;
   const roleParam = Array.isArray(params.role) ? params.role[0] : params.role;
-  const normalizedRole = roleParam?.toLowerCase();
-
-  const filteredContacts = normalizedRole
-    ? contacts.filter((contact: any) => {
-        const role =
-          contact.role?.toLowerCase() ??
-          contact.contact_type?.name?.toLowerCase() ??
-          "customer";
-
-        if (normalizedRole === "customer") {
-          return role === "customer" || role === "client";
-        }
-
-        if (normalizedRole === "agent") {
-          return role === "agent";
-        }
-
-        if (normalizedRole === "partner") {
-          return role === "partner";
-        }
-
-        if (normalizedRole === "vendor") {
-          return role === "vendor";
-        }
-
-        if (normalizedRole === "others") {
-          return !["customer", "client", "agent", "partner", "vendor"].includes(role);
-        }
-
-        return true;
-      })
-    : contacts;
+  const crmData = await getAllCrmData();
+  const contacts = await getContacts(roleParam);
 
   return (
     <Container
@@ -60,7 +28,7 @@ const AccountsPage = async ({ searchParams }: Props) => {
       <div className="flex flex-col space-y-4">
         {/* <ContactSearch crmData={crmData} /> */}
         <Suspense fallback={<CrmTableSkeleton />}>
-          <ContactsView crmData={crmData} data={filteredContacts} />
+          <ContactsView crmData={crmData} data={contacts} />
         </Suspense>
       </div>
     </Container>

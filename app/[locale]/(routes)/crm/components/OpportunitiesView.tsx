@@ -22,6 +22,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 
 import { createColumns } from "../opportunities/table-components/columns";
+import { ImportOpportunitiesDialog } from "../opportunities/components/ImportOpportunitiesDialog";
 import { NewOpportunityForm } from "../opportunities/components/NewOpportunityForm";
 import { OpportunitiesDataTable } from "../opportunities/table-components/data-table";
 
@@ -136,6 +137,7 @@ const OpportunitiesView = ({
             </CardTitle>
           </div>
           <div className="flex space-x-2">
+            <ImportOpportunitiesDialog />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button className="my-2 cursor-pointer" aria-label={t("opportunities.addNew")} data-testid="add-opportunity-btn">+</Button>

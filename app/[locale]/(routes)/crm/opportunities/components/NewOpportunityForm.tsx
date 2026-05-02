@@ -169,7 +169,6 @@ export function NewOpportunityForm({
 
   const formSchema = z.object({
     name: z.string().min(1, t("nameRequired")),
-    clientName: z.string(),
     close_date: z.date({
       message: "A expected close date is required.",
     }),
@@ -196,7 +195,6 @@ export function NewOpportunityForm({
       sales_stage: selectedStage ? selectedStage : "",
       account: accountId ? accountId : "",
       category: selectedCategories,
-      clientName: "",
       type: "",
       budget: "",
       currency: "",
@@ -220,7 +218,6 @@ export function NewOpportunityForm({
         name: "",
         close_date: new Date(),
         category: selectedCategories,
-        clientName: "",
         description: "",
         type: "",
         sales_stage: "",
@@ -505,23 +502,6 @@ export function NewOpportunityForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="New NextCRM functionality"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="clientName"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Client Name</FormLabel>
-                  <FormControl>
-                    <Input
-                      disabled={form.formState.isSubmitting}
-                      placeholder="John Doe"
                       {...field}
                     />
                   </FormControl>
