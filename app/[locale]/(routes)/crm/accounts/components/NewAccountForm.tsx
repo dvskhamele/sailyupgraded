@@ -97,7 +97,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                   <FormControl>
                     <Input
                       disabled={form.formState.isSubmitting}
-                      placeholder="NextCRM Inc."
+                      placeholder="Saily Inc."
                       {...field}
                     />
                   </FormControl>

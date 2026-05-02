@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import {
@@ -25,6 +26,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { matchesContactRoleFilter } from "@/lib/contact-options";
 
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 
@@ -34,13 +36,20 @@ interface ContactsViewProps {
   data: any[];
   crmData: CrmData;
   accountId?: string;
+  activeRole?: string;
 }
 
-const ContactsView = ({ data, crmData }: ContactsViewProps) => {
+const ContactsView = ({ data, crmData, activeRole }: ContactsViewProps) => {
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
+  const searchParams = useSearchParams();
 
-  const { accounts, contactTypes } = crmData;
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
+  const currentRole = searchParams.get("role") ?? activeRole ?? null;
+  const filteredData = useMemo(
+    () => data.filter((contact) => matchesContactRoleFilter(currentRole, contact.role)),
+    [currentRole, data]
+  );
 
   return (
     <Card>
@@ -48,7 +57,7 @@ const ContactsView = ({ data, crmData }: ContactsViewProps) => {
         <div className="flex justify-between">
           <div>
             <CardTitle>
-              <Link href="/crm/contacts" className="hover:underline">
+              <Link href="/crm/contacts" prefetch={false} className="hover:underline">
                 {t("contacts.viewTitle")}
               </Link>
             </CardTitle>
@@ -70,6 +79,9 @@ const ContactsView = ({ data, crmData }: ContactsViewProps) => {
                   <NewContactForm
                     accounts={accounts}
                     contactTypes={contactTypes}
+                    leadSources={leadSources}
+                    leadStatuses={leadStatuses}
+                    leadTypes={leadTypes}
                     onFinish={() => setOpen(false)}
                   />
                 </div>
@@ -81,11 +93,11 @@ const ContactsView = ({ data, crmData }: ContactsViewProps) => {
       </CardHeader>
 
       <CardContent>
-        {!data || data.length === 0 ? (
+        {!filteredData || filteredData.length === 0 ? (
           t("contacts.empty")
         ) : (
           <ContactsDataTable
-            data={data}
+            data={filteredData}
             columns={createColumns(contactTypes)}
           />
         )}

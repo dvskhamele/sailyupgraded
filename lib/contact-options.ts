@@ -60,10 +60,50 @@ export function buildContactRoleFilter(
   if (normalizedRole === "others" || normalizedRole === "other") {
     return {
       role: {
-        notIn: ["Customer", "Client", "Agent", "Vendor", "Partner"],
+        notIn: ["Customer", "Client", "Agent"],
       },
     };
   }
 
   return {};
+}
+
+export function matchesContactRoleFilter(
+  filterRole?: string | null,
+  contactRole?: string | null
+): boolean {
+  const normalizedFilter = filterRole?.trim().toLowerCase();
+  const normalizedContactRole = contactRole?.trim().toLowerCase();
+
+  if (!normalizedFilter) {
+    return true;
+  }
+
+  if (
+    normalizedFilter === "customer" ||
+    normalizedFilter === "customers" ||
+    normalizedFilter === "client"
+  ) {
+    return normalizedContactRole === "customer" || normalizedContactRole === "client";
+  }
+
+  if (normalizedFilter === "agent" || normalizedFilter === "agents") {
+    return normalizedContactRole === "agent";
+  }
+
+  if (normalizedFilter === "vendor" || normalizedFilter === "vendors") {
+    return normalizedContactRole === "vendor";
+  }
+
+  if (normalizedFilter === "partner" || normalizedFilter === "partners") {
+    return normalizedContactRole === "partner";
+  }
+
+  if (normalizedFilter === "others" || normalizedFilter === "other") {
+    return normalizedContactRole !== "customer" &&
+      normalizedContactRole !== "client" &&
+      normalizedContactRole !== "agent";
+  }
+
+  return true;
 }

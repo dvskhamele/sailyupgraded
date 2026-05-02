@@ -64,7 +64,7 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
   {
     accessorKey: "assigned_account",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Assigned account" />
+      <DataTableColumnHeader column={column} title="Assigned company" />
     ),
     cell: ({ row }) => (
       <div className="min-w-[150px]">
@@ -89,7 +89,7 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
       <DataTableColumnHeader column={column} title="Sure name" />
     ),
     cell: ({ row }) => (
-      <Link href={`/crm/contacts/${row.original.id}`} data-testid="contact-row-name">
+      <Link href={`/crm/contacts/${row.original.id}`} prefetch={false} data-testid="contact-row-name">
         <div className="">{row.getValue("last_name")}</div>
       </Link>
     ),

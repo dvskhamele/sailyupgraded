@@ -1,5 +1,8 @@
 import { cache } from "react";
-import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+import {
+  pickExistingDbModelFields,
+  pickSupportedModelFields,
+} from "@/lib/prisma-model-fields";
 
 const contactScalarListFieldValues = {
   id: true,
@@ -16,8 +19,11 @@ const contactScalarListFieldValues = {
   updatedBy: true,
   last_activity_by: true,
   description: true,
+  company: true,
+  jobTitle: true,
   email: true,
   personal_email: true,
+  phone: true,
   first_name: true,
   last_name: true,
   office_phone: true,
@@ -33,6 +39,11 @@ const contactScalarListFieldValues = {
   position: true,
   status: true,
   role: true,
+  lead_source_id: true,
+  lead_status_id: true,
+  lead_type_id: true,
+  refered_by: true,
+  campaign: true,
   social_twitter: true,
   social_facebook: true,
   social_linkedin: true,
@@ -48,6 +59,24 @@ const contactScalarListFieldValues = {
 
 const contactListRelationSelect = {
   contact_type: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  lead_source: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  lead_status: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  lead_type: {
     select: {
       id: true,
       name: true,
@@ -93,6 +122,24 @@ const contactListRelationSelect = {
 
 const contactDetailRelationSelect = {
   contact_type: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  lead_source: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  lead_status: {
+    select: {
+      id: true,
+      name: true,
+    },
+  },
+  lead_type: {
     select: {
       id: true,
       name: true,
@@ -158,12 +205,20 @@ const getContactScalarListFields = cache(async () =>
   pickExistingDbModelFields("crm_Contacts", contactScalarListFieldValues)
 );
 
+const getContactListRelationFields = cache(async () =>
+  pickSupportedModelFields("crm_Contacts", contactListRelationSelect)
+);
+
+const getContactDetailRelationFields = cache(async () =>
+  pickSupportedModelFields("crm_Contacts", contactDetailRelationSelect)
+);
+
 export const getCrmContactListSelect = cache(async () => ({
   ...(await getContactScalarListFields()),
-  ...contactListRelationSelect,
+  ...(await getContactListRelationFields()),
 }));
 
 export const getCrmContactDetailSelect = cache(async () => ({
   ...(await getContactScalarListFields()),
-  ...contactDetailRelationSelect,
+  ...(await getContactDetailRelationFields()),
 }));

@@ -23,8 +23,11 @@ export const updateContact = async (data: {
   birthday_month?: string | null;
   birthday_year?: string | null;
   description?: string | null;
+  company?: string | null;
+  jobTitle?: string | null;
   email?: string;
   personal_email?: string | null;
+  phone?: string | null;
   first_name?: string | null;
   last_name?: string;
   office_phone?: string | null;
@@ -40,6 +43,11 @@ export const updateContact = async (data: {
   position?: string | null;
   status?: boolean;
   role?: string | null;
+  lead_source_id?: string | null;
+  lead_status_id?: string | null;
+  lead_type_id?: string | null;
+  refered_by?: string | null;
+  campaign?: string | null;
   social_twitter?: string | null;
   social_facebook?: string | null;
   social_linkedin?: string | null;

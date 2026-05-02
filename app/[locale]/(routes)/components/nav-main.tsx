@@ -143,7 +143,7 @@ export function NavMain({ items, dict }: NavMainProps) {
               asChild
               isActive={isActive}
             >
-              <Link href={subItem.url}>
+              <Link href={subItem.url} prefetch={false}>
                 <span>{subItem.title}</span>
               </Link>
             </SidebarMenuSubButton>
@@ -171,7 +171,7 @@ export function NavMain({ items, dict }: NavMainProps) {
                     isActive={hasActive || (!!item.url && isRouteActive(item.url))}
                   >
                     {item.url ? (
-                      <Link href={item.url}>
+                      <Link href={item.url} prefetch={false}>
                         {item.icon && <item.icon />}
                         <span>{item.title}</span>
                       </Link>
@@ -227,7 +227,7 @@ export function NavMain({ items, dict }: NavMainProps) {
                 tooltip={item.title}
                 isActive={isActive}
               >
-                <Link href={item.url}>
+                <Link href={item.url} prefetch={false}>
                   {item.icon && <item.icon />}
                   <span>{item.title}</span>
                 </Link>

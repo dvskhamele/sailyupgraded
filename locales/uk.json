@@ -1,7 +1,7 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "NextCRM — це CRM з відкритим вихідним кодом, створена на основі NextJS."
+    "title": "Saily",
+    "description": "Saily — це CRM з відкритим вихідним кодом, створена на основі NextJS."
   },
   "ModuleMenu": {
     "dashboard": "Панель приладів",

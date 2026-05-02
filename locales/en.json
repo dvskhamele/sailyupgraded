@@ -1,7 +1,7 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "NextCRM is an open source CRM build on top of NextJS."
+    "title": "Saily",
+    "description": "Saily is an open source CRM build on top of NextJS."
   },
   "ModuleMenu": {
     "dashboard": "Dashboard",
@@ -97,7 +97,7 @@
     "accounts": {
       "pageTitle": "Accounts",
       "pageDescription": "Everything you need to know about your accounts",
-      "viewTitle": "Accounts",
+      "viewTitle": "Company",
       "addNew": "Add new account",
       "sheetTitle": "Create new Account",
       "sheetDescription": "Add a new company or organization to your CRM system. Fill in the account details and industry information.",
@@ -213,7 +213,7 @@
     "descriptionPlaceholder": "Useful information about the contact",
     "assignedUser": "Assigned user",
     "assignedUserPlaceholder": "Choose a user",
-    "assignAccount": "Assign an Account",
+    "assignAccount": "Assign an company",
     "assignAccountPlaceholder": "Choose assigned account",
     "position": "Position",
     "isActive": "Is contact active?",
@@ -280,7 +280,7 @@
     "leadSourcePlaceholder": "Select lead source",
     "referredBy": "Referred by",
     "campaign": "Campaign",
-    "assignAccount": "Assign an account",
+    "assignAccount": "Assign an company",
     "assignAccountPlaceholder": "Choose account",
     "createButton": "Create lead",
     "updateButton": "Update lead",

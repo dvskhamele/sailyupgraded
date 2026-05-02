@@ -18,7 +18,7 @@ const AccountsPage = async ({ searchParams }: Props) => {
   const params = await searchParams;
   const roleParam = Array.isArray(params.role) ? params.role[0] : params.role;
   const crmData = await getAllCrmData();
-  const contacts = await getContacts(roleParam);
+  const contacts = await getContacts();
 
   return (
     <Container
@@ -28,7 +28,7 @@ const AccountsPage = async ({ searchParams }: Props) => {
       <div className="flex flex-col space-y-4">
         {/* <ContactSearch crmData={crmData} /> */}
         <Suspense fallback={<CrmTableSkeleton />}>
-          <ContactsView crmData={crmData} data={contacts} />
+          <ContactsView crmData={crmData} data={contacts} activeRole={roleParam} />
         </Suspense>
       </div>
     </Container>

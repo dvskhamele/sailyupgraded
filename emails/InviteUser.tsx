@@ -32,8 +32,8 @@ export const InviteUserEmail = ({
 }: VercelInviteUserEmailProps) => {
   const previewText =
     userLanguage === "en"
-      ? `You have been invited by ${invitedByUsername} to NextCRM app`
-      : `Byl jste pozván uživatelem ${invitedByUsername} do aplikace NextCRM`;
+      ? `You have been invited by ${invitedByUsername} to Saily app`
+      : `Byl jste pozván uživatelem ${invitedByUsername} do aplikace Saily`;
 
   return (
     <Html>

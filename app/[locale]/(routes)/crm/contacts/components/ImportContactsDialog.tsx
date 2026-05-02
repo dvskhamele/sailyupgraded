@@ -107,7 +107,7 @@ const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
   { key: "role", label: "Role" },
   { key: "contact_type_id", label: "Contact type" },
   { key: "assigned_to", label: "Assigned user" },
-  { key: "assigned_account", label: "Assigned account" },
+  { key: "assigned_account", label: "Assigned company" },
   { key: "social_twitter", label: "Twitter" },
   { key: "social_facebook", label: "Facebook" },
   { key: "social_linkedin", label: "LinkedIn" },

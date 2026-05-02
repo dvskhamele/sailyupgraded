@@ -31,7 +31,7 @@ interface OppsViewProps {
 export async function BasicView({ data }: OppsViewProps) {
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const { accounts, leadSources, leadStatuses, leadTypes } = crmData;
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
   const fallbackProductNames =
     data?.assigned_accounts?.accountProducts
       ?.map((item: any) => item.product?.name)
@@ -54,6 +54,7 @@ export async function BasicView({ data }: OppsViewProps) {
             <LeadDetailActions
               lead={data}
               accounts={accounts}
+              contactTypes={contactTypes}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}

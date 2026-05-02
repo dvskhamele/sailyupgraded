@@ -71,12 +71,16 @@ model crm_Leads {
   createdBy         String?
   updatedAt         DateTime?          @updatedAt
   updatedBy         String?
+  serial            Int?
   firstName         String
   lastName          String?
   company           String?
   jobTitle          String?
   email             String?
+  personal_email    String?
   phone             String?
+  office_phone      String?
+  mobile_phone      String?
   description       String?
   lead_source_id    String?
   lead_status_id    String?
@@ -95,9 +99,28 @@ model crm_Leads {
   postal_code       String?
   state             String?
   order             Int                @default(0)
+  headline          String?            @db.VarChar(255)
+  website           String?            @db.VarChar(255)
+  social_twitter    String?            @map("twitter") @db.VarChar(255)
+  social_linkedin   String?            @map("linkedin_url") @db.VarChar(255)
+  birthday          DateTime?          @db.Date
+  username          String?
+  message_snippet   String?            @db.Text
+  message_date      DateTime?          @db.DateTime(0)
+  source_platform   String?            @db.VarChar(50)
+  position          String?
+  status            Boolean            @default(true)
+  role              String?            @default("Customer")
+  social_facebook   String?
+  social_skype      String?
+  social_instagram  String?
+  social_youtube    String?
+  social_tiktok     String?
+  contact_type_id   String?
   documents         DocumentsToLeads[]
   assigned_accounts crm_Accounts?      @relation(fields: [accountsIDs], references: [id])
   assigned_to_user  Users?             @relation("LeadAssignedTo", fields: [assigned_to], references: [id])
+  contact_type      crm_Contact_Types? @relation(fields: [contact_type_id], references: [id])
   lead_source       crm_Lead_Sources?  @relation("lead_source_relation", fields: [lead_source_id], references: [id])
   lead_status       crm_Lead_Statuses? @relation("lead_status_relation", fields: [lead_status_id], references: [id])
   lead_type         crm_Lead_Types?    @relation("lead_type_relation", fields: [lead_type_id], references: [id])
@@ -106,6 +129,8 @@ model crm_Leads {
   @@index([accountsIDs])
   @@index([createdBy])
   @@index([updatedBy])
+  @@index([status])
+  @@index([contact_type_id])
   @@index([lead_source_id])
   @@index([lead_status_id])
   @@index([lead_type_id])
@@ -358,34 +383,38 @@ model crm_Contact_Types {
   v        Int            @default(0) @map("__v")
   name     String         @unique
   contacts crm_Contacts[]
+  leads    crm_Leads[]
 
   @@index([name])
 }
 
 model crm_Lead_Sources {
-  id    String      @id @default(uuid())
-  v     Int         @default(0) @map("__v")
-  name  String      @unique
-  leads crm_Leads[] @relation("lead_source_relation")
+  id       String         @id @default(uuid())
+  v        Int            @default(0) @map("__v")
+  name     String         @unique
+  leads    crm_Leads[]    @relation("lead_source_relation")
+  contacts crm_Contacts[] @relation("contact_lead_source_relation")
 
   @@index([name])
 }
 
 model crm_Lead_Statuses {
-  id    String      @id @default(uuid())
-  v     Int         @default(0) @map("__v")
-  name  String      @unique
-  order Int         @default(0)
-  leads crm_Leads[] @relation("lead_status_relation")
+  id       String         @id @default(uuid())
+  v        Int            @default(0) @map("__v")
+  name     String         @unique
+  order    Int            @default(0)
+  leads    crm_Leads[]    @relation("lead_status_relation")
+  contacts crm_Contacts[] @relation("contact_lead_status_relation")
 
   @@index([name])
 }
 
 model crm_Lead_Types {
-  id    String      @id @default(uuid())
-  v     Int         @default(0) @map("__v")
-  name  String      @unique
-  leads crm_Leads[] @relation("lead_type_relation")
+  id       String         @id @default(uuid())
+  v        Int            @default(0) @map("__v")
+  name     String         @unique
+  leads    crm_Leads[]    @relation("lead_type_relation")
+  contacts crm_Contacts[] @relation("contact_lead_type_relation")
 
   @@index([name])
 }
@@ -406,8 +435,11 @@ model crm_Contacts {
   updatedBy            String?
   last_activity_by     String?
   description          String?
+  company              String?
+  jobTitle             String?
   email                String?
   personal_email       String?
+  phone                String?
   first_name           String?
   last_name            String
   office_phone         String?
@@ -416,6 +448,11 @@ model crm_Contacts {
   position             String?
   status               Boolean                   @default(true)
   role                 String                    @default("Customer")
+  lead_source_id       String?
+  lead_status_id       String?
+  lead_type_id         String?
+  refered_by           String?
+  campaign             String?
   social_twitter       String?
   social_facebook      String?
   social_linkedin      String?
@@ -444,6 +481,9 @@ model crm_Contacts {
   assigned_to_user     Users?                    @relation("assigned_contacts", fields: [assigned_to], references: [id])
   contact_type         crm_Contact_Types?        @relation(fields: [contact_type_id], references: [id])
   crate_by_user        Users?                    @relation("created_contacts", fields: [created_by], references: [id])
+  lead_source          crm_Lead_Sources?         @relation("contact_lead_source_relation", fields: [lead_source_id], references: [id])
+  lead_status          crm_Lead_Statuses?        @relation("contact_lead_status_relation", fields: [lead_status_id], references: [id])
+  lead_type            crm_Lead_Types?           @relation("contact_lead_type_relation", fields: [lead_type_id], references: [id])
   target_contact_links crm_Target_Contact[]      @relation("target_contact_link")
   converted_targets    crm_Targets[]             @relation("target_converted_contact")
 
@@ -454,6 +494,9 @@ model crm_Contacts {
   @@index([updatedBy])
   @@index([status])
   @@index([contact_type_id])
+  @@index([lead_source_id])
+  @@index([lead_status_id])
+  @@index([lead_type_id])
   @@index([cratedAt])
   @@index([last_activity])
   @@index([deletedAt])

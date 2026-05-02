@@ -28,6 +28,7 @@ type AccountItem = {
 interface LeadDetailActionsProps {
   lead: any;
   accounts: AccountItem[];
+  contactTypes?: ConfigItem[];
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
@@ -36,6 +37,7 @@ interface LeadDetailActionsProps {
 export function LeadDetailActions({
   lead,
   accounts,
+  contactTypes = [],
   leadSources,
   leadStatuses,
   leadTypes,
@@ -57,6 +59,7 @@ export function LeadDetailActions({
               initialData={lead}
               setOpen={setUpdateOpen}
               accounts={accounts}
+              contactTypes={contactTypes}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}

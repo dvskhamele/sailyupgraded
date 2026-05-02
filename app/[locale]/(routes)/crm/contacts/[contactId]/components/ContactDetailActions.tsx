@@ -22,12 +22,20 @@ type ConfigItem = { id: string; name: string };
 
 interface ContactDetailActionsProps {
   contact: any;
+  accounts?: { id: string; name: string; accountProducts?: { product?: { id: string; name: string } | null }[] }[];
   contactTypes: ConfigItem[];
+  leadSources?: ConfigItem[];
+  leadStatuses?: ConfigItem[];
+  leadTypes?: ConfigItem[];
 }
 
 export function ContactDetailActions({
   contact,
+  accounts = [],
   contactTypes,
+  leadSources = [],
+  leadStatuses = [],
+  leadTypes = [],
 }: ContactDetailActionsProps) {
   const [updateOpen, setUpdateOpen] = useState(false);
 
@@ -45,7 +53,11 @@ export function ContactDetailActions({
             <UpdateContactForm
               initialData={contact}
               setOpen={setUpdateOpen}
+              accounts={accounts}
               contactTypes={contactTypes}
+              leadSources={leadSources}
+              leadStatuses={leadStatuses}
+              leadTypes={leadTypes}
             />
           </div>
         </SheetContent>

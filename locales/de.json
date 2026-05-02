@@ -1,7 +1,7 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "Willkommen bei NextCRM CRM mit Prisma und Next.js 13"
+    "title": "Saily",
+    "description": "Willkommen bei Saily CRM mit Prisma und Next.js 13"
   },
   "ModuleMenu": {
     "dashboard": "Dashboard",

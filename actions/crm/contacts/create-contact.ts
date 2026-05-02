@@ -23,8 +23,11 @@ export const createContact = async (data: {
   birthday_month?: string;
   birthday_year?: string;
   description?: string;
+  company?: string;
+  jobTitle?: string;
   email?: string;
   personal_email?: string;
+  phone?: string;
   first_name?: string;
   last_name: string;
   office_phone?: string;
@@ -40,6 +43,11 @@ export const createContact = async (data: {
   position?: string;
   status?: boolean;
   role?: string;
+  lead_source_id?: string;
+  lead_status_id?: string;
+  lead_type_id?: string;
+  refered_by?: string;
+  campaign?: string;
   social_twitter?: string;
   social_facebook?: string;
   social_linkedin?: string;

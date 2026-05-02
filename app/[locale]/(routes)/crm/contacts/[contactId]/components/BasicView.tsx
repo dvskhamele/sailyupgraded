@@ -36,7 +36,7 @@ export async function BasicView({ data }: OppsViewProps) {
   //console.log(data, "data");
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const contactTypes = crmData.contactTypes;
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
   if (!data) return <div>Opportunity not found</div>;
   return (
     <div className="pb-3 space-y-5">
@@ -66,7 +66,14 @@ export async function BasicView({ data }: OppsViewProps) {
                   mobile_phone:     data.mobile_phone ?? null,
                 }}
               /> */}
-              <ContactDetailActions contact={data} contactTypes={contactTypes} />
+              <ContactDetailActions
+                contact={data}
+                accounts={accounts}
+                contactTypes={contactTypes}
+                leadSources={leadSources}
+                leadStatuses={leadStatuses}
+                leadTypes={leadTypes}
+              />
             </div>
           </div>
         </CardHeader>

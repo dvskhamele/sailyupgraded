@@ -1,7 +1,7 @@
 {
   "RootLayout": {
-    "title": "NextCRM",
-    "description": "NextCRM je open source CRM vytvořené na frameworku NextJS."
+    "title": "Saily",
+    "description": "Saily je open source CRM vytvořené na frameworku NextJS."
   },
   "ModuleMenu": {
     "dashboard": "Přehled",

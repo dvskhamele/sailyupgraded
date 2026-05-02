@@ -1,626 +1,99 @@
 "use client";
 
-import { z } from "zod";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
-import { toast } from "sonner";
-
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-
-import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
-import { AccountSearchCombobox } from "@/components/ui/account-search-combobox";
 import { updateLead } from "@/actions/crm/leads/update-lead";
-import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
 import { getAddressLine1 } from "@/lib/crm-address";
+import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
 
-//TODO: fix all the types
-type ConfigItem = { id: string; name: string };
+type Option = { id: string; name: string };
 type AccountItem = {
   id: string;
   name: string;
   accountProducts?: { product?: { id: string; name: string } | null }[];
 };
 
-type NewTaskFormProps = {
+type UpdateLeadFormProps = {
   initialData: any;
   setOpen: (value: boolean) => void;
   accounts: AccountItem[];
-  leadSources: ConfigItem[];
-  leadStatuses: ConfigItem[];
-  leadTypes: ConfigItem[];
+  contactTypes?: Option[];
+  leadSources: Option[];
+  leadStatuses: Option[];
+  leadTypes: Option[];
 };
 
 export function UpdateLeadForm({
   initialData,
   setOpen,
   accounts,
+  contactTypes = [],
   leadSources,
   leadStatuses,
   leadTypes,
-}: NewTaskFormProps) {
+}: UpdateLeadFormProps) {
   const t = useTranslations("CrmLeadForm");
-  const c = useTranslations("Common");
 
-  const formSchema = z.object({
-    id: z.uuid(),
-    firstName: z.string().optional().nullable(),
-    lastName: z.string().min(1, t("lastNameRequired")).max(30),
-    company: z.string().nullable().optional(),
-    jobTitle: z.string().nullable().optional(),
-    email: z
-      .string()
-      .email(t("emailInvalid"))
-      .nullable()
-      .optional()
-      .or(z.literal("")),
-    phone: z.string().min(0).max(15).nullable().optional(),
-    address_line1: z.string().nullable().optional(),
-    address_line2: z.string().nullable().optional(),
-    city: z.string().nullable().optional(),
-    state: z.string().nullable().optional(),
-    country: z.string().nullable().optional(),
-    postal_code: z.string().nullable().optional(),
-    description: z.string().nullable().optional(),
-    lead_source_id: z.string().nullable().optional(),
-    lead_status_id: z.string().nullable().optional(),
-    lead_type_id: z.string().nullable().optional(),
-    refered_by: z.string().optional().nullable(),
-    //TODO: add campaing schema from db as data source
-    campaign: z.string().optional().nullable(),
-    assigned_to: z.string().optional().nullable(),
-    accountsIDs: z.string().optional().nullable(),
-  });
+  if (!initialData) {
+    return null;
+  }
 
-  type NewLeadFormValues = z.infer<typeof formSchema>;
-
-  //TODO: fix this any
-  const form = useForm<any>({
-    resolver: zodResolver(formSchema),
-    mode: "onBlur",
-    defaultValues: {
-      ...initialData,
-      firstName: initialData.firstName ?? "",
-      lastName: initialData.lastName ?? "",
-      company: initialData.company ?? "",
-      jobTitle: initialData.jobTitle ?? "",
-      email: initialData.email ?? "",
-      phone: initialData.phone ?? "",
-      address_line1: getAddressLine1(initialData.address, initialData.address_line1),
-      address_line2: initialData.address_line2 ?? "",
-      city: initialData.city ?? "",
-      state: initialData.state ?? "",
-      country: initialData.country ?? "",
-      postal_code: initialData.postal_code ?? "",
-      description: initialData.description ?? "",
-      refered_by: initialData.refered_by ?? "",
-      campaign: initialData.campaign ?? "",
-      assigned_to: initialData.assigned_to ?? "",
-      accountsIDs: initialData.accountsIDs ?? "",
-      
-      lead_source_id: initialData.lead_source_id ?? "",
-      lead_status_id: initialData.lead_status_id ?? "",
-      lead_type_id: initialData.lead_type_id ?? "",
-    },
-  });
-
-  const selectedCountry = form.watch("country");
-  const selectedState = form.watch("state");
-  const selectedAccountId = form.watch("accountsIDs");
-  const stateOptions = getStateOptions(selectedCountry, selectedState);
-  const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
-    ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
-    : COUNTRY_OPTIONS;
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
-  const accountProducts =
-    selectedAccount?.accountProducts
-      ?.map((item) => item.product)
-      .filter((product): product is { id: string; name: string } => Boolean(product?.id && product?.name)) ?? [];
-
-  const onSubmit = async (data: NewLeadFormValues) => {
-    const result = await updateLead({
-      ...data,
-      lead_source_id: data.lead_source_id ?? undefined,
-      lead_status_id: data.lead_status_id ?? undefined,
-      lead_type_id: data.lead_type_id ?? undefined,
-      assigned_to: data.assigned_to ?? undefined,
-      accountIDs: data.accountsIDs ?? undefined,
-    });
-    if (result?.error) {
-      form.setError("root.serverError", { message: result.error });
-    } else {
-      toast.success(t("updateSuccess"));
-      setOpen(false);
-    }
+  const initialValues = {
+    ...initialData,
+    serial: initialData.serial != null ? String(initialData.serial) : "",
+    first_name: initialData.first_name ?? initialData.firstName ?? "",
+    last_name: initialData.last_name ?? initialData.lastName ?? "",
+    company: initialData.company ?? "",
+    jobTitle: initialData.jobTitle ?? "",
+    description: initialData.description ?? "",
+    email: initialData.email ?? "",
+    personal_email: initialData.personal_email ?? "",
+    phone: initialData.phone ?? "",
+    office_phone: initialData.office_phone ?? "",
+    mobile_phone: initialData.mobile_phone ?? "",
+    website: initialData.website ?? "",
+    address: initialData.address ?? "",
+    address_line1: getAddressLine1(initialData.address, initialData.address_line1),
+    address_line2: initialData.address_line2 ?? "",
+    city: initialData.city ?? "",
+    state: initialData.state ?? "",
+    country: initialData.country ?? "",
+    postal_code: initialData.postal_code ?? "",
+    position: initialData.position ?? "",
+    status: initialData.status ?? true,
+    role: initialData.role ?? "Customer",
+    contact_type_id: initialData.contact_type_id ?? "",
+    lead_source_id: initialData.lead_source_id ?? "",
+    lead_status_id: initialData.lead_status_id ?? "",
+    lead_type_id: initialData.lead_type_id ?? "",
+    refered_by: initialData.refered_by ?? "",
+    campaign: initialData.campaign ?? "",
+    assigned_to: initialData.assigned_to ?? "",
+    assigned_account: initialData.assigned_account ?? initialData.accountsIDs ?? "",
+    social_twitter: initialData.social_twitter ?? "",
+    social_facebook: initialData.social_facebook ?? "",
+    social_linkedin: initialData.social_linkedin ?? "",
+    social_skype: initialData.social_skype ?? "",
+    social_instagram: initialData.social_instagram ?? "",
+    social_youtube: initialData.social_youtube ?? "",
+    social_tiktok: initialData.social_tiktok ?? "",
+    birthday_year: initialData.birthday ? new Date(initialData.birthday).getFullYear().toString() : "",
+    birthday_month: initialData.birthday ? (new Date(initialData.birthday).getMonth() + 1).toString() : "",
+    birthday_day: initialData.birthday ? new Date(initialData.birthday).getDate().toString() : "",
   };
 
-  if (!initialData) return <div>{c("somethingWentWrong")}</div>;
-
   return (
-    <Form {...form}>
-      <form
-        onSubmit={form.handleSubmit(onSubmit)}
-        className="h-full px-4 md:px-10"
-      >
-        <div className="w-full text-sm">
-          <div className="pb-5 space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="firstName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("firstName")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="Johny"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lastName"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("lastName")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="Walker"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="company"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("company")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="NextCRM Inc."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="jobTitle"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("jobTitle")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="CTO"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("email")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="johny@domain.com"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="phone"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("phone")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="+11 123 456 789"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="address_line1"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("addressLine1")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="Street 123"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address_line2"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("addressLine2")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="Apartment, suite, etc."
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <FormField
-                control={form.control}
-                name="city"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("city")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="Prague"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="state"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("state")}</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value ?? ""}
-                      disabled={form.formState.isSubmitting}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={t("statePlaceholder")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-56">
-                        {stateOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            {option.label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="postal_code"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("postalCode")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="120 00"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t("country")}</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      form.setValue("state", "");
-                    }}
-                    value={field.value ?? ""}
-                    disabled={form.formState.isSubmitting}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={t("countryPlaceholder")} />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent className="max-h-56">
-                      {countryOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="description"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{c("description")}</FormLabel>
-                  <FormControl>
-                    <Textarea
-                      disabled={form.formState.isSubmitting}
-                      placeholder="New NextCRM functionality"
-                      {...field}
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="lead_source_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("leadSource")}</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value ?? ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select source…" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {leadSources.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="refered_by"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("referredBy")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="Johny Walker"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="campaign"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("campaign")}</FormLabel>
-                    <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="Social networks"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lead_type_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lead Type</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value ?? ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select type…" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {leadTypes.map((lt) => (
-                          <SelectItem key={lt.id} value={lt.id}>
-                            {lt.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="assigned_to"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{c("assignedTo")}</FormLabel>
-                    <FormControl>
-                      <UserSearchCombobox
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder={c("selectUser")}
-                        disabled={form.formState.isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="lead_status_id"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Lead Status</FormLabel>
-                    <Select
-                      onValueChange={field.onChange}
-                      value={field.value ?? ""}
-                    >
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select status…" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {leadStatuses.map((s) => (
-                          <SelectItem key={s.id} value={s.id}>
-                            {s.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="accountsIDs"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t("assignAccount")}</FormLabel>
-                    <FormControl>
-                      <AccountSearchCombobox
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        placeholder={t("assignAccountPlaceholder")}
-                        disabled={form.formState.isSubmitting}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className="space-y-2">
-                <div className="text-sm font-medium leading-none">Product</div>
-                <Select disabled value="">
-                  <SelectTrigger>
-                    <SelectValue
-                      placeholder={
-                        !selectedAccountId
-                          ? "Select account first"
-                          : accountProducts.length > 0
-                            ? accountProducts.map((product) => product.name).join(", ")
-                            : "No active products for selected account"
-                      }
-                    />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {accountProducts.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground">
-                  Product is derived from the assigned account&apos;s active products.
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="grid gap-2 py-5">
-          {form.formState.errors.root?.serverError && (
-            <p className="text-sm text-destructive" aria-live="polite">
-              {form.formState.errors.root.serverError.message}
-            </p>
-          )}
-          <Button disabled={form.formState.isSubmitting} type="submit">
-            {form.formState.isSubmitting ? (
-              <span className="flex items-center animate-pulse">
-                {c("savingData")}
-              </span>
-            ) : (
-              t("updateButton")
-            )}
-          </Button>
-        </div>
-      </form>
-    </Form>
+    <UnifiedPersonForm
+      mode="update"
+      submitButtonLabel={t("updateButton")}
+      successMessage={t("updateSuccess")}
+      accounts={accounts}
+      contactTypes={contactTypes}
+      leadSources={leadSources}
+      leadStatuses={leadStatuses}
+      leadTypes={leadTypes}
+      initialValues={initialValues}
+      onSubmitAction={(data) => updateLead(data as any)}
+      onSuccess={() => setOpen(false)}
+    />
   );
 }

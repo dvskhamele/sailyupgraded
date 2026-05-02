@@ -32,9 +32,9 @@ export default function getReportsMenuItem({
       { title: "Dashboard", url: "/reports", exact: true },
       { title: "Sales", url: "/reports/sales" },
       { title: "Leads", url: "/reports/leads" },
-      { title: "Accounts", url: "/reports/accounts" },
+      { title: "Company", url: "/reports/accounts" },
       { title: "Activity", url: "/reports/activity" },
-      { title: "Campaigns", url: "/reports/campaigns" },
+      // { title: "Campaigns", url: "/reports/campaigns" },
       { title: "Users", url: "/reports/users" },
     ],
   }

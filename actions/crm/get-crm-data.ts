@@ -1,18 +1,31 @@
 import { cache } from "react";
 import { prismadb } from "@/lib/prisma";
-import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
+import {
+  pickExistingDbModelFields,
+  pickSupportedModelFields,
+} from "@/lib/prisma-model-fields";
 import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 
-const crmDashboardLeadSelect = {
+const crmDashboardLeadSelectValues = {
   id: true,
+  serial: true,
   createdAt: true,
+  birthday: true,
   firstName: true,
   lastName: true,
   company: true,
+  personal_email: true,
   email: true,
   phone: true,
+  office_phone: true,
+  mobile_phone: true,
   description: true,
+  website: true,
+  position: true,
+  status: true,
+  role: true,
+  contact_type_id: true,
   lead_source_id: true,
   lead_status_id: true,
   lead_type_id: true,
@@ -20,6 +33,13 @@ const crmDashboardLeadSelect = {
   campaign: true,
   assigned_to: true,
   accountsIDs: true,
+  social_twitter: true,
+  social_facebook: true,
+  social_linkedin: true,
+  social_skype: true,
+  social_instagram: true,
+  social_youtube: true,
+  social_tiktok: true,
 } as const;
 
 const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
@@ -35,8 +55,11 @@ const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
   updatedBy: true,
   last_activity_by: true,
   description: true,
+  company: true,
+  jobTitle: true,
   email: true,
   personal_email: true,
+  phone: true,
   first_name: true,
   last_name: true,
   office_phone: true,
@@ -45,6 +68,11 @@ const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
   position: true,
   status: true,
   role: true,
+  lead_source_id: true,
+  lead_status_id: true,
+  lead_type_id: true,
+  refered_by: true,
+  campaign: true,
   contact_type_id: true,
   accountsIDs: true,
 } as const);
@@ -77,6 +105,11 @@ export const getAllCrmData = cache(async () => {
   const opportunities = await prismadb.crm_Opportunities.findMany({
     where: { deletedAt: null },
   });
+
+  const crmDashboardLeadSelect = await pickExistingDbModelFields(
+    "crm_Leads",
+    crmDashboardLeadSelectValues
+  );
 
   const leads = await prismadb.crm_Leads.findMany({
     where: { deletedAt: null },

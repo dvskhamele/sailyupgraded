@@ -6,15 +6,23 @@ import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
-import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
+import { normalizeContactRole } from "@/lib/contact-options";
+import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 
 export const createLead = async (data: {
+  serial?: string;
+  birthday_day?: string;
+  birthday_month?: string;
+  birthday_year?: string;
   first_name?: string;
   last_name: string;
   company?: string;
   jobTitle?: string;
   email?: string;
+  personal_email?: string;
   phone?: string;
+  office_phone?: string;
+  mobile_phone?: string;
   address_line1?: string;
   address_line2?: string;
   city?: string;
@@ -22,13 +30,26 @@ export const createLead = async (data: {
   country?: string;
   postal_code?: string;
   description?: string;
+  website?: string;
+  position?: string;
+  status?: boolean;
+  role?: string;
+  contact_type_id?: string;
   lead_source_id?: string;
   lead_status_id?: string;
   lead_type_id?: string;
   refered_by?: string;
   campaign?: string;
   assigned_to?: string;
+  assigned_account?: string;
   accountIDs?: string;
+  social_twitter?: string;
+  social_facebook?: string;
+  social_linkedin?: string;
+  social_skype?: string;
+  social_instagram?: string;
+  social_youtube?: string;
+  social_tiktok?: string;
   productId?: string;
 }) => {
   const session = await getSession();
@@ -36,12 +57,19 @@ export const createLead = async (data: {
 
   const userId = session.user.id;
   const {
+    serial,
+    birthday_day,
+    birthday_month,
+    birthday_year,
     first_name,
     last_name,
     company,
     jobTitle,
     email,
+    personal_email,
     phone,
+    office_phone,
+    mobile_phone,
     address_line1,
     address_line2,
     city,
@@ -49,18 +77,48 @@ export const createLead = async (data: {
     country,
     postal_code,
     description,
+    website,
+    position,
+    status,
+    role,
+    contact_type_id,
     lead_source_id,
     lead_status_id,
     lead_type_id,
     refered_by,
     campaign,
     assigned_to,
+    assigned_account,
     accountIDs,
+    social_twitter,
+    social_facebook,
+    social_linkedin,
+    social_skype,
+    social_instagram,
+    social_youtube,
+    social_tiktok,
     productId,
   } = data;
 
   const resolvedAddressLine1 = getAddressLine1(undefined, address_line1);
-  const supportedAddressFields = pickSupportedModelFields("crm_Leads", {
+  const birthdayValue =
+    birthday_day && birthday_month && birthday_year
+      ? new Date(Number(birthday_year), Number(birthday_month) - 1, Number(birthday_day))
+      : null;
+  const supportedFields = await pickExistingDbModelFields("crm_Leads", {
+    v: 1,
+    serial: serial ? Number(serial) : undefined,
+    createdBy: userId,
+    updatedBy: userId,
+    firstName: first_name || "",
+    lastName: last_name,
+    company,
+    jobTitle,
+    email,
+    personal_email,
+    phone,
+    office_phone,
+    mobile_phone,
     address: resolvedAddressLine1 || undefined,
     address_line1: resolvedAddressLine1 || undefined,
     address_line2: address_line2 || undefined,
@@ -68,29 +126,31 @@ export const createLead = async (data: {
     state: state || undefined,
     country: country || undefined,
     postal_code: postal_code || undefined,
+    description,
+    website,
+    position,
+    status: status ?? true,
+    role: normalizeContactRole(role),
+    contact_type_id: contact_type_id || undefined,
+    birthday: birthdayValue,
+    lead_source_id: lead_source_id || undefined,
+    lead_status_id: lead_status_id || undefined,
+    lead_type_id: lead_type_id || undefined,
+    refered_by: refered_by || undefined,
+    campaign: campaign || undefined,
+    assigned_to: assigned_to || userId,
+    accountsIDs: assigned_account || accountIDs || undefined,
+    social_twitter,
+    social_facebook,
+    social_linkedin,
+    social_skype,
+    social_instagram,
+    social_youtube,
+    social_tiktok,
   });
   try {
     const lead = await prismadb.crm_Leads.create({
-      data: {
-        v: 1,
-        createdBy: userId,
-        updatedBy: userId,
-        firstName: first_name || "",
-        lastName: last_name,
-        company,
-        jobTitle,
-        email,
-        phone,
-        ...supportedAddressFields,
-        description,
-        lead_source_id: lead_source_id || undefined,
-        lead_status_id: lead_status_id || undefined,
-        lead_type_id: lead_type_id || undefined,
-        refered_by: refered_by || undefined,
-        campaign: campaign || undefined,
-        assigned_to: assigned_to || userId,
-        accountsIDs: accountIDs || undefined,
-      },
+      data: supportedFields as any,
     });
 
     if (assigned_to && assigned_to !== userId) {
@@ -136,6 +196,9 @@ export const createLead = async (data: {
         jobTitle,
         email,
         phone,
+        personal_email,
+        office_phone,
+        mobile_phone,
         address_line1,
         address_line2,
         city,
@@ -143,6 +206,11 @@ export const createLead = async (data: {
         country,
         postal_code,
         description,
+        website,
+        position,
+        status,
+        role,
+        contact_type_id,
         lead_source_id,
         lead_status_id,
         lead_type_id,
@@ -150,6 +218,13 @@ export const createLead = async (data: {
         campaign,
         assigned_to,
         accountIDs,
+        social_twitter,
+        social_facebook,
+        social_linkedin,
+        social_skype,
+        social_instagram,
+        social_youtube,
+        social_tiktok,
         productId,
       }
     });
