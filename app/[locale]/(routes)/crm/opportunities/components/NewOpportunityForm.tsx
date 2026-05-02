@@ -822,7 +822,7 @@ export function NewOpportunityForm({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Choose account " />
+                            <SelectValue placeholder="Choose Company " />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="flex overflow-y-auto h-56">
@@ -855,7 +855,7 @@ export function NewOpportunityForm({
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a user to assign the account" />
+                            <SelectValue placeholder="Select a user to assign the Contact" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="flex overflow-y-auto h-56">

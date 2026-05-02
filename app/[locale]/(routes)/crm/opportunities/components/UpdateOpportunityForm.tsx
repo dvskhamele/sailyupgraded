@@ -778,7 +778,7 @@ export function UpdateOpportunityForm({
                         <AccountSearchCombobox
                           value={field.value ?? ""}
                           onChange={field.onChange}
-                          placeholder="Choose account"
+                          placeholder="Choose Company"
                           disabled={form.formState.isSubmitting}
                         />
                       </FormControl>
