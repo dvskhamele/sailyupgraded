@@ -140,7 +140,7 @@ const OpportunitiesView = ({
             <ImportOpportunitiesDialog />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button className="my-2 cursor-pointer" aria-label={t("opportunities.addNew")} data-testid="add-opportunity-btn">+</Button>
+                <Button className="my-0 cursor-pointer" aria-label={t("opportunities.addNew")} data-testid="add-opportunity-btn">+</Button>
               </SheetTrigger>
               <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
                 <SheetHeader>
