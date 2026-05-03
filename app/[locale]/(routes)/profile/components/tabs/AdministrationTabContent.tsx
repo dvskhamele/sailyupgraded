@@ -1,10 +1,16 @@
+"use client";
+
+import type { ChangeEvent, FormEvent } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ClipboardList,
   Coins,
   SlidersHorizontal,
   Users,
+  X,
 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -35,25 +41,274 @@ const adminPanels = [
   },
 ];
 
+type CustomFieldRecord = {
+  id: string;
+  name: string;
+  type: string;
+  applies_to: string[];
+  options?: string[] | null;
+};
+
 export function AdministrationTabContent() {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [customFields, setCustomFields] = useState<CustomFieldRecord[]>([]);
+  const initialFormState = {
+    name: "",
+    type: "text",
+    applies_to: [] as string[],
+    options: "",
+  };
+  const [form, setForm] = useState(initialFormState);
+
+  const handleInputChange = (
+    event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+  ) => {
+    const { name, value } = event.target;
+    setForm((current) => ({ ...current, [name]: value }));
+  };
+
+  const handleCheckboxToggle = (value: string) => {
+    setForm((current) => ({
+      ...current,
+      applies_to: current.applies_to.includes(value)
+        ? current.applies_to.filter((item) => item !== value)
+        : [...current.applies_to, value],
+    }));
+  };
+
+  useEffect(() => {
+    const loadCustomFields = async () => {
+      try {
+        const response = await fetch("/api/custom-fields");
+        if (!response.ok) {
+          throw new Error("Failed to load custom fields");
+        }
+
+        const payload = (await response.json()) as CustomFieldRecord[];
+        setCustomFields(payload);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+
+    void loadCustomFields();
+  }, []);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    setIsSubmitting(true);
+
+    try {
+      const response = await fetch("/api/custom-fields", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      });
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(payload?.error || "Failed to create custom field");
+      }
+
+      const createdField = (await response.json()) as CustomFieldRecord;
+      setCustomFields((current) => [createdField, ...current]);
+      setIsOpen(false);
+      setForm(initialFormState);
+      toast.success("Custom field created");
+    } catch (error) {
+      console.log(error);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to create custom field",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
-    <div className="grid gap-4 md:grid-cols-2">
-      {adminPanels.map(({ title, description, href, Icon }) => (
-        <Link key={href} href={href}>
-          <Card className="h-full transition-colors hover:border-foreground/20 hover:bg-muted/30">
-            <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
-              <div className="space-y-1">
-                <CardTitle className="text-base">{title}</CardTitle>
-                <p className="text-sm text-muted-foreground">{description}</p>
+    <>
+      <div className="space-y-6">
+        <div className="grid gap-4 md:grid-cols-2">
+          {adminPanels.map(({ title, description, href, Icon }) => (
+            <Link key={href} href={href}>
+              <Card className="h-full transition-colors hover:border-foreground/20 hover:bg-muted/30">
+                <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
+                  <div className="space-y-1">
+                    <CardTitle className="text-base">{title}</CardTitle>
+                    <p className="text-sm text-muted-foreground">{description}</p>
+                  </div>
+                  <Icon className="h-5 w-5 text-muted-foreground" />
+                </CardHeader>
+                <CardContent className="pt-0 text-sm text-muted-foreground">
+                  Open panel
+                </CardContent>
+              </Card>
+            </Link>
+          ))}
+        </div>
+
+        <section className="rounded-lg border p-6">
+          <div className="flex items-center justify-between gap-4">
+            <h2 className="text-lg font-semibold">Custom Fields</h2>
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+            >
+              + Add Custom Field
+            </button>
+          </div>
+
+          <div className="mt-6 space-y-3">
+            {customFields.length > 0 ? (
+              customFields.map((field) => (
+                <div
+                  key={field.id}
+                  className="rounded-md border border-slate-200 bg-slate-50 p-4"
+                >
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="text-sm font-semibold text-slate-900">
+                        {field.name}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Type: {field.type}
+                      </p>
+                    </div>
+                    <div className="text-sm text-slate-600">
+                      Applies to: {field.applies_to.join(", ") || "N/A"}
+                    </div>
+                  </div>
+                  {field.options && field.options.length > 0 ? (
+                    <p className="mt-2 text-sm text-slate-600">
+                      Options: {field.options.join(", ")}
+                    </p>
+                  ) : null}
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-slate-500">
+                No custom fields created yet.
+              </p>
+            )}
+          </div>
+        </section>
+      </div>
+
+      {isOpen ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
+          onClick={() => setIsOpen(false)}
+        >
+          <div
+            className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <h3 className="text-xl font-semibold text-slate-900">
+                Create Custom Field
+              </h3>
+              <button
+                type="button"
+                onClick={() => setIsOpen(false)}
+                className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
+                aria-label="Close modal"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form className="mt-6 space-y-5" onSubmit={handleSubmit}>
+              <div className="space-y-2">
+                <label
+                  htmlFor="custom-field-name"
+                  className="text-sm font-medium text-slate-700"
+                >
+                  Field Name
+                </label>
+                <input
+                  id="custom-field-name"
+                  name="name"
+                  type="text"
+                  value={form.name}
+                  onChange={handleInputChange}
+                  className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                />
               </div>
-              <Icon className="h-5 w-5 text-muted-foreground" />
-            </CardHeader>
-            <CardContent className="pt-0 text-sm text-muted-foreground">
-              Open panel
-            </CardContent>
-          </Card>
-        </Link>
-      ))}
-    </div>
+
+              <div className="space-y-2">
+                <label
+                  htmlFor="custom-field-type"
+                  className="text-sm font-medium text-slate-700"
+                >
+                  Field Type
+                </label>
+                <select
+                  id="custom-field-type"
+                  name="type"
+                  value={form.type}
+                  onChange={handleInputChange}
+                  className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                >
+                  <option value="text">text</option>
+                  <option value="number">number</option>
+                  <option value="date">date</option>
+                  <option value="select">select</option>
+                </select>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-sm font-medium text-slate-700">Applies To</p>
+                <div className="space-y-2">
+                  {["Contact", "Lead", "Opportunity"].map((item) => (
+                    <label
+                      key={item}
+                      className="flex items-center gap-3 text-sm text-slate-700"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={form.applies_to.includes(item)}
+                        onChange={() => handleCheckboxToggle(item)}
+                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span>{item}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {form.type === "select" ? (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="custom-field-options"
+                    className="text-sm font-medium text-slate-700"
+                  >
+                    Options
+                  </label>
+                  <input
+                    id="custom-field-options"
+                    name="options"
+                    type="text"
+                    placeholder="Option1, Option2"
+                    value={form.options}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border border-slate-300 px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  />
+                </div>
+              ) : null}
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
+              >
+                {isSubmitting ? "Creating..." : "Create Field"}
+              </button>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

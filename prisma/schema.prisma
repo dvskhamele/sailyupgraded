@@ -6,6 +6,16 @@ datasource db {
   provider = "mysql"
 }
 
+model custom_fields {
+  id         String   @id @default(uuid())
+  name       String
+  type       String
+  applies_to Json
+  options    Json?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model crm_Accounts {
   id                   String                @id @default(uuid())
   v                    Int                   @map("__v")

@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 
 import { getSession } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit-log";
+import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 import { prismadb } from "@/lib/prisma";
 
 type RawRow = Record<string, string>;
@@ -144,6 +145,7 @@ export async function POST(request: NextRequest) {
   const userId = session.user.id;
   const failures: Array<{ row: number; name: string | null; reason: string }> = [];
   let imported = 0;
+  const { firstStage } = await getSalesStageCollections();
 
   const uniqueCampaignNames = Array.from(
     new Set(
@@ -205,6 +207,9 @@ export async function POST(request: NextRequest) {
           assigned_campaings: matchedCampaignId
             ? { connect: { id: matchedCampaignId } }
             : undefined,
+          assigned_sales_stage: firstStage
+            ? { connect: { id: firstStage.id } }
+            : undefined,
           budget: parsedBudget,
           clientName: normalizeOptionalText(fullName) || null,
           created_by_user: { connect: { id: userId } },
@@ -261,6 +266,7 @@ export async function POST(request: NextRequest) {
   }
 
   revalidatePath("/[locale]/crm/opportunities", "page");
+  revalidatePath("/[locale]/crm/dashboard", "page");
 
   return NextResponse.json({
     imported,

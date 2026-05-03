@@ -52,6 +52,7 @@ import { Badge } from "@/components/ui/badge";
 
 import { NewOpportunityForm } from "../../opportunities/components/NewOpportunityForm";
 import { UpdateOpportunityForm } from "../../opportunities/components/UpdateOpportunityForm";
+import { ImportOpportunitiesDialog } from "../../opportunities/components/ImportOpportunitiesDialog";
 import { setInactiveOpportunity } from "@/actions/crm/opportunity/dashboard/set-inactive";
 import { updateOpportunity } from "@/actions/crm/opportunities/update-opportunity";
 import { createProduct } from "@/actions/crm/products/create-product";
@@ -737,15 +738,17 @@ const CRMKanban = ({
 
   return (
     <>
-      <div className="mb-4">
-        <CategoryFilter
-          categories={categoryList}
-          selectedCategories={selectedCategories}
-          onCategoryChange={setSelectedCategories}
-          onAddCategory={handleAddProduct}
-          allowCreate
-        />
-      </div>
+     <div className="mb-4 flex items-center justify-end gap-2">
+ 
+  <CategoryFilter
+    categories={categoryList}
+    selectedCategories={selectedCategories}
+    onCategoryChange={setSelectedCategories}
+    onAddCategory={handleAddProduct}
+    allowCreate
+  />
+   <ImportOpportunitiesDialog />
+</div>
 
       <Dialog open={isDialogOpen} onOpenChange={() => setIsDialogOpen(false)}>
         <DialogContent className="min-w-[1000px] py-10 overflow-auto">
