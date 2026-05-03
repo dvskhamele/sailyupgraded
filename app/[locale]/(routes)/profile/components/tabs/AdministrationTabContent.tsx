@@ -6,7 +6,9 @@ import Link from "next/link";
 import {
   ClipboardList,
   Coins,
+  Pencil,
   SlidersHorizontal,
+  Trash2,
   Users,
   X,
 } from "lucide-react";
@@ -52,6 +54,8 @@ type CustomFieldRecord = {
 export function AdministrationTabContent() {
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingFieldId, setEditingFieldId] = useState<string | null>(null);
+  const [deletingFieldId, setDeletingFieldId] = useState<string | null>(null);
   const [customFields, setCustomFields] = useState<CustomFieldRecord[]>([]);
   const initialFormState = {
     name: "",
@@ -60,6 +64,29 @@ export function AdministrationTabContent() {
     options: "",
   };
   const [form, setForm] = useState(initialFormState);
+
+  const resetFormState = () => {
+    setForm(initialFormState);
+    setEditingFieldId(null);
+    setIsOpen(false);
+  };
+
+  const openCreateModal = () => {
+    setForm(initialFormState);
+    setEditingFieldId(null);
+    setIsOpen(true);
+  };
+
+  const openEditModal = (field: CustomFieldRecord) => {
+    setForm({
+      name: field.name,
+      type: field.type,
+      applies_to: field.applies_to,
+      options: field.options?.join(", ") ?? "",
+    });
+    setEditingFieldId(field.id);
+    setIsOpen(true);
+  };
 
   const handleInputChange = (
     event: ChangeEvent<HTMLInputElement | HTMLSelectElement>,
@@ -100,29 +127,75 @@ export function AdministrationTabContent() {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch("/api/custom-fields", {
-        method: "POST",
+      const isEditing = editingFieldId !== null;
+      const response = await fetch(
+        isEditing ? `/api/custom-fields/${editingFieldId}` : "/api/custom-fields",
+        {
+          method: isEditing ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(form),
+        },
+      );
+
+      if (!response.ok) {
+        const payload = await response.json().catch(() => null);
+        throw new Error(
+          payload?.error ||
+            (isEditing
+              ? "Failed to update custom field"
+              : "Failed to create custom field"),
+        );
+      }
+
+      const savedField = (await response.json()) as CustomFieldRecord;
+      setCustomFields((current) =>
+        isEditing
+          ? current.map((field) =>
+              field.id === savedField.id ? savedField : field,
+            )
+          : [savedField, ...current],
+      );
+      resetFormState();
+      toast.success(isEditing ? "Custom field updated" : "Custom field created");
+    } catch (error) {
+      console.log(error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : editingFieldId
+            ? "Failed to update custom field"
+            : "Failed to create custom field",
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleDelete = async (fieldId: string) => {
+    setDeletingFieldId(fieldId);
+
+    try {
+      const response = await fetch(`/api/custom-fields/${fieldId}`, {
+        method: "DELETE",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
       });
 
       if (!response.ok) {
         const payload = await response.json().catch(() => null);
-        throw new Error(payload?.error || "Failed to create custom field");
+        throw new Error(payload?.error || "Failed to delete custom field");
       }
 
-      const createdField = (await response.json()) as CustomFieldRecord;
-      setCustomFields((current) => [createdField, ...current]);
-      setIsOpen(false);
-      setForm(initialFormState);
-      toast.success("Custom field created");
+      setCustomFields((current) =>
+        current.filter((field) => field.id !== fieldId),
+      );
+      toast.success("Custom field deleted");
     } catch (error) {
       console.log(error);
       toast.error(
-        error instanceof Error ? error.message : "Failed to create custom field",
+        error instanceof Error ? error.message : "Failed to delete custom field",
       );
     } finally {
-      setIsSubmitting(false);
+      setDeletingFieldId(null);
     }
   };
 
@@ -153,7 +226,7 @@ export function AdministrationTabContent() {
             <h2 className="text-lg font-semibold">Custom Fields</h2>
             <button
               type="button"
-              onClick={() => setIsOpen(true)}
+              onClick={openCreateModal}
               className="rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
             >
               + Add Custom Field
@@ -176,8 +249,27 @@ export function AdministrationTabContent() {
                         Type: {field.type}
                       </p>
                     </div>
-                    <div className="text-sm text-slate-600">
-                      Applies to: {field.applies_to.join(", ") || "N/A"}
+                    <div className="flex items-center gap-2">
+                      <div className="text-sm text-slate-600">
+                        Applies to: {field.applies_to.join(", ") || "N/A"}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openEditModal(field)}
+                        className="rounded-md border border-slate-200 p-2 text-slate-600 transition-colors hover:bg-white hover:text-slate-900"
+                        aria-label={`Edit ${field.name}`}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => void handleDelete(field.id)}
+                        disabled={deletingFieldId === field.id}
+                        className="rounded-md border border-red-200 p-2 text-red-600 transition-colors hover:bg-white hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        aria-label={`Delete ${field.name}`}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
                     </div>
                   </div>
                   {field.options && field.options.length > 0 ? (
@@ -199,7 +291,7 @@ export function AdministrationTabContent() {
       {isOpen ? (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4"
-          onClick={() => setIsOpen(false)}
+          onClick={resetFormState}
         >
           <div
             className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl"
@@ -207,11 +299,11 @@ export function AdministrationTabContent() {
           >
             <div className="flex items-start justify-between gap-4">
               <h3 className="text-xl font-semibold text-slate-900">
-                Create Custom Field
+                {editingFieldId ? "Edit Custom Field" : "Create Custom Field"}
               </h3>
               <button
                 type="button"
-                onClick={() => setIsOpen(false)}
+                onClick={resetFormState}
                 className="rounded-md p-1 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"
                 aria-label="Close modal"
               >
@@ -303,7 +395,13 @@ export function AdministrationTabContent() {
                 disabled={isSubmitting}
                 className="w-full rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-blue-700"
               >
-                {isSubmitting ? "Creating..." : "Create Field"}
+                {isSubmitting
+                  ? editingFieldId
+                    ? "Saving..."
+                    : "Creating..."
+                  : editingFieldId
+                    ? "Save Changes"
+                    : "Create Field"}
               </button>
             </form>
           </div>

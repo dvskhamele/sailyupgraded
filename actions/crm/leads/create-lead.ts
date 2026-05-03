@@ -8,6 +8,10 @@ import { writeAuditLog } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+import {
+  fieldAppliesToEntity,
+  sanitizeCustomFieldValues,
+} from "@/lib/custom-fields";
 
 export const createLead = async (data: {
   serial?: string;
@@ -51,6 +55,7 @@ export const createLead = async (data: {
   social_youtube?: string;
   social_tiktok?: string;
   productId?: string;
+  custom_fields_data?: Record<string, string | null | undefined>;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -98,6 +103,7 @@ export const createLead = async (data: {
     social_youtube,
     social_tiktok,
     productId,
+    custom_fields_data,
   } = data;
 
   const resolvedAddressLine1 = getAddressLine1(undefined, address_line1);
@@ -105,6 +111,13 @@ export const createLead = async (data: {
     birthday_day && birthday_month && birthday_year
       ? new Date(Number(birthday_year), Number(birthday_month) - 1, Number(birthday_day))
       : null;
+  const leadCustomFields = await prismadb.custom_fields.findMany({
+    orderBy: { createdAt: "asc" },
+  });
+  const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
+    custom_fields_data,
+    leadCustomFields.filter((field) => fieldAppliesToEntity(field, "Lead")),
+  );
   const supportedFields = await pickExistingDbModelFields("crm_Leads", {
     v: 1,
     serial: serial ? Number(serial) : undefined,
@@ -140,6 +153,10 @@ export const createLead = async (data: {
     campaign: campaign || undefined,
     assigned_to: assigned_to || userId,
     accountsIDs: assigned_account || accountIDs || undefined,
+    custom_fields_data:
+      Object.keys(sanitizedCustomFieldValues).length > 0
+        ? sanitizedCustomFieldValues
+        : null,
     social_twitter,
     social_facebook,
     social_linkedin,
@@ -226,6 +243,7 @@ export const createLead = async (data: {
         social_youtube,
         social_tiktok,
         productId,
+        custom_fields_data,
       }
     });
     return { error: "Failed to create lead: " + (error.message || "Unknown error") };

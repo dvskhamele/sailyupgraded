@@ -39,6 +39,7 @@ export function NewContactForm({
       submitButtonLabel={t("createButton")}
       successMessage={t("createSuccess")}
       submitTestId="contact-submit-btn"
+      entityType="Contact"
       accounts={accounts}
       contactTypes={contactTypes}
       leadSources={leadSources}

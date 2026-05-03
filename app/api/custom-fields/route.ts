@@ -9,7 +9,7 @@ type CustomFieldPayload = {
   options?: unknown;
 };
 
-function normalizeOptions(value: unknown) {
+export function normalizeOptions(value: unknown) {
   if (typeof value !== "string") {
     return undefined;
   }
@@ -22,14 +22,20 @@ function normalizeOptions(value: unknown) {
   return parsed.length > 0 ? parsed : undefined;
 }
 
+export function normalizeAppliesTo(value: unknown) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
 export async function POST(request: NextRequest) {
   try {
     const body = (await request.json()) as CustomFieldPayload;
     const name = body.name?.trim();
     const type = body.type?.trim();
-    const appliesTo = Array.isArray(body.applies_to)
-      ? body.applies_to.filter((value): value is string => typeof value === "string")
-      : [];
+    const appliesTo = normalizeAppliesTo(body.applies_to);
     const options = normalizeOptions(body.options);
 
     if (!name || !type) {

@@ -6,6 +6,11 @@ import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getSnapshotRate, getDefaultCurrency } from "@/lib/currency";
+import {
+  fieldAppliesToEntity,
+  sanitizeCustomFieldValues,
+} from "@/lib/custom-fields";
+import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { serializeOpportunityProducts } from "@/lib/opportunity-products";
 
@@ -25,6 +30,7 @@ export const createOpportunity = async (data: {
   sales_stage?: string;
   type?: string;
   category?: string[] | string;
+  custom_fields_data?: Record<string, string | null | undefined>;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -46,6 +52,7 @@ export const createOpportunity = async (data: {
     sales_stage,
     type,
     category,
+    custom_fields_data,
   } = data;
 
   try {
@@ -53,6 +60,24 @@ export const createOpportunity = async (data: {
     const snapshotRate = currency
       ? await getSnapshotRate(currency, defaultCurrency)
       : null;
+    const opportunityCustomFields = await prismadb.custom_fields.findMany({
+      orderBy: { createdAt: "asc" },
+    });
+    const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
+      custom_fields_data,
+      opportunityCustomFields.filter((field) =>
+        fieldAppliesToEntity(field, "Opportunity"),
+      ),
+    );
+    const supportedCustomFieldData = await pickExistingDbModelFields(
+      "crm_Opportunities",
+      {
+        custom_fields_data:
+          Object.keys(sanitizedCustomFieldValues).length > 0
+            ? sanitizedCustomFieldValues
+            : null,
+      },
+    );
 
     const opportunity = await prismadb.crm_Opportunities.create({
       data: {
@@ -76,6 +101,7 @@ export const createOpportunity = async (data: {
         assigned_sales_stage: sales_stage ? { connect: { id: sales_stage } } : undefined,
         status: "ACTIVE",
         assigned_type: type ? { connect: { id: type } } : undefined,
+        ...supportedCustomFieldData,
       },
     });
 

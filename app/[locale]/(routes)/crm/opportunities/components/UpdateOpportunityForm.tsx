@@ -52,6 +52,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
+import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
 
 type ConfigItem = { id: string; name: string };
 
@@ -128,6 +129,7 @@ export function UpdateOpportunityForm({
     account: z.string().nullable().optional(),
     contact: z.string().nullable().optional(),
     campaign: z.string().nullable().optional(),
+    custom_fields_data: z.record(z.string(), z.string()).optional(),
   });
 
   type NewAccountFormValues = z.infer<typeof formSchema>;
@@ -151,6 +153,7 @@ export function UpdateOpportunityForm({
       campaign: initialData.campaign ?? "",
       type: initialData.type ?? "",
       sales_stage: initialData.sales_stage ?? "",
+      custom_fields_data: initialData.custom_fields_data ?? {},
     },
   });
 
@@ -832,6 +835,12 @@ export function UpdateOpportunityForm({
                 />
               </div>
             </div>
+
+            <CustomFieldsSection
+              entityType="Opportunity"
+              form={form}
+              disabled={form.formState.isSubmitting}
+            />
           </div>
         </div>
         <div className="grid gap-2 py-5">

@@ -8,6 +8,10 @@ import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+import {
+  fieldAppliesToEntity,
+  sanitizeCustomFieldValues,
+} from "@/lib/custom-fields";
 
 export const updateLead = async (data: {
   id: string;
@@ -51,6 +55,7 @@ export const updateLead = async (data: {
   social_instagram?: string | null;
   social_youtube?: string | null;
   social_tiktok?: string | null;
+  custom_fields_data?: Record<string, string | null | undefined>;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -98,6 +103,7 @@ export const updateLead = async (data: {
     social_instagram,
     social_youtube,
     social_tiktok,
+    custom_fields_data,
   } = data;
 
   if (!id) return { error: "id is required" };
@@ -110,6 +116,13 @@ export const updateLead = async (data: {
 
   try {
     const before = await prismadb.crm_Leads.findUnique({ where: { id, deletedAt: null } });
+    const leadCustomFields = await prismadb.custom_fields.findMany({
+      orderBy: { createdAt: "asc" },
+    });
+    const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
+      custom_fields_data,
+      leadCustomFields.filter((field) => fieldAppliesToEntity(field, "Lead")),
+    );
     const supportedFields = await pickExistingDbModelFields("crm_Leads", {
       v: 1,
       serial: serial ? Number(serial) : null,
@@ -144,6 +157,10 @@ export const updateLead = async (data: {
       campaign,
       assigned_to: assigned_to || userId,
       accountsIDs: assigned_account || accountIDs,
+      custom_fields_data:
+        Object.keys(sanitizedCustomFieldValues).length > 0
+          ? sanitizedCustomFieldValues
+          : null,
       social_twitter,
       social_facebook,
       social_linkedin,

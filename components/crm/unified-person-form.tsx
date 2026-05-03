@@ -23,6 +23,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
+import type { CustomFieldEntity } from "@/lib/custom-fields";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
 import { CONTACT_ROLE_OPTIONS, CONTACT_STATUS_OPTIONS, normalizeContactRole } from "@/lib/contact-options";
@@ -77,6 +79,7 @@ export const unifiedPersonFormSchema = z.object({
   social_youtube: z.string().optional().nullable(),
   social_tiktok: z.string().optional().nullable(),
   productId: z.string().optional().nullable(),
+  custom_fields_data: z.record(z.string(), z.string()).optional(),
 });
 
 export type UnifiedPersonFormValues = z.infer<typeof unifiedPersonFormSchema>;
@@ -86,6 +89,7 @@ type UnifiedPersonFormProps = {
   submitButtonLabel: string;
   successMessage: string;
   submitTestId?: string;
+  entityType: CustomFieldEntity;
   accounts: AccountOption[];
   contactTypes?: Option[];
   leadSources?: Option[];
@@ -101,6 +105,7 @@ export function UnifiedPersonForm({
   submitButtonLabel,
   successMessage,
   submitTestId,
+  entityType,
   accounts,
   contactTypes = [],
   leadSources = [],
@@ -162,6 +167,7 @@ export function UnifiedPersonForm({
       social_youtube: "",
       social_tiktok: "",
       productId: "",
+      custom_fields_data: {},
       ...initialValues,
       status: initialValues?.status ?? true,
       role: normalizeContactRole(initialValues?.role),
@@ -242,8 +248,14 @@ export function UnifiedPersonForm({
                     <FormMessage />
                   </FormItem>
                 )}
-              />
-            </div>
+                />
+              </div>
+
+            <CustomFieldsSection
+              entityType={entityType}
+              form={form}
+              disabled={form.formState.isSubmitting}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField

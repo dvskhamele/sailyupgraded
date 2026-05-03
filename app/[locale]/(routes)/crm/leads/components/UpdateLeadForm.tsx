@@ -86,6 +86,7 @@ export function UpdateLeadForm({
       mode="update"
       submitButtonLabel={t("updateButton")}
       successMessage={t("updateSuccess")}
+      entityType="Lead"
       accounts={accounts}
       contactTypes={contactTypes}
       leadSources={leadSources}

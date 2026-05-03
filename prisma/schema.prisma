@@ -127,6 +127,7 @@ model crm_Leads {
   social_youtube    String?
   social_tiktok     String?
   contact_type_id   String?
+  custom_fields_data Json?
   documents         DocumentsToLeads[]
   assigned_accounts crm_Accounts?      @relation(fields: [accountsIDs], references: [id])
   assigned_to_user  Users?             @relation("LeadAssignedTo", fields: [assigned_to], references: [id])
@@ -240,6 +241,7 @@ model crm_Opportunities {
   deletedBy            String?
   category             String?
   clientName           String?
+  custom_fields_data   Json?
   contacts             ContactsToOpportunities[]
   documents            DocumentsToOpportunities[]
   assigned_account     crm_Accounts?                   @relation(fields: [account], references: [id])
@@ -473,6 +475,7 @@ model crm_Contacts {
   contact_type_id      String?
   tags                 Json?
   notes                Json?
+  custom_fields_data   Json?
   accountsIDs          String?
   deletedAt            DateTime?
   deletedBy            String?

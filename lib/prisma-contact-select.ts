@@ -54,6 +54,7 @@ const contactScalarListFieldValues = {
   contact_type_id: true,
   tags: true,
   notes: true,
+  custom_fields_data: true,
   accountsIDs: true,
 } as const;
 

@@ -9,6 +9,10 @@ import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+import {
+  fieldAppliesToEntity,
+  sanitizeCustomFieldValues,
+} from "@/lib/custom-fields";
 
 function isMissingContactSerialColumnError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -56,6 +60,7 @@ export const createContact = async (data: {
   social_youtube?: string;
   social_tiktok?: string;
   contact_type_id?: string;
+  custom_fields_data?: Record<string, string | null | undefined>;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -69,6 +74,9 @@ export const createContact = async (data: {
     birthday_month,
     birthday_year,
     contact_type_id,
+    lead_source_id,
+    lead_status_id,
+    lead_type_id,
     address,
     address_line1,
     address_line2,
@@ -76,6 +84,7 @@ export const createContact = async (data: {
     state,
     country,
     postal_code,
+    custom_fields_data,
     ...rest
   } = data;
 
@@ -92,6 +101,13 @@ export const createContact = async (data: {
   const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {
     role: normalizeContactRole(data.role),
   });
+  const contactCustomFields = await prismadb.custom_fields.findMany({
+    orderBy: { createdAt: "asc" },
+  });
+  const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
+    custom_fields_data,
+    contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact")),
+  );
   const supportedCreateFields = await pickExistingDbModelFields("crm_Contacts", {
     v: 1,
     serial: serial ? Number(serial) : undefined,
@@ -100,11 +116,18 @@ export const createContact = async (data: {
     accountsIDs: assigned_account || undefined,
     assigned_to: assigned_to || undefined,
     contact_type_id: contact_type_id || undefined,
+    lead_source_id: lead_source_id || undefined,
+    lead_status_id: lead_status_id || undefined,
+    lead_type_id: lead_type_id || undefined,
     tags: [],
     notes: {},
     birthday:
       birthday_day && birthday_month && birthday_year
         ? `${birthday_day}/${birthday_month}/${birthday_year}`
+        : null,
+    custom_fields_data:
+      Object.keys(sanitizedCustomFieldValues).length > 0
+        ? sanitizedCustomFieldValues
         : null,
     ...supportedRoleFields,
     ...supportedAddressFields,
@@ -172,6 +195,7 @@ export const createContact = async (data: {
         assigned_to,
         assigned_account,
         contact_type_id,
+        custom_fields_data,
         ...rest
       }
     });

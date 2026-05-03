@@ -45,6 +45,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
 import {
   crm_Accounts,
   crm_Contacts,
@@ -184,6 +185,7 @@ export function NewOpportunityForm({
     account: z.string(),
     contact: z.string(),
     campaign: z.string(),
+    custom_fields_data: z.record(z.string(), z.string()).optional(),
   });
 
   type NewAccountFormValues = z.infer<typeof formSchema>;
@@ -205,6 +207,7 @@ export function NewOpportunityForm({
       campaign: "",
       description: "",
       name: "",
+      custom_fields_data: {},
     },
   });
 
@@ -229,6 +232,7 @@ export function NewOpportunityForm({
         account: "",
         contact: "",
         campaign: "",
+        custom_fields_data: {},
       });
       router.refresh();
       onDialogClose();
@@ -905,6 +909,12 @@ export function NewOpportunityForm({
                 />
               </div>
             </div>
+
+            <CustomFieldsSection
+              entityType="Opportunity"
+              form={form}
+              disabled={form.formState.isSubmitting}
+            />
           </div>
         </div>
         <div className="grid gap-2 py-5">
