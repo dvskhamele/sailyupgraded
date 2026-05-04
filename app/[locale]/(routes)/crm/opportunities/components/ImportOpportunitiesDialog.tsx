@@ -29,6 +29,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { WhatsAppLink } from "@/components/ui/contact-link";
 
 type RawRow = Record<string, string>;
 type MappingKey =
@@ -452,7 +453,9 @@ export function ImportOpportunitiesDialog() {
                           <TableCell>{row.row}</TableCell>
                           <TableCell>{row.name || "Missing ad_name"}</TableCell>
                           <TableCell>{row.fullName || "N/A"}</TableCell>
-                          <TableCell>{row.phoneNumber || "N/A"}</TableCell>
+                          <TableCell>
+                            <WhatsAppLink value={row.phoneNumber} fallback="N/A" />
+                          </TableCell>
                           <TableCell>{row.budget || "N/A"}</TableCell>
                           <TableCell>{row.platform || "N/A"}</TableCell>
                           <TableCell>

@@ -5,13 +5,23 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Table, TableBody, TableCell, TableHead, TableHeader, TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 
 interface TargetContact {
   id: string;
@@ -29,18 +39,29 @@ interface Props {
   contacts: TargetContact[];
 }
 
-const STATUS_BADGE: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
+const STATUS_BADGE: Record<
+  string,
+  { label: string; variant: "default" | "secondary" | "destructive" | "outline" }
+> = {
   COMPLETED: { label: "Enriched", variant: "default" },
-  RUNNING:   { label: "Running", variant: "secondary" },
-  PENDING:   { label: "Pending", variant: "outline" },
-  FAILED:    { label: "Failed", variant: "destructive" },
-  SKIPPED:   { label: "Skipped", variant: "outline" },
+  RUNNING: { label: "Running", variant: "secondary" },
+  PENDING: { label: "Pending", variant: "outline" },
+  FAILED: { label: "Failed", variant: "destructive" },
+  SKIPPED: { label: "Skipped", variant: "outline" },
 };
 
-export function TargetContactsTable({ targetId, contacts: initialContacts }: Props) {
+export function TargetContactsTable({
+  targetId,
+  contacts: initialContacts,
+}: Props) {
   const [contacts, setContacts] = useState(initialContacts);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ name: "", email: "", phone: "", linkedinUrl: "" });
+  const [form, setForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    linkedinUrl: "",
+  });
   const [saving, setSaving] = useState(false);
 
   async function handleAddContact(e: React.FormEvent) {
@@ -72,9 +93,9 @@ export function TargetContactsTable({ targetId, contacts: initialContacts }: Pro
       });
       if (!res.ok) throw new Error(await res.text());
       setContacts((prev) =>
-        prev.map((c) => c.id === contactId ? { ...c, enrichStatus: "RUNNING" } : c)
+        prev.map((c) => (c.id === contactId ? { ...c, enrichStatus: "RUNNING" } : c))
       );
-      toast.success("Enrichment started — you'll be notified when done");
+      toast.success("Enrichment started - you'll be notified when done");
     } catch {
       toast.error("Failed to start enrichment");
     }
@@ -86,7 +107,9 @@ export function TargetContactsTable({ targetId, contacts: initialContacts }: Pro
         <h3 className="text-sm font-medium">Contacts</h3>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
-            <Button variant="outline" size="sm">Add Contact</Button>
+            <Button variant="outline" size="sm">
+              Add Contact
+            </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
@@ -126,12 +149,14 @@ export function TargetContactsTable({ targetId, contacts: initialContacts }: Pro
                 <Input
                   id="linkedinUrl"
                   value={form.linkedinUrl}
-                  onChange={(e) => setForm((f) => ({ ...f, linkedinUrl: e.target.value }))}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, linkedinUrl: e.target.value }))
+                  }
                   placeholder="https://linkedin.com/in/..."
                 />
               </div>
               <Button type="submit" disabled={saving} className="w-full">
-                {saving ? "Adding…" : "Add Contact"}
+                {saving ? "Adding..." : "Add Contact"}
               </Button>
             </form>
           </DialogContent>
@@ -162,8 +187,12 @@ export function TargetContactsTable({ targetId, contacts: initialContacts }: Pro
                 <TableRow key={contact.id}>
                   <TableCell className="font-medium">{contact.name ?? "—"}</TableCell>
                   <TableCell>{contact.title ?? "—"}</TableCell>
-                  <TableCell>{contact.email ?? "—"}</TableCell>
-                  <TableCell>{contact.phone ?? "—"}</TableCell>
+                  <TableCell>
+                    <EmailLink value={contact.email} fallback="—" />
+                  </TableCell>
+                  <TableCell>
+                    <WhatsAppLink value={contact.phone} fallback="—" />
+                  </TableCell>
                   <TableCell>
                     {contact.linkedinUrl ? (
                       <a
@@ -174,13 +203,16 @@ export function TargetContactsTable({ targetId, contacts: initialContacts }: Pro
                       >
                         View
                       </a>
-                    ) : "—"}
+                    ) : (
+                      "—"
+                    )}
                   </TableCell>
                   <TableCell>
                     <Badge variant={badge.variant}>{badge.label}</Badge>
                   </TableCell>
                   <TableCell>
-                    {(contact.enrichStatus === "PENDING" || contact.enrichStatus === "FAILED") && (
+                    {(contact.enrichStatus === "PENDING" ||
+                      contact.enrichStatus === "FAILED") && (
                       <Button
                         variant="ghost"
                         size="sm"

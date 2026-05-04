@@ -20,6 +20,7 @@ import moment from "moment";
 import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
 import { EnvelopeClosedIcon, LightningBoltIcon } from "@radix-ui/react-icons";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { LeadDetailActions } from "./LeadDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
@@ -109,15 +110,11 @@ export async function BasicView({ data }: OppsViewProps) {
                   <EnvelopeClosedIcon className="mt-px h-5 w-5" />
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">Email</p>
-                    {data?.email ? (
-                      <Link
-                        href={`mailto:${data.email}`}
-                        className="flex items-center gap-5 text-sm text-muted-foreground"
-                      >
-                        {data.email}
-                        <EnvelopeClosedIcon />
-                      </Link>
-                    ) : null}
+                    <EmailLink
+                      value={data?.email}
+                      className="flex items-center gap-5"
+                      trailingIcon={<EnvelopeClosedIcon />}
+                    />
                   </div>
                 </div>
               </div>
@@ -138,7 +135,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 <Phone className="mt-px h-5 w-5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Phone</p>
-                  <p className="text-sm text-muted-foreground">{data.phone}</p>
+                  <WhatsAppLink value={data.phone} />
                 </div>
               </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">

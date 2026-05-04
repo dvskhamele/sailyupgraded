@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getEmailFromAddress, getEnv } from "@/lib/env";
 
 interface EmailOptions {
   from: string | undefined;
@@ -11,18 +12,25 @@ interface EmailOptions {
 export default async function sendEmail(
   emailOptions: EmailOptions
 ): Promise<void> {
+  const host = getEnv("EMAIL_HOST", "SMTP_HOST");
+  const user = getEnv("EMAIL_USERNAME", "SMTP_USER");
+  const pass = getEnv("EMAIL_PASSWORD", "SMTP_PASSWORD");
+
   const transporter = nodemailer.createTransport({
-    host: process.env.EMAIL_HOST,
+    host,
     port: 465,
     secure: true,
     auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD,
+      user,
+      pass,
     },
   });
 
   try {
-    await transporter.sendMail(emailOptions);
+    await transporter.sendMail({
+      ...emailOptions,
+      from: emailOptions.from ?? getEmailFromAddress(),
+    });
     console.log(`Email sent to ${emailOptions.to}`);
     return Promise.resolve(console.log(`Email sent to ${emailOptions.to}`));
   } catch (error: any | Error) {

@@ -27,6 +27,7 @@ import { Clapperboard } from "lucide-react";
 import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
 import { EnvelopeClosedIcon, LightningBoltIcon } from "@radix-ui/react-icons";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { LucideLandmark } from "lucide-react";
 import { AccountDetailActions } from "./AccountDetailActions";
 
@@ -102,13 +103,11 @@ export async function BasicView({ data }: OppsViewProps) {
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">Email</p>
 
-                    <Link
-                      href={`mailto:${data.email}`}
-                      className="flex items-center  gap-5 text-sm text-muted-foreground"
-                    >
-                      {data.email}
-                      <EnvelopeClosedIcon />
-                    </Link>
+                    <EmailLink
+                      value={data.email}
+                      className="flex items-center gap-5"
+                      trailingIcon={<EnvelopeClosedIcon />}
+                    />
                   </div>
                 </div>
                 <p className="pr-20"></p>
@@ -132,9 +131,7 @@ export async function BasicView({ data }: OppsViewProps) {
                   <p className="text-sm font-medium leading-none">
                     Office phone
                   </p>
-                  <p className="text-sm text-muted-foreground">
-                    {data.office_phone}
-                  </p>
+                  <WhatsAppLink value={data.office_phone} />
                 </div>
               </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">

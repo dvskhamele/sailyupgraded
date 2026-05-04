@@ -2,6 +2,7 @@
 
 import { prismadb } from "@/lib/prisma";
 import { getUser } from "@/actions/get-user";
+import { getEmailFromAddress } from "@/lib/env";
 import resendHelper from "@/lib/resend";
 import { getInvoicePdfStream } from "@/lib/invoices/storage";
 import { InvoiceEmail } from "@/emails/InvoiceEmail";
@@ -51,7 +52,9 @@ export async function sendInvoiceEmail(input: SendInvoiceEmailInput) {
   const pdfBuffer = Buffer.concat(chunks);
 
   const resend = await resendHelper();
-  const fromEmail = process.env.EMAIL_FROM ?? `invoices@${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "nextcrm.app"}`;
+  const fromEmail =
+    getEmailFromAddress() ??
+    `invoices@${process.env.NEXT_PUBLIC_APP_DOMAIN ?? "nextcrm.app"}`;
 
   const subject =
     input.subject ?? `Invoice ${invoice.number ?? invoice.id} — ${invoice.account.name}`;

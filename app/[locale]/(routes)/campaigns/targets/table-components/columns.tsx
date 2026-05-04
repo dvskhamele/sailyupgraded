@@ -3,6 +3,7 @@
 import { ColumnDef } from "@tanstack/react-table";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { Target } from "../table-data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
@@ -65,7 +66,7 @@ export const columns: ColumnDef<Target>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="E-mail" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("email")}</div>,
+    cell: ({ row }) => <EmailLink value={row.getValue("email") as string | null} />,
     enableSorting: true,
     enableHiding: true,
   },
@@ -74,7 +75,9 @@ export const columns: ColumnDef<Target>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Mobile" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("mobile_phone")}</div>,
+    cell: ({ row }) => (
+      <WhatsAppLink value={row.getValue("mobile_phone") as string | null} />
+    ),
     enableSorting: true,
     enableHiding: true,
   },

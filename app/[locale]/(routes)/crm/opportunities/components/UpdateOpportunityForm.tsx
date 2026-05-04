@@ -454,7 +454,7 @@ export function UpdateOpportunityForm({
                 </FormItem>
               )}
             />
-            <FormField
+            {/* <FormField
               control={form.control}
               name="clientName"
               render={({ field }) => (
@@ -471,7 +471,7 @@ export function UpdateOpportunityForm({
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            /> */}
             <FormField
               control={form.control}
               name="close_date"
@@ -794,11 +794,11 @@ export function UpdateOpportunityForm({
                   name="contact"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Assigned Contact</FormLabel>
+                      <FormLabel>Assigned Client</FormLabel>
                       <FormControl>
                         <Input
                           disabled={form.formState.isSubmitting}
-                          placeholder="Contact ID"
+                          placeholder="Client ID"
                           {...field}
                         />
                       </FormControl>

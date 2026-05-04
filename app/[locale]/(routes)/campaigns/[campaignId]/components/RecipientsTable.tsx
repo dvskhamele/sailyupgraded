@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
+import { EmailLink } from "@/components/ui/contact-link";
 
 type Send = {
   id: string;
@@ -80,7 +81,9 @@ export default function RecipientsTable({ sends }: { sends: Send[] }) {
                     ? `${s.target.first_name ?? ""} ${s.target.last_name ?? ""}`.trim() || "—"
                     : "—"}
                 </td>
-                <td className="px-3 py-2 text-muted-foreground">{s.email}</td>
+                <td className="px-3 py-2 text-muted-foreground">
+                  <EmailLink value={s.email} fallback="—" />
+                </td>
                 <td className={`px-3 py-2 font-medium ${STATUS_COLORS[s.status] ?? ""}`}>
                   {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
                 </td>

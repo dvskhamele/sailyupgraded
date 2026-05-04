@@ -7,6 +7,7 @@ import {
 } from "@/inngest/lib/embedding-utils";
 import { GetObjectCommand } from "@aws-sdk/client-s3";
 import { getMinioBucket, getMinioClient } from "@/lib/minio";
+import { requireOpenAIApiKey } from "@/lib/env";
 import OpenAI from "openai";
 
 let cachedOpenAI: OpenAI | null = null;
@@ -16,10 +17,7 @@ function getOpenAIClient(): OpenAI {
     return cachedOpenAI;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not defined");
-  }
+  const apiKey = requireOpenAIApiKey();
 
   cachedOpenAI = new OpenAI({ apiKey });
   return cachedOpenAI;

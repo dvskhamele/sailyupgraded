@@ -22,6 +22,7 @@ import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
 import { EnvelopeClosedIcon } from "@radix-ui/react-icons";
 import { Badge } from "@/components/ui/badge";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { ContactDetailActions } from "./ContactDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
@@ -32,11 +33,26 @@ interface OppsViewProps {
   data: any;
 }
 
+function getNoteText(note: unknown) {
+  if (typeof note === "string") return note;
+  if (note && typeof note === "object") {
+    const candidate = (note as { text?: unknown; content?: unknown; note?: unknown })
+      .text ??
+      (note as { text?: unknown; content?: unknown; note?: unknown }).content ??
+      (note as { text?: unknown; content?: unknown; note?: unknown }).note;
+    if (typeof candidate === "string") return candidate;
+    return JSON.stringify(note);
+  }
+  if (note == null) return "";
+  return String(note);
+}
+
 export async function BasicView({ data }: OppsViewProps) {
   //console.log(data, "data");
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
+  const notes = Array.isArray(data?.notes) ? data.notes : [];
   if (!data) return <div>Opportunity not found</div>;
   return (
     <div className="pb-3 space-y-5">
@@ -233,15 +249,11 @@ export async function BasicView({ data }: OppsViewProps) {
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">E-mail</p>
-                {data?.email ? (
-                  <Link
-                    href={`mailto:${data.email}`}
-                    className="flex items-center  gap-5 text-sm text-muted-foreground"
-                  >
-                    {data.email}
-                    <EnvelopeClosedIcon />
-                  </Link>
-                ) : null}
+                <EmailLink
+                  value={data?.email}
+                  className="flex items-center gap-5"
+                  trailingIcon={<EnvelopeClosedIcon />}
+                />
               </div>
             </div>
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
@@ -249,31 +261,23 @@ export async function BasicView({ data }: OppsViewProps) {
                 <p className="text-sm font-medium leading-none">
                   Personal e-mail
                 </p>
-                {data?.personal_email ? (
-                  <Link
-                    href={`mailto:${data.personal_email}`}
-                    className="flex items-center  gap-5 text-sm text-muted-foreground"
-                  >
-                    {data.personal_email}
-                    <EnvelopeClosedIcon />
-                  </Link>
-                ) : null}
+                <EmailLink
+                  value={data?.personal_email}
+                  className="flex items-center gap-5"
+                  trailingIcon={<EnvelopeClosedIcon />}
+                />
               </div>
             </div>
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">Office phone</p>
-                <p className="text-sm text-muted-foreground">
-                  {data.office_phone}
-                </p>
+                <WhatsAppLink value={data.office_phone} />
               </div>
             </div>
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">Mobile phone</p>
-                <p className="text-sm text-muted-foreground">
-                  {data.mobile_phone}
-                </p>
+                <WhatsAppLink value={data.mobile_phone} />
               </div>
             </div>
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
@@ -390,11 +394,18 @@ export async function BasicView({ data }: OppsViewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
-              {data.notes.map((note: string) => (
-                <p className="text-sm text-muted-foreground" key={note}>
-                  {note}
-                </p>
-              ))}
+              {notes.map((note: unknown, index: number) => {
+                const noteText = getNoteText(note);
+
+                return (
+                  <p
+                    className="text-sm text-muted-foreground"
+                    key={`${index}-${noteText}`}
+                  >
+                    {noteText}
+                  </p>
+                );
+              })}
             </div>
           </CardContent>
         </Card>

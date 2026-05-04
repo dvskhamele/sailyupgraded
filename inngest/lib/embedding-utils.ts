@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import OpenAI from "openai";
+import { requireOpenAIApiKey } from "@/lib/env";
 
 let cachedOpenAI: OpenAI | null = null;
 
@@ -8,10 +9,7 @@ function getOpenAIClient(): OpenAI {
     return cachedOpenAI;
   }
 
-  const apiKey = process.env.OPENAI_API_KEY;
-  if (!apiKey) {
-    throw new Error("OPENAI_API_KEY is not defined");
-  }
+  const apiKey = requireOpenAIApiKey();
 
   cachedOpenAI = new OpenAI({ apiKey });
   return cachedOpenAI;

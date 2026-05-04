@@ -44,6 +44,18 @@ const prismaClientSingleton = () => {
 let _prisma: PrismaClient | undefined;
 const schemaSignature = getPrismaSchemaSignature();
 
+async function disconnectClient(client?: PrismaClient) {
+  if (!client) {
+    return;
+  }
+
+  try {
+    await client.$disconnect();
+  } catch {
+    // Swallow disconnect errors so callers can force a clean re-init.
+  }
+}
+
 const getPrisma = (): PrismaClient => {
   if (process.env.NODE_ENV === "production") {
     if (!_prisma) {
@@ -64,6 +76,21 @@ const getPrisma = (): PrismaClient => {
   }
   return global.cachedPrisma!;
 };
+
+export async function resetPrisma() {
+  if (process.env.NODE_ENV === "production") {
+    const current = _prisma;
+    _prisma = undefined;
+    await disconnectClient(current);
+    return;
+  }
+
+  const current = global.cachedPrisma;
+  global.cachedPrisma = undefined;
+  global.cachedPrismaUrl = undefined;
+  global.cachedPrismaSchemaSignature = undefined;
+  await disconnectClient(current);
+}
 
 // Use a proxy to lazily initialize the Prisma client only when accessed
 export const prismadb = new Proxy({} as PrismaClient, {

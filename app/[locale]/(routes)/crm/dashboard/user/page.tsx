@@ -1,6 +1,7 @@
 import { getSession } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
+import { EmailLink } from "@/components/ui/contact-link";
 
 import Container from "../../../components/ui/Container";
 import { getUserCRMTasks } from "@/actions/crm/tasks/get-user-tasks";
@@ -232,7 +233,9 @@ const UserDashboardPage = async () => {
                         </Link>
                       </TableCell>
                       <TableCell>{lead.company ?? "—"}</TableCell>
-                      <TableCell>{lead.email ?? "—"}</TableCell>
+                      <TableCell>
+                        <EmailLink value={lead.email} fallback="—" />
+                      </TableCell>
                       <TableCell>
                         <Badge variant="outline">
                           {"—"}

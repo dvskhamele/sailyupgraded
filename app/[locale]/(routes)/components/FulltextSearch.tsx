@@ -1,5 +1,6 @@
 "use client";
 import { Button } from "@/components/ui/button";
+import { EmailLink } from "@/components/ui/contact-link";
 import { Input } from "@/components/ui/input";
 import { SearchIcon, UserPlus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -115,7 +116,7 @@ const FulltextSearch = () => {
                         </span>
                         {contact.email && (
                           <span className="text-xs text-muted-foreground">
-                            {contact.email}
+                            <EmailLink value={contact.email} className="text-xs" />
                           </span>
                         )}
                       </div>

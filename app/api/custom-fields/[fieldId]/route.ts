@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { prismadb } from "@/lib/prisma";
 
-import { normalizeAppliesTo, normalizeOptions } from "../route";
+import { normalizeAppliesTo, normalizeOptions } from "../helpers";
 
 type CustomFieldPayload = {
   name?: string;

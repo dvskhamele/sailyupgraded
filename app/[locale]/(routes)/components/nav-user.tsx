@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
+import { EmailLink } from "@/components/ui/contact-link"
 import { useAvatarContext } from "@/context/avatar-context"
 
 /**
@@ -113,7 +114,7 @@ export function NavUser({ user }: NavUserProps) {
                 </Avatar>
                 <div className="grid flex-1 text-left text-sm leading-tight">
                   <span className="truncate font-semibold">{user.name}</span>
-                  <span className="truncate text-xs">{user.email}</span>
+                  <EmailLink value={user.email} className="truncate text-xs" />
                 </div>
               </div>
             </DropdownMenuLabel>

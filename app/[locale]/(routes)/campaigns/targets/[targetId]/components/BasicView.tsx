@@ -22,6 +22,7 @@ import moment from "moment";
 import Link from "next/link";
 import { EnvelopeClosedIcon } from "@radix-ui/react-icons";
 import { Badge } from "@/components/ui/badge";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { EnrichButton } from "./EnrichButton";
 import { TargetContactsTable } from "./TargetContactsTable";
 
@@ -179,35 +180,25 @@ export async function BasicView({ data }: TargetBasicViewProps) {
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">E-mail</p>
-                {data?.email ? (
-                  <Link
-                    href={`mailto:${data.email}`}
-                    className="flex items-center gap-5 text-sm text-muted-foreground"
-                  >
-                    {data.email}
-                    <EnvelopeClosedIcon />
-                  </Link>
-                ) : (
-                  <p className="text-sm text-muted-foreground">N/A</p>
-                )}
+                <EmailLink
+                  value={data?.email}
+                  className="flex items-center gap-5"
+                  trailingIcon={<EnvelopeClosedIcon />}
+                />
               </div>
             </div>
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <Phone className="mt-px h-5 w-5" />
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">Mobile phone</p>
-                <p className="text-sm text-muted-foreground">
-                  {data.mobile_phone || "N/A"}
-                </p>
+                <WhatsAppLink value={data.mobile_phone} />
               </div>
             </div>
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <Phone className="mt-px h-5 w-5" />
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">Office phone</p>
-                <p className="text-sm text-muted-foreground">
-                  {data.office_phone || "N/A"}
-                </p>
+                <WhatsAppLink value={data.office_phone} />
               </div>
             </div>
           </CardContent>

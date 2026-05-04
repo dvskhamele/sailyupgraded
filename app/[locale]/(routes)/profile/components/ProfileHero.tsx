@@ -2,6 +2,7 @@
 import { Users } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 import { ProfileHeroAvatar } from "./ProfileHeroAvatar";
+import { EmailLink } from "@/components/ui/contact-link";
 
 type Props = {
   data: Users;
@@ -17,7 +18,9 @@ export async function ProfileHero({ data }: Props) {
         <div className="text-white text-lg font-bold leading-tight">
           {data.name}
         </div>
-        <div className="text-white/75 text-sm">{data.email}</div>
+        <div className="text-white/75 text-sm">
+          <EmailLink value={data.email} className="text-white/75 hover:text-white" />
+        </div>
         <span className="mt-1.5 inline-block rounded-full bg-white/20 px-2 py-0.5 text-xs font-semibold text-white">
           {t("hero.role")}
         </span>

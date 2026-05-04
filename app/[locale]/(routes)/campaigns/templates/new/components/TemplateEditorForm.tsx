@@ -115,7 +115,7 @@ export default function TemplateEditorForm({ initialData, templateId }: Props) {
       {/* Basic fields */}
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-2">
-          <Label htmlFor="name">Template Name *</Label>
+          <Label htmlFor="name">Template Name</Label>
           <Input
             id="name"
             value={name}
@@ -135,7 +135,7 @@ export default function TemplateEditorForm({ initialData, templateId }: Props) {
           />
         </div>
         <div className="flex flex-col gap-2">
-          <Label htmlFor="subject">Subject Line *</Label>
+          <Label htmlFor="subject">Subject Line</Label>
           <Input
             id="subject"
             value={subject}
@@ -171,7 +171,7 @@ export default function TemplateEditorForm({ initialData, templateId }: Props) {
 
       {/* TipTap Editor */}
       <div className="flex flex-col gap-2">
-        <Label>Email Body</Label>
+        <Label>Note</Label>
         <TipTapEditor content={contentHtml} onChange={handleEditorChange} />
       </div>
 

@@ -8,6 +8,7 @@ import * as accountsActions from "@/actions/reports/accounts";
 import * as activityActions from "@/actions/reports/activity";
 import * as campaignsActions from "@/actions/reports/campaigns";
 import * as usersActions from "@/actions/reports/users";
+import { requireEmailFromAddress } from "@/lib/env";
 import resendHelper from "@/lib/resend";
 
 async function getReportData(category: string, filters: any) {
@@ -78,7 +79,7 @@ export const reportSendScheduled = inngest.createFunction(
         }
 
         await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL!,
+          from: requireEmailFromAddress(),
           to: schedule.recipients as string[],
           subject: `Report: ${schedule.reportConfig.name}`,
           text: `Your scheduled report "${schedule.reportConfig.name}" is attached.`,

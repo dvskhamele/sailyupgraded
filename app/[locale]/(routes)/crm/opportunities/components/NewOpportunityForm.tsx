@@ -554,6 +554,39 @@ export function NewOpportunityForm({
                 </FormItem>
               )}
             />
+             <FormField
+                  control={form.control}
+                  name="contact"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Assigned Client</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        defaultValue={field.value}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select a user to assign the Client" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent className="flex overflow-y-auto h-56">
+                          <Input
+                            placeholder="Search contact..."
+                            onChange={(e) =>
+                              setSearchContactValue(e.target.value)
+                            }
+                          />
+                          {filteredContacts.map((contact) => (
+                            <SelectItem key={contact.id} value={contact.id}>
+                              {contact.first_name + " " + contact.last_name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
             <FormField
               control={form.control}
               name="description"
@@ -847,19 +880,19 @@ export function NewOpportunityForm({
                     </FormItem>
                   )}
                 />
-                <FormField
+                {/* <FormField
                   control={form.control}
                   name="contact"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Assigned Contact</FormLabel>
+                      <FormLabel>Assigned Client</FormLabel>
                       <Select
                         onValueChange={field.onChange}
                         defaultValue={field.value}
                       >
                         <FormControl>
                           <SelectTrigger>
-                            <SelectValue placeholder="Select a user to assign the Contact" />
+                            <SelectValue placeholder="Select a user to assign the Client" />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="flex overflow-y-auto h-56">
@@ -879,7 +912,7 @@ export function NewOpportunityForm({
                       <FormMessage />
                     </FormItem>
                   )}
-                />
+                /> */}
                 <FormField
                   control={form.control}
                   name="campaign"

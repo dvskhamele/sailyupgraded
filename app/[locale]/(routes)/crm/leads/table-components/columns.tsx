@@ -5,6 +5,7 @@ import { ColumnDef } from "@tanstack/react-table";
 
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 
 import { statuses } from "../table-data/data";
 import { Lead } from "../table-data/schema";
@@ -110,7 +111,12 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="E-mail" />
     ),
 
-    cell: ({ row }) => <div className="w-[150px]">{row.getValue("email")}</div>,
+    cell: ({ row }) => (
+      <EmailLink
+        value={row.getValue("email") as string | null}
+        className="w-[150px]"
+      />
+    ),
     enableSorting: true,
     enableHiding: true,
   },
@@ -120,7 +126,12 @@ export const createColumns = (
       <DataTableColumnHeader column={column} title="Phone" />
     ),
 
-    cell: ({ row }) => <div className="w-[150px]">{row.getValue("phone")}</div>,
+    cell: ({ row }) => (
+      <WhatsAppLink
+        value={row.getValue("phone") as string | null}
+        className="w-[150px]"
+      />
+    ),
     enableSorting: false,
     enableHiding: false,
   },

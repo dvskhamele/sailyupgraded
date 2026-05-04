@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-server";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { EmailLink } from "@/components/ui/contact-link";
 import {
   Table,
   TableBody,
@@ -100,7 +101,9 @@ export default async function TargetEnrichmentJobsPage() {
                       {record.target.first_name} {record.target.last_name}
                     </Link>
                     {record.target.email && (
-                      <div className="text-xs text-muted-foreground">{record.target.email}</div>
+                      <div className="text-xs text-muted-foreground">
+                        <EmailLink value={record.target.email} className="text-xs" />
+                      </div>
                     )}
                   </TableCell>
                   <TableCell>

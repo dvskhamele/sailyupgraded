@@ -1,6 +1,7 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
 import { resolveMergeTags } from "@/lib/campaigns/merge-tags";
+import { requireEmailFromAddress } from "@/lib/env";
 import resendHelper from "@/lib/resend";
 
 export const campaignSendStep = inngest.createFunction(
@@ -31,9 +32,10 @@ export const campaignSendStep = inngest.createFunction(
 
     const html = resolveMergeTags(sendRecord.step.template.content_html, sendRecord.target);
 
+    const defaultFromAddress = requireEmailFromAddress();
     const fromAddress = sendRecord.campaign.from_name
-      ? `${sendRecord.campaign.from_name} <${process.env.RESEND_FROM_EMAIL}>`
-      : process.env.RESEND_FROM_EMAIL!;
+      ? `${sendRecord.campaign.from_name} <${defaultFromAddress}>`
+      : defaultFromAddress;
 
     const result = await step.run("send-email", async () => {
       const resend = await resendHelper();

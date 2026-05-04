@@ -47,7 +47,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent, CardFooter, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import { NewOpportunityForm } from "../../opportunities/components/NewOpportunityForm";
@@ -70,9 +70,7 @@ import {
 } from "@/components/ui/sheet";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { CategoryFilter } from "./CategoryFilter";
-import {
-  filterOpportunitiesByCategory,
-} from "@/lib/opportunity-categories";
+import { filterOpportunitiesByCategory } from "@/lib/opportunity-categories";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 
 interface CRMKanbanProps {
@@ -101,20 +99,15 @@ function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
 
   return (
     <div className="flex items-center px-1 py-2 justify-between mb-2 bg-white border rounded shadow-sm">
-   
       <div className="flex flex-col gap-1">
-        <div
-          className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full"
-        >
-         {totalRevenue.toLocaleString("en-IN")}
+        <div className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full">
+          ${totalRevenue.toLocaleString("en-IN")}
         </div>
       </div>
       <div className="h-6 w-px bg-gray-200 mx-3" />
 
       <div className="flex flex-col items-end gap-1">
-        <div
-          className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 rounded-full"
-        >
+        <div className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 rounded-full">
           {totalCards}
         </div>
       </div>
@@ -199,110 +192,99 @@ function OpportunityCard({
       style={style}
       {...attributes}
       {...listeners}
-      className="my-2 w-full cursor-grab border border-sky-100 bg-gradient-to-br from-white via-sky-50 to-cyan-50 shadow-sm active:cursor-grabbing"
       onClick={() => onOpenEdit(opportunity)}
+      className="my-3 w-full cursor-grab rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md active:cursor-grabbing"
     >
-      <CardTitle className="border-b border-sky-100 bg-gradient-to-r from-sky-100 to-cyan-100 p-2 text-sm">
-        <div className="flex justify-between p-2">
-          <span className="font-bold text-sky-950">{opportunity.name}</span>
-          <div>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <DotsHorizontalIcon
-                  className="w-4 h-4 text-sky-700"
-                  onClick={(event) => event.stopPropagation()}
-                />
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[160px]">
-                <DropdownMenuItem onClick={() => onOpenEdit(opportunity)}>
-                  Update
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-          </div>
+      {/* HEADER */}
+      <CardHeader className="p-4 pb-2">
+        <div className="flex justify-between items-start gap-2">
+          <h3 className="text-sm font-semibold text-gray-800 leading-snug">
+            {opportunity.name}
+          </h3>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <DotsHorizontalIcon
+                className="w-4 h-4 text-gray-500"
+                onClick={(e) => e.stopPropagation()}
+              />
+            </DropdownMenuTrigger>
+
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => onOpenEdit(opportunity)}>
+                Update
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
-      </CardTitle>
-      <CardContent className="bg-white/70 text-xs text-slate-700">
-        <div className="flex flex-col space-y-1">
-          <div className="overflow-hidden rounded-md bg-sky-50 px-2 py-1 text-slate-700">
-            <HoverCard>
-              <HoverCardTrigger>
-                {opportunity.description?.substring(0, 200)}
-              </HoverCardTrigger>
-              <HoverCardContent className="overflow-hidden">
-                {opportunity.description}
-              </HoverCardContent>
-            </HoverCard>
-          </div>
-          <div className="space-x-1">
-            <span className="font-medium text-sky-800">Amount:</span>
-            <span className="font-semibold text-emerald-700">{opportunity.budget?.toString()}</span>
-          </div>
-          <div className="space-x-1">
-            <span className="font-medium text-sky-800">Expected closing:</span>
-            <span
-              className={
-                opportunity.close_date &&
-                new Date(opportunity.close_date) < new Date()
-                  ? "font-semibold text-rose-500"
-                  : "font-semibold text-violet-700"
-              }
-            >
-              {format(
-                opportunity.close_date
-                  ? new Date(opportunity.close_date)
-                  : new Date(),
-                "dd/MM/yyyy",
-              )}
-            </span>
-          </div>
+      </CardHeader>
+
+      {/* CONTENT */}
+      <CardContent className="px-4 pb-3 text-xs text-gray-600 space-y-2">
+        {/* DESCRIPTION */}
+        <p className="line-clamp-2">{opportunity.description}</p>
+
+        {/* AMOUNT */}
+        <div className="flex items-center gap-2">
+          <span className="text-gray-500">Amount:</span>
+          <span className="font-semibold text-gray-900">
+            ${opportunity.budget?.toLocaleString()}
+          </span>
+        </div>
+
+        {/* CLOSE DATE */}
+        <div>
+          <span className="text-gray-500">Expected closing:</span>{" "}
+          <span
+            className={
+              opportunity.close_date &&
+              new Date(opportunity.close_date) < new Date()
+                ? "text-red-500 font-medium"
+                : "text-indigo-600 font-medium"
+            }
+          >
+            {format(
+              opportunity.close_date
+                ? new Date(opportunity.close_date)
+                : new Date(),
+              "dd MMM yyyy",
+            )}
+          </span>
         </div>
       </CardContent>
-      <CardFooter className="flex items-start justify-between gap-3 border-t border-sky-100 bg-gradient-to-r from-white to-sky-50">
-        <div className="flex min-w-0 items-start gap-2">
-          <Avatar className="w-6 h-6">
+
+      {/* FOOTER */}
+      <CardFooter className="flex justify-between items-center border-t bg-gray-50 px-4 py-3">
+        {/* USER */}
+        <div className="flex items-center gap-2 min-w-0">
+          <Avatar className="w-7 h-7">
             <AvatarImage
               src={
-                opportunity.assigned_to_user?.avatar
-                  ? opportunity.assigned_to_user.avatar
-                  : `${process.env.NEXT_PUBLIC_APP_URL}/images/nouser.png`
+                opportunity.assigned_to_user?.avatar ||
+                `${process.env.NEXT_PUBLIC_APP_URL}/images/nouser.png`
               }
-          />
-          </Avatar>
-          <div className="flex min-w-0 flex-col">
-            <span className="min-w-0 truncate text-sm font-medium text-slate-800">
-              {getOpportunityClientName(opportunity) ||
-                getOpportunityDisplayName(opportunity)}
-            </span>
-            {opportunityProducts.length > 0 ? (
-              <div className="mt-1 flex flex-wrap gap-1">
-                {opportunityProducts.map((product) => (
-                  <Badge
-                    key={product}
-                    variant="secondary"
-                    className="w-fit shrink-0 whitespace-nowrap border-0 bg-gradient-to-r from-fuchsia-500 to-violet-500 text-white"
-                  >
-                    {product}
-                  </Badge>
-                ))}
-              </div>
-            ) : null}
-          </div>
-        </div>
-        <div className="flex space-x-2">
-          {stage.probability !==
-            Math.max(
-              ...salesStages.map((s: any) => Number(s.probability || 0)),
-            ) && (
-            <ThumbsDown
-              className="w-4 h-4 text-rose-500"
-              onClick={(event) => {
-                event.stopPropagation();
-                onThumbsDown(opportunity.id);
-              }}
             />
-          )}
+          </Avatar>
+
+          <span className="truncate text-sm font-medium text-gray-700">
+            {getOpportunityClientName(opportunity) ||
+              getOpportunityDisplayName(opportunity)}
+          </span>
         </div>
+
+        {/* PRODUCTS */}
+        {opportunityProducts.length > 0 && (
+          <div className="flex gap-1 flex-wrap justify-end">
+            {opportunityProducts.map((product) => (
+              <Badge
+                key={product}
+                className="bg-indigo-500 text-white text-[10px] px-2 py-0.5"
+              >
+                {product}
+              </Badge>
+            ))}
+          </div>
+        )}
       </CardFooter>
     </Card>
   );
@@ -345,10 +327,14 @@ function OpportunityCardStatic({
           </div>
           <div className="space-x-1">
             <span className="font-medium text-amber-800">Amount:</span>
-            <span className="font-semibold text-emerald-700">{opportunity.budget?.toString()}</span>
+            <span className="font-semibold text-emerald-700">
+              {opportunity.budget?.toString()}
+            </span>
           </div>
           <div className="space-x-1">
-            <span className="font-medium text-amber-800">Expected closing:</span>
+            <span className="font-medium text-amber-800">
+              Expected closing:
+            </span>
             <span
               className={
                 opportunity.close_date &&
@@ -369,7 +355,7 @@ function OpportunityCardStatic({
       </CardContent>
       <CardFooter className="flex items-start justify-between gap-3 border-t border-amber-100 bg-gradient-to-r from-white to-amber-50">
         <div className="flex min-w-0 items-start gap-2">
-          <Avatar className="w-6 h-6">
+          {/* <Avatar className="w-6 h-6">
             <AvatarImage
               src={
                 opportunity.assigned_to_user?.avatar
@@ -377,7 +363,7 @@ function OpportunityCardStatic({
                   : `${process.env.NEXT_PUBLIC_APP_URL}/images/nouser.png`
               }
           />
-          </Avatar>
+          </Avatar> */}
           <div className="flex min-w-0 flex-col">
             <span className="min-w-0 truncate text-sm font-medium text-slate-800">
               {getOpportunityClientName(opportunity) ||
@@ -434,13 +420,16 @@ const CRMKanban = ({
       Array.from(
         new Set(
           [
-            ...(((crmData?.products as Array<{ name: string; status: string }> | undefined) ?? [])
+            ...(
+              (crmData?.products as
+                | Array<{ name: string; status: string }>
+                | undefined) ?? []
+            )
               .filter((product) => product.status === "ACTIVE")
-              .map((product) => product.name.trim())),
+              .map((product) => product.name.trim()),
             ...customProducts,
-          ]
-            .filter(Boolean)
-        )
+          ].filter(Boolean),
+        ),
       ),
     [crmData, customProducts],
   );
@@ -500,7 +489,9 @@ const CRMKanban = ({
 
     const fallbackCurrency = currencies?.[0]?.code;
     if (!fallbackCurrency) {
-      toast.error("No active currency found. Add a currency before creating products.");
+      toast.error(
+        "No active currency found. Add a currency before creating products.",
+      );
       return false;
     }
 
@@ -526,7 +517,7 @@ const CRMKanban = ({
     setCustomProducts((currentProducts) =>
       currentProducts.includes(normalizedProduct)
         ? currentProducts
-        : [...currentProducts, normalizedProduct]
+        : [...currentProducts, normalizedProduct],
     );
     setSelectedCategories((current) =>
       current.includes(normalizedProduct)
@@ -738,17 +729,16 @@ const CRMKanban = ({
 
   return (
     <>
-     <div className="mb-4 flex items-center justify-end gap-2">
- 
-  <CategoryFilter
-    categories={categoryList}
-    selectedCategories={selectedCategories}
-    onCategoryChange={setSelectedCategories}
-    onAddCategory={handleAddProduct}
-    allowCreate
-  />
-   <ImportOpportunitiesDialog />
-</div>
+      <div className="mb-4 flex items-center justify-end gap-2">
+        <CategoryFilter
+          categories={categoryList}
+          selectedCategories={selectedCategories}
+          onCategoryChange={setSelectedCategories}
+          onAddCategory={handleAddProduct}
+          allowCreate
+        />
+        <ImportOpportunitiesDialog />
+      </div>
 
       <Dialog open={isDialogOpen} onOpenChange={() => setIsDialogOpen(false)}>
         <DialogContent className="min-w-[1000px] py-10 overflow-auto">

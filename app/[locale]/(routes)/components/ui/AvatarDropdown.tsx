@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/lib/auth-client";
+import { EmailLink } from "@/components/ui/contact-link";
 
 import { LogOut, Settings } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -43,7 +44,9 @@ const AvatarDropdown = ({ avatar, userId, name, email }: Props) => {
       <DropdownMenuContent>
         <DropdownMenuLabel className="space-y-1">
           <div>{name}</div>
-          <div className="text-xs text-muted-foreground">{email}</div>
+          <div className="text-xs text-muted-foreground">
+            <EmailLink value={email} className="text-xs" />
+          </div>
         </DropdownMenuLabel>
 
         <DropdownMenuSeparator />

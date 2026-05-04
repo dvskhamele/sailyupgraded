@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
+import { EmailLink } from "@/components/ui/contact-link";
 import { redirect } from "next/navigation";
 import TryAgain from "./components/TryAgain";
 import { Users } from "@prisma/client";
@@ -46,9 +47,7 @@ const PendingPage = async () => {
               >
                 <div>
                   <p className="font-bold">{user.name}</p>
-                  <p>
-                    <Link href={`mailto:  ${user.email}`}>{user.email}</Link>
-                  </p>
+                  <p><EmailLink value={user.email} /></p>
                 </div>
               </div>
             ))}

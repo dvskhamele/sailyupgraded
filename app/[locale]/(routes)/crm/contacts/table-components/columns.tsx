@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ColumnDef } from "@tanstack/react-table";
 
 import { Checkbox } from "@/components/ui/checkbox";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 
 import { Opportunity } from "../table-data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
@@ -101,7 +102,7 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="E-mail" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("email")}</div>,
+    cell: ({ row }) => <EmailLink value={row.getValue("email") as string | null} />,
     enableSorting: true,
     enableHiding: true,
   },
@@ -110,7 +111,9 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Mobile" />
     ),
-    cell: ({ row }) => <div className="">{row.getValue("mobile_phone")}</div>,
+    cell: ({ row }) => (
+      <WhatsAppLink value={row.getValue("mobile_phone") as string | null} />
+    ),
     enableSorting: true,
     enableHiding: true,
   },

@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { prismadb } from "@/lib/prisma";
+import { prismadb, resetPrisma } from "@/lib/prisma";
 import {
   pickExistingDbModelFields,
   pickSupportedModelFields,
@@ -77,14 +77,15 @@ const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
   accountsIDs: true,
 } as const);
 
-/**
- * Shared CRM metadata fetcher.
- *
- * This is used by multiple CRM routes and server components. Keep the queries
- * serialized and cache the result per request to avoid exhausting the Prisma
- * MariaDB driver pool under concurrent page loads.
- */
-export const getAllCrmData = cache(async () => {
+function isTransientPrismaConnectionError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("pool timeout: failed to retrieve a connection from pool") ||
+    message.includes("read ECONNRESET")
+  );
+}
+
+async function loadAllCrmData() {
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { deletedAt: null },
     include: {
@@ -203,4 +204,24 @@ export const getAllCrmData = cache(async () => {
       rate: Number(rate.rate),
     })),
   });
+}
+
+/**
+ * Shared CRM metadata fetcher.
+ *
+ * This is used by multiple CRM routes and server components. Keep the queries
+ * serialized and cache the result per request to avoid exhausting the Prisma
+ * MariaDB driver pool under concurrent page loads.
+ */
+export const getAllCrmData = cache(async () => {
+  try {
+    return await loadAllCrmData();
+  } catch (error) {
+    if (!isTransientPrismaConnectionError(error)) {
+      throw error;
+    }
+
+    await resetPrisma();
+    return loadAllCrmData();
+  }
 });

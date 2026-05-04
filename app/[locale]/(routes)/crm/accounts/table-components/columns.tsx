@@ -8,6 +8,7 @@ import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import moment from "moment";
 import Link from "next/link";
+import { EmailLink } from "@/components/ui/contact-link";
 
 export const columns: ColumnDef<Account>[] = [
   {
@@ -58,7 +59,12 @@ export const columns: ColumnDef<Account>[] = [
       <DataTableColumnHeader column={column} title="E-mail" />
     ),
 
-    cell: ({ row }) => <div className="w-[150px]">{row.getValue("email")}</div>,
+    cell: ({ row }) => (
+      <EmailLink
+        value={row.getValue("email") as string | null}
+        className="w-[150px]"
+      />
+    ),
     enableSorting: true,
     enableHiding: true,
   },

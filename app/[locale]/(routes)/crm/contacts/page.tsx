@@ -18,7 +18,7 @@ const AccountsPage = async ({ searchParams }: Props) => {
   const params = await searchParams;
   const roleParam = Array.isArray(params.role) ? params.role[0] : params.role;
   const crmData = await getAllCrmData();
-  const contacts = await getContacts();
+  const contacts = await getContacts(roleParam);
 
   return (
     <Container

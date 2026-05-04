@@ -75,7 +75,7 @@ export const createOpportunity = async (data: {
         custom_fields_data:
           Object.keys(sanitizedCustomFieldValues).length > 0
             ? sanitizedCustomFieldValues
-            : null,
+            : undefined,
       },
     );
 

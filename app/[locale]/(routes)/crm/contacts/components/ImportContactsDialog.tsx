@@ -35,6 +35,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 
 type RawRow = Record<string, string>;
 type MappingKey =
@@ -529,8 +530,12 @@ export function ImportContactsDialog() {
                         <TableRow key={row.row}>
                           <TableCell>{row.row}</TableCell>
                           <TableCell>{row.name || "N/A"}</TableCell>
-                          <TableCell>{row.email || "Missing email"}</TableCell>
-                          <TableCell>{row.phone || "N/A"}</TableCell>
+                          <TableCell>
+                            <EmailLink value={row.email} fallback="Missing email" />
+                          </TableCell>
+                          <TableCell>
+                            <WhatsAppLink value={row.phone} fallback="N/A" />
+                          </TableCell>
                           <TableCell>{row.status || "N/A"}</TableCell>
                           <TableCell>
                             {row.valid ? (

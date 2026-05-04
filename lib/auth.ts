@@ -6,6 +6,7 @@ import { prismadb } from "@/lib/prisma";
 import { ac, admin, member, viewer } from "@/lib/auth-permissions";
 import { newUserNotify } from "@/lib/new-user-notify";
 import resendHelper from "@/lib/resend";
+import { getEmailFromAddress, getGoogleClientId, getGoogleClientSecret } from "@/lib/env";
 
 function getCanonicalAppUrl() {
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;
@@ -38,6 +39,9 @@ function getTrustedAuthOrigins() {
 
 const appUrl = getCanonicalAppUrl();
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
+const emailFromAddress = getEmailFromAddress();
+const googleClientId = getGoogleClientId();
+const googleClientSecret = getGoogleClientSecret();
 const allowOtpPreview =
   process.env.NODE_ENV !== "production" ||
   process.env.VERCEL_ENV === "preview" ||
@@ -105,10 +109,10 @@ export const auth = betterAuth({
   },
 
   socialProviders: {
-    ...(process.env.GOOGLE_ID && process.env.GOOGLE_SECRET ? {
+    ...(googleClientId && googleClientSecret ? {
       google: {
-        clientId: process.env.GOOGLE_ID,
-        clientSecret: process.env.GOOGLE_SECRET,
+        clientId: googleClientId,
+        clientSecret: googleClientSecret,
       },
     } : {}),
   },
@@ -134,9 +138,9 @@ export const auth = betterAuth({
 
         try {
           const resend = await resendHelper();
-          if (resend && process.env.EMAIL_FROM) {
+          if (resend && emailFromAddress) {
             await resend.emails.send({
-              from: `${process.env.NEXT_PUBLIC_APP_NAME || "NextCRM"} <${process.env.EMAIL_FROM}>`,
+              from: `${process.env.NEXT_PUBLIC_APP_NAME || "NextCRM"} <${emailFromAddress}>`,
               to: email,
               subject: `Your verification code: ${otp}`,
               text: `Your one-time verification code is: ${otp}\n\nThis code expires in 5 minutes.\n\nIf you did not request this, please ignore this email.`,
@@ -188,7 +192,7 @@ export const auth = betterAuth({
   account: {
     accountLinking: {
       enabled: true,
-      trustedProviders: process.env.GOOGLE_ID && process.env.GOOGLE_SECRET ? ["google"] : [],
+      trustedProviders: googleClientId && googleClientSecret ? ["google"] : [],
     },
   },
 

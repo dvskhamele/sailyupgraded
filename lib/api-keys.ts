@@ -1,5 +1,6 @@
 import { prismadb } from "@/lib/prisma";
 import { decrypt } from "@/lib/email-crypto";
+import { getOpenAIApiKey } from "@/lib/env";
 import type { ApiKeyProvider } from "@prisma/client";
 
 export type { ApiKeyProvider };
@@ -23,7 +24,10 @@ export async function getApiKey(
   userId?: string
 ): Promise<string | null> {
   // Tier 1: ENV
-  const envKey = process.env[PROVIDER_ENV_MAP[provider]];
+  const envKey =
+    provider === "OPENAI"
+      ? getOpenAIApiKey()
+      : process.env[PROVIDER_ENV_MAP[provider]];
   if (envKey) return envKey;
 
   // Tier 2: system-wide DB key

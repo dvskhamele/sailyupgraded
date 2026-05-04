@@ -166,99 +166,130 @@ export function LoginComponent() {
   };
 
   return (
-    <Card className="shadow-lg my-5">
-      <CardHeader className="space-y-1">
-        <CardTitle className="text-2xl">Login</CardTitle>
-        <CardDescription>Choose your sign-in method</CardDescription>
-      </CardHeader>
-      <CardContent className="grid gap-4">
-        {/* Google sign-in button */}
-        <Button
-          variant="outline"
-          onClick={loginWithGoogle}
-          disabled={isLoading}
-          className="w-full"
-        >
-          <Icons.google className="mr-2 h-4 w-4" />
-          Continue with Google
-        </Button>
+    <Card className="mx-auto w-full max-w-md rounded-2xl border bg-white/80 backdrop-blur shadow-xl">
+  
+  {/* HEADER */}
+  <CardHeader className="space-y-2 text-center">
+    <CardTitle className="text-3xl font-bold tracking-tight">
+      SignIn 👋
+    </CardTitle>
 
-        <div className="relative">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
-          </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">
-              Sign in with email
-            </span>
-          </div>
+    <CardDescription className="text-sm text-muted-foreground">
+      Sign in to continue to your dashboard
+    </CardDescription>
+  </CardHeader>
+
+  {/* CONTENT */}
+  <CardContent className="grid gap-5">
+
+    {/* GOOGLE LOGIN */}
+    <Button
+      variant="outline"
+      onClick={loginWithGoogle}
+      disabled={isLoading}
+      className="w-full h-11 rounded-lg font-medium hover:bg-muted transition"
+    >
+      <Icons.google className="mr-2 h-5 w-5" />
+      Continue with Google
+    </Button>
+
+    {/* DIVIDER */}
+    <div className="relative">
+      <div className="absolute inset-0 flex items-center">
+        <span className="w-full border-t" />
+      </div>
+      <div className="relative flex justify-center text-xs uppercase">
+        <span className="bg-background px-3 text-muted-foreground">
+          Or continue with email
+        </span>
+      </div>
+    </div>
+
+    {/* EMAIL STEP */}
+    {step === "email" && (
+      <div className="grid gap-4 animate-in fade-in-50">
+        <div className="grid gap-2">
+          <Label htmlFor="email">Email address</Label>
+
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@company.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            disabled={isLoading}
+            onKeyDown={(e) => e.key === "Enter" && sendOtp()}
+            className="h-11 rounded-lg"
+          />
         </div>
 
-        {step === "email" && (
-          <div className="grid gap-3">
-            <div className="grid gap-1.5">
-              <Label htmlFor="email">Email</Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="name@domain.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                disabled={isLoading}
-                onKeyDown={(e) => e.key === "Enter" && sendOtp()}
-              />
-            </div>
-            <Button onClick={sendOtp} disabled={isLoading || !email}>
-              <MailIcon className="mr-2 h-4 w-4" />
-              Send verification code
-            </Button>
-          </div>
+        <Button
+          onClick={sendOtp}
+          disabled={isLoading || !email}
+          className="h-11 rounded-lg font-semibold"
+        >
+          <MailIcon className="mr-2 h-4 w-4" />
+          Send Verification Code
+        </Button>
+      </div>
+    )}
+
+    {/* OTP STEP */}
+    {step === "otp" && (
+      <div className="grid gap-4 animate-in fade-in-50">
+
+        <p className="text-sm text-center text-muted-foreground">
+          Enter the code sent to <br />
+          <strong className="text-foreground">{email}</strong>
+        </p>
+
+        {devOtp && (
+          <p className="text-xs text-center text-amber-600">
+            Dev Code: <strong>{devOtp}</strong>
+          </p>
         )}
 
-        {step === "otp" && (
-          <div className="grid gap-3">
-            <p className="text-sm text-muted-foreground">
-              Enter the 6-digit code sent to <strong>{email}</strong>
-            </p>
-            {devOtp ? (
-              <p className="text-sm text-amber-600">
-                Use this verification code: <strong>{devOtp}</strong>
-              </p>
-            ) : null}
-            <div className="flex justify-center">
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={setOtp}
-                disabled={isLoading}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
-            </div>
-            <Button onClick={verifyOtp} disabled={isLoading || otp.length !== 6}>
-              Verify and sign in
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setStep("email");
-                setOtp("");
-              }}
-              disabled={isLoading}
-            >
-              Use a different email
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+        <div className="flex justify-center">
+          <InputOTP
+            maxLength={6}
+            value={otp}
+            onChange={setOtp}
+            disabled={isLoading}
+          >
+            <InputOTPGroup>
+              <InputOTPSlot index={0} />
+              <InputOTPSlot index={1} />
+              <InputOTPSlot index={2} />
+              <InputOTPSlot index={3} />
+              <InputOTPSlot index={4} />
+              <InputOTPSlot index={5} />
+            </InputOTPGroup>
+          </InputOTP>
+        </div>
+
+        <Button
+          onClick={verifyOtp}
+          disabled={isLoading || otp.length !== 6}
+          className="h-11 rounded-lg font-semibold"
+        >
+          Verify & Sign In
+        </Button>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => {
+            setStep("email");
+            setOtp("");
+          }}
+          disabled={isLoading}
+          className="text-muted-foreground"
+        >
+          Use different email
+        </Button>
+      </div>
+    )}
+  </CardContent>
+</Card>
   );
 }

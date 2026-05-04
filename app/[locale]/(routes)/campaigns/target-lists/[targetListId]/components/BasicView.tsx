@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { toast } from "sonner";
 import { CalendarDays, Trash2, User, Users } from "lucide-react";
 import moment from "moment";
@@ -129,9 +130,15 @@ export function BasicView({ data }: TargetListBasicViewProps) {
                     >
                       {t.target?.first_name} {t.target?.last_name}
                     </Link>
-                    <p className="text-xs text-muted-foreground">
-                      {t.target?.email || t.target?.mobile_phone || "No contact info"}
-                    </p>
+                    <div className="text-xs text-muted-foreground">
+                      {t.target?.email ? (
+                        <EmailLink value={t.target.email} fallback="No contact info" className="text-xs" />
+                      ) : t.target?.mobile_phone ? (
+                        <WhatsAppLink value={t.target.mobile_phone} fallback="No contact info" className="text-xs" />
+                      ) : (
+                        "No contact info"
+                      )}
+                    </div>
                   </div>
                   {t.target?.company && (
                     <Badge variant="outline">{t.target.company}</Badge>
