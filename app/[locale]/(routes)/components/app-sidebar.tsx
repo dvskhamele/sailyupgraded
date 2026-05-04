@@ -1,7 +1,6 @@
 "use client";
 
 import * as React from "react";
-import Link from "next/link";
 import {
   Sidebar,
   SidebarContent,
@@ -11,6 +10,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
+import { Link } from "@/i18n/navigation";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import getContactsMenuItem from "./menu-items/Contacts";

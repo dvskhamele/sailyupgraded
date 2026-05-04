@@ -1,10 +1,10 @@
 "use client"
 
 import * as React from "react"
-import Link from "next/link"
 import { usePathname, useSearchParams } from "next/navigation"
 import { type LucideIcon, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Link } from "@/i18n/navigation"
 import {
   SidebarGroup,
   SidebarGroupLabel,
