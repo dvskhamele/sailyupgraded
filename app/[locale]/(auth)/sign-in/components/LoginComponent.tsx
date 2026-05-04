@@ -28,7 +28,11 @@ const allowDevOtpPreview =
   process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ||
   process.env.NEXT_PUBLIC_ENABLE_OTP_PREVIEW === "true";
 
-export function LoginComponent() {
+type LoginComponentProps = {
+  googleAuthEnabled: boolean;
+};
+
+export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -36,6 +40,11 @@ export function LoginComponent() {
   const [devOtp, setDevOtp] = useState("");
 
   const loginWithGoogle = async () => {
+    if (!googleAuthEnabled) {
+      toast.error("Google sign-in is not configured for this environment.");
+      return;
+    }
+
     setIsLoading(true);
     try {
       await authClient.signIn.social({
@@ -44,8 +53,13 @@ export function LoginComponent() {
       });
     } catch (error: any) {
       console.error("Google sign-in error:", error);
-      if (error?.message?.includes("provider not found") || error?.message?.includes("google")) {
-        toast.error("Google sign-in is not configured. Please use email sign-in instead.");
+      if (
+        error?.message?.includes("provider not found") ||
+        error?.message?.includes("google")
+      ) {
+        toast.error(
+          "Google sign-in is not configured. Please use email sign-in instead.",
+        );
       } else {
         toast.error("Something went wrong with Google sign-in.");
       }
@@ -74,7 +88,7 @@ export function LoginComponent() {
       if (allowDevOtpPreview) {
         try {
           const response = await fetch(
-            `/api/auth/test-otp?email=${encodeURIComponent(normalizedEmail)}`
+            `/api/auth/test-otp?email=${encodeURIComponent(normalizedEmail)}`,
           );
           if (response.ok) {
             const data = await response.json();
@@ -85,7 +99,7 @@ export function LoginComponent() {
               toast.success(
                 data.source === "fallback"
                   ? `Email unavailable. Use code: ${data.otp}`
-                  : `Development OTP: ${data.otp}`
+                  : `Development OTP: ${data.otp}`,
               );
               return;
             }
@@ -167,129 +181,131 @@ export function LoginComponent() {
 
   return (
     <Card className="mx-auto w-full max-w-md rounded-2xl border bg-white/80 backdrop-blur shadow-xl">
-  
-  {/* HEADER */}
-  <CardHeader className="space-y-2 text-center">
-    <CardTitle className="text-3xl font-bold tracking-tight">
-      SignIn 👋
-    </CardTitle>
+      {/* HEADER */}
+      <CardHeader className="space-y-2 text-center">
+        <CardTitle className="text-3xl font-bold tracking-tight">
+          SignIn 👋
+        </CardTitle>
 
-    <CardDescription className="text-sm text-muted-foreground">
-      Sign in to continue to your dashboard
-    </CardDescription>
-  </CardHeader>
+        <CardDescription className="text-sm text-muted-foreground">
+          Sign in to continue to your dashboard
+        </CardDescription>
+        
+      </CardHeader>
 
-  {/* CONTENT */}
-  <CardContent className="grid gap-5">
-
-    {/* GOOGLE LOGIN */}
-    <Button
-      variant="outline"
-      onClick={loginWithGoogle}
-      disabled={isLoading}
-      className="w-full h-11 rounded-lg font-medium hover:bg-muted transition"
-    >
-      <Icons.google className="mr-2 h-5 w-5" />
-      Continue with Google
-    </Button>
-
-    {/* DIVIDER */}
-    <div className="relative">
-      <div className="absolute inset-0 flex items-center">
-        <span className="w-full border-t" />
-      </div>
-      <div className="relative flex justify-center text-xs uppercase">
-        <span className="bg-background px-3 text-muted-foreground">
-          Or continue with email
-        </span>
-      </div>
-    </div>
-
-    {/* EMAIL STEP */}
-    {step === "email" && (
-      <div className="grid gap-4 animate-in fade-in-50">
-        <div className="grid gap-2">
-          <Label htmlFor="email">Email address</Label>
-
-          <Input
-            id="email"
-            type="email"
-            placeholder="you@company.com"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+      {/* CONTENT */}
+      <CardContent className="grid gap-5">
+        {/* GOOGLE LOGIN */}
+        {googleAuthEnabled && (
+          <Button
+            variant="outline"
+            onClick={loginWithGoogle}
             disabled={isLoading}
-            onKeyDown={(e) => e.key === "Enter" && sendOtp()}
-            className="h-11 rounded-lg"
-          />
-        </div>
-
-        <Button
-          onClick={sendOtp}
-          disabled={isLoading || !email}
-          className="h-11 rounded-lg font-semibold"
-        >
-          <MailIcon className="mr-2 h-4 w-4" />
-          Send Verification Code
-        </Button>
-      </div>
-    )}
-
-    {/* OTP STEP */}
-    {step === "otp" && (
-      <div className="grid gap-4 animate-in fade-in-50">
-
-        <p className="text-sm text-center text-muted-foreground">
-          Enter the code sent to <br />
-          <strong className="text-foreground">{email}</strong>
-        </p>
-
-        {devOtp && (
-          <p className="text-xs text-center text-amber-600">
-            Dev Code: <strong>{devOtp}</strong>
-          </p>
+            className="w-full h-11 rounded-lg font-medium hover:bg-muted transition"
+          >
+            <Icons.google className="mr-2 h-5 w-5" />
+            Continue with Google
+          </Button>
         )}
 
-        <div className="flex justify-center">
-          <InputOTP
-            maxLength={6}
-            value={otp}
-            onChange={setOtp}
-            disabled={isLoading}
-          >
-            <InputOTPGroup>
-              <InputOTPSlot index={0} />
-              <InputOTPSlot index={1} />
-              <InputOTPSlot index={2} />
-              <InputOTPSlot index={3} />
-              <InputOTPSlot index={4} />
-              <InputOTPSlot index={5} />
-            </InputOTPGroup>
-          </InputOTP>
-        </div>
+        {/* DIVIDER */}
+        {googleAuthEnabled && (
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-3 text-muted-foreground">
+                Or continue with email
+              </span>
+            </div>
+          </div>
+        )}
 
-        <Button
-          onClick={verifyOtp}
-          disabled={isLoading || otp.length !== 6}
-          className="h-11 rounded-lg font-semibold"
-        >
-          Verify & Sign In
-        </Button>
+        {/* EMAIL STEP */}
+        {step === "email" && (
+          <div className="grid gap-4 animate-in fade-in-50">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email address</Label>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => {
-            setStep("email");
-            setOtp("");
-          }}
-          disabled={isLoading}
-          className="text-muted-foreground"
-        >
-          Use different email
-        </Button>
-      </div>
-    )}
-  </CardContent>
-</Card>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@company.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
+                onKeyDown={(e) => e.key === "Enter" && sendOtp()}
+                className="h-11 rounded-lg"
+              />
+            </div>
+
+            <Button
+              onClick={sendOtp}
+              disabled={isLoading || !email}
+              className="h-11 rounded-lg font-semibold"
+            >
+              <MailIcon className="mr-2 h-4 w-4" />
+              Send Verification Code
+            </Button>
+          </div>
+        )}
+
+        {/* OTP STEP */}
+        {step === "otp" && (
+          <div className="grid gap-4 animate-in fade-in-50">
+            <p className="text-sm text-center text-muted-foreground">
+              Enter the code sent to <br />
+              <strong className="text-foreground">{email}</strong>
+            </p>
+
+            {devOtp && (
+              <p className="text-xs text-center text-amber-600">
+                Dev Code: <strong>{devOtp}</strong>
+              </p>
+            )}
+
+            <div className="flex justify-center">
+              <InputOTP
+                maxLength={6}
+                value={otp}
+                onChange={setOtp}
+                disabled={isLoading}
+              >
+                <InputOTPGroup>
+                  <InputOTPSlot index={0} />
+                  <InputOTPSlot index={1} />
+                  <InputOTPSlot index={2} />
+                  <InputOTPSlot index={3} />
+                  <InputOTPSlot index={4} />
+                  <InputOTPSlot index={5} />
+                </InputOTPGroup>
+              </InputOTP>
+            </div>
+
+            <Button
+              onClick={verifyOtp}
+              disabled={isLoading || otp.length !== 6}
+              className="h-11 rounded-lg font-semibold"
+            >
+              Verify & Sign In
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setStep("email");
+                setOtp("");
+              }}
+              disabled={isLoading}
+              className="text-muted-foreground"
+            >
+              Use different email
+            </Button>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }

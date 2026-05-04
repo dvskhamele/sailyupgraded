@@ -65,5 +65,9 @@ export function getGoogleClientId() {
 }
 
 export function getGoogleClientSecret() {
-  return getEnv("GOOGLE_SECRET");
+  return getEnv("GOOGLE_SECRET", "GOOGLE_CLIENT_SECRET");
+}
+
+export function isGoogleAuthEnabled() {
+  return Boolean(getGoogleClientId() && getGoogleClientSecret());
 }

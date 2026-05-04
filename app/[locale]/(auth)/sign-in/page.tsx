@@ -1,6 +1,9 @@
 import { LoginComponent } from "./components/LoginComponent";
+import { isGoogleAuthEnabled } from "@/lib/env";
 
 const SignInPage = async () => {
+  const googleAuthEnabled = isGoogleAuthEnabled();
+
   return (
     <div className="h-full">
       <div className="py-10">
@@ -9,7 +12,7 @@ const SignInPage = async () => {
         </h1>
       </div>
       <div>
-        <LoginComponent />
+        <LoginComponent googleAuthEnabled={googleAuthEnabled} />
       </div>
     </div>
   );
