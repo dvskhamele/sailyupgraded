@@ -27,7 +27,7 @@ export function buildContactRoleFilter(
 ): Prisma.crm_ContactsWhereInput {
   const normalizedRole = role?.trim().toLowerCase();
 
-  if (!normalizedRole) {
+  if (!normalizedRole || normalizedRole === "all") {
     return {};
   }
 
@@ -75,7 +75,7 @@ export function matchesContactRoleFilter(
   const normalizedFilter = filterRole?.trim().toLowerCase();
   const normalizedContactRole = contactRole?.trim().toLowerCase();
 
-  if (!normalizedFilter) {
+  if (!normalizedFilter || normalizedFilter === "all") {
     return true;
   }
 

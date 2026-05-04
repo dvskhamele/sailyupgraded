@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import {
@@ -42,10 +41,9 @@ interface ContactsViewProps {
 const ContactsView = ({ data, crmData, activeRole }: ContactsViewProps) => {
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
-  const searchParams = useSearchParams();
 
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
-  const currentRole = searchParams.get("role") ?? activeRole ?? null;
+  const currentRole = activeRole ?? "all";
   const filteredData = useMemo(
     () => data.filter((contact) => matchesContactRoleFilter(currentRole, contact.role)),
     [currentRole, data]

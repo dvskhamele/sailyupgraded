@@ -15,8 +15,8 @@ type Props = {
 
 const AccountsPage = async ({ searchParams }: Props) => {
   const t = await getTranslations("CrmPage");
-  const params = await searchParams;
-  const roleParam = Array.isArray(params.role) ? params.role[0] : params.role;
+  const search = await searchParams;
+  const roleParam = Array.isArray(search.role) ? search.role[0] : search.role;
   const crmData = await getAllCrmData();
   const contacts = await getContacts(roleParam);
 
@@ -28,7 +28,11 @@ const AccountsPage = async ({ searchParams }: Props) => {
       <div className="flex flex-col space-y-4">
         {/* <ContactSearch crmData={crmData} /> */}
         <Suspense fallback={<CrmTableSkeleton />}>
-          <ContactsView crmData={crmData} data={contacts} activeRole={roleParam} />
+          <ContactsView
+            crmData={crmData}
+            data={contacts}
+            activeRole={roleParam}
+          />
         </Suspense>
       </div>
     </Container>
