@@ -106,7 +106,7 @@ export const createContact = async (data: {
   });
   const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
     custom_fields_data,
-    contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact")),
+    contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact", data.role)),
   );
   const supportedCreateFields = await pickExistingDbModelFields("crm_Contacts", {
     v: 1,

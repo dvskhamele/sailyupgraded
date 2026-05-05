@@ -30,12 +30,14 @@ type CustomFieldsSectionProps = {
   entityType: CustomFieldEntity;
   form: UseFormReturn<any>;
   disabled?: boolean;
+  contactRole?: string | null;
 };
 
 export function CustomFieldsSection({
   entityType,
   form,
   disabled = false,
+  contactRole,
 }: CustomFieldsSectionProps) {
   const [fields, setFields] = useState<NormalizedCustomFieldDefinition[]>([]);
 
@@ -54,7 +56,7 @@ export function CustomFieldsSection({
           return;
         }
 
-        setFields(filterCustomFieldsForEntity(payload, entityType));
+        setFields(filterCustomFieldsForEntity(payload, entityType, contactRole));
       } catch (error) {
         console.error("[CUSTOM_FIELDS_SECTION]", error);
       }
@@ -65,7 +67,7 @@ export function CustomFieldsSection({
     return () => {
       isMounted = false;
     };
-  }, [entityType]);
+  }, [contactRole, entityType]);
 
   if (fields.length === 0) {
     return null;

@@ -27,7 +27,12 @@ import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
 import type { CustomFieldEntity } from "@/lib/custom-fields";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
-import { CONTACT_ROLE_OPTIONS, CONTACT_STATUS_OPTIONS, normalizeContactRole } from "@/lib/contact-options";
+import {
+  CONTACT_ROLE_OPTIONS,
+  CONTACT_STATUS_OPTIONS,
+  getContactIdentifierLabel,
+  normalizeContactRole,
+} from "@/lib/contact-options";
 
 type Option = { id: string; name: string };
 type AccountOption = {
@@ -177,7 +182,9 @@ export function UnifiedPersonForm({
   const selectedCountry = form.watch("country");
   const selectedState = form.watch("state");
   const selectedAccountId = form.watch("assigned_account");
+  const selectedRole = form.watch("role");
   const stateOptions = getStateOptions(selectedCountry, selectedState);
+  const serialLabel = getContactIdentifierLabel(selectedRole);
   const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
     ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
     : COUNTRY_OPTIONS;
@@ -210,10 +217,33 @@ export function UnifiedPersonForm({
           <div className="pb-5 space-y-4">
             <FormField
               control={form.control}
+              name="role"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Role</FormLabel>
+                  <Select onValueChange={field.onChange} value={field.value}>
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select role" />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {CONTACT_ROLE_OPTIONS.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
               name="serial"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{contactT("serial")}</FormLabel>
+                  <FormLabel>{serialLabel}</FormLabel>
                   <FormControl>
                     <Input type="number" min="1" step="1" placeholder="1" disabled={form.formState.isSubmitting} {...field} value={field.value ?? ""} />
                   </FormControl>
@@ -255,6 +285,7 @@ export function UnifiedPersonForm({
               entityType={entityType}
               form={form}
               disabled={form.formState.isSubmitting}
+              contactRole={entityType === "Contact" ? selectedRole : undefined}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -659,28 +690,6 @@ export function UnifiedPersonForm({
                           <SelectItem key={option.label} value={option.value ? "active" : "inactive"}>
                             {option.label}
                           </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="role"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Role</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Select role" />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent>
-                        {CONTACT_ROLE_OPTIONS.map((role) => (
-                          <SelectItem key={role} value={role}>{role}</SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

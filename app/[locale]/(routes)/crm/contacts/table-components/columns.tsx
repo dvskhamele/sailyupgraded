@@ -11,6 +11,7 @@ import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import moment from "moment";
 import { formatAddress } from "@/lib/crm-address";
+import { getContactIdentifierLabel, normalizeContactRole } from "@/lib/contact-options";
 
 type ConfigItem = { id: string; name: string };
 
@@ -76,6 +77,25 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
     enableHiding: true,
   },
   {
+    accessorKey: "serial",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Role ID" />
+    ),
+    cell: ({ row }) => {
+      const role = normalizeContactRole((row.original as any).role);
+      const label = getContactIdentifierLabel(role);
+      const value = row.getValue("serial");
+
+      return (
+        <div className="min-w-[120px]">
+          {value ? `${label}: ${value}` : "N/A"}
+        </div>
+      );
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
     accessorKey: "first_name",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Name" />
@@ -93,6 +113,19 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
       <Link href={`/crm/contacts/${row.original.id}`} prefetch={false} data-testid="contact-row-name">
         <div className="">{row.getValue("last_name")}</div>
       </Link>
+    ),
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    accessorKey: "role",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Role" />
+    ),
+    cell: ({ row }) => (
+      <div className="min-w-[110px]">
+        {normalizeContactRole(row.getValue("role") as string | null | undefined)}
+      </div>
     ),
     enableSorting: true,
     enableHiding: true,

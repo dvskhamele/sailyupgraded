@@ -109,7 +109,7 @@ export const updateContact = async (data: {
   });
   const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
     custom_fields_data,
-    contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact")),
+    contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact", data.role)),
   );
   const supportedUpdateFields = await pickExistingDbModelFields("crm_Contacts", {
     v: 0,

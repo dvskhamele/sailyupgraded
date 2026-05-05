@@ -8,6 +8,7 @@ import ContactsView from "../components/ContactsView";
 import { getContacts } from "@/actions/crm/get-contacts";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { getTranslations } from "next-intl/server";
+import { getContactRoleView } from "@/lib/contact-options";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -17,12 +18,13 @@ const AccountsPage = async ({ searchParams }: Props) => {
   const t = await getTranslations("CrmPage");
   const search = await searchParams;
   const roleParam = Array.isArray(search.role) ? search.role[0] : search.role;
+  const roleView = getContactRoleView(roleParam);
   const crmData = await getAllCrmData();
   const contacts = await getContacts(roleParam);
 
   return (
     <Container
-      title={t("contacts.pageTitle")}
+      title={roleView.pageTitle}
       description={t("contacts.pageDescription")}
     >
       <div className="flex flex-col space-y-4">

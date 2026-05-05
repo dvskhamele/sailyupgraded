@@ -1,13 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { prismadb } from "@/lib/prisma";
-import { normalizeAppliesTo, normalizeOptions } from "./helpers";
+import {
+  buildAppliesToScopes,
+  normalizeAppliesTo,
+  normalizeContactRoleScope,
+  normalizeOptions,
+} from "./helpers";
 
 type CustomFieldPayload = {
   name?: string;
   type?: string;
   applies_to?: unknown;
   options?: unknown;
+  contact_role?: unknown;
 };
 
 export async function POST(request: NextRequest) {
@@ -17,6 +23,7 @@ export async function POST(request: NextRequest) {
     const type = body.type?.trim();
     const appliesTo = normalizeAppliesTo(body.applies_to);
     const options = normalizeOptions(body.options);
+    const contactRole = normalizeContactRoleScope(body.contact_role);
 
     if (!name || !type) {
       return NextResponse.json(
@@ -29,7 +36,7 @@ export async function POST(request: NextRequest) {
       data: {
         name,
         type,
-        applies_to: appliesTo,
+        applies_to: buildAppliesToScopes(appliesTo, contactRole),
         options,
       },
     });

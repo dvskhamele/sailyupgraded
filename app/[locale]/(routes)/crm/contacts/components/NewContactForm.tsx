@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { createContact } from "@/actions/crm/contacts/create-contact";
 import { UnifiedPersonForm, type UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
+import type { ContactRole } from "@/lib/contact-options";
 
 type AccountOption = {
   id: string;
@@ -20,6 +21,7 @@ type NewContactFormProps = {
   leadTypes?: Option[];
   onFinish: () => void;
   initialValues?: Partial<UnifiedPersonFormValues>;
+  defaultRole?: ContactRole;
 };
 
 export function NewContactForm({
@@ -30,6 +32,7 @@ export function NewContactForm({
   leadTypes = [],
   onFinish,
   initialValues,
+  defaultRole,
 }: NewContactFormProps) {
   const t = useTranslations("CrmContactForm");
 
@@ -45,7 +48,10 @@ export function NewContactForm({
       leadSources={leadSources}
       leadStatuses={leadStatuses}
       leadTypes={leadTypes}
-      initialValues={initialValues}
+      initialValues={{
+        role: defaultRole,
+        ...initialValues,
+      }}
       onSubmitAction={(data) => createContact(data as any)}
       onSuccess={onFinish}
     />

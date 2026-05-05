@@ -47,6 +47,15 @@ const allowOtpPreview =
   process.env.VERCEL_ENV === "preview" ||
   process.env.ENABLE_OTP_PREVIEW === "true";
 const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+const configuredAdminEmails = [
+  configuredAdminEmail,
+  ...((process.env.ADMIN_EMAILS || "")
+    .split(",")
+    .map((email) => email.trim().toLowerCase())
+    .filter(Boolean)),
+  "dr.oscar@signimus.com",
+].filter(Boolean);
+const bootstrapAdminEmails = new Set(configuredAdminEmails);
 const seededTestUserEmail = (
   process.env.TEST_USER_EMAIL || "test@nextcrm.app"
 ).trim().toLowerCase();
@@ -61,6 +70,28 @@ const databaseProvider =
         ? "mysql" // Default to mysql for the project's primary DB type
         : "sqlite";
 
+function shouldBootstrapAdminEmail(email?: string | null) {
+  return Boolean(email && bootstrapAdminEmails.has(email.trim().toLowerCase()));
+}
+
+async function promoteBootstrapAdmin(userId: string) {
+  const dbUser = await prismadb.users.findUnique({ where: { id: userId } });
+  if (!dbUser) return null;
+
+  if (!shouldBootstrapAdminEmail(dbUser.email)) {
+    return dbUser;
+  }
+
+  if (dbUser.role === "admin" && dbUser.userStatus === "ACTIVE") {
+    return dbUser;
+  }
+
+  return await prismadb.users.update({
+    where: { id: userId },
+    data: { role: "admin", userStatus: "ACTIVE" },
+  });
+}
+
 export const auth = betterAuth({
   database: prismaAdapter(prismadb, { provider: databaseProvider }),
   secret: process.env.BETTER_AUTH_SECRET || "development-secret-must-change",
@@ -69,6 +100,15 @@ export const auth = betterAuth({
   advanced: {
     database: {
       generateId: "uuid",
+    },
+  },
+  databaseHooks: {
+    session: {
+      create: {
+        async before(session) {
+          await promoteBootstrapAdmin(session.userId);
+        },
+      },
     },
   },
 
@@ -199,12 +239,12 @@ export const auth = betterAuth({
   callbacks: {
     async onUserCreated(user: { id: string }) {
       // Check if this is the first user — make them admin
-      const dbUser = await prismadb.users.findUnique({ where: { id: user.id } });
+      const dbUser = await promoteBootstrapAdmin(user.id);
       if (!dbUser) return;
 
       const normalizedEmail = dbUser.email.trim().toLowerCase();
       const shouldPromoteConfiguredAdmin =
-        Boolean(configuredAdminEmail) && normalizedEmail === configuredAdminEmail;
+        shouldBootstrapAdminEmail(normalizedEmail);
       const shouldPromoteFirstRealUser =
         normalizedEmail !== seededTestUserEmail &&
         (await prismadb.users.count({

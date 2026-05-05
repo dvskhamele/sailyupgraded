@@ -13,6 +13,8 @@ import {
   X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { CONTACT_ROLE_OPTIONS } from "@/lib/contact-options";
+import { normalizeCustomField } from "@/lib/custom-fields";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -49,6 +51,7 @@ type CustomFieldRecord = {
   type: string;
   applies_to: string[];
   options?: string[] | null;
+  contact_role?: string | null;
 };
 
 export function AdministrationTabContent() {
@@ -62,6 +65,7 @@ export function AdministrationTabContent() {
     type: "text",
     applies_to: [] as string[],
     options: "",
+    contact_role: "",
   };
   const [form, setForm] = useState(initialFormState);
 
@@ -83,6 +87,7 @@ export function AdministrationTabContent() {
       type: field.type,
       applies_to: field.applies_to,
       options: field.options?.join(", ") ?? "",
+      contact_role: field.contact_role ?? "",
     });
     setEditingFieldId(field.id);
     setIsOpen(true);
@@ -96,12 +101,17 @@ export function AdministrationTabContent() {
   };
 
   const handleCheckboxToggle = (value: string) => {
-    setForm((current) => ({
-      ...current,
-      applies_to: current.applies_to.includes(value)
+    setForm((current) => {
+      const applies_to = current.applies_to.includes(value)
         ? current.applies_to.filter((item) => item !== value)
-        : [...current.applies_to, value],
-    }));
+        : [...current.applies_to, value];
+
+      return {
+        ...current,
+        applies_to,
+        contact_role: applies_to.includes("Contact") ? current.contact_role : "",
+      };
+    });
   };
 
   useEffect(() => {
@@ -113,7 +123,11 @@ export function AdministrationTabContent() {
         }
 
         const payload = (await response.json()) as CustomFieldRecord[];
-        setCustomFields(payload);
+        setCustomFields(
+          payload.map((field) =>
+            normalizeCustomField(field as any) as CustomFieldRecord,
+          ),
+        );
       } catch (error) {
         console.log(error);
       }
@@ -147,7 +161,9 @@ export function AdministrationTabContent() {
         );
       }
 
-      const savedField = (await response.json()) as CustomFieldRecord;
+      const savedField = normalizeCustomField(
+        (await response.json()) as any,
+      ) as CustomFieldRecord;
       setCustomFields((current) =>
         isEditing
           ? current.map((field) =>
@@ -253,6 +269,11 @@ export function AdministrationTabContent() {
                       <div className="text-sm text-slate-600">
                         Applies to: {field.applies_to.join(", ") || "N/A"}
                       </div>
+                      {field.contact_role ? (
+                        <div className="text-sm text-slate-600">
+                          Contact role: {field.contact_role}
+                        </div>
+                      ) : null}
                       <button
                         type="button"
                         onClick={() => openEditModal(field)}
@@ -369,6 +390,31 @@ export function AdministrationTabContent() {
                   ))}
                 </div>
               </div>
+
+              {form.applies_to.includes("Contact") ? (
+                <div className="space-y-2">
+                  <label
+                    htmlFor="custom-field-contact-role"
+                    className="text-sm font-medium text-slate-700"
+                  >
+                    Contact Role
+                  </label>
+                  <select
+                    id="custom-field-contact-role"
+                    name="contact_role"
+                    value={form.contact_role}
+                    onChange={handleInputChange}
+                    className="w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 outline-none transition focus:border-blue-500 focus:ring-2 focus:ring-blue-100"
+                  >
+                    <option value="">All Contact Roles</option>
+                    {CONTACT_ROLE_OPTIONS.map((role) => (
+                      <option key={role} value={role}>
+                        {role}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : null}
 
               {form.type === "select" ? (
                 <div className="space-y-2">

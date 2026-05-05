@@ -3,7 +3,11 @@ import { revalidatePath } from "next/cache";
 
 import { getSession } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit-log";
-import { normalizeContactRole } from "@/lib/contact-options";
+import {
+  detectContactRole,
+  inferContactRoleFromIdentifierContext,
+  normalizeContactRole,
+} from "@/lib/contact-options";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { prismadb } from "@/lib/prisma";
 
@@ -450,6 +454,23 @@ export async function POST(request: NextRequest) {
 
     const serial = parseSerial(candidate.data.serial || "");
     const parsedStatus = parseStatus(candidate.data.status || "");
+    const inferredRoleFromIdentifier = inferContactRoleFromIdentifierContext(
+      mapping.serial,
+      mapping.role,
+      candidate.data.role,
+    );
+    const resolvedRole =
+      detectContactRole(candidate.data.role) ??
+      inferredRoleFromIdentifier;
+
+    if (!resolvedRole) {
+      failures.push({
+        row: candidate.row,
+        email: candidate.normalizedEmail || null,
+        reason: "Role could not be detected. Add a Role column or use a role-specific ID header like AgentNumber or CustomerID.",
+      });
+      continue;
+    }
 
     const supportedSerialField = await pickExistingDbModelFields("crm_Contacts", {
       serial: serial ?? undefined,
@@ -485,7 +506,7 @@ export async function POST(request: NextRequest) {
       social_youtube: normalizeOptionalText(candidate.data.social_youtube),
       social_tiktok: normalizeOptionalText(candidate.data.social_tiktok),
       ...(await pickExistingDbModelFields("crm_Contacts", {
-        role: normalizeContactRole(candidate.data.role || "Customer"),
+        role: normalizeContactRole(resolvedRole),
       })),
     };
 

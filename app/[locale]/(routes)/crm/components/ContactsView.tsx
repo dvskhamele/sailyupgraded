@@ -25,7 +25,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { matchesContactRoleFilter } from "@/lib/contact-options";
+import { getContactRoleView, matchesContactRoleFilter } from "@/lib/contact-options";
 
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 
@@ -44,6 +44,7 @@ const ContactsView = ({ data, crmData, activeRole }: ContactsViewProps) => {
 
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
   const currentRole = activeRole ?? "all";
+  const roleView = getContactRoleView(currentRole);
   const filteredData = useMemo(
     () => data.filter((contact) => matchesContactRoleFilter(currentRole, contact.role)),
     [currentRole, data]
@@ -56,7 +57,7 @@ const ContactsView = ({ data, crmData, activeRole }: ContactsViewProps) => {
           <div>
             <CardTitle>
               <Link href="/crm/contacts" prefetch={false} className="hover:underline">
-                {t("contacts.viewTitle")}
+                {roleView.heading}
               </Link>
             </CardTitle>
           </div>
@@ -68,7 +69,7 @@ const ContactsView = ({ data, crmData, activeRole }: ContactsViewProps) => {
               </SheetTrigger>
               <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle>{t("contacts.sheetTitle")}</SheetTitle>
+                  <SheetTitle>{roleView.createTitle}</SheetTitle>
                   <SheetDescription>
                     {t("contacts.sheetDescription")}
                   </SheetDescription>
@@ -80,6 +81,7 @@ const ContactsView = ({ data, crmData, activeRole }: ContactsViewProps) => {
                     leadSources={leadSources}
                     leadStatuses={leadStatuses}
                     leadTypes={leadTypes}
+                    defaultRole={roleView.defaultCreateRole}
                     onFinish={() => setOpen(false)}
                   />
                 </div>

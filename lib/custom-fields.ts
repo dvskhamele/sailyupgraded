@@ -1,4 +1,5 @@
 export type CustomFieldEntity = "Contact" | "Lead" | "Opportunity";
+export type CustomFieldContactRole = "Agent" | "Customer" | "Partner" | "Vendor";
 
 export type CustomFieldDefinition = {
   id: string;
@@ -14,6 +15,7 @@ export type NormalizedCustomFieldDefinition = {
   type: string;
   applies_to: string[];
   options: string[];
+  contact_role?: CustomFieldContactRole;
 };
 
 export type CustomFieldValues = Record<string, string>;
@@ -30,27 +32,79 @@ function normalizeStringArray(value: unknown) {
 }
 
 export function normalizeCustomField(field: CustomFieldDefinition) {
+  const rawAppliesTo = normalizeStringArray(field.applies_to);
+  const contactRoleScope = rawAppliesTo
+    .find((item) => item.startsWith("Contact:"))
+    ?.split(":")[1]
+    ?.trim();
+  const appliesTo = Array.from(
+    new Set(
+      rawAppliesTo
+        .map((item) => item.split(":")[0]?.trim())
+        .filter(Boolean),
+    ),
+  );
+
   return {
     ...field,
-    applies_to: normalizeStringArray(field.applies_to),
+    applies_to: appliesTo,
     options: normalizeStringArray(field.options),
+    contact_role:
+      contactRoleScope === "Agent" ||
+      contactRoleScope === "Customer" ||
+      contactRoleScope === "Partner" ||
+      contactRoleScope === "Vendor"
+        ? contactRoleScope
+        : undefined,
   } satisfies NormalizedCustomFieldDefinition;
+}
+
+function fieldAppliesToEntityScope(
+  field: NormalizedCustomFieldDefinition,
+  entityType: CustomFieldEntity,
+) {
+  return field.applies_to.some((item) => item === entityType || item.startsWith(`${entityType}:`));
+}
+
+export function fieldAppliesToContactRole(
+  field: CustomFieldDefinition | NormalizedCustomFieldDefinition,
+  contactRole?: string | null,
+) {
+  const normalizedField = normalizeCustomField(field);
+
+  if (!normalizedField.contact_role) {
+    return true;
+  }
+
+  return normalizedField.contact_role === contactRole;
 }
 
 export function fieldAppliesToEntity(
   field: CustomFieldDefinition,
   entityType: CustomFieldEntity,
+  contactRole?: string | null,
 ) {
-  return normalizeCustomField(field).applies_to.includes(entityType);
+  const normalizedField = normalizeCustomField(field);
+
+  if (!fieldAppliesToEntityScope(normalizedField, entityType)) {
+    return false;
+  }
+
+  if (entityType !== "Contact") {
+    return true;
+  }
+
+  return fieldAppliesToContactRole(normalizedField, contactRole);
 }
 
 export function filterCustomFieldsForEntity(
   fields: CustomFieldDefinition[],
   entityType: CustomFieldEntity,
+  contactRole?: string | null,
 ) {
   return fields
     .map(normalizeCustomField)
-    .filter((field) => field.applies_to.includes(entityType));
+    .filter((field) => fieldAppliesToEntity(field, entityType, contactRole));
 }
 
 export function sanitizeCustomFieldValues(

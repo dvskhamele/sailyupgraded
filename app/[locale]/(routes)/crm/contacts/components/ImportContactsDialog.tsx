@@ -85,7 +85,7 @@ type ImportResult = {
 
 const SKIP_VALUE = "__skip__";
 const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
-  { key: "serial", label: "Agent ID" },
+  { key: "serial", label: "Role ID / Agent Number" },
   { key: "name", label: "Full name" },
   { key: "first_name", label: "First name" },
   { key: "last_name", label: "Last name" },
@@ -120,7 +120,22 @@ const DEFAULT_MAPPING = Object.fromEntries(
   IMPORT_FIELDS.map(({ key }) => [key, SKIP_VALUE]),
 ) as ColumnMapping;
 const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
-  serial: ["serial", "sr no", "sr_no", "sequence"],
+  serial: [
+    "serial",
+    "sr no",
+    "sr_no",
+    "sequence",
+    "agent number",
+    "agent no",
+    "agent id",
+    "customer id",
+    "customer number",
+    "client id",
+    "partner id",
+    "partner number",
+    "vendor id",
+    "vendor number",
+  ],
   name: ["name", "full name", "full_name", "contact name"],
   first_name: ["first name", "firstname", "first_name", "given name"],
   last_name: ["last name", "lastname", "last_name", "surname", "family name"],
@@ -156,15 +171,20 @@ function normalizeHeader(value: string) {
   return value.trim().toLowerCase();
 }
 
+function normalizeHeaderToken(value: string) {
+  return normalizeHeader(value).replace(/[^a-z0-9]/g, "");
+}
+
 function suggestMapping(headers: string[]): ColumnMapping {
   const defaults: ColumnMapping = { ...DEFAULT_MAPPING };
 
   for (const key of Object.keys(defaults) as MappingKey[]) {
     const match = headers.find((header) => {
-      const normalized = normalizeHeader(header);
+      const normalized = normalizeHeaderToken(header);
       return AUTO_MAP_CANDIDATES[key].some(
         (candidate) =>
-          normalized === candidate || normalized.includes(candidate),
+          normalized === normalizeHeaderToken(candidate) ||
+          normalized.includes(normalizeHeaderToken(candidate)),
       );
     });
 
