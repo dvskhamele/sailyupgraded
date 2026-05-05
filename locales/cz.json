@@ -168,7 +168,7 @@
     "websiteInvalid": "Webová stránka musí být platná URL"
   },
   "CrmContactForm": {
-    "serial": "Serial",
+    "serial": "Agent ID",
     "firstName": "Jméno",
     "lastName": "Příjmení",
     "mobilePhone": "Mobilní telefon",

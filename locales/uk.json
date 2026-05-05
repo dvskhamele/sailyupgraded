@@ -164,7 +164,7 @@
     "websiteInvalid": "Веб-сайт повинен бути дійсною URL-адресою"
   },
   "CrmContactForm": {
-    "serial": "Serial",
+    "serial": "Agent ID",
     "firstName": "Ім'я",
     "lastName": "Прізвище",
     "mobilePhone": "Мобільний телефон",

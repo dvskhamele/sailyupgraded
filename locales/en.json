@@ -171,7 +171,7 @@
     "websiteInvalid": "Website must be a valid URL"
   },
   "CrmContactForm": {
-    "serial": "Serial",
+    "serial": "Agent ID",
     "firstName": "First name",
     "lastName": "Last name",
     "mobilePhone": "Mobile phone",

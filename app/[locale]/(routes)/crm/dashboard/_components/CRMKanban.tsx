@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
+import { DollarSign, Calendar } from "lucide-react";
 import { ThumbsDown } from "lucide-react";
 import {
   DndContext,
@@ -47,7 +48,13 @@ import {
   DialogDescription,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 
 import { NewOpportunityForm } from "../../opportunities/components/NewOpportunityForm";
@@ -104,7 +111,7 @@ function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
           ${totalRevenue.toLocaleString("en-IN")}
         </div>
       </div>
-      <div className="h-6 w-px bg-gray-200 mx-3" />
+      {/* <div className="h-6 w-px bg-gray-200 mx-3" /> */}
 
       <div className="flex flex-col items-end gap-1">
         <div className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 rounded-full">
@@ -193,26 +200,29 @@ function OpportunityCard({
       {...attributes}
       {...listeners}
       onClick={() => onOpenEdit(opportunity)}
-      className="my-3 w-full cursor-grab rounded-xl border border-gray-200 bg-white shadow-sm transition hover:shadow-md active:cursor-grabbing"
+      className="group relative my-3 w-full cursor-grab rounded-2xl border border-gray-200 bg-white/80 backdrop-blur-md shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:cursor-grabbing"
     >
+      {/* Gradient Border Effect */}
+      <div className="absolute inset-0 rounded-2xl bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 opacity-0 group-hover:opacity-10 transition"></div>
+
       {/* HEADER */}
-      <CardHeader className="p-4 pb-2">
+      <CardHeader className="relative z-10 p-4 pb-2">
         <div className="flex justify-between items-start gap-2">
-          <h3 className="text-sm font-semibold text-gray-800 leading-snug">
+          <h3 className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-indigo-600 transition">
             {opportunity.name}
           </h3>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <DotsHorizontalIcon
-                className="w-4 h-4 text-gray-500"
+                className="w-4 h-4 text-gray-500 hover:text-gray-700 transition"
                 onClick={(e) => e.stopPropagation()}
               />
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => onOpenEdit(opportunity)}>
-                Update
+                ✏️ Update
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -220,28 +230,28 @@ function OpportunityCard({
       </CardHeader>
 
       {/* CONTENT */}
-      <CardContent className="px-4 pb-3 text-xs text-gray-600 space-y-2">
+      <CardContent className="relative z-10 px-4 pb-3 text-xs text-gray-600 space-y-3">
         {/* DESCRIPTION */}
-        <p className="line-clamp-2">{opportunity.description}</p>
+        <p className="line-clamp-2 text-gray-500">{opportunity.description}</p>
 
         {/* AMOUNT */}
-        <div className="flex items-center gap-2">
-          <span className="text-gray-500">Amount:</span>
-          <span className="font-semibold text-gray-900">
+        <div className="flex items-center justify-between">
+           <DollarSign className="w-4 h-4 text-green-600" />
+          <span className="font-semibold text-gray-900 text-sm">
             ${opportunity.budget?.toLocaleString()}
           </span>
         </div>
 
         {/* CLOSE DATE */}
-        <div>
-          <span className="text-gray-500">Expected closing:</span>{" "}
+        <div className="flex items-center justify-between">
+        <Calendar className="w-4 h-4 text-blue-600" />
           <span
-            className={
+            className={`text-xs font-semibold px-2 py-1 rounded-full ${
               opportunity.close_date &&
               new Date(opportunity.close_date) < new Date()
-                ? "text-red-500 font-medium"
-                : "text-indigo-600 font-medium"
-            }
+                ? "bg-red-100 text-red-600"
+                : "bg-indigo-100 text-indigo-600"
+            }`}
           >
             {format(
               opportunity.close_date
@@ -254,10 +264,10 @@ function OpportunityCard({
       </CardContent>
 
       {/* FOOTER */}
-      <CardFooter className="flex justify-between items-center border-t bg-gray-50 px-4 py-3">
+      <CardFooter className="relative z-10 flex justify-between items-center border-t bg-gray-50/60 px-4 py-3 rounded-b-2xl">
         {/* USER */}
         <div className="flex items-center gap-2 min-w-0">
-          <Avatar className="w-7 h-7">
+          <Avatar className="w-8 h-8 ring-2 ring-white shadow-sm">
             <AvatarImage
               src={
                 opportunity.assigned_to_user?.avatar ||
@@ -278,7 +288,7 @@ function OpportunityCard({
             {opportunityProducts.map((product) => (
               <Badge
                 key={product}
-                className="bg-indigo-500 text-white text-[10px] px-2 py-0.5"
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm"
               >
                 {product}
               </Badge>
