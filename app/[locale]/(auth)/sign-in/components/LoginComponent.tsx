@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { useLocale } from "next-intl";
 import { authClient } from "@/lib/auth-client";
 
 import { Icons } from "@/components/ui/icons";
@@ -33,6 +34,7 @@ type LoginComponentProps = {
 };
 
 export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
+  const locale = useLocale();
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
@@ -49,7 +51,7 @@ export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: `/${locale}`,
       });
     } catch (error: any) {
       console.error("Google sign-in error:", error);
@@ -190,7 +192,9 @@ export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
         <CardDescription className="text-sm text-muted-foreground">
           Sign in to continue to your dashboard
         </CardDescription>
-        
+        <p className="text-xs text-muted-foreground">
+          Google sign-in and Email OTP both stay available.
+        </p>
       </CardHeader>
 
       {/* CONTENT */}
