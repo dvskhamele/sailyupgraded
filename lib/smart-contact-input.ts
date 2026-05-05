@@ -107,7 +107,6 @@ const AREA_CODE_TO_STATE: Record<string, string> = {
   "602": "Arizona",
   "702": "Nevada",
   "713": "Texas",
-  "713": "Texas",
   "805": "California",
   "818": "California",
 };
