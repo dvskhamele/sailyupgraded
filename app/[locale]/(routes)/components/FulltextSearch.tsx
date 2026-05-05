@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import React, { useState, useEffect, useTransition } from "react";
 import useDebounce from "@/hooks/useDebounce";
 import { searchContacts, ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
+import { searchUsers } from "@/actions/user/search-users";
 import {
   Popover,
   PopoverContent,
@@ -27,6 +28,8 @@ import {
 } from "@/components/ui/dialog";
 import { NewContactForm } from "../crm/contacts/components/NewContactForm";
 import { getContactFormOptions } from "@/actions/crm/contacts/get-contact-form-options";
+import { buildSmartContactInitialValues } from "@/lib/smart-contact-input";
+import type { UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
 
 const FulltextSearch = () => {
   const [search, setSearch] = useState("");
@@ -34,8 +37,9 @@ const FulltextSearch = () => {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [formOptions, setFormOptions] = useState<{ accounts: any[], contactTypes: any[] } | null>(null);
-  
+  const [formOptions, setFormOptions] = useState<Awaited<ReturnType<typeof getContactFormOptions>> | null>(null);
+  const [initialValues, setInitialValues] = useState<Partial<UnifiedPersonFormValues> | undefined>();
+
   const router = useRouter();
   const debouncedSearch = useDebounce(search, 300);
   const visibleResults = debouncedSearch.length >= 2 ? results : [];
@@ -65,8 +69,33 @@ const FulltextSearch = () => {
   };
 
   const openAddContact = async () => {
-    const options = await getContactFormOptions();
-    setFormOptions(options);
+    try {
+      const [options, users] = await Promise.all([
+        getContactFormOptions(),
+        searchUsers({ take: 1 }),
+      ]);
+
+      const parsedInitialValues = buildSmartContactInitialValues(search, {
+        accounts: options.accounts,
+        contactTypes: options.contactTypes,
+        leadSources: options.leadSources,
+        leadStatuses: options.leadStatuses,
+        leadTypes: options.leadTypes,
+        assignedTo: users.users[0]?.id ?? "",
+      });
+
+      setFormOptions(options);
+      setInitialValues(parsedInitialValues);
+    } catch {
+      setFormOptions({
+        accounts: [],
+        contactTypes: [],
+        leadSources: [],
+        leadStatuses: [],
+        leadTypes: [],
+      });
+      setInitialValues(buildSmartContactInitialValues(search));
+    }
     setDialogOpen(true);
     setOpen(false);
   };
@@ -160,13 +189,14 @@ const FulltextSearch = () => {
             <NewContactForm 
               accounts={formOptions.accounts}
               contactTypes={formOptions.contactTypes}
+              leadSources={formOptions.leadSources}
+              leadStatuses={formOptions.leadStatuses}
+              leadTypes={formOptions.leadTypes}
               onFinish={() => {
                 setDialogOpen(false);
                 router.refresh();
               }}
-              initialValues={{
-                last_name: search,
-              }}
+              initialValues={initialValues}
             />
           )}
         </DialogContent>

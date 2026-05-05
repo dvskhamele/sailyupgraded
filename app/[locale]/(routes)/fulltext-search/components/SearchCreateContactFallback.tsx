@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Plus, UserRoundPlus } from "lucide-react";
 
-import { getContactAccountOptions } from "@/actions/crm/contacts/get-contact-account-options";
+import { getContactFormOptions } from "@/actions/crm/contacts/get-contact-form-options";
 import { NewContactForm } from "@/app/[locale]/(routes)/crm/contacts/components/NewContactForm";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,83 +13,40 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-
-type AccountOption = {
-  id: string;
-  name: string;
-};
-
-function titleCase(value: string) {
-  return value
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
-    .join(" ");
-}
-
-function parseContactSeed(query: string) {
-  const emailMatch = query.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i);
-  const phoneMatch = query.match(/(?:\+?\d[\d\s\-()]{6,}\d)/);
-
-  const email = emailMatch?.[0] ?? "";
-  const mobile_phone = phoneMatch?.[0]?.trim() ?? "";
-
-  let cleaned = query
-    .replace(email, " ")
-    .replace(mobile_phone, " ")
-    .replace(/\b(contact|lead|company|email|phone|mobile|deal|opportunity)\b/gi, " ")
-    .replace(/[,:;|]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  let assigned_account = "";
-  const companyMatch =
-    query.match(/\b(?:company|at)\s+([A-Za-z0-9&.\- ]+)/i) ??
-    query.match(/\bfor\s+([A-Za-z0-9&.\- ]+)/i);
-  const company = companyMatch?.[1]?.trim() ?? "";
-
-  if (company) {
-    cleaned = cleaned.replace(companyMatch?.[0] ?? "", " ").replace(/\s+/g, " ").trim();
-  }
-
-  const parts = cleaned.split(/\s+/).filter(Boolean);
-  const first_name = parts.length > 1 ? titleCase(parts.slice(0, -1).join(" ")) : "";
-  const last_name = titleCase(parts.at(-1) ?? cleaned ?? "Unknown");
-
-  return {
-    first_name,
-    last_name,
-    email,
-    mobile_phone,
-    assigned_account,
-    company,
-  };
-}
+import { buildSmartContactInitialValues } from "@/lib/smart-contact-input";
+import type { UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
 
 export function SearchCreateContactFallback({ query }: { query: string }) {
   const [open, setOpen] = useState(false);
-  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [formOptions, setFormOptions] = useState<Awaited<ReturnType<typeof getContactFormOptions>> | null>(null);
+  const [initialValues, setInitialValues] = useState<Partial<UnifiedPersonFormValues> | undefined>();
 
   useEffect(() => {
     if (!open) return;
-    getContactAccountOptions()
-      .then((rows) =>
-        setAccounts(rows)
-      )
-      .catch(() => setAccounts([]));
-  }, [open]);
-
-  const seed = useMemo(() => parseContactSeed(query), [query]);
-  const matchedAccount = useMemo(
-    () =>
-      seed.company
-        ? accounts.find((account) =>
-            account.name.toLowerCase().includes(seed.company.toLowerCase())
-          )
-        : undefined,
-    [accounts, seed.company]
-  );
+    getContactFormOptions()
+      .then((options) => {
+        setFormOptions(options);
+        setInitialValues(
+          buildSmartContactInitialValues(query, {
+            accounts: options.accounts,
+            contactTypes: options.contactTypes,
+            leadSources: options.leadSources,
+            leadStatuses: options.leadStatuses,
+            leadTypes: options.leadTypes,
+          }),
+        );
+      })
+      .catch(() => {
+        setFormOptions({
+          accounts: [],
+          contactTypes: [],
+          leadSources: [],
+          leadStatuses: [],
+          leadTypes: [],
+        });
+        setInitialValues(buildSmartContactInitialValues(query));
+      });
+  }, [open, query]);
 
   return (
     <>
@@ -120,17 +77,19 @@ export function SearchCreateContactFallback({ query }: { query: string }) {
             </SheetDescription>
           </SheetHeader>
           <div className="mt-6">
-            <NewContactForm
-              accounts={accounts}
-              initialValues={{
-                first_name: seed.first_name,
-                last_name: seed.last_name,
-                email: seed.email,
-                mobile_phone: seed.mobile_phone,
-                assigned_account: matchedAccount?.id ?? "",
-              }}
-              onFinish={() => setOpen(false)}
-            />
+            {formOptions && (
+              <NewContactForm
+                accounts={formOptions.accounts}
+                contactTypes={formOptions.contactTypes}
+                leadSources={formOptions.leadSources}
+                leadStatuses={formOptions.leadStatuses}
+                leadTypes={formOptions.leadTypes}
+                initialValues={{
+                  ...initialValues,
+                }}
+                onFinish={() => setOpen(false)}
+              />
+            )}
           </div>
         </SheetContent>
       </Sheet>

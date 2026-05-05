@@ -263,8 +263,9 @@ function OpportunityCard({
         </div>
       </CardContent>
 
+
       {/* FOOTER */}
-      <CardFooter className="relative z-10 flex justify-between items-center border-t bg-gray-50/60 px-4 py-3 rounded-b-2xl">
+      <CardFooter className="relative z-10 flex justify-between items-center bg-gray-50/60 px-4 py-3 rounded-b-2xl">
         {/* USER */}
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="w-8 h-8 ring-2 ring-white shadow-sm">

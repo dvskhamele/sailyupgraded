@@ -218,7 +218,7 @@ const NewTaskForm = ({ account, onFinish }: NewTaskFormProps) => {
                           <SelectItem value="high">High</SelectItem>
                           <SelectItem value="critical">Critical</SelectItem>
                         </SelectContent>
-                      </Select>
+                      </Select> 
                       <FormMessage />
                     </FormItem>
                   )}
