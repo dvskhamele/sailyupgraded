@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { updateLead } from "@/actions/crm/leads/update-lead";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
 
@@ -93,7 +92,12 @@ export function UpdateLeadForm({
       leadStatuses={leadStatuses}
       leadTypes={leadTypes}
       initialValues={initialValues}
-      onSubmitAction={(data) => updateLead(data as any)}
+      onSubmitAction={async () => undefined}
+      offlineSync={{
+        entity: "lead",
+        operation: "update",
+        queuedMessage: "Lead update saved offline. It will sync in the next 5-minute cycle.",
+      }}
       onSuccess={() => setOpen(false)}
     />
   );

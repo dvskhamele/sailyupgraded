@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { createLead } from "@/actions/crm/leads/create-lead";
 import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
 
 type Option = { id: string; name: string };
@@ -42,7 +41,12 @@ export function NewLeadForm({
       leadSources={leadSources}
       leadStatuses={leadStatuses}
       leadTypes={leadTypes}
-      onSubmitAction={(data) => createLead(data as any)}
+      onSubmitAction={async () => undefined}
+      offlineSync={{
+        entity: "lead",
+        operation: "create",
+        queuedMessage: "Lead saved offline. It will sync in the next 5-minute cycle.",
+      }}
       onSuccess={() => onFinish?.()}
     />
   );

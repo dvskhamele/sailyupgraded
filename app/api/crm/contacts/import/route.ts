@@ -8,41 +8,11 @@ import {
   inferContactRoleFromIdentifierContext,
   normalizeContactRole,
 } from "@/lib/contact-options";
+import type { MappingKey } from "@/lib/crm/contact-import";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { prismadb } from "@/lib/prisma";
 
 type RawRow = Record<string, string>;
-type MappingKey =
-  | "serial"
-  | "name"
-  | "first_name"
-  | "last_name"
-  | "email"
-  | "personal_email"
-  | "mobile_phone"
-  | "office_phone"
-  | "website"
-  | "position"
-  | "description"
-  | "birthday"
-  | "address"
-  | "address_line1"
-  | "address_line2"
-  | "city"
-  | "state"
-  | "country"
-  | "postal_code"
-  | "status"
-  | "role"
-  | "contact_type_id"
-  | "assigned_to"
-  | "assigned_account"
-  | "social_twitter"
-  | "social_facebook"
-  | "social_linkedin"
-  | "social_skype"
-  | "social_youtube"
-  | "social_tiktok";
 type ColumnMapping = Partial<Record<MappingKey, string>>;
 
 const MAX_ROWS = 500;
@@ -110,6 +80,20 @@ function normalizeOptionalText(value: string | undefined) {
   return trimmed || undefined;
 }
 
+function normalizeLookupKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function maybeSetTextField<T extends string>(
+  payload: Record<string, unknown>,
+  key: string,
+  value: T | undefined,
+) {
+  if (value !== undefined) {
+    payload[key] = value;
+  }
+}
+
 export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session?.user?.id) {
@@ -120,7 +104,7 @@ export async function POST(request: NextRequest) {
   const rows = Array.isArray(body?.rows) ? (body.rows as RawRow[]) : [];
   const mapping = (body?.mapping || {}) as ColumnMapping;
   const duplicateMode =
-    body?.duplicateMode === "update" ? "update" : "skip";
+    body?.duplicateMode === "skip" ? "skip" : "update";
 
   if (!mapping.name && !mapping.last_name) {
     return NextResponse.json(
@@ -309,11 +293,37 @@ export async function POST(request: NextRequest) {
       email: true,
       mobile_phone: true,
       office_phone: true,
+      first_name: true,
+      last_name: true,
+      personal_email: true,
+      website: true,
+      position: true,
+      description: true,
+      birthday: true,
+      address: true,
+      address_line1: true,
+      address_line2: true,
+      city: true,
+      state: true,
+      country: true,
+      postal_code: true,
+      status: true,
+      role: true,
+      assigned_to: true,
+      accountsIDs: true,
+      contact_type_id: true,
+      company: true,
+      social_twitter: true,
+      social_facebook: true,
+      social_linkedin: true,
+      social_skype: true,
+      social_youtube: true,
+      social_tiktok: true,
     },
   });
 
-  const existingByEmail = new Map<string, { id: string }>();
-  const existingByPhone = new Map<string, { id: string }>();
+  const existingByEmail = new Map<string, (typeof existingContacts)[number]>();
+  const existingByPhone = new Map<string, (typeof existingContacts)[number]>();
 
   const uniqueAssignedUserValues = Array.from(
     new Set(candidates.map((candidate) => candidate.data.assigned_to?.trim()).filter(Boolean)),
@@ -363,16 +373,24 @@ export async function POST(request: NextRequest) {
 
   users.forEach((user) => {
     userLookup.set(user.id, user.id);
-    if (user.email) userLookup.set(user.email, user.id);
-    if (user.name) userLookup.set(user.name, user.id);
+    if (user.email) {
+      userLookup.set(user.email, user.id);
+      userLookup.set(normalizeLookupKey(user.email), user.id);
+    }
+    if (user.name) {
+      userLookup.set(user.name, user.id);
+      userLookup.set(normalizeLookupKey(user.name), user.id);
+    }
   });
   accounts.forEach((account) => {
     accountLookup.set(account.id, account.id);
     accountLookup.set(account.name, account.id);
+    accountLookup.set(normalizeLookupKey(account.name), account.id);
   });
   contactTypes.forEach((contactType) => {
     contactTypeLookup.set(contactType.id, contactType.id);
     contactTypeLookup.set(contactType.name, contactType.id);
+    contactTypeLookup.set(normalizeLookupKey(contactType.name), contactType.id);
   });
 
   existingContacts.forEach((contact) => {
@@ -385,13 +403,13 @@ export async function POST(request: NextRequest) {
       : "";
 
     if (normalizedEmail) {
-      existingByEmail.set(normalizedEmail, { id: contact.id });
+      existingByEmail.set(normalizedEmail, contact);
     }
     if (mobilePhone) {
-      existingByPhone.set(mobilePhone, { id: contact.id });
+      existingByPhone.set(mobilePhone, contact);
     }
     if (officePhone) {
-      existingByPhone.set(officePhone, { id: contact.id });
+      existingByPhone.set(officePhone, contact);
     }
   });
 
@@ -444,12 +462,16 @@ export async function POST(request: NextRequest) {
     const assignedToRaw = candidate.data.assigned_to?.trim() || "";
     const assignedAccountRaw = candidate.data.assigned_account?.trim() || "";
     const contactTypeRaw = candidate.data.contact_type_id?.trim() || "";
-    const resolvedAssignedTo = assignedToRaw ? userLookup.get(assignedToRaw) : undefined;
+    const resolvedAssignedTo = assignedToRaw
+      ? userLookup.get(assignedToRaw) ?? userLookup.get(normalizeLookupKey(assignedToRaw))
+      : undefined;
     const resolvedAssignedAccount = assignedAccountRaw
-      ? accountLookup.get(assignedAccountRaw)
+      ? accountLookup.get(assignedAccountRaw) ??
+        accountLookup.get(normalizeLookupKey(assignedAccountRaw))
       : undefined;
     const resolvedContactType = contactTypeRaw
-      ? contactTypeLookup.get(contactTypeRaw)
+      ? contactTypeLookup.get(contactTypeRaw) ??
+        contactTypeLookup.get(normalizeLookupKey(contactTypeRaw))
       : undefined;
 
     const serial = parseSerial(candidate.data.serial || "");
@@ -463,7 +485,7 @@ export async function POST(request: NextRequest) {
       detectContactRole(candidate.data.role) ??
       inferredRoleFromIdentifier;
 
-    if (!resolvedRole) {
+    if (!resolvedRole && !existingMatch) {
       failures.push({
         row: candidate.row,
         email: candidate.normalizedEmail || null,
@@ -472,43 +494,123 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
-    const supportedSerialField = await pickExistingDbModelFields("crm_Contacts", {
-      serial: serial ?? undefined,
-    });
+    const supportedSerialField =
+      serial !== undefined
+        ? await pickExistingDbModelFields("crm_Contacts", {
+            serial,
+          })
+        : {};
 
-    const contactPayload = {
+    const roleField =
+      resolvedRole !== undefined
+        ? await pickExistingDbModelFields("crm_Contacts", {
+            role: normalizeContactRole(resolvedRole),
+          })
+        : {};
+
+    const contactPayload: Record<string, unknown> = {
       ...supportedSerialField,
-      first_name: first_name || undefined,
+      ...roleField,
       last_name,
-      email: candidate.normalizedEmail || undefined,
-      personal_email: normalizeOptionalText(candidate.data.personal_email),
-      mobile_phone: candidate.normalizedMobilePhone || undefined,
-      office_phone: candidate.normalizedOfficePhone || undefined,
-      website: normalizeOptionalText(candidate.data.website),
-      position: normalizeOptionalText(candidate.data.position),
-      description: normalizeOptionalText(candidate.data.description),
-      birthday: normalizeOptionalText(candidate.data.birthday),
-      address: normalizeOptionalText(candidate.data.address),
-      address_line1: normalizeOptionalText(candidate.data.address_line1),
-      address_line2: normalizeOptionalText(candidate.data.address_line2),
-      city: normalizeOptionalText(candidate.data.city),
-      state: normalizeOptionalText(candidate.data.state),
-      country: normalizeOptionalText(candidate.data.country),
-      postal_code: normalizeOptionalText(candidate.data.postal_code),
-      status: parsedStatus ?? true,
-      assigned_to: resolvedAssignedTo,
-      accountsIDs: resolvedAssignedAccount,
-      contact_type_id: resolvedContactType,
-      social_twitter: normalizeOptionalText(candidate.data.social_twitter),
-      social_facebook: normalizeOptionalText(candidate.data.social_facebook),
-      social_linkedin: normalizeOptionalText(candidate.data.social_linkedin),
-      social_skype: normalizeOptionalText(candidate.data.social_skype),
-      social_youtube: normalizeOptionalText(candidate.data.social_youtube),
-      social_tiktok: normalizeOptionalText(candidate.data.social_tiktok),
-      ...(await pickExistingDbModelFields("crm_Contacts", {
-        role: normalizeContactRole(resolvedRole),
-      })),
     };
+
+    maybeSetTextField(contactPayload, "first_name", first_name || undefined);
+    maybeSetTextField(contactPayload, "email", candidate.normalizedEmail || undefined);
+    maybeSetTextField(
+      contactPayload,
+      "personal_email",
+      normalizeOptionalText(candidate.data.personal_email),
+    );
+    maybeSetTextField(contactPayload, "mobile_phone", candidate.normalizedMobilePhone || undefined);
+    maybeSetTextField(contactPayload, "office_phone", candidate.normalizedOfficePhone || undefined);
+    maybeSetTextField(contactPayload, "website", normalizeOptionalText(candidate.data.website));
+    maybeSetTextField(contactPayload, "position", normalizeOptionalText(candidate.data.position));
+    maybeSetTextField(
+      contactPayload,
+      "description",
+      normalizeOptionalText(candidate.data.description),
+    );
+    maybeSetTextField(contactPayload, "birthday", normalizeOptionalText(candidate.data.birthday));
+    maybeSetTextField(contactPayload, "address", normalizeOptionalText(candidate.data.address));
+    maybeSetTextField(
+      contactPayload,
+      "address_line1",
+      normalizeOptionalText(candidate.data.address_line1),
+    );
+    maybeSetTextField(
+      contactPayload,
+      "address_line2",
+      normalizeOptionalText(candidate.data.address_line2),
+    );
+    maybeSetTextField(contactPayload, "city", normalizeOptionalText(candidate.data.city));
+    maybeSetTextField(contactPayload, "state", normalizeOptionalText(candidate.data.state));
+    maybeSetTextField(contactPayload, "country", normalizeOptionalText(candidate.data.country));
+    maybeSetTextField(
+      contactPayload,
+      "postal_code",
+      normalizeOptionalText(candidate.data.postal_code),
+    );
+    maybeSetTextField(
+      contactPayload,
+      "company",
+      normalizeOptionalText(candidate.data.assigned_account),
+    );
+    maybeSetTextField(
+      contactPayload,
+      "social_twitter",
+      normalizeOptionalText(candidate.data.social_twitter),
+    );
+    maybeSetTextField(
+      contactPayload,
+      "social_facebook",
+      normalizeOptionalText(candidate.data.social_facebook),
+    );
+    maybeSetTextField(
+      contactPayload,
+      "social_linkedin",
+      normalizeOptionalText(candidate.data.social_linkedin),
+    );
+    maybeSetTextField(contactPayload, "social_skype", normalizeOptionalText(candidate.data.social_skype));
+    maybeSetTextField(
+      contactPayload,
+      "social_youtube",
+      normalizeOptionalText(candidate.data.social_youtube),
+    );
+    maybeSetTextField(
+      contactPayload,
+      "social_tiktok",
+      normalizeOptionalText(candidate.data.social_tiktok),
+    );
+
+    if (parsedStatus !== undefined) {
+      contactPayload.status = parsedStatus;
+    } else if (!existingMatch) {
+      contactPayload.status = true;
+    }
+
+    if (resolvedAssignedTo) {
+      contactPayload.assigned_to = resolvedAssignedTo;
+    }
+    if (resolvedAssignedAccount) {
+      contactPayload.accountsIDs = resolvedAssignedAccount;
+    }
+    if (resolvedContactType) {
+      contactPayload.contact_type_id = resolvedContactType;
+    }
+
+    if (existingMatch) {
+      if (!("first_name" in contactPayload) && existingMatch.first_name) {
+        delete contactPayload.first_name;
+      }
+
+      if (!candidate.data.first_name && !candidate.data.last_name && !candidate.data.name) {
+        delete contactPayload.last_name;
+      }
+
+      if (!resolvedRole) {
+        delete contactPayload.role;
+      }
+    }
 
     try {
       if (existingMatch) {
@@ -535,13 +637,19 @@ export async function POST(request: NextRequest) {
         });
 
         if (candidate.normalizedEmail) {
-          existingByEmail.set(candidate.normalizedEmail, { id: created.id });
+          existingByEmail.set(candidate.normalizedEmail, {
+            id: created.id,
+          } as (typeof existingContacts)[number]);
         }
         if (candidate.normalizedMobilePhone) {
-          existingByPhone.set(candidate.normalizedMobilePhone, { id: created.id });
+          existingByPhone.set(candidate.normalizedMobilePhone, {
+            id: created.id,
+          } as (typeof existingContacts)[number]);
         }
         if (candidate.normalizedOfficePhone) {
-          existingByPhone.set(candidate.normalizedOfficePhone, { id: created.id });
+          existingByPhone.set(candidate.normalizedOfficePhone, {
+            id: created.id,
+          } as (typeof existingContacts)[number]);
         }
         imported += 1;
       }

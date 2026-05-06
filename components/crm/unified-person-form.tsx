@@ -33,6 +33,8 @@ import {
   getContactIdentifierLabel,
   normalizeContactRole,
 } from "@/lib/contact-options";
+import { executeOfflineSyncMutation } from "@/lib/offline-sync/client";
+import type { OfflineSyncEntity, OfflineSyncOperation } from "@/lib/offline-sync/types";
 
 type Option = { id: string; name: string };
 type AccountOption = {
@@ -103,6 +105,11 @@ type UnifiedPersonFormProps = {
   initialValues?: Partial<UnifiedPersonFormValues>;
   onSubmitAction: (data: UnifiedPersonFormValues) => Promise<{ error?: string } | undefined>;
   onSuccess: () => void;
+  offlineSync?: {
+    entity: OfflineSyncEntity;
+    operation: OfflineSyncOperation;
+    queuedMessage?: string;
+  };
 };
 
 export function UnifiedPersonForm({
@@ -119,6 +126,7 @@ export function UnifiedPersonForm({
   initialValues,
   onSubmitAction,
   onSuccess,
+  offlineSync,
 }: UnifiedPersonFormProps) {
   const contactT = useTranslations("CrmContactForm");
   const leadT = useTranslations("CrmLeadForm");
@@ -195,7 +203,23 @@ export function UnifiedPersonForm({
       .filter((product): product is { id: string; name: string } => Boolean(product?.id && product?.name)) ?? [];
 
   const handleSubmit = async (data: UnifiedPersonFormValues) => {
-    const result = await onSubmitAction(data);
+    const result = offlineSync
+      ? await executeOfflineSyncMutation({
+          entity: offlineSync.entity,
+          operation: offlineSync.operation,
+          payload: data as unknown as Record<string, unknown>,
+        })
+      : await onSubmitAction(data);
+
+    if (result && "queued" in result && result.queued) {
+      toast.message(offlineSync?.queuedMessage ?? "Saved offline. Will sync automatically.");
+      if (mode === "create") {
+        form.reset();
+      }
+      onSuccess();
+      return;
+    }
+
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
       return;

@@ -26,7 +26,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
-import { createAccount } from "@/actions/crm/accounts/create-account";
+import { executeOfflineSyncMutation } from "@/lib/offline-sync/client";
 
 type Props = {
   industries: any[];
@@ -71,7 +71,19 @@ export function NewAccountForm({ industries, onFinish }: Props) {
   });
 
   const onSubmit = async (data: NewAccountFormValues) => {
-    const result = await createAccount(data);
+    const result = await executeOfflineSyncMutation({
+      entity: "account",
+      operation: "create",
+      payload: data as unknown as Record<string, unknown>,
+    });
+
+    if ("queued" in result && result.queued) {
+      toast.message("Account saved offline. It will sync in the next 5-minute cycle.");
+      form.reset();
+      onFinish();
+      return;
+    }
+
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {

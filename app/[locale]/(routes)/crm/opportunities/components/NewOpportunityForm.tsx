@@ -51,12 +51,12 @@ import {
   crm_Contacts,
   crm_campaigns,
 } from "@prisma/client";
-import { createOpportunity } from "@/actions/crm/opportunities/create-opportunity";
 import {
   createConfigValue,
   getConfigValues,
   updateConfigValue,
 } from "@/app/[locale]/(routes)/admin/crm-settings/_actions/crm-settings";
+import { executeOfflineSyncMutation } from "@/lib/offline-sync/client";
 
 //TODO: fix all the types
 type ConfigItem = {
@@ -212,7 +212,35 @@ export function NewOpportunityForm({
   });
 
   const onSubmit = async (data: NewAccountFormValues) => {
-    const result = await createOpportunity(data);
+    const result = await executeOfflineSyncMutation({
+      entity: "opportunity",
+      operation: "create",
+      payload: data as unknown as Record<string, unknown>,
+    });
+
+    if ("queued" in result && result.queued) {
+      toast.message("Opportunity saved offline. It will sync in the next 5-minute cycle.");
+      form.reset({
+        name: "",
+        close_date: new Date(),
+        category: selectedCategories,
+        description: "",
+        type: "",
+        sales_stage: "",
+        budget: "",
+        currency: "",
+        expected_revenue: "",
+        next_step: "",
+        assigned_to: "",
+        account: "",
+        contact: "",
+        campaign: "",
+        custom_fields_data: {},
+      });
+      onDialogClose();
+      return;
+    }
+
     if (result?.error) {
       form.setError("root.serverError", { message: result.error || t("createError") });
     } else {

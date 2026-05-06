@@ -1,8 +1,9 @@
 "use client";
 
-import moment from "moment";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import React, { ChangeEvent, useEffect, useRef, useState } from "react";
+import { format as formatDate } from "date-fns";
 import { Check, EyeIcon, Pencil, PlusCircle, PlusIcon } from "lucide-react";
 
 import {
@@ -65,14 +66,15 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
-import NewSectionForm from "../forms/NewSection";
-import UpdateTaskDialog from "../../../dialogs/UpdateTask";
 import { markTaskDone } from "@/actions/projects/mark-task-done";
 import { deleteSection } from "@/actions/projects/delete-section";
 import { updateSectionTitle } from "@/actions/projects/update-section-title";
 import { createTaskInBoard } from "@/actions/projects/create-task-in-board";
 import { deleteTask } from "@/actions/projects/delete-task";
 import { updateKanbanPosition } from "@/actions/projects/update-kanban-position";
+
+const NewSectionForm = dynamic(() => import("../forms/NewSection"));
+const UpdateTaskDialog = dynamic(() => import("../../../dialogs/UpdateTask"));
 
 const timeout = 1000;
 
@@ -84,6 +86,15 @@ interface Task {
   dueDateAt?: Date;
   priority?: string;
   taskStatus?: string;
+}
+
+function formatTaskDueDate(value?: Date) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? "-" : formatDate(date, "yyyy-MM-dd");
 }
 
 // Draggable Task Item Component
@@ -173,9 +184,7 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
-      <div className="py-1">
-        Due date: {moment(task.dueDateAt).format("YYYY-MM-DD")}
-      </div>
+      <div className="py-1">Due date: {formatTaskDueDate(task.dueDateAt)}</div>
       <div className="my-2">
         <p
           className={

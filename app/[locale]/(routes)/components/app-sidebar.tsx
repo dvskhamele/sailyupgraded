@@ -22,6 +22,10 @@ import getReportsMenuItem from "./menu-items/Reports";
 // import getInvoicesMenuItem from "./menu-items/Invoices";
 import getAdministrationMenuItem from "./menu-items/Administration";
 import getTemplatesMenuItem from "./menu-items/Campaigns";
+import getZenithMenuItem, {
+  getInstagramExtensionMenuItem,
+  getLinkedInExtensionMenuItem,
+} from "./menu-items/Zenith";
 
 /**
  * AppSidebar Component - Task Groups 1.2, 2.2-2.7, 3.1, 5.3, 5.4
@@ -103,6 +107,9 @@ export function AppSidebar({
   if (session?.user?.role === "admin") {
     navItems.push(
       getAdministrationMenuItem({ title: dict?.settings || "Administration" }),
+      getZenithMenuItem({ title: "Zenith" }),
+      getInstagramExtensionMenuItem({ title: "Instagram Extension" }),
+      getLinkedInExtensionMenuItem({ title: "LinkedIn Extension" }),
     );
   }
 

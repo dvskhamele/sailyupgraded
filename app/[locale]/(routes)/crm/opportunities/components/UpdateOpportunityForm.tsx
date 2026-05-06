@@ -39,7 +39,6 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { AccountSearchCombobox } from "@/components/ui/account-search-combobox";
-import { updateOpportunity } from "@/actions/crm/opportunities/update-opportunity";
 import {
   createConfigValue,
   getConfigValues,
@@ -53,6 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
+import { executeOfflineSyncMutation } from "@/lib/offline-sync/client";
 
 type ConfigItem = { id: string; name: string };
 
@@ -162,7 +162,18 @@ export function UpdateOpportunityForm({
       const cleaned = Object.fromEntries(
         Object.entries(data).map(([key, value]) => [key, value === null ? undefined : value])
       ) as any;
-      const result = await updateOpportunity(cleaned);
+      const result = await executeOfflineSyncMutation({
+        entity: "opportunity",
+        operation: "update",
+        payload: cleaned,
+      });
+
+      if ("queued" in result && result.queued) {
+        toast.message("Opportunity update saved offline. It will sync in the next 5-minute cycle.");
+        setOpen(false);
+        return;
+      }
+
       if (result?.error) {
         console.log(result.error);
         form.setError("root.serverError", { message: result.error });

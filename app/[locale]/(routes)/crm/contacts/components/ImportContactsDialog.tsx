@@ -14,6 +14,13 @@ import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import {
+  buildDefaultContactImportMapping,
+  type ColumnMapping,
+  type MappingKey,
+  SKIP_VALUE,
+  suggestContactImportMapping,
+} from "@/lib/crm/contact-import";
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -38,38 +45,6 @@ import {
 import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 
 type RawRow = Record<string, string>;
-type MappingKey =
-  | "serial"
-  | "name"
-  | "first_name"
-  | "last_name"
-  | "email"
-  | "personal_email"
-  | "mobile_phone"
-  | "office_phone"
-  | "website"
-  | "position"
-  | "description"
-  | "birthday"
-  | "address"
-  | "address_line1"
-  | "address_line2"
-  | "city"
-  | "state"
-  | "country"
-  | "postal_code"
-  | "status"
-  | "role"
-  | "contact_type_id"
-  | "assigned_to"
-  | "assigned_account"
-  | "social_twitter"
-  | "social_facebook"
-  | "social_linkedin"
-  | "social_skype"
-  | "social_youtube"
-  | "social_tiktok";
-type ColumnMapping = Record<MappingKey, string>;
 type DuplicateMode = "skip" | "update";
 type ImportFailure = {
   row: number;
@@ -83,7 +58,6 @@ type ImportResult = {
   failures: ImportFailure[];
 };
 
-const SKIP_VALUE = "__skip__";
 const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
   { key: "serial", label: "Role ID / Agent Number" },
   { key: "name", label: "Full name" },
@@ -116,85 +90,6 @@ const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
   { key: "social_youtube", label: "YouTube" },
   { key: "social_tiktok", label: "TikTok" },
 ];
-const DEFAULT_MAPPING = Object.fromEntries(
-  IMPORT_FIELDS.map(({ key }) => [key, SKIP_VALUE]),
-) as ColumnMapping;
-const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
-  serial: [
-    "serial",
-    "sr no",
-    "sr_no",
-    "sequence",
-    "agent number",
-    "agent no",
-    "agent id",
-    "customer id",
-    "customer number",
-    "client id",
-    "partner id",
-    "partner number",
-    "vendor id",
-    "vendor number",
-  ],
-  name: ["name", "full name", "full_name", "contact name"],
-  first_name: ["first name", "firstname", "first_name", "given name"],
-  last_name: ["last name", "lastname", "last_name", "surname", "family name"],
-  email: ["email", "e-mail", "email address", "mail"],
-  personal_email: ["personal email", "personal_email", "private email"],
-  mobile_phone: ["mobile", "mobile phone", "mobile_phone", "cell", "cell phone"],
-  office_phone: ["office phone", "office_phone", "telephone", "tel", "work phone", "phone"],
-  website: ["website", "web", "url", "site"],
-  position: ["position", "job title", "title", "designation"],
-  description: ["description", "notes", "note", "details"],
-  birthday: ["birthday", "birth date", "birthdate", "dob"],
-  address: ["address", "full address"],
-  address_line1: ["address line 1", "address_line1", "street", "street 1"],
-  address_line2: ["address line 2", "address_line2", "street 2"],
-  city: ["city", "town"],
-  state: ["state", "region", "province"],
-  country: ["country"],
-  postal_code: ["postal code", "postal_code", "zip", "zip code", "pincode"],
-  status: ["status", "active", "is active", "is_active"],
-  role: ["role"],
-  contact_type_id: ["contact type", "contact_type", "contact_type_id", "type"],
-  assigned_to: ["assigned to", "assigned_to", "owner", "user", "assignee"],
-  assigned_account: ["account", "assigned account", "assigned_account", "company"],
-  social_twitter: ["twitter", "x"],
-  social_facebook: ["facebook"],
-  social_linkedin: ["linkedin", "linkedin url", "linkedin profile"],
-  social_skype: ["skype"],
-  social_youtube: ["youtube"],
-  social_tiktok: ["tiktok", "tik tok"],
-};
-
-function normalizeHeader(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function normalizeHeaderToken(value: string) {
-  return normalizeHeader(value).replace(/[^a-z0-9]/g, "");
-}
-
-function suggestMapping(headers: string[]): ColumnMapping {
-  const defaults: ColumnMapping = { ...DEFAULT_MAPPING };
-
-  for (const key of Object.keys(defaults) as MappingKey[]) {
-    const match = headers.find((header) => {
-      const normalized = normalizeHeaderToken(header);
-      return AUTO_MAP_CANDIDATES[key].some(
-        (candidate) =>
-          normalized === normalizeHeaderToken(candidate) ||
-          normalized.includes(normalizeHeaderToken(candidate)),
-      );
-    });
-
-    if (match) {
-      defaults[key] = match;
-    }
-  }
-
-  return defaults;
-}
 
 export function ImportContactsDialog() {
   const router = useRouter();
@@ -204,9 +99,9 @@ export function ImportContactsDialog() {
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<RawRow[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({
-    ...DEFAULT_MAPPING,
+    ...buildDefaultContactImportMapping(),
   });
-  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
+  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("update");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -214,8 +109,8 @@ export function ImportContactsDialog() {
     setFileName("");
     setHeaders([]);
     setRows([]);
-    setMapping({ ...DEFAULT_MAPPING });
-    setDuplicateMode("skip");
+    setMapping({ ...buildDefaultContactImportMapping() });
+    setDuplicateMode("update");
     setResult(null);
     setIsUploading(false);
     if (fileRef.current) {
@@ -324,7 +219,7 @@ export function ImportContactsDialog() {
           ),
         ),
       );
-      setMapping(suggestMapping(nextHeaders));
+      setMapping(suggestContactImportMapping(nextHeaders));
       setOpen(true);
     } catch (error) {
       const message =
@@ -418,7 +313,8 @@ export function ImportContactsDialog() {
             <DialogDescription>
               Review the selected CSV or Excel file, map the columns, and import
               valid contacts. Each row must include a full name or last name, and
-              at least one of email, mobile phone, or office phone.
+              at least one of email, mobile phone, or office phone. Existing
+              matches are updated by default so duplicates are not created.
             </DialogDescription>
           </DialogHeader>
 
@@ -480,8 +376,8 @@ export function ImportContactsDialog() {
                         <SelectValue placeholder="Select behavior" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="skip">Skip existing contacts</SelectItem>
                         <SelectItem value="update">Update existing contacts</SelectItem>
+                        <SelectItem value="skip">Skip existing contacts</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>

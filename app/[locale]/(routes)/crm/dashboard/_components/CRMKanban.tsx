@@ -1,5 +1,6 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
@@ -56,10 +57,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-import { NewOpportunityForm } from "../../opportunities/components/NewOpportunityForm";
-import { UpdateOpportunityForm } from "../../opportunities/components/UpdateOpportunityForm";
-import { ImportOpportunitiesDialog } from "../../opportunities/components/ImportOpportunitiesDialog";
 import { setInactiveOpportunity } from "@/actions/crm/opportunity/dashboard/set-inactive";
 import { updateOpportunity } from "@/actions/crm/opportunities/update-opportunity";
 import { createProduct } from "@/actions/crm/products/create-product";
@@ -79,6 +76,24 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { CategoryFilter } from "./CategoryFilter";
 import { filterOpportunitiesByCategory } from "@/lib/opportunity-categories";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
+
+const ImportOpportunitiesDialog = dynamic(() =>
+  import("../../opportunities/components/ImportOpportunitiesDialog").then(
+    (mod) => mod.ImportOpportunitiesDialog,
+  ),
+);
+
+const NewOpportunityForm = dynamic(() =>
+  import("../../opportunities/components/NewOpportunityForm").then(
+    (mod) => mod.NewOpportunityForm,
+  ),
+);
+
+const UpdateOpportunityForm = dynamic(() =>
+  import("../../opportunities/components/UpdateOpportunityForm").then(
+    (mod) => mod.UpdateOpportunityForm,
+  ),
+);
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];

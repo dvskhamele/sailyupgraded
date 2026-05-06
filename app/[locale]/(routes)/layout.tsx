@@ -12,6 +12,7 @@ import { getTranslations } from "next-intl/server";
 import { AvatarProvider } from "@/context/avatar-context";
 import { CurrencyProvider } from "@/context/currency-context";
 import { getEnabledCurrencies, getDefaultCurrency } from "@/lib/currency";
+import { OfflineSyncBadge } from "@/components/offline-sync/offline-sync-badge";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -134,6 +135,7 @@ export default async function AppLayout({
           </div>
           <Footer />
         </div>
+        <OfflineSyncBadge />
       </SidebarInset>
     </SidebarProvider>
     </CurrencyProvider>

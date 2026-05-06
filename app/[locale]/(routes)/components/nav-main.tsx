@@ -46,6 +46,7 @@ export interface NavItem {
   icon?: LucideIcon
   isActive?: boolean
   alwaysOpen?: boolean
+  external?: boolean
   items?: NavSubItem[] // For collapsible groups
 }
 
@@ -60,6 +61,10 @@ export interface NavSubItem {
 interface NavMainProps {
   items: NavItem[]
   dict?: any
+}
+
+function isExternalUrl(url?: string) {
+  return typeof url === "string" && /^https?:\/\//.test(url)
 }
 
 export function NavMain({ items, dict }: NavMainProps) {
@@ -219,7 +224,7 @@ export function NavMain({ items, dict }: NavMainProps) {
 
           // Simple navigation item (no sub-items)
           if (!item.url) return null
-          const isActive = isRouteActive(item.url)
+          const isActive = item.external || isExternalUrl(item.url) ? false : isRouteActive(item.url)
           return (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -227,10 +232,17 @@ export function NavMain({ items, dict }: NavMainProps) {
                 tooltip={item.title}
                 isActive={isActive}
               >
-                <Link href={item.url} prefetch={false}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                </Link>
+                {item.external || isExternalUrl(item.url) ? (
+                  <a href={item.url} target="_blank" rel="noreferrer">
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </a>
+                ) : (
+                  <Link href={item.url} prefetch={false}>
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </Link>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           )

@@ -1,7 +1,6 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { createContact } from "@/actions/crm/contacts/create-contact";
 import { UnifiedPersonForm, type UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
 import type { ContactRole } from "@/lib/contact-options";
 
@@ -52,7 +51,12 @@ export function NewContactForm({
         role: defaultRole,
         ...initialValues,
       }}
-      onSubmitAction={(data) => createContact(data as any)}
+      onSubmitAction={async () => undefined}
+      offlineSync={{
+        entity: "contact",
+        operation: "create",
+        queuedMessage: "Contact saved offline. It will sync in the next 5-minute cycle.",
+      }}
       onSuccess={onFinish}
     />
   );

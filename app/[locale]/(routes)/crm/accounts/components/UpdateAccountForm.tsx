@@ -30,8 +30,8 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
-import { updateAccount } from "@/actions/crm/accounts/update-account";
 import { getIndustries } from "@/actions/crm/get-industries";
+import { executeOfflineSyncMutation } from "@/lib/offline-sync/client";
 
 interface UpdateAccountFormProps {
   //TODO: fix this any
@@ -124,8 +124,19 @@ export function UpdateAccountForm({
   const onSubmit = async (data: NewAccountFormValues) => {
     const payload = Object.fromEntries(
       Object.entries(data).map(([k, v]) => [k, v === null ? undefined : v])
-    ) as Parameters<typeof updateAccount>[0];
-    const result = await updateAccount(payload);
+    ) as Record<string, unknown>;
+    const result = await executeOfflineSyncMutation({
+      entity: "account",
+      operation: "update",
+      payload,
+    });
+
+    if ("queued" in result && result.queued) {
+      toast.message("Account update saved offline. It will sync in the next 5-minute cycle.");
+      open(false);
+      return;
+    }
+
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {
