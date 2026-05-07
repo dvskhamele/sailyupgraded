@@ -39,6 +39,50 @@ interface UpdateAccountFormProps {
   open: (value: boolean) => void;
 }
 
+const emptyAccountFormValues = {
+  id: "",
+  v: 0,
+  name: "",
+  office_phone: "",
+  website: "",
+  fax: "",
+  company_id: "",
+  vat: "",
+  email: "",
+  billing_street: "",
+  billing_postal_code: "",
+  billing_city: "",
+  billing_state: "",
+  billing_country: "",
+  shipping_street: "",
+  shipping_postal_code: "",
+  shipping_city: "",
+  shipping_state: "",
+  shipping_country: "",
+  description: "",
+  assigned_to: "",
+  status: "",
+  annual_revenue: "",
+  member_of: "",
+  industry: "",
+};
+
+function normalizeAccountFormValues(initialData: any) {
+  return Object.fromEntries(
+    Object.entries({
+      ...emptyAccountFormValues,
+      ...(initialData ?? {}),
+    }).map(([key, value]) => [key, value ?? ""])
+  );
+}
+
+function textFieldProps(field: any) {
+  return {
+    ...field,
+    value: field.value ?? "",
+  };
+}
+
 export function UpdateAccountForm({
   initialData,
   open,
@@ -88,37 +132,7 @@ export function UpdateAccountForm({
   const form = useForm<any>({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
-    //@ts-ignore
-    //TODO: fix this
-    defaultValues: initialData
-      ? initialData
-      : {
-          id: "",
-          v: 0,
-          name: "",
-          office_phone: "" as string | null,
-          website: "",
-          fax: "",
-          company_id: "",
-          vat: "",
-          email: "",
-          billing_street: "",
-          billing_postal_code: "",
-          billing_city: "",
-          billing_state: "",
-          billing_country: "",
-          shipping_street: "",
-          shipping_postal_code: "",
-          shipping_city: "",
-          shipping_state: "",
-          shipping_country: "",
-          description: "",
-          assigned_to: "",
-          status: "",
-          annual_revenue: "",
-          member_of: "",
-          industry: "",
-        },
+    defaultValues: normalizeAccountFormValues(initialData),
   });
 
   const onSubmit = async (data: NewAccountFormValues) => {
@@ -164,7 +178,7 @@ export function UpdateAccountForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="Saily Inc."
-                      {...field}
+                      {...textFieldProps(field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -181,9 +195,7 @@ export function UpdateAccountForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="+420 ...."
-                      //@ts-ignore
-                      value={field.value}
-                      onChange={field.onChange}
+                      {...textFieldProps(field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -200,7 +212,7 @@ export function UpdateAccountForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="account@domain.com"
-                      {...field}
+                      {...textFieldProps(field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -217,7 +229,7 @@ export function UpdateAccountForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="https://www.domain.com"
-                      {...field}
+                      {...textFieldProps(field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -234,7 +246,7 @@ export function UpdateAccountForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="1234567890"
-                      {...field}
+                      {...textFieldProps(field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -251,7 +263,7 @@ export function UpdateAccountForm({
                     <Input
                       disabled={form.formState.isSubmitting}
                       placeholder="CZ1234567890"
-                      {...field}
+                      {...textFieldProps(field)}
                     />
                   </FormControl>
                   <FormMessage />
@@ -271,7 +283,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="Švábova 772/18"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -288,7 +300,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="252 18"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -305,7 +317,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="Prague"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -319,7 +331,7 @@ export function UpdateAccountForm({
                   <FormItem>
                     <FormLabel>{t("billingState")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="" {...field} />
+                      <Input disabled={form.formState.isSubmitting} placeholder="" {...textFieldProps(field)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -335,7 +347,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="Czechia"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -354,7 +366,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="Švábova 772/18"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -371,7 +383,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="252 18"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -388,7 +400,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="Prague"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -402,7 +414,7 @@ export function UpdateAccountForm({
                   <FormItem>
                     <FormLabel>{t("shippingState")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="" {...field} />
+                      <Input disabled={form.formState.isSubmitting} placeholder="" {...textFieldProps(field)} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -418,7 +430,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="Czechia"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -439,7 +451,7 @@ export function UpdateAccountForm({
                       <Textarea
                         disabled={form.formState.isSubmitting}
                         placeholder="Description"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -458,7 +470,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="1.0000.000"
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />
@@ -475,7 +487,7 @@ export function UpdateAccountForm({
                       <Input
                         disabled={form.formState.isSubmitting}
                         placeholder="Tesla Inc."
-                        {...field}
+                        {...textFieldProps(field)}
                       />
                     </FormControl>
                     <FormMessage />

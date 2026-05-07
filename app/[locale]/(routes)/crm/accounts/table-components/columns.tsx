@@ -71,7 +71,7 @@ export const columns: ColumnDef<Account>[] = [
   {
     accessorKey: "contacts",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Account contact" />
+      <DataTableColumnHeader column={column} title="Company contact" />
     ),
 
     cell: ({ row }) => (

@@ -53,7 +53,7 @@ export function DataTableRowActions<TData>({
       if (result.error) {
         toast.error(result.error);
       } else {
-        toast.success("Account has been deleted");
+        toast.success("Company has been deleted");
       }
     } catch (error) {
       toast.error("Something went wrong while deleting account. Please try again.");

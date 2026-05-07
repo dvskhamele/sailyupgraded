@@ -172,7 +172,10 @@ export class OfflineFirstStorage {
           if (item.status === "pending") {
             return !item.nextRetryAt || item.nextRetryAt <= nowIso;
           }
-          return item.status === "failed" && Boolean(item.nextRetryAt) && item.nextRetryAt <= nowIso;
+          if (item.status !== "failed" || !item.nextRetryAt) {
+            return false;
+          }
+          return item.nextRetryAt <= nowIso;
         })
         .sort((a, b) => (a.createdAt > b.createdAt ? 1 : -1));
     });
@@ -246,4 +249,3 @@ export class OfflineFirstStorage {
 }
 
 export const offlineFirstStorage = new OfflineFirstStorage();
-

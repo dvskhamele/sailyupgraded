@@ -1,6 +1,5 @@
 "use client";
 
-import { enqueueOfflineMutation, flushOfflineSyncQueue } from "@/lib/offline-sync/client";
 import { emitOfflineFirstChanged, subscribeOfflineFirstChanged } from "@/lib/offline-first/events";
 import { offlineMutationQueue } from "@/lib/offline-first/queue";
 import { offlineFirstStorage } from "@/lib/offline-first/storage";
@@ -52,7 +51,7 @@ function normalizeContactPayload(
 async function triggerBackgroundContactSync() {
   try {
     if (typeof window !== "undefined" && navigator.onLine) {
-      void flushOfflineSyncQueue();
+      emitOfflineFirstChanged();
     }
   } catch {
     // Keep local-first writes non-blocking.
@@ -72,12 +71,6 @@ export async function queueCreateContactOffline(
       data: payload,
     },
   );
-
-  await enqueueOfflineMutation({
-    entity: "contact",
-    operation: "create",
-    payload,
-  });
 
   emitOfflineFirstChanged();
   void triggerBackgroundContactSync();
@@ -115,12 +108,6 @@ export async function queueUpdateContactOffline(
       data: payload,
     },
   );
-
-  await enqueueOfflineMutation({
-    entity: "contact",
-    operation: "update",
-    payload,
-  });
 
   emitOfflineFirstChanged();
   void triggerBackgroundContactSync();
@@ -172,4 +159,3 @@ export async function readOfflineFirstContacts() {
 export function subscribeContactsOfflineStore(listener: () => void) {
   return subscribeOfflineFirstChanged(listener);
 }
-

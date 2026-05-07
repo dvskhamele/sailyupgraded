@@ -99,6 +99,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                       disabled={form.formState.isSubmitting}
                       placeholder="Saily Inc."
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -116,6 +117,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                       disabled={form.formState.isSubmitting}
                       placeholder="+420 ...."
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -131,8 +133,9 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                   <FormControl>
                     <Input
                       disabled={form.formState.isSubmitting}
-                      placeholder="account@domain.com"
+                      placeholder="Company@domain.com"
                       {...field}
+                      value={field.value || ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -150,6 +153,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                       disabled={form.formState.isSubmitting}
                       placeholder="https://www.domain.com"
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -167,6 +171,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                       disabled={form.formState.isSubmitting}
                       placeholder="1234567890"
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -184,6 +189,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                       disabled={form.formState.isSubmitting}
                       placeholder="CZ1234567890"
                       {...field}
+                      value={field.value ?? ""}
                     />
                   </FormControl>
                   <FormMessage />
@@ -204,6 +210,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Švábova 772/18"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -221,6 +228,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="252 18"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -238,6 +246,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Prague"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -251,7 +260,11 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                   <FormItem>
                     <FormLabel>{t("billingState")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="" {...field} />
+                      <Input disabled={form.formState.isSubmitting} placeholder=""                      
+                      {...field}
+                       value={field.value ?? ""} 
+                       />
+                      
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -268,6 +281,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Czechia"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -287,6 +301,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Švábova 772/18"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -304,6 +319,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="252 18"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -321,6 +337,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Prague"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -334,7 +351,10 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                   <FormItem>
                     <FormLabel>{t("shippingState")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="" {...field} />
+                      <Input disabled={form.formState.isSubmitting} placeholder=""  
+                      {...field} 
+                      value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -372,6 +392,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Description"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -391,6 +412,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="1.0000.000"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -408,6 +430,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Tesla Inc."
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
