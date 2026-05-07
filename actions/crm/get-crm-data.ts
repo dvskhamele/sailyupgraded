@@ -81,8 +81,14 @@ function isTransientPrismaConnectionError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return (
     message.includes("pool timeout: failed to retrieve a connection from pool") ||
-    message.includes("read ECONNRESET")
+    message.includes("read ECONNRESET") ||
+    message.includes("pool is ending")
   );
+}
+
+function shouldResetPrismaConnection(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("pool is ending") || message.includes("read ECONNRESET");
 }
 
 async function loadAllCrmData() {
@@ -221,7 +227,10 @@ export const getAllCrmData = cache(async () => {
       throw error;
     }
 
-    await resetPrisma();
+    if (shouldResetPrismaConnection(error)) {
+      await resetPrisma();
+    }
+
     return loadAllCrmData();
   }
 });

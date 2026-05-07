@@ -43,6 +43,7 @@ import {
 export interface NavItem {
   title: string
   url?: string
+  external?: boolean
   icon?: LucideIcon
   isActive?: boolean
   alwaysOpen?: boolean
@@ -69,6 +70,9 @@ export function NavMain({ items, dict }: NavMainProps) {
   // Helper function to check if a route is active
   const isRouteActive = (url?: string, exact?: boolean): boolean => {
     if (!url) {
+      return false
+    }
+    if (/^https?:\/\//.test(url)) {
       return false
     }
 
@@ -219,7 +223,7 @@ export function NavMain({ items, dict }: NavMainProps) {
 
           // Simple navigation item (no sub-items)
           if (!item.url) return null
-          const isActive = isRouteActive(item.url)
+          const isActive = !item.external && isRouteActive(item.url)
           return (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -227,10 +231,17 @@ export function NavMain({ items, dict }: NavMainProps) {
                 tooltip={item.title}
                 isActive={isActive}
               >
-                <Link href={item.url} prefetch={false}>
-                  {item.icon && <item.icon />}
-                  <span>{item.title}</span>
-                </Link>
+                {item.external ? (
+                  <a href={item.url} target="_blank" rel="noreferrer">
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </a>
+                ) : (
+                  <Link href={item.url} prefetch={false}>
+                    {item.icon && <item.icon />}
+                    <span>{item.title}</span>
+                  </Link>
+                )}
               </SidebarMenuButton>
             </SidebarMenuItem>
           )

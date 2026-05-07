@@ -1,7 +1,12 @@
-import { prismadb } from "@/lib/prisma";
+import { prismadb, resetPrisma } from "@/lib/prisma";
 
-export const getOpportunities = async () => {
-  const data = await prismadb.crm_Opportunities.findMany({
+function isEndedPoolError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return message.includes("pool is ending");
+}
+
+async function loadOpportunities() {
+  return prismadb.crm_Opportunities.findMany({
     where: { deletedAt: null },
     include: {
       // Include assigned user (uses "assigned_to_user_relation")
@@ -42,7 +47,19 @@ export const getOpportunities = async () => {
       },
     },
   });
-  return data;
+}
+
+export const getOpportunities = async () => {
+  try {
+    return await loadOpportunities();
+  } catch (error) {
+    if (!isEndedPoolError(error)) {
+      throw error;
+    }
+
+    await resetPrisma();
+    return loadOpportunities();
+  }
 };
 
 //Get opportunities by month for chart

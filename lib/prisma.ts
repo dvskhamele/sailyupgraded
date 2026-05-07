@@ -5,9 +5,11 @@ declare global {
   var cachedPrisma: PrismaClient | undefined;
   var cachedPrismaUrl: string | undefined;
   var cachedPrismaSchemaSignature: string | undefined;
+  var cachedPrismaRuntimeVersion: string | undefined;
 }
 
 const databaseUrl = process.env.DATABASE_URL;
+const prismaRuntimeVersion = "mariadb-adapter-no-auto-disconnect-v1";
 
 function getPrismaSchemaSignature() {
   return Prisma.dmmf.datamodel.models
@@ -15,30 +17,16 @@ function getPrismaSchemaSignature() {
     .join("|");
 }
 
-// Prisma Client configuration with connection pooling and lifecycle management
+// Prisma Client configuration with connection pooling.
 const prismaClientSingleton = () => {
   if (!databaseUrl) {
     throw new Error("DATABASE_URL is not set. Please provide DATABASE_URL environment variable.");
   }
 
-  const client = new PrismaClient({
+  return new PrismaClient({
     adapter: createMariaDbAdapter(databaseUrl),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
-
-  // Ensure graceful shutdown on hot reload in development
-  if (process.env.NODE_ENV !== "production") {
-    // Clean up on process termination
-    const cleanup = async () => {
-      await client.$disconnect();
-    };
-
-    process.on("beforeExit", cleanup);
-    process.on("SIGINT", cleanup);
-    process.on("SIGTERM", cleanup);
-  }
-
-  return client;
 };
 
 let _prisma: PrismaClient | undefined;
@@ -67,12 +55,14 @@ const getPrisma = (): PrismaClient => {
   const shouldRefreshClient =
     !global.cachedPrisma ||
     global.cachedPrismaUrl !== databaseUrl ||
-    global.cachedPrismaSchemaSignature !== schemaSignature;
+    global.cachedPrismaSchemaSignature !== schemaSignature ||
+    global.cachedPrismaRuntimeVersion !== prismaRuntimeVersion;
 
   if (shouldRefreshClient) {
     global.cachedPrisma = prismaClientSingleton();
     global.cachedPrismaUrl = databaseUrl;
     global.cachedPrismaSchemaSignature = schemaSignature;
+    global.cachedPrismaRuntimeVersion = prismaRuntimeVersion;
   }
   return global.cachedPrisma!;
 };
@@ -89,12 +79,17 @@ export async function resetPrisma() {
   global.cachedPrisma = undefined;
   global.cachedPrismaUrl = undefined;
   global.cachedPrismaSchemaSignature = undefined;
+  global.cachedPrismaRuntimeVersion = undefined;
   await disconnectClient(current);
 }
 
 // Use a proxy to lazily initialize the Prisma client only when accessed
 export const prismadb = new Proxy({} as PrismaClient, {
   get(target, prop, receiver) {
+    if (prop === "$disconnect") {
+      return resetPrisma;
+    }
+
     const client = getPrisma();
     const value = Reflect.get(client, prop, receiver);
     if (typeof value === "function") {

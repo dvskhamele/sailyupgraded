@@ -3,6 +3,7 @@ import { POST as authPost } from "@/app/api/auth/[...all]/route";
 import { prismadb } from "@/lib/prisma";
 
 const testOtpIdentifier = (email: string) => `test-otp-${email.toLowerCase()}`;
+const fallbackOtpIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
 const signInOtpIdentifier = (email: string) => `sign-in-otp-${email.toLowerCase()}`;
 
 export async function POST(request: NextRequest) {
@@ -21,7 +22,9 @@ export async function POST(request: NextRequest) {
 
     const verification = await prismadb.verification.findFirst({
       where: {
-        identifier: testOtpIdentifier(email),
+        identifier: {
+          in: [testOtpIdentifier(email), fallbackOtpIdentifier(email)],
+        },
         value: otp,
         expiresAt: { gt: new Date() },
       },

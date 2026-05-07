@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { Link } from "@/i18n/navigation";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
+import { CalendarClock, Instagram, Linkedin } from "lucide-react";
 import getContactsMenuItem from "./menu-items/Contacts";
 import getCrmMenuItem from "./menu-items/Crm";
 // import getProjectsMenuItem from "./menu-items/Projects";
@@ -105,6 +106,27 @@ export function AppSidebar({
       getAdministrationMenuItem({ title: dict?.settings || "Administration" }),
     );
   }
+
+  navItems.push(
+    {
+      title: "Instagram Extension",
+      url: "https://chromewebstore.google.com/detail/instadm-auto-dm-leads-col/mfmhpjojeelkcnejjlmjdgipfdaefkad?authuser=0&hl=en-GB",
+      icon: Instagram,
+      external: true,
+    },
+    {
+      title: "LinkedIn Extension",
+      url: "https://chromewebstore.google.com/detail/ingage-%E2%80%94-one-click-ai-lin/nkaegpeiilppheefgalffciemnamogla?authuser=0&hl=en-GB",
+      icon: Linkedin,
+      external: true,
+    },
+    {
+      title: "Zenith",
+      url: "https://zenith-nu-mocha.vercel.app/dashboard?page=schedule",
+      icon: CalendarClock,
+      external: true,
+    },
+  );
 
   // Prepare user data for NavUser component
   const userData = {

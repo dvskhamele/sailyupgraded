@@ -7,10 +7,8 @@ import { getOpportunities } from "@/actions/crm/get-opportunities";
 import { serializeDecimalsList } from "@/lib/serialize-decimals";
 
 const CrmDashboardPage = async () => {
-  const [crmData, rawOpportunities] = await Promise.all([
-    getAllCrmData(),
-    getOpportunities(),
-  ]);
+  const crmData = await getAllCrmData();
+  const rawOpportunities = await getOpportunities();
   const opportunities = serializeDecimalsList(rawOpportunities);
 
   return (
@@ -19,7 +17,6 @@ const CrmDashboardPage = async () => {
       description=""   
     >
       <div className="h-full w-full overflow-hidden">
-        {/* <DashboardOpportunitiesSummary opportunities={serializedOpportunities} /> */}
         <CRMKanban
           salesStages={crmData.saleStages}
           opportunities={opportunities}

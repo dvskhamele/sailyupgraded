@@ -23,10 +23,18 @@ import {
 } from "@/components/ui/input-otp";
 
 type Step = "email" | "otp";
+const DASHBOARD_PATH = "/crm/dashboard";
 const allowDevOtpPreview =
   process.env.NODE_ENV !== "production" ||
   process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ||
   process.env.NEXT_PUBLIC_ENABLE_OTP_PREVIEW === "true";
+
+function getLocalizedPath(path: string) {
+  if (typeof window === "undefined") return path;
+
+  const locale = window.location.pathname.split("/")[1];
+  return locale ? `/${locale}${path}` : path;
+}
 
 type LoginComponentProps = {
   googleAuthEnabled: boolean;
@@ -49,7 +57,7 @@ export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
     try {
       await authClient.signIn.social({
         provider: "google",
-        callbackURL: "/",
+        callbackURL: getLocalizedPath(DASHBOARD_PATH),
       });
     } catch (error: any) {
       console.error("Google sign-in error:", error);
@@ -76,6 +84,7 @@ export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
     setIsLoading(true);
     try {
       const normalizedEmail = email.trim().toLowerCase();
+      setOtp("");
       setDevOtp("");
 
       const { error } = await authClient.emailOtp.sendVerificationOtp({
@@ -171,7 +180,7 @@ export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
         return;
       }
       toast.success("Login successful.");
-      window.location.href = "/";
+      window.location.href = getLocalizedPath(DASHBOARD_PATH);
     } catch (error) {
       toast.error("Verification failed.");
     } finally {
@@ -242,7 +251,7 @@ export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
 
             <Button
               onClick={sendOtp}
-              disabled={isLoading || !email}
+              disabled={isLoading}
               className="h-11 rounded-lg font-semibold"
             >
               <MailIcon className="mr-2 h-4 w-4" />
