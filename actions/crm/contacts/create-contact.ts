@@ -9,6 +9,7 @@ import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+import { resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -89,6 +90,7 @@ export const createContact = async (data: {
   } = data;
 
   const resolvedAddressLine1 = getAddressLine1(address, address_line1);
+  const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
   const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
     address: resolvedAddressLine1 || undefined,
     address_line1: resolvedAddressLine1 || undefined,
@@ -116,7 +118,7 @@ export const createContact = async (data: {
     accountsIDs: assigned_account || undefined,
     assigned_to: assigned_to || undefined,
     contact_type_id: contact_type_id || undefined,
-    lead_source_id: lead_source_id || undefined,
+    lead_source_id: resolvedLeadSourceId,
     lead_status_id: lead_status_id || undefined,
     lead_type_id: lead_type_id || undefined,
     tags: [],

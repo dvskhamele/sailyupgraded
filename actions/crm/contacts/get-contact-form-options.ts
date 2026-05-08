@@ -1,6 +1,7 @@
 "use server";
 
 import { prismadb } from "@/lib/prisma";
+import { appendSocialLeadSourceOptions } from "@/lib/crm/contact-form-options";
 
 export const getContactFormOptions = async () => {
   const [accounts, contactTypes, leadSources, leadStatuses, leadTypes] = await Promise.all([
@@ -27,5 +28,11 @@ export const getContactFormOptions = async () => {
     }),
   ]);
 
-  return { accounts, contactTypes, leadSources, leadStatuses, leadTypes };
+  return {
+    accounts,
+    contactTypes,
+    leadSources: appendSocialLeadSourceOptions(leadSources),
+    leadStatuses,
+    leadTypes,
+  };
 };

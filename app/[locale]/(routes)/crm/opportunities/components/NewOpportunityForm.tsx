@@ -77,7 +77,25 @@ type NewTaskFormProps = {
   selectedCategories?: string[];
   selectedStage?: string;
   accountId?: string;
+  initialValues?: Partial<NewOpportunityInitialValues>;
   onDialogClose: () => void;
+};
+
+type NewOpportunityInitialValues = {
+  name: string;
+  close_date: Date;
+  category: string[];
+  description: string;
+  type: string;
+  sales_stage: string;
+  budget: string;
+  currency: string;
+  expected_revenue: string;
+  next_step: string;
+  assigned_to: string;
+  account: string;
+  contact: string;
+  campaign: string;
 };
 
 export function NewOpportunityForm({
@@ -91,6 +109,7 @@ export function NewOpportunityForm({
   selectedCategories = [],
   selectedStage,
   accountId,
+  initialValues,
   onDialogClose,
 }: NewTaskFormProps) {
   const t = useTranslations("CrmOpportunityForm");
@@ -194,19 +213,20 @@ export function NewOpportunityForm({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
     defaultValues: {
-      sales_stage: selectedStage ? selectedStage : "",
-      account: accountId ? accountId : "",
-      category: selectedCategories,
-      type: "",
-      budget: "",
-      currency: "",
-      expected_revenue: "",
-      next_step: "",
-      assigned_to: "",
-      contact: "",
-      campaign: "",
-      description: "",
-      name: "",
+      sales_stage: initialValues?.sales_stage ?? selectedStage ?? "",
+      account: initialValues?.account ?? accountId ?? "",
+      close_date: initialValues?.close_date,
+      category: initialValues?.category ?? selectedCategories,
+      type: initialValues?.type ?? "",
+      budget: initialValues?.budget ?? "",
+      currency: initialValues?.currency ?? "",
+      expected_revenue: initialValues?.expected_revenue ?? "",
+      next_step: initialValues?.next_step ?? "",
+      assigned_to: initialValues?.assigned_to ?? "",
+      contact: initialValues?.contact ?? "",
+      campaign: initialValues?.campaign ?? "",
+      description: initialValues?.description ?? "",
+      name: initialValues?.name ?? "",
       custom_fields_data: {},
     },
   });

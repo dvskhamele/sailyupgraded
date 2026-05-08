@@ -14,6 +14,7 @@ import { Separator } from "@/components/ui/separator";
 
 import { columns } from "../accounts/table-components/columns";
 import { NewAccountForm } from "../accounts/components/NewAccountForm";
+import { ImportAccountsDialog } from "../accounts/components/ImportAccountsDialog";
 import { AccountDataTable } from "../accounts/table-components/data-table";
 import {
   Sheet,
@@ -52,6 +53,7 @@ const AccountsView = ({ data, crmData }: AccountsViewProps) => {
             </CardTitle>
           </div>
           <div className="flex space-x-2">
+            {/* <ImportAccountsDialog /> */}
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button size="sm" aria-label={t("accounts.addNew")} data-testid="add-account-btn">+</Button>

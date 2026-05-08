@@ -6,6 +6,7 @@ import {
 } from "@/lib/prisma-model-fields";
 import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
+import { appendSocialLeadSourceOptions } from "@/lib/crm/contact-form-options";
 
 const crmDashboardLeadSelectValues = {
   id: true,
@@ -198,7 +199,7 @@ async function loadAllCrmData() {
     campaigns,
     industries,
     contactTypes,
-    leadSources,
+    leadSources: appendSocialLeadSourceOptions(leadSources),
     leadStatuses,
     leadTypes,
     currencies,

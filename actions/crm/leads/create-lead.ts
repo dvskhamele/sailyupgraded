@@ -12,6 +12,7 @@ import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
+import { resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 
 export const createLead = async (data: {
   serial?: string;
@@ -111,6 +112,7 @@ export const createLead = async (data: {
     birthday_day && birthday_month && birthday_year
       ? new Date(Number(birthday_year), Number(birthday_month) - 1, Number(birthday_day))
       : null;
+  const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
   const leadCustomFields = await prismadb.custom_fields.findMany({
     orderBy: { createdAt: "asc" },
   });
@@ -146,7 +148,7 @@ export const createLead = async (data: {
     role: normalizeContactRole(role),
     contact_type_id: contact_type_id || undefined,
     birthday: birthdayValue,
-    lead_source_id: lead_source_id || undefined,
+    lead_source_id: resolvedLeadSourceId,
     lead_status_id: lead_status_id || undefined,
     lead_type_id: lead_type_id || undefined,
     refered_by: refered_by || undefined,

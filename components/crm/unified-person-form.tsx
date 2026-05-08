@@ -101,8 +101,8 @@ type UnifiedPersonFormProps = {
   leadStatuses?: Option[];
   leadTypes?: Option[];
   initialValues?: Partial<UnifiedPersonFormValues>;
-  onSubmitAction: (data: UnifiedPersonFormValues) => Promise<{ error?: string } | undefined>;
-  onSuccess: () => void;
+  onSubmitAction: (data: UnifiedPersonFormValues) => Promise<{ error?: string; data?: unknown } | undefined>;
+  onSuccess: (result?: { data?: unknown }, submittedData?: UnifiedPersonFormValues) => void | Promise<void>;
 };
 
 export function UnifiedPersonForm({
@@ -205,7 +205,7 @@ export function UnifiedPersonForm({
     if (mode === "create") {
       form.reset();
     }
-    onSuccess();
+    await onSuccess(result, data);
   };
 
   const yearOptions = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
@@ -829,7 +829,11 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Product</FormLabel>
-                    <Select disabled={!selectedAccountId || accountProducts.length === 0} onValueChange={field.onChange} value={field.value ?? ""}>
+                    <Select
+                      disabled={!selectedAccountId || accountProducts.length === 0}
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue
@@ -905,9 +909,9 @@ export function UnifiedPersonForm({
                 name="social_skype"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{contactT("skype")}</FormLabel>
+                    <FormLabel>{contactT("thread")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="live:john" {...field} value={field.value ?? ""} />
+                      <Input disabled={form.formState.isSubmitting} placeholder="thread/john" {...field} value={field.value ?? ""} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>

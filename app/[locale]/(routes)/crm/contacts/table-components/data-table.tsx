@@ -27,9 +27,13 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { PanelTopClose, PanelTopOpen, Sparkles } from "lucide-react";
+import { PanelTopClose, PanelTopOpen, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BulkEnrichModal } from "../components/BulkEnrichModal";
+import AlertModal from "@/components/modals/alert-modal";
+import { bulkDeleteContacts } from "@/actions/crm/contacts/delete-contact";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -40,6 +44,7 @@ export function ContactsDataTable<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
+  const router = useRouter();
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -50,6 +55,8 @@ export function ContactsDataTable<TData, TValue>({
 
   const [hide, setHide] = React.useState(false);
   const [bulkEnrichOpen, setBulkEnrichOpen] = React.useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -73,11 +80,56 @@ export function ContactsDataTable<TData, TValue>({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedContactIds = selectedRows.map(
+    (row) => (row.original as { id: string }).id
+  );
+  const selectedCount = selectedContactIds.length;
+
+  const onBulkDelete = async () => {
+    setBulkDeleteLoading(true);
+    try {
+      const result = await bulkDeleteContacts(selectedContactIds);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      table.toggleAllRowsSelected(false);
+      toast.success(`${result.count ?? selectedCount} contact(s) deleted`);
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong while deleting contacts. Please try again.");
+    } finally {
+      setBulkDeleteLoading(false);
+      setBulkDeleteOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-4 w-full">
+      <AlertModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={onBulkDelete}
+        loading={bulkDeleteLoading}
+        title={`Delete ${selectedCount} contact(s)?`}
+        description="Selected contacts will be moved to deleted records."
+      />
       <div className="flex justify-between items-start gap-3">
         <div></div>
-        <div className="flex justify-end space-x-2">
+        <div className="flex justify-end items-center gap-2">
+          {selectedCount > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={bulkDeleteLoading}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete selected
+            </Button>
+          )}
           {hide ? (
             <PanelTopOpen
               onClick={() => setHide(!hide)}
@@ -99,11 +151,11 @@ export function ContactsDataTable<TData, TValue>({
       ) : (
         <>
           <DataTableToolbar table={table} />
-          {table.getSelectedRowModel().rows.length > 0 && (
+          {selectedCount > 0 && (
             <>
               <div className="flex items-center gap-2 py-2 px-1 bg-muted/50 rounded-md border">
                 <span className="text-sm text-muted-foreground">
-                  {table.getSelectedRowModel().rows.length} selected
+                  {selectedCount} selected
                 </span>
                 <Button
                   size="sm"
@@ -111,11 +163,11 @@ export function ContactsDataTable<TData, TValue>({
                   onClick={() => setBulkEnrichOpen(true)}
                 >
                   <Sparkles className="h-4 w-4 mr-1 text-orange-500" />
-                  Enrich {table.getSelectedRowModel().rows.length} contacts
+                  Enrich {selectedCount} contacts
                 </Button>
               </div>
               <BulkEnrichModal
-                contactIds={table.getSelectedRowModel().rows.map((row) => (row.original as { id: string }).id)}
+                contactIds={selectedContactIds}
                 open={bulkEnrichOpen}
                 onOpenChange={setBulkEnrichOpen}
               />

@@ -33,11 +33,13 @@ type ConfigItem = { id: string; name: string };
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
   contactTypes: ConfigItem[];
+  accounts: AccountItem[];
 }
 
 export function DataTableRowActions<TData>({
   row,
   contactTypes,
+  accounts,
 }: DataTableRowActionsProps<TData>) {
   const router = useRouter();
   const contact = opportunitySchema.parse(row.original);
@@ -83,6 +85,7 @@ export function DataTableRowActions<TData>({
             <UpdateContactForm
               initialData={row.original}
               setOpen={setUpdateOpen}
+              accounts={accounts}
               contactTypes={contactTypes}
             />
           </div>

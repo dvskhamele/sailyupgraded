@@ -4,5 +4,12 @@
   { "name": "Cold Call" },
   { "name": "Email Campaign" },
   { "name": "Event" },
+  { "name": "Twitter / X" },
+  { "name": "Facebook" },
+  { "name": "LinkedIn" },
+  { "name": "Threads" },
+  { "name": "Instagram" },
+  { "name": "YouTube" },
+  { "name": "TikTok" },
   { "name": "Other" }
 ]

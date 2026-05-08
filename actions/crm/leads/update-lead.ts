@@ -12,6 +12,7 @@ import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
+import { resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 
 export const updateLead = async (data: {
   id: string;
@@ -113,6 +114,7 @@ export const updateLead = async (data: {
     birthday_day && birthday_month && birthday_year
       ? new Date(Number(birthday_year), Number(birthday_month) - 1, Number(birthday_day))
       : null;
+  const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
 
   try {
     const before = await prismadb.crm_Leads.findUnique({ where: { id, deletedAt: null } });
@@ -150,7 +152,7 @@ export const updateLead = async (data: {
       role: normalizeContactRole(role),
       contact_type_id: contact_type_id || null,
       birthday: birthdayValue,
-      lead_source_id: lead_source_id || undefined,
+      lead_source_id: resolvedLeadSourceId,
       lead_status_id: lead_status_id || undefined,
       lead_type_id: lead_type_id || undefined,
       refered_by,

@@ -20,6 +20,7 @@ type NewContactFormProps = {
   leadStatuses?: Option[];
   leadTypes?: Option[];
   onFinish: () => void;
+  onCreated?: (contact: unknown, submittedData: UnifiedPersonFormValues) => void | Promise<void>;
   initialValues?: Partial<UnifiedPersonFormValues>;
   defaultRole?: ContactRole;
 };
@@ -31,6 +32,7 @@ export function NewContactForm({
   leadStatuses = [],
   leadTypes = [],
   onFinish,
+  onCreated,
   initialValues,
   defaultRole,
 }: NewContactFormProps) {
@@ -53,7 +55,12 @@ export function NewContactForm({
         ...initialValues,
       }}
       onSubmitAction={(data) => createContact(data as any)}
-      onSuccess={onFinish}
+      onSuccess={async (result, submittedData) => {
+        onFinish();
+        if (result?.data) {
+          await onCreated?.(result.data, submittedData as UnifiedPersonFormValues);
+        }
+      }}
     />
   );
 }

@@ -68,7 +68,11 @@ export function UpdateLeadForm({
     refered_by: initialData.refered_by ?? "",
     campaign: initialData.campaign ?? "",
     assigned_to: initialData.assigned_to ?? "",
-    assigned_account: initialData.assigned_account ?? initialData.accountsIDs ?? "",
+    assigned_account:
+      initialData.assigned_account ??
+      initialData.accountsIDs ??
+      initialData.assigned_accounts?.id ??
+      "",
     social_twitter: initialData.social_twitter ?? "",
     social_facebook: initialData.social_facebook ?? "",
     social_linkedin: initialData.social_linkedin ?? "",

@@ -437,7 +437,7 @@ export function buildSmartContactInitialValues(
     contact_type_id: pickOptionId(options.contactTypes, [contactTypeName]),
     lead_source_id: pickOptionId(options.leadSources, [leadSourceName]),
     lead_status_id: pickOptionId(options.leadStatuses, ["New"]),
-    lead_type_id: pickOptionId(options.leadTypes, ["Demo"]),
+    lead_type_id: pickOptionId(options.leadTypes, ["Inbound", "Demo"]),
     refered_by: extractFieldByLabel(text, ["referred by", "referrer", "referral"]),
     campaign: extractFieldByLabel(text, ["campaign", "source", "channel"]),
     assigned_to: options.assignedTo ?? "",

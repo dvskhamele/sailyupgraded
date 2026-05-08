@@ -39,41 +39,35 @@ import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 
 type RawRow = Record<string, string>;
 type MappingKey =
-  | "serial"
-  | "name"
-  | "first_name"
-  | "last_name"
+  | "accountName"
   | "email"
-  | "personal_email"
-  | "mobile_phone"
-  | "office_phone"
+  | "phone"
   | "website"
-  | "position"
-  | "description"
-  | "birthday"
-  | "address"
-  | "address_line1"
-  | "address_line2"
-  | "city"
-  | "state"
-  | "country"
-  | "postal_code"
+  | "fax"
+  | "company_id"
+  | "vat"
+  | "annual_revenue"
+  | "employees"
+  | "member_of"
+  | "industry"
+  | "type"
   | "status"
-  | "role"
-  | "contact_type_id"
+  | "description"
   | "assigned_to"
-  | "assigned_account"
-  | "social_twitter"
-  | "social_facebook"
-  | "social_linkedin"
-  | "social_skype"
-  | "social_youtube"
-  | "social_tiktok";
+  | "billing_street"
+  | "billing_postal_code"
+  | "billing_city"
+  | "billing_state"
+  | "billing_country"
+  | "shipping_street"
+  | "shipping_postal_code"
+  | "shipping_city"
+  | "shipping_state"
+  | "shipping_country";
 type ColumnMapping = Record<MappingKey, string>;
-type DuplicateMode = "skip" | "update";
 type ImportFailure = {
   row: number;
-  email: string | null;
+  name: string | null;
   reason: string;
 };
 type ImportResult = {
@@ -85,94 +79,73 @@ type ImportResult = {
 
 const SKIP_VALUE = "__skip__";
 const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
-  { key: "serial", label: "Role ID / Agent Number" },
-  { key: "name", label: "Full name" },
-  { key: "first_name", label: "First name" },
-  { key: "last_name", label: "Last name" },
+  { key: "accountName", label: "Company Name" },
   { key: "email", label: "Email" },
-  { key: "personal_email", label: "Personal email" },
-  { key: "mobile_phone", label: "Mobile phone" },
-  { key: "office_phone", label: "Office phone" },
+  { key: "phone", label: "Phone" },
   { key: "website", label: "Website" },
-  { key: "position", label: "Position" },
-  { key: "description", label: "Description" },
-  { key: "birthday", label: "Birthday" },
-  { key: "address", label: "Address" },
-  { key: "address_line1", label: "Address line 1" },
-  { key: "address_line2", label: "Address line 2" },
-  { key: "city", label: "City" },
-  { key: "state", label: "State / Region" },
-  { key: "country", label: "Country" },
-  { key: "postal_code", label: "Postal code" },
+  { key: "fax", label: "Fax" },
+  { key: "company_id", label: "Company ID" },
+  { key: "vat", label: "VAT" },
+  { key: "annual_revenue", label: "Annual revenue" },
+  { key: "employees", label: "Employees" },
+  { key: "member_of", label: "Member of" },
+  { key: "industry", label: "Industry" },
+  { key: "type", label: "Type" },
   { key: "status", label: "Status" },
-  { key: "role", label: "Role" },
-  { key: "contact_type_id", label: "Contact type" },
+  { key: "description", label: "Description" },
   { key: "assigned_to", label: "Assigned user" },
-  { key: "assigned_account", label: "Assigned company" },
-  { key: "social_twitter", label: "Twitter" },
-  { key: "social_facebook", label: "Facebook" },
-  { key: "social_linkedin", label: "LinkedIn" },
-  { key: "social_skype", label: "Thread" },
-  { key: "social_youtube", label: "YouTube" },
-  { key: "social_tiktok", label: "TikTok" },
+  { key: "billing_street", label: "Billing street" },
+  { key: "billing_postal_code", label: "Billing postal code" },
+  { key: "billing_city", label: "Billing city" },
+  { key: "billing_state", label: "Billing state" },
+  { key: "billing_country", label: "Billing country" },
+  { key: "shipping_street", label: "Shipping street" },
+  { key: "shipping_postal_code", label: "Shipping postal code" },
+  { key: "shipping_city", label: "Shipping city" },
+  { key: "shipping_state", label: "Shipping state" },
+  { key: "shipping_country", label: "Shipping country" },
 ];
 const DEFAULT_MAPPING = Object.fromEntries(
   IMPORT_FIELDS.map(({ key }) => [key, SKIP_VALUE]),
 ) as ColumnMapping;
 const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
-  serial: [
-    "serial",
-    "sr no",
-    "sr_no",
-    "sequence",
-    "agent number",
-    "agent no",
-    "agent id",
-    "customer id",
-    "customer number",
-    "client id",
-    "partner id",
-    "partner number",
-    "vendor id",
-    "vendor number",
+  accountName: [
+    "company",
+    "company name",
+    "company_name",
+    "account",
+    "account name",
+    "account_name",
+    "name",
   ],
-  name: ["name", "full name", "full_name", "contact name"],
-  first_name: ["first name", "firstname", "first_name", "given name"],
-  last_name: ["last name", "lastname", "last_name", "surname", "family name"],
   email: ["email", "e-mail", "email address", "mail"],
-  personal_email: ["personal email", "personal_email", "private email"],
-  mobile_phone: ["mobile", "mobile phone", "mobile_phone", "cell", "cell phone"],
-  office_phone: ["office phone", "office_phone", "telephone", "tel", "work phone", "phone"],
+  phone: ["phone", "phone number", "office phone", "office_phone", "telephone", "tel"],
   website: ["website", "web", "url", "site"],
-  position: ["position", "job title", "title", "designation"],
+  fax: ["fax"],
+  company_id: ["company id", "company_id", "account id", "account_id"],
+  vat: ["vat", "vat number", "tax id", "gst", "gstin"],
+  annual_revenue: ["annual revenue", "annual_revenue", "revenue"],
+  employees: ["employees", "employee count", "number of employees"],
+  member_of: ["member of", "member_of", "parent company"],
+  industry: ["industry", "industry type"],
+  type: ["type", "account type", "company type"],
+  status: ["status", "active", "is active"],
   description: ["description", "notes", "note", "details"],
-  birthday: ["birthday", "birth date", "birthdate", "dob"],
-  address: ["address", "full address"],
-  address_line1: ["address line 1", "address_line1", "street", "street 1"],
-  address_line2: ["address line 2", "address_line2", "street 2"],
-  city: ["city", "town"],
-  state: ["state", "region", "province"],
-  country: ["country"],
-  postal_code: ["postal code", "postal_code", "zip", "zip code", "pincode"],
-  status: ["status", "active", "is active", "is_active"],
-  role: ["role"],
-  contact_type_id: ["contact type", "contact_type", "contact_type_id", "type"],
   assigned_to: ["assigned to", "assigned_to", "owner", "user", "assignee"],
-  assigned_account: ["account", "assigned account", "assigned_account", "company"],
-  social_twitter: ["twitter", "x"],
-  social_facebook: ["facebook"],
-  social_linkedin: ["linkedin", "linkedin url", "linkedin profile"],
-  social_skype: ["thread", "skype"],
-  social_youtube: ["youtube"],
-  social_tiktok: ["tiktok", "tik tok"],
+  billing_street: ["billing street", "billing_street", "street"],
+  billing_postal_code: ["billing postal code", "billing_postal_code", "billing zip"],
+  billing_city: ["billing city", "billing_city", "city"],
+  billing_state: ["billing state", "billing_state", "state", "region"],
+  billing_country: ["billing country", "billing_country", "country"],
+  shipping_street: ["shipping street", "shipping_street"],
+  shipping_postal_code: ["shipping postal code", "shipping_postal_code", "shipping zip"],
+  shipping_city: ["shipping city", "shipping_city"],
+  shipping_state: ["shipping state", "shipping_state"],
+  shipping_country: ["shipping country", "shipping_country"],
 };
 
 function normalizeHeader(value: string) {
-  return value.trim().toLowerCase();
-}
-
-function normalizeHeaderToken(value: string) {
-  return normalizeHeader(value).replace(/[^a-z0-9]/g, "");
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function suggestMapping(headers: string[]): ColumnMapping {
@@ -180,12 +153,14 @@ function suggestMapping(headers: string[]): ColumnMapping {
 
   for (const key of Object.keys(defaults) as MappingKey[]) {
     const match = headers.find((header) => {
-      const normalized = normalizeHeaderToken(header);
-      return AUTO_MAP_CANDIDATES[key].some(
-        (candidate) =>
-          normalized === normalizeHeaderToken(candidate) ||
-          normalized.includes(normalizeHeaderToken(candidate)),
-      );
+      const normalized = normalizeHeader(header);
+      return AUTO_MAP_CANDIDATES[key].some((candidate) => {
+        const normalizedCandidate = normalizeHeader(candidate);
+        return (
+          normalized === normalizedCandidate ||
+          normalized.includes(normalizedCandidate)
+        );
+      });
     });
 
     if (match) {
@@ -196,17 +171,14 @@ function suggestMapping(headers: string[]): ColumnMapping {
   return defaults;
 }
 
-export function ImportContactsDialog() {
+export function ImportAccountsDialog() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
   const [fileName, setFileName] = useState("");
   const [headers, setHeaders] = useState<string[]>([]);
   const [rows, setRows] = useState<RawRow[]>([]);
-  const [mapping, setMapping] = useState<ColumnMapping>({
-    ...DEFAULT_MAPPING,
-  });
-  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
+  const [mapping, setMapping] = useState<ColumnMapping>({ ...DEFAULT_MAPPING });
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -215,7 +187,6 @@ export function ImportContactsDialog() {
     setHeaders([]);
     setRows([]);
     setMapping({ ...DEFAULT_MAPPING });
-    setDuplicateMode("skip");
     setResult(null);
     setIsUploading(false);
     if (fileRef.current) {
@@ -234,51 +205,38 @@ export function ImportContactsDialog() {
 
   const mappedPreview = useMemo(() => {
     return rows.slice(0, 10).map((row, index) => {
-      const email = mapping.email !== SKIP_VALUE ? String(row[mapping.email] ?? "").trim() : "";
-      const firstName =
-        mapping.first_name !== SKIP_VALUE ? String(row[mapping.first_name] ?? "").trim() : "";
-      const lastName =
-        mapping.last_name !== SKIP_VALUE ? String(row[mapping.last_name] ?? "").trim() : "";
-      const fullName =
-        mapping.name !== SKIP_VALUE ? String(row[mapping.name] ?? "").trim() : "";
-      const mobilePhone =
-        mapping.mobile_phone !== SKIP_VALUE ? String(row[mapping.mobile_phone] ?? "").trim() : "";
-      const officePhone =
-        mapping.office_phone !== SKIP_VALUE ? String(row[mapping.office_phone] ?? "").trim() : "";
-      const status =
-        mapping.status !== SKIP_VALUE ? String(row[mapping.status] ?? "").trim() : "";
-      const name = fullName || [firstName, lastName].filter(Boolean).join(" ");
+      const name =
+        mapping.accountName !== SKIP_VALUE
+          ? String(row[mapping.accountName] ?? "").trim()
+          : "";
+      const email =
+        mapping.email !== SKIP_VALUE ? String(row[mapping.email] ?? "").trim() : "";
+      const phone =
+        mapping.phone !== SKIP_VALUE ? String(row[mapping.phone] ?? "").trim() : "";
+      const website =
+        mapping.website !== SKIP_VALUE
+          ? String(row[mapping.website] ?? "").trim()
+          : "";
 
       return {
         row: index + 2,
         name,
         email,
-        phone: mobilePhone || officePhone,
-        status,
-        valid: Boolean(name || lastName) && Boolean(email || mobilePhone || officePhone),
+        phone,
+        website,
+        valid: Boolean(name),
       };
     });
   }, [mapping, rows]);
 
   const validRowCount = useMemo(() => {
-    return rows.filter((row) => {
-      const hasName = (
-        (mapping.name !== SKIP_VALUE && String(row[mapping.name] ?? "").trim().length > 0) ||
-        (mapping.last_name !== SKIP_VALUE &&
-          String(row[mapping.last_name] ?? "").trim().length > 0)
-      );
-      const hasEmail =
-        mapping.email !== SKIP_VALUE &&
-        String(row[mapping.email] ?? "").trim().length > 0;
-      const hasMobilePhone =
-        mapping.mobile_phone !== SKIP_VALUE &&
-        String(row[mapping.mobile_phone] ?? "").trim().length > 0;
-      const hasOfficePhone =
-        mapping.office_phone !== SKIP_VALUE &&
-        String(row[mapping.office_phone] ?? "").trim().length > 0;
+    if (mapping.accountName === SKIP_VALUE) {
+      return 0;
+    }
 
-      return hasName && (hasEmail || hasMobilePhone || hasOfficePhone);
-    }).length;
+    return rows.filter(
+      (row) => String(row[mapping.accountName] ?? "").trim().length > 0,
+    ).length;
   }, [mapping, rows]);
 
   const skippedInvalidCount = rows.length - validRowCount;
@@ -335,13 +293,7 @@ export function ImportContactsDialog() {
   };
 
   const handleImport = async () => {
-    if (
-      rows.length === 0 ||
-      (mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
-      (mapping.email === SKIP_VALUE &&
-        mapping.mobile_phone === SKIP_VALUE &&
-        mapping.office_phone === SKIP_VALUE)
-    ) {
+    if (rows.length === 0 || mapping.accountName === SKIP_VALUE) {
       return;
     }
 
@@ -349,7 +301,7 @@ export function ImportContactsDialog() {
     setResult(null);
 
     try {
-      const response = await fetch("/api/crm/contacts/import", {
+      const response = await fetch("/api/crm/accounts/import", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -357,7 +309,6 @@ export function ImportContactsDialog() {
         body: JSON.stringify({
           rows,
           mapping,
-          duplicateMode,
         }),
       });
 
@@ -371,22 +322,22 @@ export function ImportContactsDialog() {
 
       if (payload.failed > 0) {
         toast.warning(
-          `${payload.imported + payload.updated} contact(s) processed with ${payload.failed} issue(s).`,
+          `${payload.imported + payload.updated} account(s) processed with ${payload.failed} issue(s).`,
         );
       } else {
         toast.success(
-          `${payload.imported} contact(s) imported${payload.updated ? `, ${payload.updated} updated` : ""}.`,
+          `${payload.imported} account(s) imported${payload.updated ? `, ${payload.updated} updated` : ""}.`,
         );
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Failed to import contacts";
+        error instanceof Error ? error.message : "Failed to import accounts";
       toast.error(message);
       setResult({
         imported: 0,
         updated: 0,
         failed: 1,
-        failures: [{ row: 0, email: null, reason: message }],
+        failures: [{ row: 0, name: null, reason: message }],
       });
     } finally {
       setIsUploading(false);
@@ -405,20 +356,20 @@ export function ImportContactsDialog() {
       <Button
         variant="outline"
         size="sm"
-        data-testid="import-contacts-btn"
+        data-testid="import-accounts-btn"
         onClick={openFilePicker}
       >
         <Upload className="mr-2 h-4 w-4" />
-        Import Contacts
+        Import
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[85vh] max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Import Contacts</DialogTitle>
+            <DialogTitle>Import Accounts</DialogTitle>
             <DialogDescription>
               Review the selected CSV or Excel file, map the columns, and import
-              valid contacts. Each row must include a full name or last name, and
-              at least one of email, mobile phone, or office phone.
+              valid accounts. Company or Company Name becomes the account name.
+              Existing accounts are not duplicated; only blank fields are filled.
             </DialogDescription>
           </DialogHeader>
 
@@ -441,7 +392,7 @@ export function ImportContactsDialog() {
                 <div>
                   <h3 className="text-sm font-medium">Column Mapping</h3>
                   <p className="text-xs text-muted-foreground">
-                    Match your uploaded columns to the contact fields we import.
+                    Match your uploaded columns to account fields.
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -468,23 +419,6 @@ export function ImportContactsDialog() {
                       </Select>
                     </div>
                   ))}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Duplicates</p>
-                    <Select
-                      value={duplicateMode}
-                      onValueChange={(value) =>
-                        setDuplicateMode(value as DuplicateMode)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select behavior" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="skip">Skip existing contacts</SelectItem>
-                        <SelectItem value="update">Update existing contacts</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </div>
             ) : null}
@@ -530,7 +464,7 @@ export function ImportContactsDialog() {
                   <h3 className="text-sm font-medium">Mapped Preview</h3>
                   <p className="text-xs text-muted-foreground">
                     Valid rows ready to import: {validRowCount}. Rows that will be
-                    skipped for missing required values: {skippedInvalidCount}.
+                    skipped for missing company name: {skippedInvalidCount}.
                   </p>
                 </div>
                 <div className="overflow-x-auto rounded-md border">
@@ -538,10 +472,10 @@ export function ImportContactsDialog() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Row</TableHead>
-                        <TableHead>Name</TableHead>
+                        <TableHead>Company</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Phone</TableHead>
-                        <TableHead>Imported status</TableHead>
+                        <TableHead>Website</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -549,19 +483,19 @@ export function ImportContactsDialog() {
                       {mappedPreview.map((row) => (
                         <TableRow key={row.row}>
                           <TableCell>{row.row}</TableCell>
-                          <TableCell>{row.name || "N/A"}</TableCell>
+                          <TableCell>{row.name || "Missing company"}</TableCell>
                           <TableCell>
-                            <EmailLink value={row.email} fallback="Missing email" />
+                            <EmailLink value={row.email} fallback="N/A" />
                           </TableCell>
                           <TableCell>
                             <WhatsAppLink value={row.phone} fallback="N/A" />
                           </TableCell>
-                          <TableCell>{row.status || "N/A"}</TableCell>
+                          <TableCell>{row.website || "N/A"}</TableCell>
                           <TableCell>
                             {row.valid ? (
                               <span className="text-green-600">Ready</span>
                             ) : (
-                              <span className="text-yellow-600">Needs required fields</span>
+                              <span className="text-yellow-600">Needs company</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -578,10 +512,7 @@ export function ImportContactsDialog() {
                 disabled={
                   isUploading ||
                   rows.length === 0 ||
-                  (mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
-                  (mapping.email === SKIP_VALUE &&
-                    mapping.mobile_phone === SKIP_VALUE &&
-                    mapping.office_phone === SKIP_VALUE)
+                  mapping.accountName === SKIP_VALUE
                 }
               >
                 {isUploading ? (
@@ -590,16 +521,12 @@ export function ImportContactsDialog() {
                     Importing
                   </>
                 ) : (
-                  "Import Contacts"
+                  "Import Accounts"
                 )}
               </Button>
-              {headers.length > 0 &&
-              ((mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
-                (mapping.email === SKIP_VALUE &&
-                  mapping.mobile_phone === SKIP_VALUE &&
-                  mapping.office_phone === SKIP_VALUE)) ? (
+              {headers.length > 0 && mapping.accountName === SKIP_VALUE ? (
                 <p className="text-xs text-destructive">
-                  Full name or last name, and at least one of email, mobile phone, or office phone are required.
+                  Company or Company Name mapping is required.
                 </p>
               ) : null}
             </div>
@@ -610,7 +537,7 @@ export function ImportContactsDialog() {
                   <div className="flex items-center gap-2 text-green-600">
                     <CheckCircle className="h-5 w-5" />
                     <span className="text-sm font-medium">
-                      {result.imported} contact(s) imported successfully
+                      {result.imported} account(s) imported successfully
                     </span>
                   </div>
                 ) : null}
@@ -619,7 +546,7 @@ export function ImportContactsDialog() {
                   <div className="flex items-center gap-2 text-blue-600">
                     <CheckCircle className="h-5 w-5" />
                     <span className="text-sm font-medium">
-                      {result.updated} contact(s) updated successfully
+                      {result.updated} existing account(s) filled with missing data
                     </span>
                   </div>
                 ) : null}
@@ -646,7 +573,7 @@ export function ImportContactsDialog() {
                           className="text-xs text-red-700 dark:text-red-400"
                         >
                           Row {failure.row || "-"}{" "}
-                          {failure.email ? `(${failure.email})` : ""}:{" "}
+                          {failure.name ? `(${failure.name})` : ""}:{" "}
                           {failure.reason}
                         </p>
                       ))}

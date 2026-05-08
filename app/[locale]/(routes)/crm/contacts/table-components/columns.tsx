@@ -14,8 +14,16 @@ import { formatAddress } from "@/lib/crm-address";
 import { getContactIdentifierLabel, normalizeContactRole } from "@/lib/contact-options";
 
 type ConfigItem = { id: string; name: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
-export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opportunity>[] => [
+export const createColumns = (
+  contactTypes: ConfigItem[] = [],
+  accounts: AccountItem[] = [],
+): ColumnDef<Opportunity>[] => [
   {
     id: "select",
     header: ({ table }) => (
@@ -163,7 +171,7 @@ export const createColumns = (contactTypes: ConfigItem[] = []): ColumnDef<Opport
   {
     id: "actions",
     cell: ({ row }) => (
-      <DataTableRowActions row={row} contactTypes={contactTypes} />
+      <DataTableRowActions row={row} contactTypes={contactTypes} accounts={accounts} />
     ),
   },
 ];

@@ -4,10 +4,13 @@ import { EmailLink } from "@/components/ui/contact-link";
 import { Input } from "@/components/ui/input";
 import { SearchIcon, UserPlus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useState, useEffect, useTransition } from "react";
+import React, { useMemo, useState, useEffect, useTransition } from "react";
+import { toast } from "sonner";
 import useDebounce from "@/hooks/useDebounce";
 import { searchContacts, ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
 import { searchUsers } from "@/actions/user/search-users";
+import { getQuickInputMemory } from "@/actions/crm/quick-input/get-quick-input-memory";
+import { getQuickOpportunityFormOptions } from "@/actions/crm/quick-input/get-quick-opportunity-form-options";
 import {
   Popover,
   PopoverContent,
@@ -27,9 +30,19 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { NewContactForm } from "../crm/contacts/components/NewContactForm";
+import { NewOpportunityForm } from "../crm/opportunities/components/NewOpportunityForm";
 import { getContactFormOptions } from "@/actions/crm/contacts/get-contact-form-options";
-import { buildSmartContactInitialValues } from "@/lib/smart-contact-input";
 import type { UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
+import {
+  buildQuickContactValues,
+  buildQuickOpportunityDefaults,
+  buildQuickSuggestions,
+  loadQuickMemory,
+  rememberQuickValues,
+  type QuickDbMemory,
+  type QuickMemory,
+  type QuickSuggestion,
+} from "@/lib/crm/quick-input-engine";
 
 const FulltextSearch = () => {
   const [search, setSearch] = useState("");
@@ -37,15 +50,49 @@ const FulltextSearch = () => {
   const [isPending, startTransition] = useTransition();
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [opportunityDialogOpen, setOpportunityDialogOpen] = useState(false);
   const [formOptions, setFormOptions] = useState<Awaited<ReturnType<typeof getContactFormOptions>> | null>(null);
+  const [opportunityOptions, setOpportunityOptions] =
+    useState<Awaited<ReturnType<typeof getQuickOpportunityFormOptions>> | null>(null);
   const [initialValues, setInitialValues] = useState<Partial<UnifiedPersonFormValues> | undefined>();
+  const [opportunityInitialValues, setOpportunityInitialValues] =
+    useState<Parameters<typeof NewOpportunityForm>[0]["initialValues"]>();
+  const [localMemory, setLocalMemory] = useState<QuickMemory>(() => loadQuickMemory());
+  const [dbMemory, setDbMemory] = useState<QuickDbMemory>({});
+  const [assignedUserId, setAssignedUserId] = useState("");
 
   const router = useRouter();
   const debouncedSearch = useDebounce(search, 300);
   const visibleResults = debouncedSearch.length >= 2 ? results : [];
+  const parsedValues = useMemo(
+    () =>
+      buildQuickContactValues(search, {
+        accounts: formOptions?.accounts,
+        contactTypes: formOptions?.contactTypes,
+        leadSources: formOptions?.leadSources,
+        leadStatuses: formOptions?.leadStatuses,
+        leadTypes: formOptions?.leadTypes,
+        assignedTo: assignedUserId,
+      }),
+    [assignedUserId, formOptions, search],
+  );
+  const quickSuggestions = useMemo(
+    () => buildQuickSuggestions(search, parsedValues, localMemory, dbMemory),
+    [dbMemory, localMemory, parsedValues, search],
+  );
 
   useEffect(() => {
-    if (debouncedSearch.length < 2) return;
+    queueMicrotask(() => setLocalMemory(loadQuickMemory()));
+
+    getQuickInputMemory()
+      .then(setDbMemory)
+      .catch(() => setDbMemory({}));
+  }, []);
+
+  useEffect(() => {
+    if (debouncedSearch.length < 2) {
+      return;
+    }
 
     startTransition(async () => {
       const data = await searchContacts({
@@ -68,24 +115,48 @@ const FulltextSearch = () => {
     setOpen(false);
   };
 
+  const applySuggestion = (suggestion: QuickSuggestion) => {
+    rememberQuickValues({ [suggestion.field]: suggestion.value });
+    setLocalMemory(loadQuickMemory());
+
+    if (suggestion.field === "emails") {
+      setSearch(suggestion.value);
+      return;
+    }
+
+    const suffixByField: Partial<Record<QuickSuggestion["field"], string>> = {
+      names: suggestion.value,
+      companies: `company: ${suggestion.value}`,
+      cities: `city: ${suggestion.value}`,
+      dealValues: `budget: ${suggestion.value}`,
+      sources: `source: ${suggestion.value}`,
+      agentNumbers: `agent: ${suggestion.value}`,
+    };
+
+    const suffix = suffixByField[suggestion.field] ?? suggestion.value;
+    setSearch((current) => [current, suffix].filter(Boolean).join(" "));
+  };
+
   const openAddContact = async () => {
     try {
       const [options, users] = await Promise.all([
         getContactFormOptions(),
         searchUsers({ take: 1 }),
       ]);
+      const assignedTo = users.users[0]?.id ?? "";
 
-      const parsedInitialValues = buildSmartContactInitialValues(search, {
+      const parsedInitialValues = buildQuickContactValues(search, {
         accounts: options.accounts,
         contactTypes: options.contactTypes,
         leadSources: options.leadSources,
         leadStatuses: options.leadStatuses,
         leadTypes: options.leadTypes,
-        assignedTo: users.users[0]?.id ?? "",
+        assignedTo,
       });
 
       setFormOptions(options);
       setInitialValues(parsedInitialValues);
+      setAssignedUserId(assignedTo);
     } catch {
       setFormOptions({
         accounts: [],
@@ -94,10 +165,57 @@ const FulltextSearch = () => {
         leadStatuses: [],
         leadTypes: [],
       });
-      setInitialValues(buildSmartContactInitialValues(search));
+      setInitialValues(buildQuickContactValues(search));
     }
     setDialogOpen(true);
     setOpen(false);
+  };
+
+  const handleCreated = async (contact: unknown, submittedData: UnifiedPersonFormValues) => {
+    const contactId = typeof contact === "object" && contact && "id" in contact
+      ? String((contact as { id?: string }).id ?? "")
+      : "";
+    const values = submittedData;
+    const opportunityDefaults = buildQuickOpportunityDefaults({
+      contactId,
+      contactValues: values,
+      dbMemory,
+      assignedTo: assignedUserId,
+    });
+    const loadedOpportunityOptions = await getQuickOpportunityFormOptions();
+    const contactOption = {
+      id: contactId,
+      first_name: values.first_name ?? "",
+      last_name: values.last_name ?? "",
+      accountsIDs: values.assigned_account ?? null,
+    };
+
+    setLocalMemory(
+      rememberQuickValues({
+        names: [values.first_name, values.last_name].filter(Boolean).join(" "),
+        companies: values.company,
+        cities: values.city,
+        dealValues: opportunityDefaults.budget,
+        sources: values.campaign || "Inbound",
+        agentNumbers: values.serial,
+        emails: values.email,
+      }),
+    );
+
+    setOpportunityOptions({
+      ...loadedOpportunityOptions,
+      contacts: contactId && !loadedOpportunityOptions.contacts.some((item: { id: string }) => item.id === contactId)
+        ? [contactOption, ...loadedOpportunityOptions.contacts]
+        : loadedOpportunityOptions.contacts,
+    });
+    setOpportunityInitialValues({
+      ...opportunityDefaults,
+      account: values.assigned_account ?? "",
+      contact: contactId,
+      description: values.description ?? search,
+    });
+    setOpportunityDialogOpen(true);
+    toast.success("Contact created. Opportunity form is ready.");
   };
 
   return (
@@ -111,7 +229,8 @@ const FulltextSearch = () => {
               placeholder={"Search something ..."}
               value={search}
               onChange={(e) => {
-                setSearch(e.target.value);
+                const value = e.target.value;
+                setSearch(value);
                 if (!open) setOpen(true);
               }}
               onKeyDown={(e) => {
@@ -130,6 +249,32 @@ const FulltextSearch = () => {
         >
           <Command shouldFilter={false}>
             <CommandList>
+              {search.trim().length > 0 && (
+                <div className="border-b p-3">
+                  <Button
+                    size="sm"
+                    onClick={openAddContact}
+                    className="w-full flex items-center justify-center gap-2"
+                  >
+                    <UserPlus className="h-4 w-4" />
+                    Create Contact + Opportunity
+                  </Button>
+                  {quickSuggestions.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      {quickSuggestions.slice(0, 8).map((suggestion) => (
+                        <button
+                          key={`${suggestion.field}-${suggestion.value}`}
+                          type="button"
+                          onClick={() => applySuggestion(suggestion)}
+                          className="rounded-md border px-2 py-1 text-xs text-muted-foreground hover:bg-muted hover:text-foreground"
+                        >
+                          {suggestion.value}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
               {visibleResults.length > 0 ? (
                 <CommandGroup heading="Contacts">
                   {visibleResults.map((contact) => (
@@ -155,16 +300,7 @@ const FulltextSearch = () => {
               ) : (
                 !isPending && search.length >= 2 && (
                   <div className="p-4 text-center">
-                    <p className="text-sm text-muted-foreground mb-3">No contacts found.</p>
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={openAddContact}
-                      className="w-full flex items-center justify-center gap-2"
-                    >
-                      <UserPlus className="h-4 w-4" />
-                      Add Contact
-                    </Button>
+                    <p className="text-sm text-muted-foreground">No contacts found.</p>
                   </div>
                 )
               )}
@@ -180,9 +316,9 @@ const FulltextSearch = () => {
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Quick Add Contact</DialogTitle>
+            <DialogTitle>Quick Add Contact + Opportunity</DialogTitle>
             <DialogDescription>
-              Create a new contact record. The name is pre-filled from your search.
+              Deterministic extraction fills the contact. Saving also prepares a new opportunity.
             </DialogDescription>
           </DialogHeader>
           {formOptions && (
@@ -196,7 +332,40 @@ const FulltextSearch = () => {
                 setDialogOpen(false);
                 router.refresh();
               }}
+              onCreated={handleCreated}
               initialValues={initialValues}
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={opportunityDialogOpen} onOpenChange={setOpportunityDialogOpen}>
+        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Quick Add Opportunity</DialogTitle>
+            <DialogDescription>
+              Contact is selected from the record you just created.
+            </DialogDescription>
+          </DialogHeader>
+          {opportunityOptions && (
+            <NewOpportunityForm
+              accounts={opportunityOptions.accounts}
+              contacts={opportunityOptions.contacts}
+              salesType={opportunityOptions.salesType}
+              saleStages={opportunityOptions.saleStages}
+              campaigns={opportunityOptions.campaigns}
+              currencies={opportunityOptions.currencies.map((currency) => ({
+                code: currency.code,
+                name: currency.name,
+                symbol: currency.symbol,
+              }))}
+              categoryOptions={opportunityOptions.categoryOptions}
+              initialValues={opportunityInitialValues}
+              onDialogClose={() => {
+                setOpportunityDialogOpen(false);
+                setSearch("");
+                router.refresh();
+              }}
             />
           )}
         </DialogContent>
