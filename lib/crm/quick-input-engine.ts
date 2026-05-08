@@ -1,4 +1,7 @@
-import { buildSmartContactInitialValues } from "@/lib/smart-contact-input";
+import {
+  buildSmartContactInitialValues,
+  extractOpportunitySignals,
+} from "@/lib/smart-contact-input";
 import type { UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
 
 export type QuickMemoryField =
@@ -181,21 +184,26 @@ export function buildQuickOpportunityDefaults(args: {
   assignedTo?: string;
 }) {
   const fullName = [args.contactValues.first_name, args.contactValues.last_name].filter(Boolean).join(" ").trim();
-  const budget = clean(args.dbMemory?.defaultBudget) || "1000";
+  const signals = extractOpportunitySignals(args.contactValues.description ?? "");
+  const budget = clean(signals.budget) || clean(args.dbMemory?.defaultBudget) || "1000";
   const revenue = String(Math.round(Number(budget || 0) * 0.5));
   const closeDate = new Date();
   closeDate.setDate(closeDate.getDate() + 7);
 
   return {
-    name: `Lead - ${fullName || args.contactValues.email || "New Contact"}`,
+    name: signals.intent
+      ? `${signals.intent} - ${fullName || args.contactValues.email || "New Contact"}`
+      : `Lead - ${fullName || args.contactValues.email || "New Contact"}`,
     close_date: closeDate,
     budget,
     expected_revenue: revenue,
     sales_stage: args.dbMemory?.defaultSalesStageId ?? "",
     type: args.dbMemory?.defaultOpportunityTypeId ?? "",
-    currency: args.dbMemory?.defaultCurrency ?? "",
+    currency: signals.currency || args.dbMemory?.defaultCurrency || "",
     contact: args.contactId ?? "",
     assigned_to: args.assignedTo ?? args.contactValues.assigned_to ?? "",
     description: args.contactValues.description ?? "",
+    category: signals.products,
+    next_step: signals.nextStep,
   };
 }

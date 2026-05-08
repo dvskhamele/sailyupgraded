@@ -3,7 +3,6 @@
 import React, { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
-import { Icons } from "@/components/ui/icons";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +20,7 @@ import {
   InputOTPGroup,
   InputOTPSlot,
 } from "@/components/ui/input-otp";
+import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 
 type Step = "email" | "otp";
 const DASHBOARD_PATH = "/crm/dashboard";
@@ -38,43 +38,18 @@ function getLocalizedPath(path: string) {
 
 type LoginComponentProps = {
   googleAuthEnabled: boolean;
+  googleClientId?: string;
 };
 
-export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
+export function LoginComponent({
+  googleAuthEnabled,
+  googleClientId,
+}: LoginComponentProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [otp, setOtp] = useState("");
   const [devOtp, setDevOtp] = useState("");
-
-  const loginWithGoogle = async () => {
-    if (!googleAuthEnabled) {
-      toast.error("Google sign-in is not configured for this environment.");
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await authClient.signIn.social({
-        provider: "google",
-        callbackURL: getLocalizedPath(DASHBOARD_PATH),
-      });
-    } catch (error: any) {
-      console.error("Google sign-in error:", error);
-      if (
-        error?.message?.includes("provider not found") ||
-        error?.message?.includes("google")
-      ) {
-        toast.error(
-          "Google sign-in is not configured. Please use email sign-in instead.",
-        );
-      } else {
-        toast.error("Something went wrong with Google sign-in.");
-      }
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   const sendOtp = async () => {
     if (!email) {
@@ -205,20 +180,15 @@ export function LoginComponent({ googleAuthEnabled }: LoginComponentProps) {
       {/* CONTENT */}
       <CardContent className="grid gap-5">
         {/* GOOGLE LOGIN */}
-        {googleAuthEnabled && (
-          <Button
-            variant="outline"
-            onClick={loginWithGoogle}
-            disabled={isLoading}
-            className="w-full h-11 rounded-lg font-medium hover:bg-muted transition"
-          >
-            <Icons.google className="mr-2 h-5 w-5" />
-            Continue with Google
-          </Button>
+        {googleAuthEnabled && googleClientId && (
+          <GoogleLoginButton
+            clientId={googleClientId}
+            dashboardPath={getLocalizedPath(DASHBOARD_PATH)}
+          />
         )}
 
         {/* DIVIDER */}
-        {googleAuthEnabled && (
+        {googleAuthEnabled && googleClientId && (
           <div className="relative">
             <div className="absolute inset-0 flex items-center">
               <span className="w-full border-t" />

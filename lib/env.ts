@@ -61,7 +61,7 @@ export function getStorageBucket() {
 }
 
 export function getGoogleClientId() {
-  return getEnv("GOOGLE_ID", "GOOGLE_CLIENT_ID");
+  return getEnv("VITE_GOOGLE_CLIENT_ID", "GOOGLE_ID", "GOOGLE_CLIENT_ID");
 }
 
 export function getGoogleClientSecret() {
@@ -69,5 +69,5 @@ export function getGoogleClientSecret() {
 }
 
 export function isGoogleAuthEnabled() {
-  return Boolean(getGoogleClientId() && getGoogleClientSecret());
+  return Boolean(getGoogleClientId());
 }

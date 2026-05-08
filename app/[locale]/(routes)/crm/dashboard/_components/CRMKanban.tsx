@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { DollarSign, Calendar } from "lucide-react";
+import { Bot, Calendar, DollarSign, Loader2, Mic, PhoneOff } from "lucide-react";
 import { ThumbsDown } from "lucide-react";
+import { RetellWebClient } from "retell-client-js-sdk";
 import {
   DndContext,
   DragOverlay,
@@ -32,7 +33,6 @@ import {
 } from "@prisma/client";
 
 import { DotsHorizontalIcon, PlusCircledIcon } from "@radix-ui/react-icons";
-import { FaBraille } from "react-icons/fa";
 
 import {
   DropdownMenu,
@@ -46,6 +46,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
 import {
@@ -56,6 +57,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 import { NewOpportunityForm } from "../../opportunities/components/NewOpportunityForm";
 import { UpdateOpportunityForm } from "../../opportunities/components/UpdateOpportunityForm";
@@ -92,6 +94,21 @@ type Column = crm_Opportunities_Sales_Stages & {
 
 const LOST_DROP_ID = "lost-column";
 
+type RetellCallResponse = {
+  accessToken: string;
+  callId: string;
+  agentName?: string;
+};
+
+type RetellCallErrorResponse = {
+  error?: string;
+};
+
+type RetellTranscriptLine = {
+  role?: string;
+  content?: string;
+};
+
 function getOpportunityAmount(opportunity: crm_Opportunities) {
   const amount = (opportunity as any).amount ?? opportunity.budget ?? 0;
   return Number(amount) || 0;
@@ -119,6 +136,198 @@ function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
         </div>
       </div>
     </div>
+  );
+}
+
+function RetellAssistantDialog({
+  open,
+  onOpenChange,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  const [isLoading, setIsLoading] = useState(false);
+  const [isCallActive, setIsCallActive] = useState(false);
+  const [speaker, setSpeaker] = useState<"agent" | "user" | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [callId, setCallId] = useState<string | null>(null);
+  const [agentName, setAgentName] = useState("Voice AI Retail");
+  const [transcript, setTranscript] = useState<RetellTranscriptLine[]>([]);
+  const retellClientRef = useRef<RetellWebClient | null>(null);
+
+  const resetCallState = () => {
+    setIsCallActive(false);
+    setSpeaker(null);
+    setCallId(null);
+  };
+
+  const stopCall = () => {
+    retellClientRef.current?.stopCall();
+    resetCallState();
+  };
+
+  useEffect(() => {
+    return () => {
+      retellClientRef.current?.stopCall();
+    };
+  }, []);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (!nextOpen) {
+      stopCall();
+    }
+
+    onOpenChange(nextOpen);
+  };
+
+  const startCall = async () => {
+    setIsLoading(true);
+    setError(null);
+    setTranscript([]);
+
+    try {
+      const response = await fetch("/api/retell/create-web-call", {
+        method: "POST",
+      });
+      const payload = (await response.json()) as
+        | RetellCallResponse
+        | RetellCallErrorResponse;
+
+      if (!response.ok || !("accessToken" in payload)) {
+        const message =
+          "error" in payload ? payload.error : "Voice AI is not available";
+        throw new Error(message ?? "Voice AI is not available");
+      }
+
+      const client = new RetellWebClient();
+      retellClientRef.current = client;
+
+      client.on("call_started", () => {
+        setIsCallActive(true);
+        setCallId(payload.callId);
+        setAgentName(payload.agentName ?? "Voice AI Retail");
+      });
+      client.on("call_ended", resetCallState);
+      client.on("agent_start_talking", () => setSpeaker("agent"));
+      client.on("agent_stop_talking", () => setSpeaker(null));
+      client.on("update", (update: { transcript?: RetellTranscriptLine[] }) => {
+        if (Array.isArray(update.transcript)) {
+          setTranscript(update.transcript.slice(-5));
+        }
+      });
+      client.on("error", (error: unknown) => {
+        console.error("[RETELL_WEB_CLIENT]", error);
+        setError("Voice call failed. Please check microphone access and try again.");
+        stopCall();
+      });
+
+      await client.startCall({
+        accessToken: payload.accessToken,
+        sampleRate: 24000,
+        emitRawAudioSamples: false,
+      });
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Voice AI is not available",
+      );
+      resetCallState();
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogContent className="sm:max-w-[460px]">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" />
+            {agentName}
+          </DialogTitle>
+          <DialogDescription>
+            {error
+              ? error
+              : "Start a live browser voice call with the retail assistant."}
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="rounded-md border bg-muted/30 p-4">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">
+                {isCallActive
+                  ? speaker === "agent"
+                    ? "Assistant speaking"
+                    : "Call connected"
+                  : "Ready to call"}
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {callId ? `Call ID: ${callId}` : "Microphone permission is required."}
+              </p>
+            </div>
+            <div
+              className={`flex h-12 w-12 items-center justify-center rounded-full ${
+                isCallActive ? "bg-emerald-100 text-emerald-700" : "bg-primary/10 text-primary"
+              }`}
+            >
+              {isLoading ? (
+                <Loader2 className="h-5 w-5 animate-spin" />
+              ) : isCallActive ? (
+                <Mic className="h-5 w-5" />
+              ) : (
+                <Bot className="h-5 w-5" />
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="min-h-[104px] rounded-md border bg-background p-3 text-sm">
+          {isLoading ? (
+            <div className="flex h-[80px] items-center justify-center gap-2 text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Connecting voice AI...</span>
+            </div>
+          ) : error ? (
+            <div className="flex h-[80px] items-center justify-center text-center text-destructive">
+              {error}
+            </div>
+          ) : transcript.length > 0 ? (
+            <div className="space-y-2">
+              {transcript.map((line, index) => (
+                <div key={`${line.role}-${index}`} className="leading-relaxed">
+                  <span className="font-medium capitalize">
+                    {line.role ?? "assistant"}:
+                  </span>{" "}
+                  <span className="text-muted-foreground">{line.content}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="flex h-[80px] items-center justify-center text-center text-muted-foreground">
+              Click start and speak with the retail assistant.
+            </div>
+          )}
+        </div>
+
+        <div className="flex justify-end gap-2">
+          {isCallActive ? (
+            <Button type="button" variant="destructive" onClick={stopCall}>
+              <PhoneOff className="h-4 w-4" />
+              End call
+            </Button>
+          ) : (
+            <Button type="button" onClick={startCall} disabled={isLoading}>
+              {isLoading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Mic className="h-4 w-4" />
+              )}
+              Start voice call
+            </Button>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 
@@ -445,6 +654,7 @@ const CRMKanban = ({
     [crmData, customProducts],
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isRetellDialogOpen, setIsRetellDialogOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingOpportunity, setEditingOpportunity] =
     useState<crm_Opportunities | null>(null);
@@ -776,6 +986,11 @@ const CRMKanban = ({
         </DialogContent>
       </Dialog>
 
+      <RetellAssistantDialog
+        open={isRetellDialogOpen}
+        onOpenChange={setIsRetellDialogOpen}
+      />
+
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
           <SheetHeader>
@@ -887,7 +1102,14 @@ const CRMKanban = ({
                 <CardTitle className="flex gap-2 p-3 justify-between">
                   <span className="text-sm  font-bold">{col.name}</span>
                   <div className="flex">
-                    <FaBraille className="mr-[10px] w-5 h-5 cursor-pointer" />
+                    <button
+                      type="button"
+                      className="mr-[10px] inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      aria-label="Open voice AI retail assistant"
+                      onClick={() => setIsRetellDialogOpen(true)}
+                    >
+                      <Mic className="h-5 w-5" />
+                    </button>
                     <PlusCircledIcon
                       className="w-5 h-5 cursor-pointer"
                       onClick={() => {

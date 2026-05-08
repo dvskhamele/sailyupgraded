@@ -1,8 +1,9 @@
 import { LoginComponent } from "./components/LoginComponent";
-import { isGoogleAuthEnabled } from "@/lib/env";
+import { getGoogleClientId, isGoogleAuthEnabled } from "@/lib/env";
 
 const SignInPage = async () => {
   const googleAuthEnabled = isGoogleAuthEnabled();
+  const googleClientId = getGoogleClientId();
 
   return (
     <div className="h-full">
@@ -12,7 +13,10 @@ const SignInPage = async () => {
         </h1>
       </div>
       <div>
-        <LoginComponent googleAuthEnabled={googleAuthEnabled} />
+        <LoginComponent
+          googleAuthEnabled={googleAuthEnabled}
+          googleClientId={googleClientId}
+        />
       </div>
     </div>
   );
