@@ -1,4 +1,5 @@
 "use server";
+import type { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth-server";
 
 import { prismadb } from "@/lib/prisma";
@@ -19,11 +20,16 @@ export async function searchUsers({
 
   const safeTake = Math.min(PAGE_SIZE_MAX, Math.max(1, take));
   const safeSkip = Math.max(0, skip);
+  const searchTerms = search.trim().split(/\s+/).filter(Boolean);
 
-  const where = {
+  const where: Prisma.UsersWhereInput = {
     userStatus: "ACTIVE" as const,
-    ...(search
-      ? { name: { contains: search, mode: "insensitive" as const } }
+    ...(searchTerms.length
+      ? {
+          AND: searchTerms.map((term) => ({
+            name: { contains: term },
+          })),
+        }
       : {}),
   };
 
