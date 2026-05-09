@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useSyncExternalStore } from "react";
 
 import { subscribeOfflineFirstChanged } from "@/lib/offline-first/events";
 import { OfflineSyncEngine } from "@/lib/offline-first/engine";
@@ -13,9 +13,6 @@ const emptySnapshot: OfflineSyncSnapshot = {
 };
 
 export function useOfflineSyncEngine(engine: OfflineSyncEngine | null) {
-  const engineRef = useRef(engine);
-  engineRef.current = engine;
-
   useEffect(() => {
     if (!engine) {
       return;
@@ -33,4 +30,3 @@ export function useOfflineSyncSnapshot(engine: OfflineSyncEngine | null) {
     () => emptySnapshot,
   );
 }
-
