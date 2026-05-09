@@ -830,7 +830,7 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>Product</FormLabel>
                     <Select
-                      disabled={!selectedAccountId || accountProducts.length === 0}
+                      disabled={form.formState.isSubmitting}
                       onValueChange={field.onChange}
                       value={field.value ?? ""}
                     >

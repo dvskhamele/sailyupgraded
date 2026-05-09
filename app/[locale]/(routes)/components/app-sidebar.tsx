@@ -109,25 +109,51 @@ export function AppSidebar({
 
   navItems.push(
     {
-      title: "Instagram Extension",
-      url: "https://chromewebstore.google.com/detail/instadm-auto-dm-leads-col/mfmhpjojeelkcnejjlmjdgipfdaefkad?authuser=0&hl=en-GB",
+      title: "Instagram",
       icon: Instagram,
-      external: true,
+      defaultOpen: true,
+      items: [
+        {
+          title: "Instagram Extension",
+          url: "https://chromewebstore.google.com/detail/instadm-auto-dm-leads-col/mfmhpjojeelkcnejjlmjdgipfdaefkad?authuser=0&hl=en-GB",
+          external: true,
+          target: "_blank",
+        },
+        {
+          title: "Instagram Start",
+          url: "https://www.instagram.com/accounts/login/",
+          external: true,
+          target: "_blank",
+        },
+      ],
     },
     {
-      title: "LinkedIn Extension",
-      url: "https://chromewebstore.google.com/detail/ingage-%E2%80%94-one-click-ai-lin/nkaegpeiilppheefgalffciemnamogla?authuser=0&hl=en-GB",
+      title: "LinkedIn",
       icon: Linkedin,
-      external: true,
+      defaultOpen: true,
+      items: [
+        {
+          title: "LinkedIn Extension",
+          url: "https://chromewebstore.google.com/detail/ingage-%E2%80%94-one-click-ai-lin/nkaegpeiilppheefgalffciemnamogla?authuser=0&hl=en-GB",
+          external: true,
+          target: "_blank",
+        },
+        {
+          title: "LinkedIn Start",
+          url: "https://www.linkedin.com/login",
+          external: true,
+          target: "_blank",
+        },
+      ],
     },
     {
       title: "Zenith",
-      url: "https://zenith-nu-mocha.vercel.app/dashboard?page=schedule",
+      url: "https://zenith-nu-mocha.vercel.app/dashboard?page=composer",
       icon: CalendarClock,
       external: true,
+      target: "_blank",
     },
   );
-
   // Prepare user data for NavUser component
   const userData = {
     id: session.user.id,

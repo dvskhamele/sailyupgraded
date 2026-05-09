@@ -6,6 +6,7 @@ const withNextIntl = require("next-intl/plugin")(
 const nextConfig = {
   output: "standalone",
   serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
+  allowedDevOrigins: ["127.0.0.1"],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "localhost" },

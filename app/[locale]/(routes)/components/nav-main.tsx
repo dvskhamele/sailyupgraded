@@ -44,15 +44,19 @@ export interface NavItem {
   title: string
   url?: string
   external?: boolean
+  target?: string
   icon?: LucideIcon
   isActive?: boolean
   alwaysOpen?: boolean
+  defaultOpen?: boolean
   items?: NavSubItem[] // For collapsible groups
 }
 
 export interface NavSubItem {
   title: string
   url: string
+  external?: boolean
+  target?: string
   isActive?: boolean
   exact?: boolean
   items?: NavSubItem[]
@@ -147,9 +151,15 @@ export function NavMain({ items, dict }: NavMainProps) {
               asChild
               isActive={isActive}
             >
-              <Link href={subItem.url} prefetch={false}>
-                <span>{subItem.title}</span>
-              </Link>
+              {subItem.external ? (
+                <a href={subItem.url} target={subItem.target ?? "_blank"} rel="noreferrer">
+                  <span>{subItem.title}</span>
+                </a>
+              ) : (
+                <Link href={subItem.url} prefetch={false}>
+                  <span>{subItem.title}</span>
+                </Link>
+              )}
             </SidebarMenuSubButton>
           </div>
         </SidebarMenuSubItem>
@@ -197,7 +207,7 @@ export function NavMain({ items, dict }: NavMainProps) {
               <Collapsible
                 key={item.title}
                 asChild
-                defaultOpen={hasActive}
+                defaultOpen={item.defaultOpen || hasActive}
                 className="group/collapsible"
               >
                 <SidebarMenuItem>
@@ -232,7 +242,7 @@ export function NavMain({ items, dict }: NavMainProps) {
                 isActive={isActive}
               >
                 {item.external ? (
-                  <a href={item.url} target="_blank" rel="noreferrer">
+                  <a href={item.url} target={item.target ?? "_blank"} rel="noreferrer">
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
                   </a>

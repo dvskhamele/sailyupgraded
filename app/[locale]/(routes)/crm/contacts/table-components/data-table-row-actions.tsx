@@ -29,6 +29,11 @@ import {
 import { deleteContact } from "@/actions/crm/contacts/delete-contact";
 
 type ConfigItem = { id: string; name: string };
+type AccountItem = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
