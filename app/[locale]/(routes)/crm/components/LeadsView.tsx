@@ -39,7 +39,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
 
-  const columns = createColumns(leadSources, leadStatuses, leadTypes, accounts);
+  const columns = createColumns(contactTypes, leadSources, leadStatuses, leadTypes, accounts);
 
   return (
     <Card>
@@ -87,6 +87,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
               data={data}
               columns={columns}
               accounts={accounts}
+              contactTypes={contactTypes}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}

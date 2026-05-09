@@ -22,6 +22,7 @@ type AccountItem = {
 };
 
 export const createColumns = (
+  contactTypes: ConfigItem[],
   leadSources: ConfigItem[],
   leadStatuses: ConfigItem[],
   leadTypes: ConfigItem[],
@@ -193,6 +194,28 @@ export const createColumns = (
     enableHiding: true,
   },
   {
+    accessorKey: "contact_type",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Contact type" />
+    ),
+    cell: ({ row }) => {
+      const contactTypeName =
+        row.original.contact_type?.name ??
+        contactTypes.find((type) => type.id === row.original.contact_type_id)?.name;
+
+      return <div className="w-[130px]">{contactTypeName ?? "N/A"}</div>;
+    },
+    filterFn: (row, _id, value) => {
+      const contactTypeName =
+        row.original.contact_type?.name ??
+        contactTypes.find((type) => type.id === row.original.contact_type_id)?.name;
+
+      return value.includes(contactTypeName);
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
     accessorKey: "lead_source",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Source" />
@@ -208,6 +231,7 @@ export const createColumns = (
       <DataTableRowActions
         row={row}
         accounts={accounts}
+        contactTypes={contactTypes}
         leadSources={leadSources}
         leadStatuses={leadStatuses}
         leadTypes={leadTypes}

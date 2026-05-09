@@ -2,6 +2,8 @@ import { prismadb, withPrismaRetry } from "@/lib/prisma";
 
 export type NamedOption = { id: string; name: string };
 
+const DEFAULT_CONTACT_TYPE_NAMES = ["Customer", "Partner", "Prospect", "Vendor"] as const;
+
 const SOCIAL_LEAD_SOURCE_NAMES = [
   "Twitter / X",
   "Facebook",
@@ -46,6 +48,30 @@ export async function resolveLeadSourceId(value?: string | null): Promise<string
   return created.id;
 }
 
+export async function ensureDefaultContactTypes(): Promise<NamedOption[]> {
+  const existing = await prismadb.crm_Contact_Types.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
+  if (existing.length > 0) return existing;
+
+  await Promise.all(
+    DEFAULT_CONTACT_TYPE_NAMES.map((name) =>
+      prismadb.crm_Contact_Types.upsert({
+        where: { name },
+        update: {},
+        create: { name },
+      })
+    )
+  );
+
+  return prismadb.crm_Contact_Types.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+}
+
 export async function getContactFormOptionsData() {
   return withPrismaRetry(async () => {
     const accounts = await prismadb.crm_Accounts.findMany({
@@ -53,10 +79,7 @@ export async function getContactFormOptionsData() {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });
-    const contactTypes = await prismadb.crm_Contact_Types.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
+    const contactTypes = await ensureDefaultContactTypes();
     const leadSources = await prismadb.crm_Lead_Sources.findMany({
       select: { id: true, name: true },
       orderBy: { name: "asc" },

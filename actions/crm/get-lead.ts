@@ -8,6 +8,7 @@ export const getLead = async (leadId: string) => {
     },
     include: {
       // Include FK relation name fields
+      contact_type: { select: { id: true, name: true } },
       lead_source: { select: { id: true, name: true } },
       lead_status: { select: { id: true, name: true } },
       lead_type:   { select: { id: true, name: true } },

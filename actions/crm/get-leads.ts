@@ -28,6 +28,7 @@ export const getLeads = cache(async () => {
         },
       },
       // Include lead source, status, type
+      contact_type: true,
       lead_source: true,
       lead_status: true,
       lead_type: true,

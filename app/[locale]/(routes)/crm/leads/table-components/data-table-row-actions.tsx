@@ -43,6 +43,7 @@ type AccountItem = {
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
   accounts: AccountItem[];
+  contactTypes: ConfigItem[];
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
@@ -51,6 +52,7 @@ interface DataTableRowActionsProps<TData> {
 export function DataTableRowActions<TData>({
   row,
   accounts,
+  contactTypes,
   leadSources,
   leadStatuses,
   leadTypes,
@@ -100,6 +102,7 @@ export function DataTableRowActions<TData>({
               initialData={row.original}
               setOpen={setUpdateOpen}
               accounts={accounts}
+              contactTypes={contactTypes}
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}

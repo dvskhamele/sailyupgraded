@@ -660,10 +660,7 @@ const SidebarMenuSkeleton = React.forwardRef<
     showIcon?: boolean
   }
 >(({ className, showIcon = false, ...props }, ref) => {
-  // Skeleton loaders intentionally use random widths for visual variety.
-  const [width] = React.useState(
-    () => `${Math.floor(Math.random() * 40) + 50}%`
-  )
+  const width = showIcon ? "70%" : "82%"
 
   return (
     <div

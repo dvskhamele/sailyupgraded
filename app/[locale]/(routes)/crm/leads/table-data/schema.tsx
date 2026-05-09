@@ -14,6 +14,8 @@ export const leadSchema = z.object({
   email: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
   company: z.string().optional().nullable(),
+  contact_type_id: z.string().optional().nullable(),
+  contact_type: z.object({ name: z.string().optional().nullable() }).optional().nullable(),
   status: z.union([z.string(), z.boolean()]).optional().nullable(),
   lead_status: z.object({ name: z.string().optional().nullable() }).optional().nullable(),
   lead_source: z.object({ name: z.string().optional().nullable() }).optional().nullable(),

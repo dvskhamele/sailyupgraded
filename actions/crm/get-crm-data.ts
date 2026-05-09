@@ -6,7 +6,7 @@ import {
 } from "@/lib/prisma-model-fields";
 import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
-import { appendSocialLeadSourceOptions } from "@/lib/crm/contact-form-options";
+import { appendSocialLeadSourceOptions, ensureDefaultContactTypes } from "@/lib/crm/contact-form-options";
 
 const crmDashboardLeadSelectValues = {
   id: true,
@@ -133,9 +133,7 @@ async function loadAllCrmData() {
     orderBy: { name: "asc" },
   });
 
-  const contactTypes = await prismadb.crm_Contact_Types.findMany({
-    orderBy: { name: "asc" },
-  });
+  const contactTypes = await ensureDefaultContactTypes();
 
   const leadSources = await prismadb.crm_Lead_Sources.findMany({
     orderBy: { name: "asc" },

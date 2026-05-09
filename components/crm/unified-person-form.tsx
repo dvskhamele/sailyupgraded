@@ -715,9 +715,15 @@ export function UnifiedPersonForm({
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {contactTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-                        ))}
+                        {contactTypes.length > 0 ? (
+                          contactTypes.map((type) => (
+                            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                          ))
+                        ) : (
+                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
+                            No contact types found
+                          </div>
+                        )}
                       </SelectContent>
                     </Select>
                     <FormMessage />
