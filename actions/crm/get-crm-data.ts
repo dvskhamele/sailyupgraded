@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { prismadb, resetPrisma } from "@/lib/prisma";
+import { prismadb, withPrismaRetry } from "@/lib/prisma";
 import {
   pickExistingDbModelFields,
   pickSupportedModelFields,
@@ -77,20 +77,6 @@ const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
   contact_type_id: true,
   accountsIDs: true,
 } as const);
-
-function isTransientPrismaConnectionError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    message.includes("pool timeout: failed to retrieve a connection from pool") ||
-    message.includes("read ECONNRESET") ||
-    message.includes("pool is ending")
-  );
-}
-
-function shouldResetPrismaConnection(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return message.includes("pool is ending") || message.includes("read ECONNRESET");
-}
 
 async function loadAllCrmData() {
   const accounts = await prismadb.crm_Accounts.findMany({
@@ -221,17 +207,5 @@ async function loadAllCrmData() {
  * MariaDB driver pool under concurrent page loads.
  */
 export const getAllCrmData = cache(async () => {
-  try {
-    return await loadAllCrmData();
-  } catch (error) {
-    if (!isTransientPrismaConnectionError(error)) {
-      throw error;
-    }
-
-    if (shouldResetPrismaConnection(error)) {
-      await resetPrisma();
-    }
-
-    return loadAllCrmData();
-  }
+  return withPrismaRetry(loadAllCrmData);
 });

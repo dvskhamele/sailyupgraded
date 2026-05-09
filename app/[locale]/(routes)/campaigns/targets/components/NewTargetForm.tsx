@@ -288,15 +288,15 @@ export function NewTargetForm({ onFinish }: NewTargetFormProps) {
           </FormItem>
         )} />
         <div className="grid grid-cols-2 gap-4">
+        <FormField control={form.control} name="country" render={({ field }) => (
+          <FormItem><FormLabel>Country</FormLabel>
+            <FormControl><Input placeholder="Czech Republic" {...field} value={field.value ?? ''} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
           <FormField control={form.control} name="city" render={({ field }) => (
             <FormItem><FormLabel>City</FormLabel>
               <FormControl><Input placeholder="Prague" {...field} value={field.value ?? ''} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={form.control} name="country" render={({ field }) => (
-            <FormItem><FormLabel>Country</FormLabel>
-              <FormControl><Input placeholder="Czech Republic" {...field} value={field.value ?? ''} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />

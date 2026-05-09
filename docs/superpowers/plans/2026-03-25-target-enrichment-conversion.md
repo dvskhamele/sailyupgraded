@@ -559,8 +559,8 @@ In `BulkEnrichTargetsModal.tsx`, add to `TARGET_PRESET_FIELDS`:
 ```typescript
 { name: "company_email", displayName: "Company Email",  description: "Generic company contact email (info@...)" },
 { name: "company_phone", displayName: "Company Phone",  description: "Main company switchboard number" },
-{ name: "city",          displayName: "City",           description: "Company HQ city" },
 { name: "country",       displayName: "Country",        description: "Company HQ country" },
+{ name: "city",          displayName: "City",           description: "Company HQ city" },
 { name: "industry",      displayName: "Industry",       description: "Company industry / sector" },
 { name: "employees",     displayName: "Employees",      description: "Number of employees" },
 { name: "description",   displayName: "Description",    description: "Short company description" },

@@ -6,6 +6,7 @@ declare global {
   var cachedPrismaUrl: string | undefined;
   var cachedPrismaSchemaSignature: string | undefined;
   var cachedPrismaRuntimeVersion: string | undefined;
+  var cachedPrismaResetPromise: Promise<void> | undefined;
 }
 
 const databaseUrl = process.env.DATABASE_URL;
@@ -59,10 +60,12 @@ const getPrisma = (): PrismaClient => {
     global.cachedPrismaRuntimeVersion !== prismaRuntimeVersion;
 
   if (shouldRefreshClient) {
+    const previousClient = global.cachedPrisma;
     global.cachedPrisma = prismaClientSingleton();
     global.cachedPrismaUrl = databaseUrl;
     global.cachedPrismaSchemaSignature = schemaSignature;
     global.cachedPrismaRuntimeVersion = prismaRuntimeVersion;
+    void disconnectClient(previousClient);
   }
   return global.cachedPrisma!;
 };
@@ -75,12 +78,43 @@ export async function resetPrisma() {
     return;
   }
 
+  if (global.cachedPrismaResetPromise) {
+    await global.cachedPrismaResetPromise;
+    return;
+  }
+
   const current = global.cachedPrisma;
   global.cachedPrisma = undefined;
   global.cachedPrismaUrl = undefined;
   global.cachedPrismaSchemaSignature = undefined;
   global.cachedPrismaRuntimeVersion = undefined;
-  await disconnectClient(current);
+  global.cachedPrismaResetPromise = disconnectClient(current).finally(() => {
+    global.cachedPrismaResetPromise = undefined;
+  });
+  await global.cachedPrismaResetPromise;
+}
+
+export function isTransientPrismaConnectionError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    message.includes("pool timeout: failed to retrieve a connection from pool") ||
+    message.includes("read ECONNRESET") ||
+    message.includes("pool is ending")
+  );
+}
+
+export async function withPrismaRetry<T>(operation: () => Promise<T>) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (!isTransientPrismaConnectionError(error)) {
+      throw error;
+    }
+
+    await resetPrisma();
+    await new Promise((resolve) => setTimeout(resolve, 150));
+    return operation();
+  }
 }
 
 // Use a proxy to lazily initialize the Prisma client only when accessed

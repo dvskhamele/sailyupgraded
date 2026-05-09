@@ -38,12 +38,13 @@ export const updateContact = async (data: {
   office_phone?: string | null;
   mobile_phone?: string | null;
   website?: string | null;
+  country?: string | null;
   address?: string | null;
   address_line1?: string | null;
   address_line2?: string | null;
   city?: string | null;
   state?: string | null;
-  country?: string | null;
+
   postal_code?: string | null;
   position?: string | null;
   status?: boolean;
@@ -79,12 +80,12 @@ export const updateContact = async (data: {
     lead_source_id,
     lead_status_id,
     lead_type_id,
+    country,
     address,
     address_line1,
     address_line2,
     city,
     state,
-    country,
     postal_code,
     custom_fields_data,
     ...rest
@@ -95,12 +96,12 @@ export const updateContact = async (data: {
   const resolvedAddressLine1 = getAddressLine1(address, address_line1);
   const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
   const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
+    country: country || null,
     address: resolvedAddressLine1 || null,
     address_line1: resolvedAddressLine1 || null,
     address_line2: address_line2 || null,
     city: city || null,
     state: state || null,
-    country: country || null,
     postal_code: postal_code || null,
   });
   const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {

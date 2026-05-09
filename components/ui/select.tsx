@@ -6,8 +6,6 @@ import { Check, ChevronDown, ChevronUp } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-const Select = SelectPrimitive.Root
-
 const SelectGroup = SelectPrimitive.Group
 
 const SelectValue = SelectPrimitive.Value
@@ -133,6 +131,73 @@ const SelectItem = React.forwardRef<
   </SelectPrimitive.Item>
 ))
 SelectItem.displayName = SelectPrimitive.Item.displayName
+
+type SelectProps = React.ComponentPropsWithoutRef<typeof SelectPrimitive.Root> & {
+  autoSelectSingleOption?: boolean
+}
+
+type SelectOption = {
+  value: string
+  disabled?: boolean
+}
+
+function getSelectOptions(children: React.ReactNode): SelectOption[] {
+  return React.Children.toArray(children).flatMap((child) => {
+    if (!React.isValidElement(child)) {
+      return []
+    }
+
+    if (child.type === SelectItem) {
+      const props = child.props as React.ComponentPropsWithoutRef<typeof SelectItem>
+      return [{ value: props.value, disabled: props.disabled }]
+    }
+
+    const props = child.props as { children?: React.ReactNode }
+    return getSelectOptions(props.children)
+  })
+}
+
+function isEmptySelectValue(value: SelectProps["value"]) {
+  return value === undefined || value === ""
+}
+
+const Select = (selectProps: SelectProps) => {
+  const {
+    children,
+    value,
+    onValueChange,
+    autoSelectSingleOption = true,
+    disabled,
+    ...props
+  } = selectProps
+  const options = React.useMemo(() => getSelectOptions(children), [children])
+  const selectableOptions = React.useMemo(
+    () => options.filter((option) => !option.disabled),
+    [options]
+  )
+  const isControlled = Object.prototype.hasOwnProperty.call(selectProps, "value")
+
+  React.useEffect(() => {
+    if (!autoSelectSingleOption || disabled || !isControlled || !onValueChange || !isEmptySelectValue(value)) {
+      return
+    }
+
+    if (selectableOptions.length === 1) {
+      onValueChange(selectableOptions[0].value)
+    }
+  }, [autoSelectSingleOption, disabled, isControlled, onValueChange, selectableOptions, value])
+
+  return (
+    <SelectPrimitive.Root
+      value={value}
+      onValueChange={onValueChange}
+      disabled={disabled}
+      {...props}
+    >
+      {children}
+    </SelectPrimitive.Root>
+  )
+}
 
 const SelectSeparator = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Separator>,

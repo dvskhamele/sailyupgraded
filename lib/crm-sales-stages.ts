@@ -1,5 +1,5 @@
 import { cache } from "react";
-import { prismadb, resetPrisma } from "@/lib/prisma";
+import { prismadb, withPrismaRetry } from "@/lib/prisma";
 
 export const LOST_STAGE_ORDER = -1;
 export const DEFAULT_FIRST_STAGE_NAME = "First Step";
@@ -20,15 +20,6 @@ function sortRegularStages<T extends SalesStageRow>(stages: T[]) {
     const bOrder = b.order ?? 0;
     return aOrder - bOrder;
   });
-}
-
-function isTransientPrismaConnectionError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
-  return (
-    message.includes("pool timeout: failed to retrieve a connection from pool") ||
-    message.includes("read ECONNRESET") ||
-    message.includes("pool is ending")
-  );
 }
 
 export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[]) {
@@ -94,14 +85,5 @@ async function loadSalesStageCollections() {
 }
 
 export const getSalesStageCollections = cache(async () => {
-  try {
-    return await loadSalesStageCollections();
-  } catch (error) {
-    if (!isTransientPrismaConnectionError(error)) {
-      throw error;
-    }
-
-    await resetPrisma();
-    return loadSalesStageCollections();
-  }
+  return withPrismaRetry(loadSalesStageCollections);
 });

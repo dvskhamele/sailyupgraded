@@ -70,8 +70,8 @@ export function UpdateTargetForm({ initialData, setOpen }: UpdateTargetFormProps
     personal_email: z.string().optional(),
     company_email:  z.string().optional(),
     company_phone:  z.string().optional(),
-    city:           z.string().optional(),
     country:        z.string().optional(),
+    city:           z.string().optional(),
     industry:       z.string().optional(),
     employees:      z.string().optional(),
     description:    z.string().optional(),
@@ -100,8 +100,8 @@ export function UpdateTargetForm({ initialData, setOpen }: UpdateTargetFormProps
       personal_email: initialData?.personal_email || "",
       company_email: initialData?.company_email || "",
       company_phone: initialData?.company_phone || "",
-      city: initialData?.city || "",
       country: initialData?.country || "",
+      city: initialData?.city || "",
       industry: initialData?.industry || "",
       employees: initialData?.employees || "",
       description: initialData?.description || "",
@@ -324,15 +324,15 @@ export function UpdateTargetForm({ initialData, setOpen }: UpdateTargetFormProps
           </FormItem>
         )} />
         <div className="grid grid-cols-2 gap-4">
+        <FormField control={form.control} name="country" render={({ field }) => (
+          <FormItem><FormLabel>Country</FormLabel>
+            <FormControl><Input placeholder="Czech Republic" {...field} value={field.value ?? ''} /></FormControl>
+            <FormMessage />
+          </FormItem>
+        )} />
           <FormField control={form.control} name="city" render={({ field }) => (
             <FormItem><FormLabel>City</FormLabel>
               <FormControl><Input placeholder="Prague" {...field} value={field.value ?? ''} /></FormControl>
-              <FormMessage />
-            </FormItem>
-          )} />
-          <FormField control={form.control} name="country" render={({ field }) => (
-            <FormItem><FormLabel>Country</FormLabel>
-              <FormControl><Input placeholder="Czech Republic" {...field} value={field.value ?? ''} /></FormControl>
               <FormMessage />
             </FormItem>
           )} />

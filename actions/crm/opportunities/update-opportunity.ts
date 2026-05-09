@@ -78,7 +78,7 @@ export const updateOpportunity = async (data: {
         custom_fields_data:
           Object.keys(sanitizedCustomFieldValues).length > 0
             ? sanitizedCustomFieldValues
-            : undefined,
+            : null,
       },
     );
 

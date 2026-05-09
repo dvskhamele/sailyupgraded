@@ -9,6 +9,14 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar";
+import {
+  Facebook,
+  Chrome,
+  Twitter,
+  Youtube,
+  Music2,
+  AtSign,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Link } from "@/i18n/navigation";
 import { NavMain } from "./nav-main";
@@ -125,6 +133,12 @@ export function AppSidebar({
           external: true,
           target: "_blank",
         },
+        {
+          title: "Instagram ADs",
+          url: "#",
+          external: true,
+          target: "_blank",
+        },
       ],
     },
     {
@@ -144,8 +158,128 @@ export function AppSidebar({
           external: true,
           target: "_blank",
         },
+        {
+          title: "LinkedIn ADs",
+          url: "⁠https://business.linkedin.com/advertise/ads",
+          external: true,
+          target: "_blank",
+        },
       ],
     },
+   {
+  title: "Facebook",
+  icon: Facebook,
+  defaultOpen: true,
+  items: [
+    {
+      title: "Facebook Login",
+      url: "https://www.facebook.com/login",
+      external: true,
+      target: "_blank",
+    },
+    {
+      title: "Facebook Ads",
+      url: "https://www.facebook.com/business/ads",
+      external: true,
+      target: "_blank",
+    },
+  ],
+},
+{
+  title: "Google",
+  icon: Chrome,
+  defaultOpen: true,
+  items: [
+    {
+      title: "Google Login",
+      url: "https://accounts.google.com/",
+      external: true,
+      target: "_blank",
+    },
+    {
+      title: "Google Ads",
+      url: "https://ads.google.com/",
+      external: true,
+      target: "_blank",
+    },
+  ],
+},
+{
+  title: "Threads",
+  icon: AtSign,
+  defaultOpen: true,
+  items: [
+    {
+      title: "Threads Login",
+      url: "https://www.threads.net/login",
+      external: true,
+      target: "_blank",
+    },
+    {
+      title: "Threads",
+      url: "https://www.threads.net/",
+      external: true,
+      target: "_blank",
+    },
+  ],
+},
+{
+  title: "Twitter / X",
+  icon: Twitter,
+  defaultOpen: true,
+  items: [
+    {
+      title: "Twitter Login",
+      url: "https://x.com/i/flow/login",
+      external: true,
+      target: "_blank",
+    },
+    {
+      title: "Twitter Ads",
+      url: "https://ads.x.com/",
+      external: true,
+      target: "_blank",
+    },
+  ],
+},
+{
+  title: "TikTok",
+  icon: Music2,
+  defaultOpen: true,
+  items: [
+    {
+      title: "TikTok Login",
+      url: "https://www.tiktok.com/login",
+      external: true,
+      target: "_blank",
+    },
+    {
+      title: "TikTok Ads",
+      url: "https://ads.tiktok.com/",
+      external: true,
+      target: "_blank",
+    },
+  ],
+},
+{
+  title: "YouTube",
+  icon: Youtube,
+  defaultOpen: true,
+  items: [
+    {
+      title: "YouTube Studio",
+      url: "https://studio.youtube.com/",
+      external: true,
+      target: "_blank",
+    },
+    {
+      title: "YouTube Ads",
+      url: "https://ads.google.com/home/campaigns/video-ads/",
+      external: true,
+      target: "_blank",
+    },
+  ],
+},
     {
       title: "Zenith",
       url: "https://zenith-nu-mocha.vercel.app/dashboard?page=composer",
@@ -153,6 +287,7 @@ export function AppSidebar({
       external: true,
       target: "_blank",
     },
+   
   );
   // Prepare user data for NavUser component
   const userData = {

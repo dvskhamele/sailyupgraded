@@ -29,11 +29,11 @@ export const updateLead = async (data: {
   phone?: string | null;
   office_phone?: string | null;
   mobile_phone?: string | null;
+  country?: string | null;
   address_line1?: string | null;
   address_line2?: string | null;
   city?: string | null;
   state?: string | null;
-  country?: string | null;
   postal_code?: string | null;
   description?: string | null;
   website?: string | null;
@@ -77,11 +77,11 @@ export const updateLead = async (data: {
     phone,
     office_phone,
     mobile_phone,
+    country,
     address_line1,
     address_line2,
     city,
     state,
-    country,
     postal_code,
     description,
     website,
@@ -138,12 +138,12 @@ export const updateLead = async (data: {
       phone,
       office_phone,
       mobile_phone,
+      country: country || null,
       address: resolvedAddressLine1 || null,
       address_line1: resolvedAddressLine1 || null,
       address_line2: address_line2 || null,
       city: city || null,
       state: state || null,
-      country: country || null,
       postal_code: postal_code || null,
       description,
       website,

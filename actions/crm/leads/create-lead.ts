@@ -28,11 +28,11 @@ export const createLead = async (data: {
   phone?: string;
   office_phone?: string;
   mobile_phone?: string;
+  country?: string;
   address_line1?: string;
   address_line2?: string;
   city?: string;
   state?: string;
-  country?: string;
   postal_code?: string;
   description?: string;
   website?: string;
@@ -76,11 +76,11 @@ export const createLead = async (data: {
     phone,
     office_phone,
     mobile_phone,
+    country,
     address_line1,
     address_line2,
     city,
     state,
-    country,
     postal_code,
     description,
     website,
@@ -134,12 +134,12 @@ export const createLead = async (data: {
     phone,
     office_phone,
     mobile_phone,
+    country: country || undefined,
     address: resolvedAddressLine1 || undefined,
     address_line1: resolvedAddressLine1 || undefined,
     address_line2: address_line2 || undefined,
     city: city || undefined,
     state: state || undefined,
-    country: country || undefined,
     postal_code: postal_code || undefined,
     description,
     website,

@@ -38,12 +38,12 @@ export const createContact = async (data: {
   office_phone?: string;
   mobile_phone?: string;
   website?: string;
+  country?: string;
   address?: string;
   address_line1?: string;
   address_line2?: string;
   city?: string;
   state?: string;
-  country?: string;
   postal_code?: string;
   position?: string;
   status?: boolean;
@@ -78,12 +78,12 @@ export const createContact = async (data: {
     lead_source_id,
     lead_status_id,
     lead_type_id,
+    country,
     address,
     address_line1,
     address_line2,
     city,
     state,
-    country,
     postal_code,
     custom_fields_data,
     ...rest
@@ -92,12 +92,12 @@ export const createContact = async (data: {
   const resolvedAddressLine1 = getAddressLine1(address, address_line1);
   const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
   const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
+    country: country || undefined,
     address: resolvedAddressLine1 || undefined,
     address_line1: resolvedAddressLine1 || undefined,
     address_line2: address_line2 || undefined,
     city: city || undefined,
     state: state || undefined,
-    country: country || undefined,
     postal_code: postal_code || undefined,
   });
   const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {

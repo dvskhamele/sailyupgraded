@@ -84,7 +84,9 @@ export const unifiedPersonFormSchema = z.object({
   social_youtube: z.string().optional().nullable(),
   social_tiktok: z.string().optional().nullable(),
   productId: z.string().optional().nullable(),
-  custom_fields_data: z.record(z.string(), z.string()).optional(),
+  custom_fields_data: z
+    .record(z.string(), z.union([z.string(), z.null(), z.undefined()]))
+    .optional(),
 });
 
 export type UnifiedPersonFormValues = z.infer<typeof unifiedPersonFormSchema>;

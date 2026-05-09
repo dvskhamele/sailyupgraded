@@ -204,7 +204,9 @@ export function NewOpportunityForm({
     account: z.string(),
     contact: z.string(),
     campaign: z.string(),
-    custom_fields_data: z.record(z.string(), z.string()).optional(),
+    custom_fields_data: z
+      .record(z.string(), z.union([z.string(), z.null(), z.undefined()]))
+      .optional(),
   });
 
   type NewAccountFormValues = z.infer<typeof formSchema>;

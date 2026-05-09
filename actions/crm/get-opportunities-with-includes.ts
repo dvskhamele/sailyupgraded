@@ -1,10 +1,10 @@
 "use server";
 
 import { cache } from "react";
-import { prismadb } from "@/lib/prisma";
+import { prismadb, withPrismaRetry } from "@/lib/prisma";
 
-export const getOpportunitiesFull = cache(async () => {
-  const data = await prismadb.crm_Opportunities.findMany({
+async function loadOpportunitiesFull() {
+  return prismadb.crm_Opportunities.findMany({
     where: { deletedAt: null },
     include: {
       assigned_account: {
@@ -27,6 +27,8 @@ export const getOpportunitiesFull = cache(async () => {
       created_on: "desc",
     },
   });
+}
 
-  return data;
+export const getOpportunitiesFull = cache(async () => {
+  return withPrismaRetry(loadOpportunitiesFull);
 });

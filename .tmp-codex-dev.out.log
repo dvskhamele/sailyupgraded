@@ -1,0 +1,9 @@
+
+> nextcrm-app@0.10.1 dev
+> next dev --webpack
+
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3002
+- Network:       http://172.20.10.3:3002
+- Environments: .env.local, .env
+✓ Ready in 1742ms
