@@ -2,7 +2,7 @@ import { prismadb, withPrismaRetry } from "@/lib/prisma";
 
 export type NamedOption = { id: string; name: string };
 
-const DEFAULT_CONTACT_TYPE_NAMES = ["Customer", "Partner", "Prospect", "Vendor"] as const;
+const DEFAULT_CONTACT_TYPE_NAMES = ["Agent", "Customer", "Partner", "Prospect", "Vendor"] as const;
 
 const SOCIAL_LEAD_SOURCE_NAMES = [
   "Twitter / X",
@@ -54,10 +54,15 @@ export async function ensureDefaultContactTypes(): Promise<NamedOption[]> {
     orderBy: { name: "asc" },
   });
 
-  if (existing.length > 0) return existing;
+  const existingNames = new Set(existing.map((type) => type.name.trim().toLowerCase()));
+  const missingNames = DEFAULT_CONTACT_TYPE_NAMES.filter(
+    (name) => !existingNames.has(name.toLowerCase())
+  );
+
+  if (missingNames.length === 0) return existing;
 
   await Promise.all(
-    DEFAULT_CONTACT_TYPE_NAMES.map((name) =>
+    missingNames.map((name) =>
       prismadb.crm_Contact_Types.upsert({
         where: { name },
         update: {},
