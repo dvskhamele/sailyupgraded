@@ -20,6 +20,7 @@ type AccountItem = {
   name: string;
   accountProducts?: { product?: { id: string; name: string } | null }[];
 };
+type ProductItem = { id: string; name: string };
 
 export const createColumns = (
   contactTypes: ConfigItem[],
@@ -27,6 +28,7 @@ export const createColumns = (
   leadStatuses: ConfigItem[],
   leadTypes: ConfigItem[],
   accounts: AccountItem[] = [],
+  products: ProductItem[] = [],
 ): ColumnDef<Lead>[] => [
   {
     accessorKey: "createdAt",
@@ -235,6 +237,7 @@ export const createColumns = (
         leadSources={leadSources}
         leadStatuses={leadStatuses}
         leadTypes={leadTypes}
+        products={products}
       />
     ),
   },

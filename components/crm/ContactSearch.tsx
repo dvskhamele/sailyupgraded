@@ -158,6 +158,7 @@ export function ContactSearch({ crmData }: ContactSearchProps) {
           <NewContactForm 
             accounts={crmData.accounts}
             contactTypes={crmData.contactTypes}
+            products={crmData.products}
             onFinish={() => {
               setDialogOpen(false);
               router.refresh();

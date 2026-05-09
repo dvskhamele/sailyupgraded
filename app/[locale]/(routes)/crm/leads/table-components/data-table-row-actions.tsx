@@ -39,6 +39,7 @@ type AccountItem = {
   name: string;
   accountProducts?: { product?: { id: string; name: string } | null }[];
 };
+type ProductItem = { id: string; name: string };
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -47,6 +48,7 @@ interface DataTableRowActionsProps<TData> {
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
+  products?: ProductItem[];
 }
 
 export function DataTableRowActions<TData>({
@@ -56,6 +58,7 @@ export function DataTableRowActions<TData>({
   leadSources,
   leadStatuses,
   leadTypes,
+  products = [],
 }: DataTableRowActionsProps<TData>) {
   const router = useRouter();
   const lead = leadSchema.parse(row.original);
@@ -106,6 +109,7 @@ export function DataTableRowActions<TData>({
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
+              products={products}
             />
           </div>
         </SheetContent>

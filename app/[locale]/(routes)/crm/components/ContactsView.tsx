@@ -15,6 +15,7 @@ type CrmData = {
   leadSources?: ContactOption[];
   leadStatuses?: ContactOption[];
   leadTypes?: ContactOption[];
+  products?: ContactOption[];
 };
 
 export interface ContactsViewProps {

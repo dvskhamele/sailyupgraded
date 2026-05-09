@@ -22,6 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { MultiSelect } from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
 import type { CustomFieldEntity } from "@/lib/custom-fields";
@@ -84,6 +85,9 @@ export const unifiedPersonFormSchema = z.object({
   social_youtube: z.string().optional().nullable(),
   social_tiktok: z.string().optional().nullable(),
   productId: z.string().optional().nullable(),
+  opportunity_enabled: z.boolean().optional(),
+  opportunity_products: z.array(z.string()).optional(),
+  opportunity_budget: z.string().optional().nullable(),
   custom_fields_data: z
     .record(z.string(), z.union([z.string(), z.null(), z.undefined()]))
     .optional(),
@@ -102,6 +106,7 @@ type UnifiedPersonFormProps = {
   leadSources?: Option[];
   leadStatuses?: Option[];
   leadTypes?: Option[];
+  products?: Option[];
   initialValues?: Partial<UnifiedPersonFormValues>;
   onSubmitAction: (data: UnifiedPersonFormValues) => Promise<{ error?: string; data?: unknown } | undefined>;
   onSuccess: (result?: { data?: unknown }, submittedData?: UnifiedPersonFormValues) => void | Promise<void>;
@@ -118,6 +123,7 @@ export function UnifiedPersonForm({
   leadSources = [],
   leadStatuses = [],
   leadTypes = [],
+  products = [],
   initialValues,
   onSubmitAction,
   onSuccess,
@@ -174,6 +180,9 @@ export function UnifiedPersonForm({
       social_youtube: "",
       social_tiktok: "",
       productId: "",
+      opportunity_enabled: false,
+      opportunity_products: [],
+      opportunity_budget: "",
       custom_fields_data: {},
       ...initialValues,
       status: initialValues?.status ?? true,
@@ -185,6 +194,7 @@ export function UnifiedPersonForm({
   const selectedState = form.watch("state");
   const selectedAccountId = form.watch("assigned_account");
   const selectedRole = form.watch("role");
+  const opportunityEnabled = form.watch("opportunity_enabled");
   const stateOptions = getStateOptions(selectedCountry, selectedState);
   const serialLabel = getContactIdentifierLabel(selectedRole);
   const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
@@ -831,7 +841,7 @@ export function UnifiedPersonForm({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="productId"
                 render={({ field }) => (
@@ -864,7 +874,7 @@ export function UnifiedPersonForm({
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
               <div className="space-y-2">
                 <FormField
                   control={form.control}
@@ -968,6 +978,66 @@ export function UnifiedPersonForm({
                 )}
               />
             </div>
+
+            {entityType === "Lead" && (
+              <Button
+                type="button"
+                variant={opportunityEnabled ? "secondary" : "outline"}
+                onClick={() => form.setValue("opportunity_enabled", !opportunityEnabled)}
+                disabled={form.formState.isSubmitting}
+              >
+                {opportunityEnabled ? "Hide Opportunity" : "Add Opportunity"}
+              </Button>
+            )}
+
+            {(entityType === "Contact" || opportunityEnabled) && (
+              <div className="space-y-4 border-t pt-5">
+                <h3 className="text-sm font-semibold">Opportunity</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="opportunity_products"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Products</FormLabel>
+                        <FormControl>
+                          <MultiSelect
+                            options={products.map((product) => ({
+                              value: product.name,
+                              label: product.name,
+                            }))}
+                            value={field.value ?? []}
+                            onChange={field.onChange}
+                            placeholder={products.length > 0 ? "Select products" : "No active products"}
+                            disabled={form.formState.isSubmitting}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="opportunity_budget"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Budget</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            disabled={form.formState.isSubmitting}
+                            placeholder="1000000"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 

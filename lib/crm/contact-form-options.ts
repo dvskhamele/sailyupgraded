@@ -97,6 +97,14 @@ export async function getContactFormOptionsData() {
       select: { id: true, name: true },
       orderBy: { name: "asc" },
     });
+    const products = await prismadb.crm_Products.findMany({
+      where: {
+        deletedAt: null,
+        status: "ACTIVE",
+      },
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
 
     return {
       accounts,
@@ -104,6 +112,7 @@ export async function getContactFormOptionsData() {
       leadSources: appendSocialLeadSourceOptions(leadSources),
       leadStatuses,
       leadTypes,
+      products,
     };
   });
 }

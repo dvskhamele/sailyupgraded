@@ -43,6 +43,7 @@ export function SearchCreateContactFallback({ query }: { query: string }) {
           leadSources: [],
           leadStatuses: [],
           leadTypes: [],
+          products: [],
         });
         setInitialValues(buildSmartContactInitialValues(query));
       });
@@ -84,6 +85,7 @@ export function SearchCreateContactFallback({ query }: { query: string }) {
                 leadSources={formOptions.leadSources}
                 leadStatuses={formOptions.leadStatuses}
                 leadTypes={formOptions.leadTypes}
+                products={formOptions.products}
                 initialValues={{
                   ...initialValues,
                 }}

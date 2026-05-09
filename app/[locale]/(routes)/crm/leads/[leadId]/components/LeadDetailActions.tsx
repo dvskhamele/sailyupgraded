@@ -24,6 +24,7 @@ type AccountItem = {
   name: string;
   accountProducts?: { product?: { id: string; name: string } | null }[];
 };
+type ProductItem = { id: string; name: string };
 
 interface LeadDetailActionsProps {
   lead: any;
@@ -32,6 +33,7 @@ interface LeadDetailActionsProps {
   leadSources: ConfigItem[];
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
+  products?: ProductItem[];
 }
 
 export function LeadDetailActions({
@@ -41,6 +43,7 @@ export function LeadDetailActions({
   leadSources,
   leadStatuses,
   leadTypes,
+  products = [],
 }: LeadDetailActionsProps) {
   const [updateOpen, setUpdateOpen] = useState(false);
 
@@ -63,6 +66,7 @@ export function LeadDetailActions({
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
+              products={products}
             />
           </div>
         </SheetContent>

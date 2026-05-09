@@ -20,6 +20,7 @@ type UpdateLeadFormProps = {
   leadSources: Option[];
   leadStatuses: Option[];
   leadTypes: Option[];
+  products?: Option[];
 };
 
 export function UpdateLeadForm({
@@ -30,6 +31,7 @@ export function UpdateLeadForm({
   leadSources,
   leadStatuses,
   leadTypes,
+  products = [],
 }: UpdateLeadFormProps) {
   const t = useTranslations("CrmLeadForm");
 
@@ -96,6 +98,7 @@ export function UpdateLeadForm({
       leadSources={leadSources}
       leadStatuses={leadStatuses}
       leadTypes={leadTypes}
+      products={products}
       initialValues={initialValues}
       onSubmitAction={(data) => updateLead(data as any)}
       onSuccess={() => setOpen(false)}

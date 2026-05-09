@@ -19,6 +19,7 @@ type NewContactFormProps = {
   leadSources?: Option[];
   leadStatuses?: Option[];
   leadTypes?: Option[];
+  products?: Option[];
   onFinish: () => void;
   onCreated?: (contact: unknown, submittedData: UnifiedPersonFormValues) => void | Promise<void>;
   initialValues?: Partial<UnifiedPersonFormValues>;
@@ -31,6 +32,7 @@ export function NewContactForm({
   leadSources = [],
   leadStatuses = [],
   leadTypes = [],
+  products = [],
   onFinish,
   onCreated,
   initialValues,
@@ -50,6 +52,7 @@ export function NewContactForm({
       leadSources={leadSources}
       leadStatuses={leadStatuses}
       leadTypes={leadTypes}
+      products={products}
       initialValues={{
         role: defaultRole,
         ...initialValues,

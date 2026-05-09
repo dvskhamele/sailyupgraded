@@ -27,6 +27,7 @@ interface ContactDetailActionsProps {
   leadSources?: ConfigItem[];
   leadStatuses?: ConfigItem[];
   leadTypes?: ConfigItem[];
+  products?: ConfigItem[];
 }
 
 export function ContactDetailActions({
@@ -36,6 +37,7 @@ export function ContactDetailActions({
   leadSources = [],
   leadStatuses = [],
   leadTypes = [],
+  products = [],
 }: ContactDetailActionsProps) {
   const [updateOpen, setUpdateOpen] = useState(false);
 
@@ -58,6 +60,7 @@ export function ContactDetailActions({
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
+              products={products}
             />
           </div>
         </SheetContent>

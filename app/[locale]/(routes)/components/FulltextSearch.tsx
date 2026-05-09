@@ -164,6 +164,7 @@ const FulltextSearch = () => {
         leadSources: [],
         leadStatuses: [],
         leadTypes: [],
+        products: [],
       });
       setInitialValues(buildQuickContactValues(search));
     }
@@ -212,6 +213,8 @@ const FulltextSearch = () => {
       ...opportunityDefaults,
       account: values.assigned_account ?? "",
       contact: contactId,
+      category: values.opportunity_products ?? opportunityDefaults.category,
+      budget: values.opportunity_budget || opportunityDefaults.budget,
       description: values.description ?? search,
     });
     setOpportunityDialogOpen(true);
@@ -328,6 +331,7 @@ const FulltextSearch = () => {
               leadSources={formOptions.leadSources}
               leadStatuses={formOptions.leadStatuses}
               leadTypes={formOptions.leadTypes}
+              products={formOptions.products}
               onFinish={() => {
                 setDialogOpen(false);
                 router.refresh();

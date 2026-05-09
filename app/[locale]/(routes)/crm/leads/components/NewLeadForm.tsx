@@ -17,6 +17,7 @@ type NewLeadFormProps = {
   leadSources: Option[];
   leadStatuses: Option[];
   leadTypes: Option[];
+  products?: Option[];
   onFinish?: () => void;
 };
 
@@ -26,6 +27,7 @@ export function NewLeadForm({
   leadSources,
   leadStatuses,
   leadTypes,
+  products = [],
   onFinish,
 }: NewLeadFormProps) {
   const t = useTranslations("CrmLeadForm");
@@ -42,6 +44,7 @@ export function NewLeadForm({
       leadSources={leadSources}
       leadStatuses={leadStatuses}
       leadTypes={leadTypes}
+      products={products}
       onSubmitAction={(data) => createLead(data as any)}
       onSuccess={() => onFinish?.()}
     />

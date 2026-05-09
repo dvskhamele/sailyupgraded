@@ -33,7 +33,7 @@ interface OppsViewProps {
 export async function BasicView({ data }: OppsViewProps) {
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
   const fallbackProductNames =
     data?.assigned_accounts?.accountProducts
       ?.map((item: any) => item.product?.name)
@@ -60,6 +60,7 @@ export async function BasicView({ data }: OppsViewProps) {
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
+              products={(products ?? []).filter((product: any) => product.status === "ACTIVE")}
             />
           </div>
         </CardHeader>

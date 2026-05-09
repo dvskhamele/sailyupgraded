@@ -28,6 +28,7 @@ import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
+import { parseOpportunityProducts } from "@/lib/opportunity-products";
 // import { EnrichButton } from "./EnrichButton";
 
 interface OppsViewProps {
@@ -52,8 +53,13 @@ export async function BasicView({ data }: OppsViewProps) {
   //console.log(data, "data");
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
   const notes = Array.isArray(data?.notes) ? data.notes : [];
+  const linkedOpportunities = Array.isArray(data?.opportunities)
+    ? data.opportunities
+        .map((item: any) => item.opportunity)
+        .filter(Boolean)
+    : [];
   if (!data) return <div>Opportunity not found</div>;
   return (
     <div className="pb-3 space-y-5">
@@ -90,6 +96,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 leadSources={leadSources}
                 leadStatuses={leadStatuses}
                 leadTypes={leadTypes}
+                products={(products ?? []).filter((product: any) => product.status === "ACTIVE")}
               />
             </div>
           </div>
@@ -244,6 +251,59 @@ export async function BasicView({ data }: OppsViewProps) {
               contactRole={data.role}
             />
           </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Opportunity</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {linkedOpportunities.length > 0 ? (
+            linkedOpportunities.map((opportunity: any) => {
+              const products = parseOpportunityProducts(opportunity.category);
+
+              return (
+                <div
+                  key={opportunity.id}
+                  className="-mx-2 grid grid-cols-1 gap-3 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground md:grid-cols-3"
+                >
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">Name</p>
+                    <Link
+                      href={`/crm/opportunities/${opportunity.id}`}
+                      className="text-sm text-muted-foreground hover:underline"
+                    >
+                      {opportunity.name ?? "Opportunity"}
+                    </Link>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">Products</p>
+                    <div className="flex flex-wrap gap-2">
+                      {products.length > 0 ? (
+                        products.map((product) => (
+                          <Badge key={`${opportunity.id}-${product}`} variant="secondary">
+                            {product}
+                          </Badge>
+                        ))
+                      ) : (
+                        <p className="text-sm text-muted-foreground">N/A</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">Budget</p>
+                    <p className="text-sm text-muted-foreground">
+                      {opportunity.budget != null
+                        ? `${opportunity.currency ? `${opportunity.currency} ` : ""}${Number(opportunity.budget).toLocaleString()}`
+                        : "N/A"}
+                    </p>
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            <p className="text-sm text-muted-foreground">No opportunity data</p>
+          )}
         </CardContent>
       </Card>
       <div className="grid grid-cols-2 gap-3 w-full">

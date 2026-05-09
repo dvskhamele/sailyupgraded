@@ -33,7 +33,7 @@ const ContactsViewClient = ({ data, crmData, activeRole }: ContactsViewProps) =>
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
 
-  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
   const currentRole = activeRole ?? "all";
   const roleView = getContactRoleView(currentRole);
   const filteredData = useMemo(
@@ -72,6 +72,7 @@ const ContactsViewClient = ({ data, crmData, activeRole }: ContactsViewProps) =>
                     leadSources={leadSources}
                     leadStatuses={leadStatuses}
                     leadTypes={leadTypes}
+                    products={products}
                     defaultRole={roleView.defaultCreateRole}
                     onFinish={() => setOpen(false)}
                   />

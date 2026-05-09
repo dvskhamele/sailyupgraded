@@ -32,6 +32,7 @@ import { createColumns } from "./columns";
 
 type ConfigItem = { id: string; name: string };
 type FilterOption = { label: string; value: string };
+type ProductItem = { id: string; name: string };
 type AccountItem = {
   id: string;
   name: string;
@@ -46,6 +47,7 @@ interface DataTableProps<TData, TValue> {
   leadSources?: ConfigItem[];
   leadStatuses?: ConfigItem[];
   leadTypes?: ConfigItem[];
+  products?: ProductItem[];
   productOptions?: FilterOption[];
 }
 
@@ -56,9 +58,10 @@ export function LeadDataTable<TData, TValue>({
   leadSources = [],
   leadStatuses = [],
   leadTypes = [],
+  products = [],
   productOptions = [],
 }: DataTableProps<TData, TValue>) {
-  const columns = createColumns(contactTypes, leadSources, leadStatuses, leadTypes, accounts) as ColumnDef<TData, TValue>[];
+  const columns = createColumns(contactTypes, leadSources, leadStatuses, leadTypes, accounts, products) as ColumnDef<TData, TValue>[];
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({ products: false });

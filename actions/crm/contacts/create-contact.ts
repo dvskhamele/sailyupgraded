@@ -11,6 +11,7 @@ import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 import { serializeDecimals } from "@/lib/serialize-decimals";
+import { serializeOpportunityProducts } from "@/lib/opportunity-products";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -62,6 +63,8 @@ export const createContact = async (data: {
   social_youtube?: string;
   social_tiktok?: string;
   contact_type_id?: string;
+  opportunity_products?: string[];
+  opportunity_budget?: string;
   custom_fields_data?: Record<string, string | null | undefined>;
 }) => {
   const session = await getSession();
@@ -79,6 +82,8 @@ export const createContact = async (data: {
     lead_source_id,
     lead_status_id,
     lead_type_id,
+    opportunity_products,
+    opportunity_budget,
     country,
     address,
     address_line1,
@@ -156,6 +161,47 @@ export const createContact = async (data: {
         data: fallbackCreateFields as any,
         select: contactSelect,
       });
+    }
+
+    if ((opportunity_products?.length ?? 0) > 0 || opportunity_budget?.trim()) {
+      const opportunityName = [
+        data.first_name,
+        data.last_name,
+        "Opportunity",
+      ].filter(Boolean).join(" ");
+
+      const opportunity = await prismadb.crm_Opportunities.create({
+        data: {
+          assigned_account: assigned_account
+            ? { connect: { id: assigned_account } }
+            : undefined,
+          assigned_to_user: { connect: { id: assigned_to || userId } },
+          budget: opportunity_budget ? parseFloat(opportunity_budget) : undefined,
+          category: serializeOpportunityProducts(opportunity_products),
+          contact: contact.id,
+          contacts: {
+            create: {
+              contact: { connect: { id: contact.id } },
+            },
+          },
+          created_by_user: { connect: { id: userId } },
+          last_activity_by: userId,
+          updatedBy: userId,
+          description: data.description || null,
+          name: opportunityName,
+          status: "ACTIVE",
+        },
+      });
+
+      contact = {
+        ...contact,
+        opportunities: [
+          ...((contact as any).opportunities ?? []),
+          {
+            opportunity: serializeDecimals(opportunity),
+          },
+        ],
+      };
     }
 
     if (assigned_to && assigned_to !== userId) {

@@ -39,7 +39,8 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
 
-  const columns = createColumns(contactTypes, leadSources, leadStatuses, leadTypes, accounts);
+  const activeProducts = products.filter((product) => product.status === "ACTIVE");
+  const columns = createColumns(contactTypes, leadSources, leadStatuses, leadTypes, accounts, activeProducts);
 
   return (
     <Card>
@@ -69,6 +70,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
                     leadSources={leadSources}
                     leadStatuses={leadStatuses}
                     leadTypes={leadTypes}
+                    products={activeProducts}
                     onFinish={() => setOpen(false)}
                   />
                 </div>
@@ -91,6 +93,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
               leadSources={leadSources}
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
+              products={activeProducts}
               productOptions={products.map((product) => ({
                 label: product.name,
                 value: product.id,

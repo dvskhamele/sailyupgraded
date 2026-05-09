@@ -175,6 +175,8 @@ const contactDetailRelationSelect = {
           sales_stage: true,
           close_date: true,
           budget: true,
+          category: true,
+          currency: true,
         },
       },
     },
