@@ -93,7 +93,7 @@ const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
   { key: "type", label: "Type" },
   { key: "status", label: "Status" },
   { key: "description", label: "Description" },
-  { key: "assigned_to", label: "Assigned user" },
+  { key: "assigned_to", label: "Assigned member" },
   { key: "billing_street", label: "Billing street" },
   { key: "billing_postal_code", label: "Billing postal code" },
   { key: "billing_city", label: "Billing city" },

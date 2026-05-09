@@ -53,6 +53,52 @@ export const createColumns = (
     enableSorting: false,
     enableHiding: false,
   },
+    {
+    accessorKey: "firstName",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Name" />
+    ),
+
+    cell: ({ row }) => (
+      <Link href={`/crm/leads/${row.original.id}`} data-testid="lead-row-name">
+        <div>
+          {[row.original.firstName, row.original.lastName].filter(Boolean).join(" ")}
+        </div>
+      </Link>
+    ),
+    enableSorting: false,
+    enableHiding: true,
+  },
+   {
+    accessorKey: "email",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="E-mail" />
+    ),
+
+    cell: ({ row }) => (
+      <EmailLink
+        value={row.getValue("email") as string | null}
+        className="w-[150px]"
+      />
+    ),
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    accessorKey: "phone",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Phone" />
+    ),
+
+    cell: ({ row }) => (
+      <WhatsAppLink
+        value={row.getValue("phone") as string | null}
+        className="w-[150px]"
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
   {
     accessorKey: "assigned_to_user",
     header: ({ column }) => (
@@ -89,52 +135,8 @@ export const createColumns = (
     enableSorting: false,
     enableHiding: true,
   },
-  {
-    accessorKey: "firstName",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Name" />
-    ),
 
-    cell: ({ row }) => (
-      <Link href={`/crm/leads/${row.original.id}`} data-testid="lead-row-name">
-        <div>
-          {[row.original.firstName, row.original.lastName].filter(Boolean).join(" ")}
-        </div>
-      </Link>
-    ),
-    enableSorting: false,
-    enableHiding: true,
-  },
-  {
-    accessorKey: "email",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="E-mail" />
-    ),
-
-    cell: ({ row }) => (
-      <EmailLink
-        value={row.getValue("email") as string | null}
-        className="w-[150px]"
-      />
-    ),
-    enableSorting: true,
-    enableHiding: true,
-  },
-  {
-    accessorKey: "phone",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Phone" />
-    ),
-
-    cell: ({ row }) => (
-      <WhatsAppLink
-        value={row.getValue("phone") as string | null}
-        className="w-[150px]"
-      />
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+ 
   {
     id: "address",
     accessorFn: (row) => formatAddress(row as any),

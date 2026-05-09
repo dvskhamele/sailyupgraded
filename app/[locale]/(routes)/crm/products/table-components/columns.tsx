@@ -117,17 +117,17 @@ export const columns: ColumnDef<Product>[] = [
     enableSorting: true,
     enableHiding: true,
   },
-  {
-    accessorKey: "category",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Category" />
-    ),
-    cell: ({ row }) => (
-      <div>{row.original.category?.name ?? "-"}</div>
-    ),
-    enableSorting: false,
-    enableHiding: true,
-  },
+  // {
+  //   accessorKey: "category",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Category" />
+  //   ),
+  //   cell: ({ row }) => (
+  //     <div>{row.original.category?.name ?? "-"}</div>
+  //   ),
+  //   enableSorting: false,
+  //   enableHiding: true,
+  // },
   {
     accessorKey: "_count",
     header: ({ column }) => (

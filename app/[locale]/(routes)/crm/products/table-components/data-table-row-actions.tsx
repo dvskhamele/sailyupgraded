@@ -73,7 +73,7 @@ export function DataTableRowActions<TData>({
           <DropdownMenuItem
             onClick={() => router.push(`/crm/products/${product.id}`)}
           >
-            Edit
+           View
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={() => setOpen(true)}>

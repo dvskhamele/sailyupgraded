@@ -15,11 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { MailIcon } from "lucide-react";
-import {
-  InputOTP,
-  InputOTPGroup,
-  InputOTPSlot,
-} from "@/components/ui/input-otp";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 
 type Step = "email" | "otp";
@@ -29,19 +24,18 @@ const allowDevOtpPreview =
   process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ||
   process.env.NEXT_PUBLIC_ENABLE_OTP_PREVIEW === "true";
 
-function getLocalizedPath(path: string) {
-  if (typeof window === "undefined") return path;
-
-  const locale = window.location.pathname.split("/")[1];
+function getLocalizedPath(path: string, locale: string) {
   return locale ? `/${locale}${path}` : path;
 }
 
 type LoginComponentProps = {
+  locale: string;
   googleAuthEnabled: boolean;
   googleClientId?: string;
 };
 
 export function LoginComponent({
+  locale,
   googleAuthEnabled,
   googleClientId,
 }: LoginComponentProps) {
@@ -155,12 +149,16 @@ export function LoginComponent({
         return;
       }
       toast.success("Login successful.");
-      window.location.href = getLocalizedPath(DASHBOARD_PATH);
+      window.location.href = getLocalizedPath(DASHBOARD_PATH, locale);
     } catch (error) {
       toast.error("Verification failed.");
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleOtpChange = (value: string) => {
+    setOtp(value.replace(/\D/g, "").slice(0, 6));
   };
 
   return (
@@ -183,7 +181,7 @@ export function LoginComponent({
         {googleAuthEnabled && googleClientId && (
           <GoogleLoginButton
             clientId={googleClientId}
-            dashboardPath={getLocalizedPath(DASHBOARD_PATH)}
+            dashboardPath={getLocalizedPath(DASHBOARD_PATH, locale)}
           />
         )}
 
@@ -245,21 +243,19 @@ export function LoginComponent({
             )}
 
             <div className="flex justify-center">
-              <InputOTP
-                maxLength={6}
-                value={otp}
-                onChange={setOtp}
+              <Input
+                aria-label="Verification code"
+                autoComplete="one-time-code"
+                className="h-12 w-48 rounded-lg text-center font-mono text-xl tracking-[0.5em]"
                 disabled={isLoading}
-              >
-                <InputOTPGroup>
-                  <InputOTPSlot index={0} />
-                  <InputOTPSlot index={1} />
-                  <InputOTPSlot index={2} />
-                  <InputOTPSlot index={3} />
-                  <InputOTPSlot index={4} />
-                  <InputOTPSlot index={5} />
-                </InputOTPGroup>
-              </InputOTP>
+                inputMode="numeric"
+                maxLength={6}
+                onChange={(e) => handleOtpChange(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && verifyOtp()}
+                pattern="[0-9]*"
+                placeholder="000000"
+                value={otp}
+              />
             </div>
 
             <Button

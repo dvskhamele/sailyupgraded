@@ -28,6 +28,7 @@ import { Decimal } from "@prisma/client/runtime/client";
 import { cookies } from "next/headers";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
+import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
 
 interface OppsViewProps {
   data: {
@@ -230,6 +231,10 @@ export async function BasicView({ data }: OppsViewProps) {
               </p>
             </div>
           </div>
+          <CustomFieldsDisplay
+            entityType="Opportunity"
+            values={data.custom_fields_data}
+          />
         </div>
       </CardContent>
     </Card>

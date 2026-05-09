@@ -27,6 +27,7 @@ import { ContactDetailActions } from "./ContactDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
+import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
 // import { EnrichButton } from "./EnrichButton";
 
 interface OppsViewProps {
@@ -237,6 +238,11 @@ export async function BasicView({ data }: OppsViewProps) {
                 ))}
               </div>
             </div>
+            <CustomFieldsDisplay
+              entityType="Contact"
+              values={data.custom_fields_data}
+              contactRole={data.role}
+            />
           </div>
         </CardContent>
       </Card>

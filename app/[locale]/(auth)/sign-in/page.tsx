@@ -1,7 +1,12 @@
 import { LoginComponent } from "./components/LoginComponent";
 import { getGoogleClientId, isGoogleAuthEnabled } from "@/lib/env";
 
-const SignInPage = async () => {
+type SignInPageProps = {
+  params: Promise<{ locale: string }>;
+};
+
+const SignInPage = async ({ params }: SignInPageProps) => {
+  const { locale } = await params;
   const googleAuthEnabled = isGoogleAuthEnabled();
   const googleClientId = getGoogleClientId();
 
@@ -14,6 +19,7 @@ const SignInPage = async () => {
       </div>
       <div>
         <LoginComponent
+          locale={locale}
           googleAuthEnabled={googleAuthEnabled}
           googleClientId={googleClientId}
         />

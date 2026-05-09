@@ -10,6 +10,7 @@ import { normalizeContactRole } from "@/lib/contact-options";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { resolveLeadSourceId } from "@/lib/crm/contact-form-options";
+import { serializeDecimals } from "@/lib/serialize-decimals";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -112,7 +113,7 @@ export const createContact = async (data: {
   );
   const supportedCreateFields = await pickExistingDbModelFields("crm_Contacts", {
     v: 1,
-    serial: serial ? Number(serial) : undefined,
+    serial: serial?.trim() || undefined,
     createdBy: userId,
     updatedBy: userId,
     accountsIDs: assigned_account || undefined,
@@ -187,7 +188,7 @@ export const createContact = async (data: {
     });
     void inngest.send({ name: "crm/contact.saved", data: { record_id: contact.id } });
     revalidatePath("/[locale]/crm/contacts", "page");
-    return { data: contact };
+    return { data: serializeDecimals(contact) };
   } catch (error: any) {
     console.log("[CREATE_CONTACT] Error detail:", {
       message: error.message,

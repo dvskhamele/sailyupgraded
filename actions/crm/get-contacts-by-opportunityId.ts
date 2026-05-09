@@ -1,5 +1,6 @@
 import { prismadb } from "@/lib/prisma";
 import { getCrmContactListSelect } from "@/lib/prisma-contact-select";
+import { serializeDecimalsList } from "@/lib/serialize-decimals";
 
 export const getContactsByOpportunityId = async (opportunityId: string) => {
   const select = await getCrmContactListSelect();
@@ -15,5 +16,5 @@ export const getContactsByOpportunityId = async (opportunityId: string) => {
     },
     select,
   });
-  return data;
+  return serializeDecimalsList(data);
 };

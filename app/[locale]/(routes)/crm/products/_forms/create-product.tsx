@@ -165,14 +165,14 @@ const CreateProductForm = ({
             errors={fieldErrors}
           />
         </div>
-        <FormSelect
+        {/* <FormSelect
           id="categoryId"
           label="Category"
           type="hidden"
           placeholder="Select category"
           data={categories.map((c) => ({ id: c.id, name: c.name }))}
           errors={fieldErrors}
-        />
+        /> */}
         <div className="flex items-center space-x-2">
           <Checkbox
             id="is_recurring"

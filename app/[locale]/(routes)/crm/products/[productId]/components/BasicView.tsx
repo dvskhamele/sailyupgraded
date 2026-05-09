@@ -112,7 +112,7 @@ export function BasicView({ data }: BasicViewProps) {
                 </div>
               </div>
 
-              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+              {/* <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <List className="mt-px h-5 w-5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Category</p>
@@ -120,7 +120,7 @@ export function BasicView({ data }: BasicViewProps) {
                     {data.category?.name ?? "N/A"}
                   </p>
                 </div>
-              </div>
+              </div> */}
 
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <FileText className="mt-px h-5 w-5" />

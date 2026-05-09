@@ -99,10 +99,8 @@ function parseStatus(value: string): boolean | undefined {
   return undefined;
 }
 
-function parseSerial(value: string): number | undefined {
-  if (!value.trim()) return undefined;
-  const parsed = Number(value);
-  return Number.isInteger(parsed) && parsed > 0 ? parsed : undefined;
+function parseSerial(value: string): string | undefined {
+  return value.trim() || undefined;
 }
 
 function normalizeOptionalText(value: string | undefined) {

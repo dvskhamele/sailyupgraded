@@ -127,7 +127,7 @@ export const updateLead = async (data: {
     );
     const supportedFields = await pickExistingDbModelFields("crm_Leads", {
       v: 1,
-      serial: serial ? Number(serial) : null,
+      serial: serial?.trim() || null,
       updatedBy: userId,
       firstName: first_name || undefined,
       lastName: last_name,

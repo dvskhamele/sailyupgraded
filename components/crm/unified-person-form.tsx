@@ -247,7 +247,7 @@ export function UnifiedPersonForm({
                 <FormItem>
                   <FormLabel>{serialLabel}</FormLabel>
                   <FormControl>
-                    <Input type="number" min="1" step="1" placeholder="1" disabled={form.formState.isSubmitting} {...field} value={field.value ?? ""} />
+                    <Input placeholder="ID / serial" disabled={form.formState.isSubmitting} {...field} value={field.value ?? ""} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

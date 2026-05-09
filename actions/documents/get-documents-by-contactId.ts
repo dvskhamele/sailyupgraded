@@ -1,34 +1,38 @@
-import { prismadb } from "@/lib/prisma";
+import { cache } from "react";
+import { prismadb, withPrismaRetry } from "@/lib/prisma";
 
-export const getDocumentsByContactId = async (contactId: string) => {
-  // Query through DocumentsToContacts junction table
-  const data = await prismadb.documents.findMany({
-    where: {
-      contacts: {
-        some: {
-          contact_id: contactId,
+export const getDocumentsByContactId = cache(async (contactId: string) => {
+  return withPrismaRetry(async () => {
+    // Query through DocumentsToContacts junction table
+    const data = await prismadb.documents.findMany({
+      where: {
+        contacts: {
+          some: {
+            contact_id: contactId,
+          },
         },
       },
-    },
-    include: {
-      created_by: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
+      include: {
+        created_by: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        assigned_to_user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
         },
       },
-      assigned_to_user: {
-        select: {
-          id: true,
-          name: true,
-          email: true,
-        },
+      orderBy: {
+        date_created: "desc",
       },
-    },
-    orderBy: {
-      date_created: "desc",
-    },
+    });
+
+    return data;
   });
-  return data;
-};
+});

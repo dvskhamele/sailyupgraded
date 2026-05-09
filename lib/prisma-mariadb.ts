@@ -1,7 +1,8 @@
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import type { PoolConfig } from "mariadb";
 
-const DEFAULT_CONNECT_TIMEOUT_MS = 5_000;
+const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
+const DEFAULT_ACQUIRE_TIMEOUT_MS = 30_000;
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 300;
 const DEFAULT_CONNECTION_LIMIT = 10;
 
@@ -56,6 +57,12 @@ export function createMariaDbConfigFromUrl(databaseUrl: string): PoolConfig {
     connectTimeout:
       parseNumber(url.searchParams.get("connect_timeout")) ??
       DEFAULT_CONNECT_TIMEOUT_MS,
+    acquireTimeout:
+      parseNumber(url.searchParams.get("acquire_timeout")) ??
+      DEFAULT_ACQUIRE_TIMEOUT_MS,
+    initializationTimeout:
+      parseNumber(url.searchParams.get("initialization_timeout")) ??
+      DEFAULT_ACQUIRE_TIMEOUT_MS - 100,
     idleTimeout:
       parseNumber(url.searchParams.get("max_idle_connection_lifetime")) ??
       DEFAULT_IDLE_TIMEOUT_SECONDS,

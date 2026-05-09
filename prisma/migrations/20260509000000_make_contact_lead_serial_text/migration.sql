@@ -1,0 +1,5 @@
+ALTER TABLE `crm_Contacts`
+  MODIFY COLUMN `serial` VARCHAR(191) NULL;
+
+ALTER TABLE `crm_Leads`
+  MODIFY COLUMN `serial` VARCHAR(191) NULL;

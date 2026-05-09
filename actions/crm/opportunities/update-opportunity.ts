@@ -12,6 +12,7 @@ import {
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { serializeOpportunityProducts } from "@/lib/opportunity-products";
+import { Prisma } from "@prisma/client";
 
 export const updateOpportunity = async (data: {
   id: string;
@@ -78,7 +79,7 @@ export const updateOpportunity = async (data: {
         custom_fields_data:
           Object.keys(sanitizedCustomFieldValues).length > 0
             ? sanitizedCustomFieldValues
-            : null,
+            : Prisma.JsonNull,
       },
     );
 

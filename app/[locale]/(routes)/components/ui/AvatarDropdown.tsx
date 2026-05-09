@@ -36,7 +36,7 @@ const AvatarDropdown = ({ avatar, userId, name, email }: Props) => {
             src={
               newAvatar
                 ? newAvatar
-                : `${process.env.NEXT_PUBLIC_APP_URL}/images/nouser.png`
+                : "/images/nouser.png"
             }
           />
         </Avatar>

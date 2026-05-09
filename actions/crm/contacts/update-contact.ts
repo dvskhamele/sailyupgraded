@@ -9,6 +9,7 @@ import { normalizeContactRole } from "@/lib/contact-options";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { resolveLeadSourceId } from "@/lib/crm/contact-form-options";
+import { serializeDecimals } from "@/lib/serialize-decimals";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -116,7 +117,7 @@ export const updateContact = async (data: {
   );
   const supportedUpdateFields = await pickExistingDbModelFields("crm_Contacts", {
     v: 0,
-    serial: serial ? Number(serial) : null,
+    serial: serial?.trim() || null,
     updatedBy: userId,
     accountsIDs: assigned_account || undefined,
     assigned_to: assigned_to || undefined,
@@ -174,7 +175,7 @@ export const updateContact = async (data: {
     });
     void inngest.send({ name: "crm/contact.saved", data: { record_id: contact.id } });
     revalidatePath("/[locale]/(routes)/crm/contacts", "page");
-    return { data: contact };
+    return { data: serializeDecimals(contact) };
   } catch (error) {
     console.log("[UPDATE_CONTACT]", error);
     return { error: "Failed to update contact" };

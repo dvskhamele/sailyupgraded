@@ -6,9 +6,9 @@ import Container from "../../components/ui/Container";
 import ContactsView from "../components/ContactsView";
 // import { ContactSearch } from "@/components/crm/ContactSearch";
 import { getContacts } from "@/actions/crm/get-contacts";
-import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { getTranslations } from "next-intl/server";
 import { getContactRoleView } from "@/lib/contact-options";
+import { getContactFormOptionsData } from "@/lib/crm/contact-form-options";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
@@ -19,7 +19,7 @@ const AccountsPage = async ({ searchParams }: Props) => {
   const search = await searchParams;
   const roleParam = Array.isArray(search.role) ? search.role[0] : search.role;
   const roleView = getContactRoleView(roleParam);
-  const crmData = await getAllCrmData();
+  const crmData = await getContactFormOptionsData();
   const contacts = await getContacts(roleParam);
 
   return (

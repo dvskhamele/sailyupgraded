@@ -24,6 +24,7 @@ import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { LeadDetailActions } from "./LeadDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
+import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
 
 interface OppsViewProps {
   data: any;
@@ -241,6 +242,10 @@ export async function BasicView({ data }: OppsViewProps) {
                 </div>
               </div>
             </div>
+            <CustomFieldsDisplay
+              entityType="Lead"
+              values={data.custom_fields_data}
+            />
           </div>
         </CardContent>
       </Card>

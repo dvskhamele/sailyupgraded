@@ -5,7 +5,7 @@ import { z } from "zod";
 export const opportunitySchema = z.object({
   //TODO: fix all the types and nullable
   id: z.string(),
-  serial: z.number().nullable().optional(),
+  serial: z.union([z.string(), z.number()]).nullable().optional(),
   first_name: z.string().nullable(),
   last_name: z.string(),
   email: z.string().nullable(),

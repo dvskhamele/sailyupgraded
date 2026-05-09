@@ -81,7 +81,7 @@ model crm_Leads {
   createdBy         String?
   updatedAt         DateTime?          @updatedAt
   updatedBy         String?
-  serial            Int?
+  serial            String?
   firstName         String
   lastName          String?
   company           String?
@@ -434,7 +434,7 @@ model crm_Lead_Types {
 model crm_Contacts {
   id                   String                    @id @default(uuid())
   v                    Int                       @default(0) @map("__v")
-  serial               Int?
+  serial               String?
   account              String?
   assigned_to          String?
   birthday             String?

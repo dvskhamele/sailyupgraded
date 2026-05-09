@@ -1,108 +1,36 @@
-"use client";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale, getMessages } from "next-intl/server";
 
-import { useMemo, useState } from "react";
-import Link from "next/link";
-import { useTranslations } from "next-intl";
+import ContactsViewClient from "./ContactsViewClient";
 
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+type ContactOption = {
+  id: string;
+  name: string;
+  accountProducts?: { product?: { id: string; name: string } | null }[];
+};
 
-import { createColumns } from "../contacts/table-components/columns";
-import { ImportContactsDialog } from "../contacts/components/ImportContactsDialog";
-import { NewContactForm } from "../contacts/components/NewContactForm";
-import { ContactsDataTable } from "../contacts/table-components/data-table";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
-import { Button } from "@/components/ui/button";
-import { getContactRoleView, matchesContactRoleFilter } from "@/lib/contact-options";
+type CrmData = {
+  accounts: ContactOption[];
+  contactTypes?: ContactOption[];
+  leadSources?: ContactOption[];
+  leadStatuses?: ContactOption[];
+  leadTypes?: ContactOption[];
+};
 
-import type { getAllCrmData } from "@/actions/crm/get-crm-data";
-
-type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
-
-interface ContactsViewProps {
+export interface ContactsViewProps {
   data: any[];
   crmData: CrmData;
   accountId?: string;
   activeRole?: string;
 }
 
-const ContactsView = ({ data, crmData, activeRole }: ContactsViewProps) => {
-  const [open, setOpen] = useState(false);
-  const t = useTranslations("CrmPage");
-
-  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
-  const currentRole = activeRole ?? "all";
-  const roleView = getContactRoleView(currentRole);
-  const filteredData = useMemo(
-    () => data.filter((contact) => matchesContactRoleFilter(currentRole, contact.role)),
-    [currentRole, data]
-  );
-
+const ContactsView = async (props: ContactsViewProps) => {
+  const locale = await getLocale();
+  const messages = await getMessages();
   return (
-    <Card>
-      <CardHeader className="pb-3">
-        <div className="flex justify-between">
-          <div>
-            <CardTitle>
-              <Link href="/crm/contacts" prefetch={false} className="hover:underline">
-                {roleView.heading}
-              </Link>
-            </CardTitle>
-          </div>
-          <div className="flex space-x-2">
-            <ImportContactsDialog />
-            <Sheet open={open} onOpenChange={setOpen}>
-              <SheetTrigger asChild>
-                <Button size="sm" aria-label={t("contacts.addNew")} data-testid="add-contact-btn">+</Button>
-              </SheetTrigger>
-              <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
-                <SheetHeader>
-                  <SheetTitle>{roleView.createTitle}</SheetTitle>
-                  <SheetDescription>
-                    {t("contacts.sheetDescription")}
-                  </SheetDescription>
-                </SheetHeader>
-                <div className="mt-6 space-y-4">
-                  <NewContactForm
-                    accounts={accounts}
-                    contactTypes={contactTypes}
-                    leadSources={leadSources}
-                    leadStatuses={leadStatuses}
-                    leadTypes={leadTypes}
-                    defaultRole={roleView.defaultCreateRole}
-                    onFinish={() => setOpen(false)}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
-        </div>
-        <Separator />
-      </CardHeader>
-
-      <CardContent>
-        {!filteredData || filteredData.length === 0 ? (
-          t("contacts.empty")
-        ) : (
-          <ContactsDataTable
-            data={filteredData}
-            columns={createColumns(contactTypes, accounts)}
-          />
-        )}
-      </CardContent>
-    </Card>
+    <NextIntlClientProvider locale={locale} messages={messages}>
+      <ContactsViewClient {...props} />
+    </NextIntlClientProvider>
   );
 };
 
