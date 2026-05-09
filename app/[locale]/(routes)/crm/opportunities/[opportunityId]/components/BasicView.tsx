@@ -33,7 +33,7 @@ import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
 interface OppsViewProps {
   data: {
     assigned_sales_stage: { name: string };
-    assigned_to_user: { name: string };
+    assigned_to_user: { name: string } | null;
     assigned_account: { name: string };
     assigned_type: { name: string };
   } & crm_Opportunities;
@@ -146,7 +146,7 @@ export async function BasicView({ data }: OppsViewProps) {
             <div className="space-y-1">
               <p className="text-sm font-medium leading-none">Assigned to</p>
               <p className="text-sm text-muted-foreground">
-                {data.assigned_to_user.name}
+                {data.assigned_to_user?.name ?? "Unassigned"}
               </p>
             </div>
           </div>
