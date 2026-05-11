@@ -724,7 +724,7 @@ export function UnifiedPersonForm({
                           <SelectValue placeholder={contactT("contactTypePlaceholder")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent>
+                      <SelectContent className="max-h-72 overflow-y-auto">
                         {contactTypes.length > 0 ? (
                           contactTypes.map((type) => (
                             <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>

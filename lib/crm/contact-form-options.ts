@@ -2,7 +2,42 @@ import { prismadb, withPrismaRetry } from "@/lib/prisma";
 
 export type NamedOption = { id: string; name: string };
 
-const DEFAULT_CONTACT_TYPE_NAMES = ["Agent", "Customer", "Partner", "Prospect", "Vendor"] as const;
+const ROLE_PLACEHOLDER = `${String.fromCharCode(60)}ROLE${String.fromCharCode(62)}`;
+
+const HIDDEN_CONTACT_TYPE_NAMES = [
+  "Agent",
+  "Customer",
+  "Partner",
+  "Vendor",
+  `${ROLE_PLACEHOLDER} KNOWN FOR YEARS`,
+  `HIGH_RISK ${ROLE_PLACEHOLDER}`,
+  `UNKNOWN ${ROLE_PLACEHOLDER}`,
+  "MARKETING DEPARTMENT KNOWN KNOWN FOR YEARS",
+] as const;
+
+const DEFAULT_CONTACT_TYPE_NAMES = [
+  "POC 1 TO 5YRS",
+  "POC BUSINESS REFERRAL",
+  "POC NEW UNDER 1YR",
+  "FINANCE DEPARTMENT KNOWN",
+  "FINANCE DEPARTMENT NEW",
+  "TECHNICAL DEPARTMENT KNOWN",
+  "TECHNICAL DEPARTMENT NEW",
+  "LEGAL DEPARTMENT KNOWN",
+  "LEGAL DEPARTMENT UNKNOWN",
+  "SUPPORTER CHAMPION ALLY",
+  "SUPPORTER NEUTRAL",
+  "UNTRUSTED HIGH RISK",
+  "PRINCIPAL MAIN OWNER 5YRS PLUS",
+  "PRINCIPAL ESTABLISHED 1 TO 5YRS",
+  "PRINCIPAL NEW UNDER 1YR",
+  "DECISION MAKER FROM TEAM",
+  "MARKETING DEPARTMENT NEW",
+  "MARKETING DEPARTMENT KNOWN",
+  "KNOWN FOR YEARS",
+  "HIGH_RISK",
+  "UNKNOWN",
+] as const;
 
 const SOCIAL_LEAD_SOURCE_NAMES = [
   "Twitter / X",
@@ -13,6 +48,23 @@ const SOCIAL_LEAD_SOURCE_NAMES = [
   "YouTube",
   "TikTok",
 ] as const;
+
+function getVisibleContactTypes(contactTypes: NamedOption[]) {
+  const hiddenNames = new Set(HIDDEN_CONTACT_TYPE_NAMES.map((name) => name.toLowerCase()));
+  const defaultOrder = new Map(DEFAULT_CONTACT_TYPE_NAMES.map((name, index) => [name.toLowerCase(), index]));
+
+  return contactTypes
+    .filter((type) => !hiddenNames.has(type.name.trim().toLowerCase()))
+    .sort((left, right) => {
+      const leftOrder = defaultOrder.get(left.name.trim().toLowerCase());
+      const rightOrder = defaultOrder.get(right.name.trim().toLowerCase());
+
+      if (leftOrder != null && rightOrder != null) return leftOrder - rightOrder;
+      if (leftOrder != null) return -1;
+      if (rightOrder != null) return 1;
+      return left.name.localeCompare(right.name);
+    });
+}
 
 export function appendSocialLeadSourceOptions<T extends NamedOption>(leadSources: T[]): T[] {
   const seen = new Set(leadSources.map((source) => source.name.trim().toLowerCase()));
@@ -59,7 +111,9 @@ export async function ensureDefaultContactTypes(): Promise<NamedOption[]> {
     (name) => !existingNames.has(name.toLowerCase())
   );
 
-  if (missingNames.length === 0) return existing;
+  if (missingNames.length === 0) {
+    return getVisibleContactTypes(existing);
+  }
 
   await Promise.all(
     missingNames.map((name) =>
@@ -71,10 +125,12 @@ export async function ensureDefaultContactTypes(): Promise<NamedOption[]> {
     )
   );
 
-  return prismadb.crm_Contact_Types.findMany({
+  const updated = await prismadb.crm_Contact_Types.findMany({
     select: { id: true, name: true },
     orderBy: { name: "asc" },
   });
+
+  return getVisibleContactTypes(updated);
 }
 
 export async function getContactFormOptionsData() {

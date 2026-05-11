@@ -804,7 +804,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="activity-title">Title *</Label>
+            <Label htmlFor="activity-title">Title</Label>
             <Input
               id="activity-title"
               value={title}
@@ -815,7 +815,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="activity-date">Date & Time *</Label>
+            <Label htmlFor="activity-date">Date & Time</Label>
             <Input
               id="activity-date"
               type="datetime-local"

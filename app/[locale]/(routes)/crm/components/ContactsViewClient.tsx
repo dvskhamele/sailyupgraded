@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { useTranslations } from "next-intl";
 
 import {
   Card,
@@ -29,11 +28,16 @@ import { getContactRoleView, matchesContactRoleFilter } from "@/lib/contact-opti
 
 import type { ContactsViewProps } from "./ContactsView";
 
-const ContactsViewClient = ({ data, crmData, activeRole }: ContactsViewProps) => {
+const ContactsViewClient = ({ data, crmData, activeRole, labels: providedLabels }: ContactsViewProps) => {
   const [open, setOpen] = useState(false);
-  const t = useTranslations("CrmPage");
 
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
+  const labels = {
+    addNew: "Add new",
+    sheetDescription: "Add or update contact details",
+    empty: "No contacts found",
+    ...(providedLabels ?? {}),
+  };
   const currentRole = activeRole ?? "all";
   const roleView = getContactRoleView(currentRole);
   const filteredData = useMemo(
@@ -56,13 +60,13 @@ const ContactsViewClient = ({ data, crmData, activeRole }: ContactsViewProps) =>
             <ImportContactsDialog />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button size="sm" aria-label={t("contacts.addNew")} data-testid="add-contact-btn">+</Button>
+                <Button size="sm" aria-label={labels.addNew} data-testid="add-contact-btn">+</Button>
               </SheetTrigger>
               <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
                 <SheetHeader>
                   <SheetTitle>{roleView.createTitle}</SheetTitle>
                   <SheetDescription>
-                    {t("contacts.sheetDescription")}
+                    {labels.sheetDescription}
                   </SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 space-y-4">
@@ -86,7 +90,7 @@ const ContactsViewClient = ({ data, crmData, activeRole }: ContactsViewProps) =>
 
       <CardContent>
         {!filteredData || filteredData.length === 0 ? (
-          t("contacts.empty")
+          labels.empty
         ) : (
           <ContactsDataTable
             data={filteredData}
