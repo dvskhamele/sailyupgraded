@@ -1,6 +1,7 @@
 "use client";
 
 import moment from "moment";
+import { useEffect, useState } from "react";
 
 import { ColumnDef } from "@tanstack/react-table";
 
@@ -9,6 +10,25 @@ import { AdminUser } from "../table-data/schema";
 import { DataTableRowActions } from "./data-table-row-actions";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { formatDistanceToNowStrict } from "date-fns";
+
+function LastLoginCell({ value }: { value: Date | string | null | undefined }) {
+  const [relativeDate, setRelativeDate] = useState("");
+
+  useEffect(() => {
+    if (!value) {
+      setRelativeDate("Never");
+      return;
+    }
+
+    setRelativeDate(
+      formatDistanceToNowStrict(new Date(value), {
+        addSuffix: true,
+      })
+    );
+  }, [value]);
+
+  return <div className="min-w-[150px]">{relativeDate}</div>;
+}
 
 export const columns: ColumnDef<AdminUser>[] = [
   /*   {
@@ -38,17 +58,7 @@ export const columns: ColumnDef<AdminUser>[] = [
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Last login" />
     ),
-    cell: ({ row }) => (
-      <div className="min-w-[150px]">
-        {/*   {moment(row.getValue("lastLoginAt")).format("YYYY/MM/DD-HH:mm")} */}
-        {formatDistanceToNowStrict(
-          new Date(row.original.lastLoginAt || new Date()),
-          {
-            addSuffix: true,
-          }
-        )}
-      </div>
-    ),
+    cell: ({ row }) => <LastLoginCell value={row.original.lastLoginAt} />,
     enableSorting: false,
     enableHiding: false,
   },

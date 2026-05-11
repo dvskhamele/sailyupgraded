@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Phone, Users, FileText, Mail, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -56,8 +56,16 @@ interface Props {
 export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, entityId }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [relativeDate, setRelativeDate] = useState("");
+  const [absoluteDate, setAbsoluteDate] = useState("");
 
   const Icon = TYPE_ICONS[activity.type];
+
+  useEffect(() => {
+    const date = new Date(activity.date);
+    setRelativeDate(formatDistanceToNow(date, { addSuffix: true }));
+    setAbsoluteDate(date.toLocaleString());
+  }, [activity.date]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -93,11 +101,11 @@ export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, enti
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="text-xs text-muted-foreground cursor-default">
-                  {formatDistanceToNow(new Date(activity.date), { addSuffix: true })}
+                  {relativeDate}
                 </span>
               </TooltipTrigger>
               <TooltipContent>
-                {new Date(activity.date).toLocaleString()}
+                {absoluteDate}
               </TooltipContent>
             </Tooltip>
             <Button

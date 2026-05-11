@@ -48,7 +48,7 @@ export const FormDatePicker = forwardRef<HTMLInputElement, FormDatePickerProps>(
     // Convert defaultValue to Date object
     const defaultDate = defaultValue ? new Date(defaultValue) : undefined;
 
-    const [date, setDate] = useState<Date>(defaultDate || new Date());
+    const [date, setDate] = useState<Date | undefined>(defaultDate);
 
     return (
       <div className="space-y-2">
@@ -91,7 +91,7 @@ export const FormDatePicker = forwardRef<HTMLInputElement, FormDatePickerProps>(
             <PopoverContent className="w-auto p-0">
               <Calendar
                 mode="single"
-                selected={defaultDate}
+                selected={date}
                 onSelect={(date: Date | undefined) => date && setDate(date)}
                 initialFocus
               />

@@ -67,12 +67,12 @@ const AccountProductsView = ({
     if (price == null) return "-";
     const num = typeof price === "number" ? price : Number(price);
     const curr = item.currency || item.product?.currency || "EUR";
-    return `${num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${curr}`;
+    return `${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${curr}`;
   };
 
   const formatDate = (date: string | Date | null | undefined) => {
     if (!date) return "-";
-    return new Date(date).toLocaleDateString();
+    return new Date(date).toISOString().slice(0, 10);
   };
 
   return (

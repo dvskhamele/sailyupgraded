@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -46,12 +46,14 @@ export function AddPaymentDialog({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [amount, setAmount] = useState(balanceDue);
-  const [paidAt, setPaidAt] = useState(
-    new Date().toISOString().split("T")[0]
-  );
+  const [paidAt, setPaidAt] = useState("");
   const [method, setMethod] = useState("Bank Transfer");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+
+  useEffect(() => {
+    setPaidAt(new Date().toISOString().split("T")[0]);
+  }, []);
 
   const handleSubmit = async () => {
     setSaving(true);

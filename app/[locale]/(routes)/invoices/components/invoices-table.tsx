@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import Link from "next/link";
 import {
@@ -73,7 +73,7 @@ function SortHeader({
 
 function formatDate(d: string | null, locale: string) {
   if (!d) return "-";
-  return new Date(d).toLocaleDateString(locale);
+  return new Date(d).toISOString().slice(0, 10);
 }
 
 function formatCurrency(amount: string, currency: string, locale: string) {
@@ -94,6 +94,11 @@ export function InvoicesTable({
   const locale = useLocale();
   const [sortField, setSortField] = useState<SortField>("issueDate");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [todayMs, setTodayMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    setTodayMs(Date.now());
+  }, []);
 
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
@@ -137,9 +142,10 @@ export function InvoicesTable({
     if (inv.status === "OVERDUE") return true;
     if (
       inv.dueDate &&
+      todayMs !== null &&
       ["ISSUED", "SENT", "PARTIALLY_PAID"].includes(inv.status)
     ) {
-      return new Date(inv.dueDate) < new Date();
+      return new Date(inv.dueDate).getTime() < todayMs;
     }
     return false;
   };

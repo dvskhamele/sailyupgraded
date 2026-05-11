@@ -1,6 +1,7 @@
 "use client";
 
 import { z } from "zod";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -41,6 +42,8 @@ type AccountOption = {
   name: string;
   accountProducts?: { product?: { id: string; name: string } | null }[];
 };
+
+const FALLBACK_BIRTH_YEAR_END = 2026;
 
 export const unifiedPersonFormSchema = z.object({
   id: z.uuid().optional(),
@@ -131,6 +134,11 @@ export function UnifiedPersonForm({
   const contactT = useTranslations("CrmContactForm");
   const leadT = useTranslations("CrmLeadForm");
   const c = useTranslations("Common");
+  const [birthYearEnd, setBirthYearEnd] = useState(FALLBACK_BIRTH_YEAR_END);
+
+  useEffect(() => {
+    setBirthYearEnd(new Date().getFullYear());
+  }, []);
 
   const formSchema = unifiedPersonFormSchema.extend({
     last_name: z.string().min(1, contactT("lastNameRequired")),
@@ -220,7 +228,7 @@ export function UnifiedPersonForm({
     await onSuccess(result, data);
   };
 
-  const yearOptions = Array.from({ length: 100 }, (_, i) => new Date().getFullYear() - i);
+  const yearOptions = Array.from({ length: 100 }, (_, i) => birthYearEnd - i);
 
   return (
     <Form {...form}>

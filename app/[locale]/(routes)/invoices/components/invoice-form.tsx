@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { toast } from "sonner";
@@ -111,13 +111,16 @@ export function InvoiceForm({
     if (initialData?.dueDate) {
       return new Date(initialData.dueDate).toISOString().split("T")[0];
     }
-    if (settings?.defaultDueDays) {
-      const d = new Date();
-      d.setDate(d.getDate() + settings.defaultDueDays);
-      return d.toISOString().split("T")[0];
-    }
     return "";
   });
+
+  useEffect(() => {
+    if (initialData?.dueDate || !settings?.defaultDueDays) return;
+
+    const d = new Date();
+    d.setDate(d.getDate() + settings.defaultDueDays);
+    setDueDate(d.toISOString().split("T")[0]);
+  }, [initialData?.dueDate, settings?.defaultDueDays]);
   const [bankName, setBankName] = useState(
     initialData?.bankName ?? settings?.bankName ?? ""
   );

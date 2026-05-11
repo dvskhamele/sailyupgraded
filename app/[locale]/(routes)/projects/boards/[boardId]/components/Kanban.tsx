@@ -97,7 +97,11 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
     isDragging,
   } = useSortable({ id: task.id });
 
-  const [currentTime] = React.useState(() => Date.now());
+  const [currentTime, setCurrentTime] = React.useState<number | null>(null);
+
+  useEffect(() => {
+    setCurrentTime(Date.now());
+  }, []);
 
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -119,8 +123,9 @@ function TaskItem({ task, onDelete, onDone, onEdit, router }: any) {
         </h2>
         <div className="ml-1">
           {task?.dueDateAt &&
+            currentTime !== null &&
             task.taskStatus != "COMPLETE" &&
-            task.dueDateAt < currentTime && (
+            new Date(task.dueDateAt).getTime() < currentTime && (
               <HoverCard>
                 <HoverCardTrigger>
                   <ExclamationTriangleIcon className="w-4 h-4 text-red-500" />

@@ -31,6 +31,8 @@ type Account = Awaited<ReturnType<typeof getEmailAccounts>>[number];
 
 export function EmailAccountsList({ accounts }: { accounts: Account[] }) {
   const router = useRouter();
+  const formatDateTime = (value: Date | string) =>
+    new Date(value).toISOString().replace("T", " ").slice(0, 16);
   const [open, setOpen] = useState(false);
   const [testing, setTesting] = useState(false);
   const [syncingId, setSyncingId] = useState<string | null>(null);
@@ -151,7 +153,7 @@ export function EmailAccountsList({ accounts }: { accounts: Account[] }) {
             </p>
             {acc.lastSyncedAt && (
               <p className="text-xs text-muted-foreground">
-                Last synced: {new Date(acc.lastSyncedAt).toLocaleString()}
+                Last synced: {formatDateTime(acc.lastSyncedAt)}
               </p>
             )}
           </div>

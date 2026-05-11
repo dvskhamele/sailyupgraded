@@ -1,4 +1,5 @@
 "use client";
+import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -41,8 +42,13 @@ interface EntryProps {
 }
 
 export function AuditEntry({ entry, showRestore, onRestore }: EntryProps) {
+  const [relativeDate, setRelativeDate] = useState("");
   const userName = entry.user?.name ?? "System";
   const initials = userName.split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2);
+
+  useEffect(() => {
+    setRelativeDate(formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true }));
+  }, [entry.createdAt]);
 
   return (
     <div className="flex gap-3 py-3 border-b last:border-0">
@@ -57,7 +63,7 @@ export function AuditEntry({ entry, showRestore, onRestore }: EntryProps) {
             {ACTION_LABELS[entry.action] ?? entry.action}
           </Badge>
           <span className="text-xs text-muted-foreground ml-auto">
-            {formatDistanceToNow(new Date(entry.createdAt), { addSuffix: true })}
+            {relativeDate}
           </span>
         </div>
         {entry.changes && entry.changes.length > 0 && (

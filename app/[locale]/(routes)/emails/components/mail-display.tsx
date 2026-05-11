@@ -51,10 +51,14 @@ interface MailDisplayProps {
 }
 
 export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
-  const today = new Date();
   const router = useRouter();
 
   const [fullEmail, setFullEmail] = useState<Awaited<ReturnType<typeof getEmail>> | null>(null);
+  const [today, setToday] = useState<Date | null>(null);
+
+  useEffect(() => {
+    setToday(new Date());
+  }, []);
 
   useEffect(() => {
     if (!mail?.id) return;
@@ -144,7 +148,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
                     >
                       Later today{" "}
                       <span className="ml-auto text-muted-foreground">
-                        {format(addHours(today, 4), "E, h:m b")}
+                        {today ? format(addHours(today, 4), "E, h:m b") : ""}
                       </span>
                     </Button>
                     <Button
@@ -153,7 +157,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
                     >
                       Tomorrow
                       <span className="ml-auto text-muted-foreground">
-                        {format(addDays(today, 1), "E, h:m b")}
+                        {today ? format(addDays(today, 1), "E, h:m b") : ""}
                       </span>
                     </Button>
                     <Button
@@ -162,7 +166,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
                     >
                       This weekend
                       <span className="ml-auto text-muted-foreground">
-                        {format(nextSaturday(today), "E, h:m b")}
+                        {today ? format(nextSaturday(today), "E, h:m b") : ""}
                       </span>
                     </Button>
                     <Button
@@ -171,7 +175,7 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
                     >
                       Next week
                       <span className="ml-auto text-muted-foreground">
-                        {format(addDays(today, 7), "E, h:m b")}
+                        {today ? format(addDays(today, 7), "E, h:m b") : ""}
                       </span>
                     </Button>
                   </div>

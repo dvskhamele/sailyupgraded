@@ -1,6 +1,7 @@
 "use client";
 
 import { formatDistanceToNow } from "date-fns";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { cn } from "@/lib/utils";
@@ -19,6 +20,23 @@ export function MailList({ items, page, totalPages }: MailListProps) {
   const [mail, setMail] = useMail();
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [relativeDates, setRelativeDates] = useState<Record<string, string>>({});
+
+  const dateInputs = useMemo(
+    () => items.map((item) => [item.id, item.sentAt] as const),
+    [items]
+  );
+
+  useEffect(() => {
+    setRelativeDates(
+      Object.fromEntries(
+        dateInputs.map(([id, sentAt]) => [
+          id,
+          sentAt ? formatDistanceToNow(new Date(sentAt), { addSuffix: true }) : "",
+        ])
+      )
+    );
+  }, [dateInputs]);
 
   function navigate(toPage: number) {
     const p = new URLSearchParams(searchParams.toString());
@@ -61,11 +79,7 @@ export function MailList({ items, page, totalPages }: MailListProps) {
                       : "text-muted-foreground"
                   )}
                 >
-                  {item.sentAt
-                    ? formatDistanceToNow(new Date(item.sentAt), {
-                        addSuffix: true,
-                      })
-                    : ""}
+                  {relativeDates[item.id] ?? ""}
                 </div>
               </div>
               <div className="text-xs font-medium">

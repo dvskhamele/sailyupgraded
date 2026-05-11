@@ -72,7 +72,7 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
   const form = useForm<NewAccountFormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      dueDateAt: new Date(),
+      dueDateAt: undefined,
     },
   });
 

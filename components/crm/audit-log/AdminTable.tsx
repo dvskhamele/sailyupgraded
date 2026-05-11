@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,23 @@ export function AuditAdminTable({
 }: AdminTableProps) {
   const router = useRouter();
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [relativeDates, setRelativeDates] = useState<Record<string, string>>({});
+
+  const dateInputs = useMemo(
+    () => entries.map((entry) => [entry.id, entry.createdAt] as const),
+    [entries]
+  );
+
+  useEffect(() => {
+    setRelativeDates(
+      Object.fromEntries(
+        dateInputs.map(([id, createdAt]) => [
+          id,
+          formatDistanceToNow(new Date(createdAt), { addSuffix: true }),
+        ])
+      )
+    );
+  }, [dateInputs]);
 
   return (
     <div className="space-y-4">
@@ -72,9 +89,7 @@ export function AuditAdminTable({
                   </td>
                   <td className="px-4 py-2">{entry.user?.name ?? "System"}</td>
                   <td className="px-4 py-2 text-muted-foreground">
-                    {formatDistanceToNow(new Date(entry.createdAt), {
-                      addSuffix: true,
-                    })}
+                    {relativeDates[entry.id] ?? ""}
                   </td>
                   {role === "admin" && (
                     <td className="px-4 py-2">

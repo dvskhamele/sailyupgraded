@@ -29,7 +29,7 @@ import { CheckSquare, Eye, MessagesSquare, Pencil } from "lucide-react";
 import UpdateTaskDialog from "../../dialogs/UpdateTask";
 import { Button } from "@/components/ui/button";
 import { Sections } from "@prisma/client";
-import { ElementRef, useRef, useState } from "react";
+import { ElementRef, useEffect, useRef, useState } from "react";
 import FormSheet from "@/components/sheets/form-sheet";
 
 interface DashboardData {
@@ -67,6 +67,11 @@ const ProjectDashboardCockpit = ({
 
   const [updateOpenSheet, setUpdateOpenSheet] = useState(false);
   const closeRef = useRef<ElementRef<"button">>(null);
+  const [nowMs, setNowMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
 
   //Actions
   const onDone = async (taskId: string) => {
@@ -105,7 +110,9 @@ const ProjectDashboardCockpit = ({
             <CardContent>
               <div
                 className={
-                  task.dueDateAt < new Date() ? "text-red-500 text-xs" : ""
+                  nowMs !== null && new Date(task.dueDateAt).getTime() < nowMs
+                    ? "text-red-500 text-xs"
+                    : ""
                 }
               >
                 Due date: {moment(task.dueDateAt).format("YYYY-MM-DD")}
@@ -209,7 +216,7 @@ const ProjectDashboardCockpit = ({
             <CardContent>
               <div
                 className={
-                  task.dueDateAt < new Date()
+                  nowMs !== null && new Date(task.dueDateAt).getTime() < nowMs
                     ? "text-red-500 text-xs"
                     : "text-xs"
                 }

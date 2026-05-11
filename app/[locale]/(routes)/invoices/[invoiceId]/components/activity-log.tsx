@@ -24,6 +24,9 @@ const ACTION_LABELS: Record<string, string> = {
 };
 
 export function ActivityLog({ activities }: ActivityLogProps) {
+  const formatDateTime = (value: string) =>
+    new Date(value).toISOString().replace("T", " ").slice(0, 16);
+
   if (activities.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-4">No activity yet</p>
@@ -40,7 +43,7 @@ export function ActivityLog({ activities }: ActivityLogProps) {
               {ACTION_LABELS[a.action] ?? a.action}
             </p>
             <p className="text-muted-foreground text-xs">
-              {new Date(a.createdAt).toLocaleString()}
+              {formatDateTime(a.createdAt)}
             </p>
           </div>
         </div>

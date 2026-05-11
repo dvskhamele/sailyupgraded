@@ -18,6 +18,7 @@ export function ExchangeRatesTable({
   rates: ExchangeRateValue[];
   ecbEnabled: boolean;
 }) {
+  const formatDate = (value: Date | string) => new Date(value).toISOString().slice(0, 10);
   const [editing, setEditing] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
 
@@ -63,7 +64,7 @@ export function ExchangeRatesTable({
               <Badge variant={r.source === "ECB" ? "default" : "secondary"}>{r.source}</Badge>
             </TableCell>
             <TableCell className="text-muted-foreground text-sm">
-              {new Date(r.updatedAt).toLocaleDateString()}
+              {formatDate(r.updatedAt)}
             </TableCell>
             <TableCell>
               {editing === r.id ? (

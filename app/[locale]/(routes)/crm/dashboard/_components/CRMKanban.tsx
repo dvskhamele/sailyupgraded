@@ -385,6 +385,7 @@ function OpportunityCard({
   onOpenEdit,
   stage,
   salesStages,
+  nowMs,
 }: any) {
   const opportunityProducts = getOpportunityProduct(opportunity);
   const {
@@ -447,7 +448,7 @@ function OpportunityCard({
         <div className="flex items-center justify-between">
            <DollarSign className="w-4 h-4 text-green-600" />
           <span className="font-semibold text-gray-900 text-sm">
-            ${opportunity.budget?.toLocaleString()}
+            ${opportunity.budget?.toLocaleString("en-US")}
           </span>
         </div>
 
@@ -457,17 +458,15 @@ function OpportunityCard({
           <span
             className={`text-xs font-semibold px-2 py-1 rounded-full ${
               opportunity.close_date &&
-              new Date(opportunity.close_date) < new Date()
+              nowMs !== null &&
+              new Date(opportunity.close_date).getTime() < nowMs
                 ? "bg-red-100 text-red-600"
                 : "bg-indigo-100 text-indigo-600"
             }`}
           >
-            {format(
-              opportunity.close_date
-                ? new Date(opportunity.close_date)
-                : new Date(),
-              "dd MMM yyyy",
-            )}
+            {opportunity.close_date
+              ? format(new Date(opportunity.close_date), "dd MMM yyyy")
+              : "No close date"}
           </span>
         </div>
       </CardContent>
@@ -515,6 +514,7 @@ function OpportunityCardStatic({
   onOpenEdit,
   stage,
   salesStages,
+  nowMs,
 }: any) {
   const opportunityProducts = getOpportunityProduct(opportunity);
   return (
@@ -558,17 +558,15 @@ function OpportunityCardStatic({
             <span
               className={
                 opportunity.close_date &&
-                new Date(opportunity.close_date) < new Date()
+                nowMs !== null &&
+                new Date(opportunity.close_date).getTime() < nowMs
                   ? "font-semibold text-rose-500"
                   : "font-semibold text-violet-700"
               }
             >
-              {format(
-                opportunity.close_date
-                  ? new Date(opportunity.close_date)
-                  : new Date(),
-                "dd/MM/yyyy",
-              )}
+              {opportunity.close_date
+                ? format(new Date(opportunity.close_date), "dd/MM/yyyy")
+                : "No close date"}
             </span>
           </div>
         </div>
@@ -659,6 +657,11 @@ const CRMKanban = ({
   const [editingOpportunity, setEditingOpportunity] =
     useState<crm_Opportunities | null>(null);
   const isHydrated = useHydrated();
+  const [nowMs, setNowMs] = useState<number | null>(null);
+
+  useEffect(() => {
+    setNowMs(Date.now());
+  }, []);
 
   const serverDataRef = useRef(data);
   const [columns, setColumns] = useState<Column[]>(() =>
@@ -1053,6 +1056,7 @@ const CRMKanban = ({
                       onOpenEdit={openEditOpportunity}
                       stage={col}
                       salesStages={salesStages}
+                      nowMs={nowMs}
                     />
                   ))}
                 </div>
@@ -1078,6 +1082,7 @@ const CRMKanban = ({
                     onOpenEdit={openEditOpportunity}
                     stage={{ probability: null }}
                     salesStages={salesStages}
+                    nowMs={nowMs}
                   />
                 ))}
               </div>
@@ -1135,6 +1140,7 @@ const CRMKanban = ({
                           onOpenEdit={openEditOpportunity}
                           stage={col}
                           salesStages={salesStages}
+                          nowMs={nowMs}
                         />
                       ))}
                     </DroppableStage>
@@ -1166,6 +1172,7 @@ const CRMKanban = ({
                         onOpenEdit={openEditOpportunity}
                         stage={{ probability: null }}
                         salesStages={salesStages}
+                        nowMs={nowMs}
                       />
                     ))}
                   </SortableContext>

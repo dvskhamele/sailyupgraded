@@ -381,7 +381,7 @@ export function UpdateTargetForm({ initialData, setOpen }: UpdateTargetFormProps
         )}
         {initialData?.converted_at ? (
           <div className="rounded-md border p-3 bg-muted text-sm text-muted-foreground">
-            Converted to Account + Contact on {new Date(initialData.converted_at).toLocaleDateString()}
+            Converted to Account + Contact on {new Date(initialData.converted_at).toISOString().slice(0, 10)}
           </div>
         ) : (
           <AlertDialog>

@@ -25,6 +25,7 @@ interface PaymentListProps {
 }
 
 export function PaymentList({ payments, currency, locale }: PaymentListProps) {
+  const formatDate = (value: string) => new Date(value).toISOString().slice(0, 10);
   const fmt = (n: string) =>
     new Intl.NumberFormat(locale, {
       style: "currency",
@@ -55,7 +56,7 @@ export function PaymentList({ payments, currency, locale }: PaymentListProps) {
         {payments.map((p) => (
           <TableRow key={p.id}>
             <TableCell>
-              {new Date(p.paidAt).toLocaleDateString(locale)}
+              {formatDate(p.paidAt)}
             </TableCell>
             <TableCell className="font-mono">{fmt(p.amount)}</TableCell>
             <TableCell>{p.method ?? "-"}</TableCell>
