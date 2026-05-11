@@ -6,6 +6,7 @@ import { InputType, ReturnType } from "./types";
 import { createSafeAction } from "@/lib/create-safe-action";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { revalidatePath } from "next/cache";
+import { currencyInputToDecimalString, currencyInputToNumber } from "@/lib/currency-input";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const session = await getSession();
@@ -34,6 +35,17 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     if (willBeRecurring && !billingPeriod) {
       return { error: "Billing period is required for recurring products" };
     }
+    const parsedUnitPrice =
+      updateData.unit_price !== undefined
+        ? currencyInputToDecimalString(updateData.unit_price)
+        : undefined;
+    if (updateData.unit_price !== undefined && !parsedUnitPrice) {
+      return { error: "Valid unit price is required" };
+    }
+    const parsedUnitCost =
+      updateData.unit_cost !== undefined
+        ? currencyInputToNumber(updateData.unit_cost)
+        : undefined;
 
     const product = await prismadb.crm_Products.update({
       where: { id },
@@ -43,8 +55,8 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         ...(updateData.sku !== undefined && { sku: updateData.sku || null }),
         ...(updateData.type !== undefined && { type: updateData.type }),
         ...(updateData.status !== undefined && { status: updateData.status }),
-        ...(updateData.unit_price !== undefined && { unit_price: parseFloat(updateData.unit_price) }),
-        ...(updateData.unit_cost !== undefined && { unit_cost: updateData.unit_cost ? parseFloat(updateData.unit_cost) : null }),
+        ...(updateData.unit_price !== undefined && { unit_price: parsedUnitPrice }),
+        ...(updateData.unit_cost !== undefined && { unit_cost: parsedUnitCost ?? null }),
         ...(updateData.currency !== undefined && { currency: updateData.currency }),
         ...(updateData.tax_rate !== undefined && { tax_rate: updateData.tax_rate ? parseFloat(updateData.tax_rate) : null }),
         ...(updateData.unit !== undefined && { unit: updateData.unit || null }),

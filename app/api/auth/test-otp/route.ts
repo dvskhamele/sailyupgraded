@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prismadb } from "@/lib/prisma";
+import { isPrismaAccessDeniedError, prismadb } from "@/lib/prisma";
 
 const allowOtpPreview =
   process.env.NODE_ENV !== "production" ||
@@ -53,6 +53,18 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("[Test-OTP] Failed to fetch OTP", error);
+
+    if (isPrismaAccessDeniedError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Database credentials were rejected. Update DATABASE_URL in .env.local, then restart the dev server.",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: "Failed to fetch OTP" },
       { status: 500 }

@@ -4,7 +4,6 @@ import * as React from "react";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import moment from "moment";
 import {
   ColumnDef,
   ColumnFiltersState,
@@ -63,6 +62,7 @@ import {
 import AlertModal from "@/components/modals/alert-modal";
 import { toast } from "sonner";
 import { deleteCampaign } from "@/actions/campaigns/delete-campaign";
+import { ClientDateTime } from "@/components/campaigns/ClientDateTime";
 
 type Campaign = {
   id: string;
@@ -180,13 +180,21 @@ const columns: ColumnDef<Campaign>[] = [
     accessorKey: "scheduled_at",
     header: "Scheduled At",
     cell: ({ row }) => (
-      <div className="w-[100px]">
+      <div className="min-w-[150px]">
         {row.getValue("scheduled_at")
-          ? moment(row.getValue("scheduled_at")).format("YY-MM-DD HH:mm")
+          ? <ClientDateTime value={row.getValue("scheduled_at")} />
           : "—"}
       </div>
     ),
     enableSorting: true,
+    sortingFn: (a, b, columnId) => {
+      const aValue = a.getValue<Date | null>(columnId);
+      const bValue = b.getValue<Date | null>(columnId);
+      const aTime = aValue ? new Date(aValue).getTime() : Number.MAX_SAFE_INTEGER;
+      const bTime = bValue ? new Date(bValue).getTime() : Number.MAX_SAFE_INTEGER;
+
+      return aTime - bTime;
+    },
     enableHiding: true,
   },
   {
@@ -271,7 +279,7 @@ const CampaignsView = ({ data }: { data: Campaign[] }) => {
         <div className="space-y-4">
           {/* Toolbar */}
           <div className="flex items-center justify-between">
-            <div className="flex flex-1 items-center space-x-2">
+            <div className="flex flex-1 flex-col gap-2 sm:flex-row sm:items-center">
               <Input
                 placeholder="Filter by name ..."
                 value={
@@ -280,13 +288,13 @@ const CampaignsView = ({ data }: { data: Campaign[] }) => {
                 onChange={(event) =>
                   table.getColumn("name")?.setFilterValue(event.target.value)
                 }
-                className="h-8 w-[150px] lg:w-[250px]"
+                className="h-8 w-full sm:w-[180px] lg:w-[250px]"
               />
               <Select
                 value={selectedStatus}
                 onValueChange={(value) => setSelectedStatus(value)}
               >
-                <SelectTrigger className="h-8 w-[130px]">
+                <SelectTrigger className="h-8 w-full sm:w-[130px]">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
                 <SelectContent>

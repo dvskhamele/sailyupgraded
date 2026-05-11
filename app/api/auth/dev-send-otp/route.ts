@@ -1,6 +1,6 @@
 import { randomInt } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { prismadb } from "@/lib/prisma";
+import { isPrismaAccessDeniedError, prismadb } from "@/lib/prisma";
 
 const otpIdentifier = (email: string) => `sign-in-otp-${email.toLowerCase()}`;
 const fallbackOtpIdentifier = (email: string) =>
@@ -57,6 +57,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ otp, source: "dev-fallback" });
   } catch (error) {
     console.error("[Auth] Failed to create development OTP fallback", error);
+
+    if (isPrismaAccessDeniedError(error)) {
+      return NextResponse.json(
+        {
+          error:
+            "Database credentials were rejected. Update DATABASE_URL in .env.local, then restart the dev server.",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { error: "Failed to create verification code" },
       { status: 500 }

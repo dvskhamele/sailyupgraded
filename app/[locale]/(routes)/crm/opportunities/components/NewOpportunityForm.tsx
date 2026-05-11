@@ -13,6 +13,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
@@ -189,9 +190,7 @@ export function NewOpportunityForm({
 
   const formSchema = z.object({
     name: z.string().min(1, t("nameRequired")),
-    close_date: z.date({
-      message: "A expected close date is required.",
-    }),
+    close_date: z.date().optional(),
     category: z.array(z.string()),
     description: z.string(),
     type: z.string(),
@@ -779,11 +778,11 @@ export function NewOpportunityForm({
                     <FormItem>
                       <FormLabel>{t("budget")}</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
+                        <CurrencyInput
                           disabled={form.formState.isSubmitting}
                           placeholder="1000000"
-                          {...field}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -821,11 +820,11 @@ export function NewOpportunityForm({
                     <FormItem>
                       <FormLabel>{t("expectedRevenue")}</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
+                        <CurrencyInput
                           disabled={form.formState.isSubmitting}
                           placeholder="500000"
-                          {...field}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />

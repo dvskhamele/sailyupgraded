@@ -29,6 +29,7 @@ import { OpportunitiesDataTable } from "../opportunities/table-components/data-t
 import { useCurrency } from "@/context/currency-context";
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 import Decimal from "decimal.js";
+import { formatCurrencyAmount } from "@/lib/currency-input";
 
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 
@@ -44,19 +45,8 @@ type ProductOption = {
 };
 
 function formatProductPriceLabel(price: unknown, currency: string) {
-  const amount = Number(price);
-  if (!Number.isFinite(amount)) return null;
-
-  try {
-    return new Intl.NumberFormat(undefined, {
-      style: "currency",
-      currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(amount);
-  } catch {
-    return `${amount.toFixed(2)} ${currency}`;
-  }
+  const formatted = formatCurrencyAmount(price, currency, "");
+  return formatted || null;
 }
 
 const OpportunitiesView = ({

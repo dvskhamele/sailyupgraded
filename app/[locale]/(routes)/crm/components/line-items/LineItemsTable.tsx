@@ -14,6 +14,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatCurrencyAmount } from "@/lib/currency-input";
 
 export interface LineItemData {
   id: string;
@@ -35,16 +36,6 @@ interface LineItemsTableProps {
   currency: string;
   onRemove: (id: string) => Promise<any>;
   onEdit: (item: LineItemData) => void;
-}
-
-function formatPrice(amount: number, currency: string): string {
-  const isWhole = amount % 1 === 0;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: isWhole ? 0 : 2,
-    maximumFractionDigits: isWhole ? 0 : 2,
-  }).format(amount);
 }
 
 const LineItemsTable = ({
@@ -102,17 +93,17 @@ const LineItemsTable = ({
             </TableCell>
             <TableCell className="text-right">{item.quantity}</TableCell>
             <TableCell className="text-right">
-              {formatPrice(item.unit_price, item.currency || currency)}
+              {formatCurrencyAmount(item.unit_price, item.currency || currency)}
             </TableCell>
             <TableCell className="text-right">
               {item.discount_type === "PERCENTAGE" && item.discount_value > 0
                 ? `${item.discount_value}%`
                 : item.discount_type === "FIXED" && item.discount_value > 0
-                  ? formatPrice(item.discount_value, item.currency || currency)
+                  ? formatCurrencyAmount(item.discount_value, item.currency || currency)
                   : "-"}
             </TableCell>
             <TableCell className="text-right font-bold">
-              {formatPrice(item.line_total, item.currency || currency)}
+              {formatCurrencyAmount(item.line_total, item.currency || currency)}
             </TableCell>
             <TableCell>
               <div className="flex gap-1 justify-end">
@@ -143,7 +134,7 @@ const LineItemsTable = ({
             Subtotal
           </TableCell>
           <TableCell className="text-right font-bold">
-            {formatPrice(subtotal, currency)}
+            {formatCurrencyAmount(subtotal, currency)}
           </TableCell>
           <TableCell />
         </TableRow>

@@ -17,6 +17,7 @@ type NewLeadFormProps = {
   leadSources: Option[];
   leadStatuses: Option[];
   leadTypes: Option[];
+  saleStages?: Option[];
   products?: Option[];
   onFinish?: () => void;
 };
@@ -27,6 +28,7 @@ export function NewLeadForm({
   leadSources,
   leadStatuses,
   leadTypes,
+  saleStages = [],
   products = [],
   onFinish,
 }: NewLeadFormProps) {
@@ -44,6 +46,7 @@ export function NewLeadForm({
       leadSources={leadSources}
       leadStatuses={leadStatuses}
       leadTypes={leadTypes}
+      saleStages={saleStages}
       products={products}
       onSubmitAction={(data) => createLead(data as any)}
       onSuccess={() => onFinish?.()}

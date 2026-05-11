@@ -32,6 +32,7 @@ const ContactsViewClient = ({ data, crmData, activeRole, labels: providedLabels 
   const [open, setOpen] = useState(false);
 
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
+  const saleStages = (crmData as any).saleStages ?? [];
   const labels = {
     addNew: "Add new",
     sheetDescription: "Add or update contact details",
@@ -76,6 +77,7 @@ const ContactsViewClient = ({ data, crmData, activeRole, labels: providedLabels 
                     leadSources={leadSources}
                     leadStatuses={leadStatuses}
                     leadTypes={leadTypes}
+                    saleStages={saleStages}
                     products={products}
                     defaultRole={roleView.defaultCreateRole}
                     onFinish={() => setOpen(false)}
@@ -94,7 +96,7 @@ const ContactsViewClient = ({ data, crmData, activeRole, labels: providedLabels 
         ) : (
           <ContactsDataTable
             data={filteredData}
-            columns={createColumns(contactTypes, accounts, leadSources, leadStatuses, leadTypes, products)}
+            columns={createColumns(contactTypes, accounts, leadSources, leadStatuses, leadTypes, products, saleStages)}
           />
         )}
       </CardContent>

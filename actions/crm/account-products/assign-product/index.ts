@@ -7,6 +7,7 @@ import { createSafeAction } from "@/lib/create-safe-action";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getSnapshotRate, getDefaultCurrency } from "@/lib/currency";
 import { revalidatePath } from "next/cache";
+import { currencyInputToDecimalString } from "@/lib/currency-input";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const session = await getSession();
@@ -42,11 +43,12 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
     const defaultCurrency = await getDefaultCurrency();
     const snapshotRate = currency ? await getSnapshotRate(currency, defaultCurrency) : null;
+    const customPriceAmount = currencyInputToDecimalString(custom_price);
 
     const assignment = await prismadb.crm_AccountProducts.create({
       data: {
         accountId, productId, quantity,
-        custom_price: custom_price ? parseFloat(custom_price) : undefined,
+        custom_price: customPriceAmount,
         currency,
         snapshot_rate: snapshotRate ? parseFloat(snapshotRate.toString()) : undefined,
         status: status || "ACTIVE",

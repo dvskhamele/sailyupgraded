@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { usePathname, useSearchParams } from "next/navigation"
-import { type LucideIcon, ChevronRight } from "lucide-react"
+import { type LucideIcon, ChevronRight, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Link } from "@/i18n/navigation"
 import {
@@ -47,6 +47,7 @@ export interface NavItem {
   target?: string
   icon?: LucideIcon
   isActive?: boolean
+  exact?: boolean
   alwaysOpen?: boolean
   defaultOpen?: boolean
   items?: NavSubItem[] // For collapsible groups
@@ -71,12 +72,16 @@ export function NavMain({ items, dict }: NavMainProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
+  const isExternalLink = (url?: string, external?: boolean) => {
+    return !!external || (!!url && /^https?:\/\//.test(url))
+  }
+
   // Helper function to check if a route is active
   const isRouteActive = (url?: string, exact?: boolean): boolean => {
     if (!url) {
       return false
     }
-    if (/^https?:\/\//.test(url)) {
+    if (isExternalLink(url)) {
       return false
     }
 
@@ -151,9 +156,10 @@ export function NavMain({ items, dict }: NavMainProps) {
               asChild
               isActive={isActive}
             >
-              {subItem.external ? (
-                <a href={subItem.url} target={subItem.target ?? "_blank"} rel="noreferrer">
+              {isExternalLink(subItem.url, subItem.external) ? (
+                <a href={subItem.url} target={subItem.target ?? "_blank"} rel="noopener noreferrer">
                   <span>{subItem.title}</span>
+                  <ExternalLink className="ml-auto size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </a>
               ) : (
                 <Link href={subItem.url} prefetch={false}>
@@ -182,13 +188,21 @@ export function NavMain({ items, dict }: NavMainProps) {
                   <SidebarMenuButton
                     asChild={!!item.url}
                     tooltip={item.title}
-                    isActive={hasActive || (!!item.url && isRouteActive(item.url))}
+                    isActive={hasActive || (!!item.url && isRouteActive(item.url, item.exact))}
                   >
                     {item.url ? (
-                      <Link href={item.url} prefetch={false}>
-                        {item.icon && <item.icon />}
-                        <span>{item.title}</span>
-                      </Link>
+                      isExternalLink(item.url, item.external) ? (
+                        <a href={item.url} target={item.target ?? "_blank"} rel="noopener noreferrer">
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                          <ExternalLink className="ml-auto size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                        </a>
+                      ) : (
+                        <Link href={item.url} prefetch={false}>
+                          {item.icon && <item.icon />}
+                          <span>{item.title}</span>
+                        </Link>
+                      )
                     ) : (
                       <>
                         {item.icon && <item.icon />}
@@ -233,7 +247,7 @@ export function NavMain({ items, dict }: NavMainProps) {
 
           // Simple navigation item (no sub-items)
           if (!item.url) return null
-          const isActive = !item.external && isRouteActive(item.url)
+          const isActive = !item.external && isRouteActive(item.url, item.exact)
           return (
             <SidebarMenuItem key={item.title}>
               <SidebarMenuButton
@@ -241,10 +255,11 @@ export function NavMain({ items, dict }: NavMainProps) {
                 tooltip={item.title}
                 isActive={isActive}
               >
-                {item.external ? (
-                  <a href={item.url} target={item.target ?? "_blank"} rel="noreferrer">
+                {isExternalLink(item.url, item.external) ? (
+                  <a href={item.url} target={item.target ?? "_blank"} rel="noopener noreferrer">
                     {item.icon && <item.icon />}
                     <span>{item.title}</span>
+                    <ExternalLink className="ml-auto size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   </a>
                 ) : (
                   <Link href={item.url} prefetch={false}>

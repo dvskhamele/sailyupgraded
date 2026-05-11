@@ -20,10 +20,18 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import useDebounce from "@/hooks/useDebounce";
-import { searchUsers } from "@/actions/user/search-users";
 import { getUserById } from "@/actions/user/get-user-by-id";
 
-type User = { id: string; name: string | null; avatar: string | null };
+type User = {
+  id: string;
+  name: string | null;
+  email?: string | null;
+  avatar: string | null;
+};
+type UserSearchResponse = {
+  users: User[];
+  hasMore: boolean;
+};
 
 interface UserSearchComboboxProps {
   value: string;
@@ -51,7 +59,8 @@ export function UserSearchCombobox({
     hasMore: boolean;
   } | null>(null);
   const [singleUser, setSingleUser] = useState<User | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [, startTransition] = useTransition();
 
   const debouncedSearch = useDebounce(search, 300);
 
@@ -60,17 +69,50 @@ export function UserSearchCombobox({
   // Load list of users when open
   useEffect(() => {
     if (!open) return;
-    startTransition(async () => {
-      const data = await searchUsers({
-        search: debouncedSearch,
-        skip,
-        take: PAGE_SIZE,
-      });
-      setListData(data);
-      setAccumulatedUsers((prev) =>
-        skip === 0 ? data.users : [...prev, ...data.users]
-      );
+    const controller = new AbortController();
+    const params = new URLSearchParams({
+      skip: String(skip),
+      take: String(PAGE_SIZE),
     });
+    const trimmedSearch = debouncedSearch.trim();
+    if (trimmedSearch) {
+      params.set("search", trimmedSearch);
+    }
+
+    setIsLoadingUsers(true);
+    fetch(`/api/crm/agents/search?${params.toString()}`, {
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          throw new Error("Unable to load users");
+        }
+        return (await response.json()) as UserSearchResponse;
+      })
+      .then((data) => {
+        setListData(data);
+        setAccumulatedUsers((prev) =>
+          skip === 0 ? data.users : [...prev, ...data.users]
+        );
+      })
+      .catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        setListData({ users: [], hasMore: false });
+        if (skip === 0) {
+          setAccumulatedUsers([]);
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLoadingUsers(false);
+        }
+      });
+
+    return () => {
+      controller.abort();
+    };
   }, [open, debouncedSearch, skip]);
 
   // Load selected user if not in list
@@ -83,6 +125,7 @@ export function UserSearchCombobox({
   }, [value, selectedInList]);
 
   const displayUser = selectedInList ?? singleUser ?? null;
+  const displayName = displayUser?.name ?? displayUser?.email ?? "";
 
   const handleSelect = (userId: string) => {
     onChange(userId === value ? "" : userId);
@@ -92,7 +135,7 @@ export function UserSearchCombobox({
     setOpen(false);
   };
 
-  const isLoading = isPending && skip === 0 && accumulatedUsers.length === 0;
+  const isLoading = isLoadingUsers && skip === 0 && accumulatedUsers.length === 0;
   const trimmedSearch = search.trim();
 
   return (
@@ -109,14 +152,17 @@ export function UserSearchCombobox({
             type="button"
           >
             <span className="truncate text-sm">
-              {displayUser?.name ?? (
+              {displayName || (
                 <span className="text-muted-foreground">{placeholder}</span>
               )}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-[300px] p-0" align="start">
+        <PopoverContent
+          className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0"
+          align="start"
+        >
           <Command shouldFilter={false}>
             <CommandInput
               placeholder="Search users..."
@@ -158,7 +204,7 @@ export function UserSearchCombobox({
                             value === user.id ? "opacity-100" : "opacity-0"
                           )}
                         />
-                        {user.name}
+                        <span className="truncate">{user.name ?? user.email}</span>
                       </CommandItem>
                     ))}
                   </CommandGroup>
@@ -169,9 +215,9 @@ export function UserSearchCombobox({
                         className="w-full text-sm"
                         type="button"
                         onClick={() => setSkip((prev) => prev + PAGE_SIZE)}
-                        disabled={isPending}
+                        disabled={isLoadingUsers}
                       >
-                        Load more
+                        {isLoadingUsers ? "Loading..." : "Load more"}
                       </Button>
                     </div>
                   )}

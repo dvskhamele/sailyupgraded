@@ -27,6 +27,7 @@ export const createColumns = (
   leadStatuses: ConfigItem[] = [],
   leadTypes: ConfigItem[] = [],
   products: ConfigItem[] = [],
+  saleStages: ConfigItem[] = [],
 ): ColumnDef<Opportunity>[] => [
   {
     id: "select",
@@ -143,6 +144,28 @@ export const createColumns = (
     enableHiding: true,
   },
   {
+    accessorKey: "contact_type",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Contact type" />
+    ),
+    cell: ({ row }) => {
+      const contactTypeName =
+        (row.original as any).contact_type?.name ??
+        contactTypes.find((type) => type.id === (row.original as any).contact_type_id)?.name;
+
+      return <div className="min-w-[150px]">{contactTypeName ?? "N/A"}</div>;
+    },
+    filterFn: (row, _id, value) => {
+      const contactTypeName =
+        (row.original as any).contact_type?.name ??
+        contactTypes.find((type) => type.id === (row.original as any).contact_type_id)?.name;
+
+      return value.includes(contactTypeName);
+    },
+    enableSorting: true,
+    enableHiding: true,
+  },
+  {
     accessorKey: "email",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="E-mail" />
@@ -183,6 +206,7 @@ export const createColumns = (
         leadStatuses={leadStatuses}
         leadTypes={leadTypes}
         products={products}
+        saleStages={saleStages}
       />
     ),
   },

@@ -527,7 +527,7 @@ export async function POST(request: NextRequest) {
             updatedBy: userId,
             ...contactPayload,
             tags: [],
-            notes: {},
+            notes: [],
           } as any,
           select: { id: true },
         });

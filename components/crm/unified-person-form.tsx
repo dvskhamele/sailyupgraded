@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import {
   Form,
@@ -23,18 +24,32 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { MultiSelect } from "@/components/ui/multi-select";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import { Textarea } from "@/components/ui/textarea";
 import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
 import type { CustomFieldEntity } from "@/lib/custom-fields";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
+import { cn } from "@/lib/utils";
 import {
   CONTACT_ROLE_OPTIONS,
   CONTACT_STATUS_OPTIONS,
   getContactIdentifierLabel,
   normalizeContactRole,
 } from "@/lib/contact-options";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 
 type Option = { id: string; name: string };
 type AccountOption = {
@@ -44,6 +59,92 @@ type AccountOption = {
 };
 
 const FALLBACK_BIRTH_YEAR_END = 2026;
+
+function ContactTypeCombobox({
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options: Option[];
+  placeholder: string;
+  disabled?: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const selectedOption = options.find((option) => option.id === value || option.name === value);
+  const displayValue = selectedOption?.name ?? value;
+  const trimmedSearch = search.trim();
+  const hasExactMatch = options.some(
+    (option) => option.name.trim().toLowerCase() === trimmedSearch.toLowerCase()
+  );
+
+  const selectValue = (nextValue: string) => {
+    onChange(nextValue);
+    setSearch("");
+    setOpen(false);
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          type="button"
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          disabled={disabled}
+          className="w-full justify-between font-normal"
+        >
+          <span className={cn("truncate", !displayValue && "text-muted-foreground")}>
+            {displayValue || placeholder}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+        <Command shouldFilter>
+          <CommandInput
+            placeholder="Search or type contact type..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList onWheelCapture={(event) => event.stopPropagation()}>
+            <CommandEmpty>
+              {trimmedSearch ? "No matching contact type." : "No contact types found."}
+            </CommandEmpty>
+            <CommandGroup>
+              {options.map((option) => (
+                <CommandItem
+                  key={option.id}
+                  value={option.name}
+                  onSelect={() => selectValue(option.id)}
+                >
+                  <Check
+                    className={cn(
+                      "mr-2 h-4 w-4",
+                      value === option.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                  {option.name}
+                </CommandItem>
+              ))}
+              {trimmedSearch && !hasExactMatch && (
+                <CommandItem value={trimmedSearch} onSelect={() => selectValue(trimmedSearch)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add "{trimmedSearch}"
+                </CommandItem>
+              )}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export const unifiedPersonFormSchema = z.object({
   id: z.uuid().optional(),
@@ -56,6 +157,7 @@ export const unifiedPersonFormSchema = z.object({
   company: z.string().optional().nullable(),
   jobTitle: z.string().optional().nullable(),
   description: z.string().optional().nullable(),
+  notes: z.string().optional().nullable(),
   email: z.string().optional().nullable(),
   personal_email: z.string().optional().nullable(),
   phone: z.string().optional().nullable(),
@@ -89,8 +191,12 @@ export const unifiedPersonFormSchema = z.object({
   social_tiktok: z.string().optional().nullable(),
   productId: z.string().optional().nullable(),
   opportunity_enabled: z.boolean().optional(),
+  opportunity_name: z.string().optional().nullable(),
   opportunity_products: z.array(z.string()).optional(),
   opportunity_budget: z.string().optional().nullable(),
+  opportunity_premium: z.string().optional().nullable(),
+  opportunity_stage_id: z.string().optional().nullable(),
+  opportunity_description: z.string().optional().nullable(),
   custom_fields_data: z
     .record(z.string(), z.union([z.string(), z.null(), z.undefined()]))
     .optional(),
@@ -109,6 +215,7 @@ type UnifiedPersonFormProps = {
   leadSources?: Option[];
   leadStatuses?: Option[];
   leadTypes?: Option[];
+  saleStages?: Option[];
   products?: Option[];
   initialValues?: Partial<UnifiedPersonFormValues>;
   onSubmitAction: (data: UnifiedPersonFormValues) => Promise<{ error?: string; data?: unknown } | undefined>;
@@ -126,6 +233,7 @@ export function UnifiedPersonForm({
   leadSources = [],
   leadStatuses = [],
   leadTypes = [],
+  saleStages = [],
   products = [],
   initialValues,
   onSubmitAction,
@@ -144,6 +252,12 @@ export function UnifiedPersonForm({
     last_name: z.string().min(1, contactT("lastNameRequired")),
     email: z.union([z.string().email(contactT("emailInvalid")), z.literal(""), z.null()]).optional(),
   });
+  const defaultContactTypeId =
+    initialValues?.contact_type_id ?? (mode === "create" ? contactTypes[0]?.id ?? "" : "");
+  const defaultOpportunityStage =
+    initialValues?.opportunity_stage_id ??
+    saleStages.find((stage) => stage.name === "New Lead Intake")?.id ??
+    "";
 
   const form = useForm<UnifiedPersonFormValues>({
     resolver: zodResolver(formSchema),
@@ -158,6 +272,7 @@ export function UnifiedPersonForm({
       company: "",
       jobTitle: "",
       description: "",
+      notes: "",
       email: "",
       personal_email: "",
       phone: "",
@@ -172,7 +287,7 @@ export function UnifiedPersonForm({
       country: "",
       postal_code: "",
       position: "",
-      contact_type_id: "",
+      contact_type_id: defaultContactTypeId,
       lead_source_id: "",
       lead_status_id: "",
       lead_type_id: "",
@@ -189,8 +304,12 @@ export function UnifiedPersonForm({
       social_tiktok: "",
       productId: "",
       opportunity_enabled: false,
+      opportunity_name: "",
       opportunity_products: [],
       opportunity_budget: "",
+      opportunity_premium: "",
+      opportunity_stage_id: defaultOpportunityStage,
+      opportunity_description: "",
       custom_fields_data: {},
       ...initialValues,
       status: initialValues?.status ?? true,
@@ -200,20 +319,15 @@ export function UnifiedPersonForm({
 
   const selectedCountry = form.watch("country");
   const selectedState = form.watch("state");
-  const selectedAccountId = form.watch("assigned_account");
   const selectedRole = form.watch("role");
   const opportunityEnabled = form.watch("opportunity_enabled");
+  const selectedOpportunityProducts = form.watch("opportunity_products") ?? [];
+  const firstSelectedOpportunityProduct = selectedOpportunityProducts[0] ?? "";
   const stateOptions = getStateOptions(selectedCountry, selectedState);
   const serialLabel = getContactIdentifierLabel(selectedRole);
   const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
     ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
     : COUNTRY_OPTIONS;
-  const selectedAccount = accounts.find((account) => account.id === selectedAccountId);
-  const accountProducts =
-    selectedAccount?.accountProducts
-      ?.map((item) => item.product)
-      .filter((product): product is { id: string; name: string } => Boolean(product?.id && product?.name)) ?? [];
-
   const handleSubmit = async (data: UnifiedPersonFormValues) => {
     const result = await onSubmitAction(data);
     if (result?.error) {
@@ -223,10 +337,67 @@ export function UnifiedPersonForm({
 
     toast.success(successMessage);
     if (mode === "create") {
-      form.reset();
+      form.reset({
+        ...form.formState.defaultValues,
+        contact_type_id: defaultContactTypeId,
+        opportunity_enabled: false,
+        opportunity_name: "",
+        opportunity_products: [],
+        opportunity_budget: "",
+        opportunity_premium: "",
+        opportunity_stage_id: defaultOpportunityStage,
+        opportunity_description: "",
+        status: true,
+        role: normalizeContactRole(initialValues?.role),
+      });
     }
     await onSuccess(result, data);
   };
+
+  useEffect(() => {
+    if (mode !== "create") return;
+    if (form.getValues("contact_type_id")) return;
+    if (!defaultContactTypeId) return;
+
+    form.setValue("contact_type_id", defaultContactTypeId, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [defaultContactTypeId, form, mode]);
+
+  useEffect(() => {
+    if (!opportunityEnabled) return;
+    if (form.getValues("opportunity_stage_id")) return;
+    if (!defaultOpportunityStage) return;
+
+    form.setValue("opportunity_stage_id", defaultOpportunityStage, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [defaultOpportunityStage, form, opportunityEnabled]);
+
+  useEffect(() => {
+    if (!opportunityEnabled) return;
+    if (form.getValues("opportunity_name")) return;
+
+    const clientName = [
+      form.getValues("first_name"),
+      form.getValues("last_name"),
+    ].filter(Boolean).join(" ");
+    const fallbackName = [clientName, firstSelectedOpportunityProduct]
+      .filter(Boolean)
+      .join(" - ");
+
+    if (!fallbackName) return;
+
+    form.setValue("opportunity_name", fallbackName, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [firstSelectedOpportunityProduct, form, opportunityEnabled]);
 
   const yearOptions = Array.from({ length: 100 }, (_, i) => birthYearEnd - i);
 
@@ -306,6 +477,25 @@ export function UnifiedPersonForm({
               form={form}
               disabled={form.formState.isSubmitting}
               contactRole={entityType === "Contact" ? selectedRole : undefined}
+            />
+
+            <FormField
+              control={form.control}
+              name="notes"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Notes</FormLabel>
+                  <FormControl>
+                    <Textarea
+                      disabled={form.formState.isSubmitting}
+                      placeholder="Internal notes"
+                      {...field}
+                      value={field.value ?? ""}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
             />
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -726,24 +916,15 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{contactT("contactType")}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
-                      <FormControl>
-                        <SelectTrigger>
-                          <SelectValue placeholder={contactT("contactTypePlaceholder")} />
-                        </SelectTrigger>
-                      </FormControl>
-                      <SelectContent className="max-h-72 overflow-y-auto">
-                        {contactTypes.length > 0 ? (
-                          contactTypes.map((type) => (
-                            <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
-                          ))
-                        ) : (
-                          <div className="px-2 py-1.5 text-sm text-muted-foreground">
-                            No contact types found
-                          </div>
-                        )}
-                      </SelectContent>
-                    </Select>
+                    <FormControl>
+                      <ContactTypeCombobox
+                        value={field.value ?? ""}
+                        onChange={field.onChange}
+                        options={contactTypes}
+                        placeholder={contactT("contactTypePlaceholder")}
+                        disabled={form.formState.isSubmitting}
+                      />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -987,39 +1168,62 @@ export function UnifiedPersonForm({
               />
             </div>
 
-            {entityType === "Lead" && (
-              <Button
-                type="button"
-                variant={opportunityEnabled ? "secondary" : "outline"}
-                onClick={() => form.setValue("opportunity_enabled", !opportunityEnabled)}
-                disabled={form.formState.isSubmitting}
-              >
-                {opportunityEnabled ? "Hide Opportunity" : "Add Opportunity"}
-              </Button>
-            )}
+            <Button
+              type="button"
+              variant={opportunityEnabled ? "secondary" : "outline"}
+              onClick={() => form.setValue("opportunity_enabled", !opportunityEnabled)}
+              disabled={form.formState.isSubmitting}
+              className="w-fit"
+            >
+              {opportunityEnabled ? "Hide Create Opportunity" : "Create Opportunity"}
+            </Button>
 
-            {(entityType === "Contact" || opportunityEnabled) && (
+            {opportunityEnabled && (
               <div className="space-y-4 border-t pt-5">
-                <h3 className="text-sm font-semibold">Opportunity</h3>
+                <h3 className="text-sm font-semibold">Create Opportunity</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="opportunity_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Opportunity Name</FormLabel>
+                        <FormControl>
+                          <Input
+                            disabled={form.formState.isSubmitting}
+                            placeholder="Client - Product"
+                            {...field}
+                            value={field.value ?? ""}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
                   <FormField
                     control={form.control}
                     name="opportunity_products"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Products</FormLabel>
-                        <FormControl>
-                          <MultiSelect
-                            options={products.map((product) => ({
-                              value: product.name,
-                              label: product.name,
-                            }))}
-                            value={field.value ?? []}
-                            onChange={field.onChange}
-                            placeholder={products.length > 0 ? "Select products" : "No active products"}
-                            disabled={form.formState.isSubmitting}
-                          />
-                        </FormControl>
+                        <FormLabel>Product</FormLabel>
+                        <Select
+                          value={(field.value ?? [])[0] ?? ""}
+                          onValueChange={(value) => field.onChange(value ? [value] : [])}
+                          disabled={form.formState.isSubmitting}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={products.length > 0 ? "Select product" : "No active products"} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-56">
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.name}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -1029,12 +1233,75 @@ export function UnifiedPersonForm({
                     name="opportunity_budget"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Budget</FormLabel>
+                        <FormLabel>Face Amount</FormLabel>
                         <FormControl>
-                          <Input
-                            type="number"
+                          <CurrencyInput
                             disabled={form.formState.isSubmitting}
                             placeholder="1000000"
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="opportunity_premium"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Premium</FormLabel>
+                        <FormControl>
+                          <CurrencyInput
+                            disabled={form.formState.isSubmitting}
+                            placeholder="0"
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="opportunity_stage_id"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Pipeline Stage</FormLabel>
+                        <Select
+                          onValueChange={field.onChange}
+                          value={field.value ?? ""}
+                          disabled={form.formState.isSubmitting}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="New Lead Intake" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-56">
+                            {saleStages.map((stage) => (
+                              <SelectItem key={stage.id} value={stage.id}>
+                                {stage.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="opportunity_description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Description</FormLabel>
+                        <FormControl>
+                          <Textarea
+                            disabled={form.formState.isSubmitting}
+                            placeholder="Opportunity notes"
                             {...field}
                             value={field.value ?? ""}
                           />
@@ -1046,6 +1313,7 @@ export function UnifiedPersonForm({
                 </div>
               </div>
             )}
+
           </div>
         </div>
 

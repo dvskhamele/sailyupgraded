@@ -23,6 +23,7 @@ const allowDevOtpPreview =
   process.env.NODE_ENV !== "production" ||
   process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ||
   process.env.NEXT_PUBLIC_ENABLE_OTP_PREVIEW === "true";
+const bypassLogin = process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";
 
 function getLocalizedPath(path: string, locale: string) {
   return locale ? `/${locale}${path}` : path;
@@ -46,6 +47,11 @@ export function LoginComponent({
   const [devOtp, setDevOtp] = useState("");
 
   const sendOtp = async () => {
+    if (bypassLogin) {
+      window.location.href = getLocalizedPath(DASHBOARD_PATH, locale);
+      return;
+    }
+
     if (!email) {
       toast.error("Please enter your email address.");
       return;
@@ -105,7 +111,12 @@ export function LoginComponent({
             usedDevFallback = true;
             toast.success(`Development OTP: ${fallbackData.otp}`);
           } else {
-            toast.error(error.message || "Failed to send verification code.");
+            const fallbackData = await fallbackResponse.json().catch(() => null);
+            toast.error(
+              fallbackData?.error ||
+                error.message ||
+                "Failed to send verification code.",
+            );
             return;
           }
         } else {
@@ -134,6 +145,11 @@ export function LoginComponent({
   };
 
   const verifyOtp = async () => {
+    if (bypassLogin) {
+      window.location.href = getLocalizedPath(DASHBOARD_PATH, locale);
+      return;
+    }
+
     if (otp.length !== 6) {
       toast.error("Please enter the 6-digit code.");
       return;
@@ -166,7 +182,7 @@ export function LoginComponent({
       {/* HEADER */}
       <CardHeader className="space-y-2 text-center">
         <CardTitle className="text-3xl font-bold tracking-tight">
-          SignIn 👋
+          Sign in
         </CardTitle>
 
         <CardDescription className="text-sm text-muted-foreground">
@@ -223,7 +239,7 @@ export function LoginComponent({
               className="h-11 rounded-lg font-semibold"
             >
               <MailIcon className="mr-2 h-4 w-4" />
-              Send Verification Code
+              {bypassLogin ? "Continue to Dashboard" : "Send Verification Code"}
             </Button>
           </div>
         )}

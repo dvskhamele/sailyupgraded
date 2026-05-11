@@ -35,7 +35,7 @@ interface LeadsViewProps {
 }
 
 const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
-  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes } = crmData;
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, saleStages } = crmData;
   const [open, setOpen] = useState(false);
   const t = useTranslations("CrmPage");
 
@@ -70,6 +70,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
                     leadSources={leadSources}
                     leadStatuses={leadStatuses}
                     leadTypes={leadTypes}
+                    saleStages={saleStages}
                     products={activeProducts}
                     onFinish={() => setOpen(false)}
                   />

@@ -8,9 +8,11 @@ import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
-import { resolveLeadSourceId } from "@/lib/crm/contact-form-options";
+import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 import { serializeDecimals } from "@/lib/serialize-decimals";
-import { serializeOpportunityProducts } from "@/lib/opportunity-products";
+import { currencyInputToDecimalString } from "@/lib/currency-input";
+import { normalizeContactNotes } from "@/lib/crm/notes";
+import { parseOpportunityProducts, serializeOpportunityProducts } from "@/lib/opportunity-products";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -19,6 +21,27 @@ import {
 function isMissingContactSerialColumnError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return message.toLowerCase().includes("crm_contacts.serial") || message.toLowerCase().includes("crm_contacts`.`serial");
+}
+
+const DEFAULT_ONBOARDING_STAGE_NAME = "New Lead Intake";
+
+async function ensureOnboardingSalesStage() {
+  const existing = await prismadb.crm_Opportunities_Sales_Stages.findFirst({
+    where: { name: DEFAULT_ONBOARDING_STAGE_NAME },
+    select: { id: true },
+  });
+
+  if (existing) return existing;
+
+  return prismadb.crm_Opportunities_Sales_Stages.create({
+    data: {
+      v: 0,
+      name: DEFAULT_ONBOARDING_STAGE_NAME,
+      probability: 0,
+      order: 0,
+    },
+    select: { id: true },
+  });
 }
 
 export const updateContact = async (data: {
@@ -30,6 +53,7 @@ export const updateContact = async (data: {
   birthday_month?: string | null;
   birthday_year?: string | null;
   description?: string | null;
+  notes?: string | string[] | null;
   company?: string | null;
   jobTitle?: string | null;
   email?: string;
@@ -64,8 +88,13 @@ export const updateContact = async (data: {
   social_youtube?: string | null;
   social_tiktok?: string | null;
   contact_type_id?: string;
+  opportunity_enabled?: boolean;
+  opportunity_name?: string | null;
   opportunity_products?: string[];
   opportunity_budget?: string | null;
+  opportunity_premium?: string | null;
+  opportunity_stage_id?: string | null;
+  opportunity_description?: string | null;
   custom_fields_data?: Record<string, string | null | undefined>;
 }) => {
   const session = await getSession();
@@ -84,8 +113,14 @@ export const updateContact = async (data: {
     lead_source_id,
     lead_status_id,
     lead_type_id,
+    opportunity_enabled,
+    opportunity_name,
     opportunity_products,
     opportunity_budget,
+    opportunity_premium,
+    opportunity_stage_id,
+    opportunity_description,
+    notes,
     country,
     address,
     address_line1,
@@ -100,6 +135,7 @@ export const updateContact = async (data: {
   if (!id) return { error: "id is required" };
 
   const resolvedAddressLine1 = getAddressLine1(address, address_line1);
+  const resolvedContactTypeId = await resolveContactTypeId(contact_type_id);
   const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
   const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
     country: country || null,
@@ -126,7 +162,7 @@ export const updateContact = async (data: {
     updatedBy: userId,
     accountsIDs: assigned_account || undefined,
     assigned_to: assigned_to || undefined,
-    contact_type_id: contact_type_id || undefined,
+    contact_type_id: resolvedContactTypeId,
     lead_source_id: resolvedLeadSourceId,
     lead_status_id: lead_status_id || null,
     lead_type_id: lead_type_id || null,
@@ -138,6 +174,7 @@ export const updateContact = async (data: {
       Object.keys(sanitizedCustomFieldValues).length > 0
         ? sanitizedCustomFieldValues
         : null,
+    ...(notes !== undefined && { notes: normalizeContactNotes(notes) }),
     ...supportedRoleFields,
     ...supportedAddressFields,
     ...rest,
@@ -173,17 +210,51 @@ export const updateContact = async (data: {
     const existingOpportunity = (before as any)?.opportunities
       ?.map((item: any) => item?.opportunity)
       .find(Boolean);
-    const hasOpportunityInput = (opportunity_products?.length ?? 0) > 0 || Boolean(opportunity_budget?.trim());
+    const selectedProductValues = parseOpportunityProducts(opportunity_products);
+    const opportunityBudgetAmount = currencyInputToDecimalString(opportunity_budget);
+    const opportunityPremiumAmount = currencyInputToDecimalString(opportunity_premium);
+    const hasOpportunityInput =
+      Boolean(opportunity_enabled) &&
+      Boolean(
+        opportunity_name?.trim() ||
+          selectedProductValues.length > 0 ||
+          opportunity_budget?.trim() ||
+          opportunity_premium?.trim() ||
+          opportunity_stage_id?.trim() ||
+          opportunity_description?.trim()
+      );
+    const selectedProducts = selectedProductValues.length
+      ? await prismadb.crm_Products.findMany({
+          where: {
+            OR: selectedProductValues.flatMap((value) => [
+              { id: value },
+              { name: value },
+            ]),
+            deletedAt: null,
+          },
+          select: { name: true },
+        })
+      : [];
+    const selectedProductNames =
+      selectedProducts.length > 0
+        ? selectedProducts.map((product) => product.name)
+        : selectedProductValues;
+    const resolvedOpportunityStageId = hasOpportunityInput
+      ? opportunity_stage_id || (await ensureOnboardingSalesStage()).id
+      : undefined;
 
-    if (existingOpportunity) {
+    if (existingOpportunity && hasOpportunityInput) {
       const updatedOpportunity = await prismadb.crm_Opportunities.update({
         where: { id: existingOpportunity.id },
         data: {
           account: assigned_account || null,
           assigned_to: assigned_to || userId,
-          budget: opportunity_budget?.trim() ? parseFloat(opportunity_budget) : 0,
-          category: serializeOpportunityProducts(opportunity_products),
-          description: data.description || null,
+          budget: opportunityBudgetAmount ?? 0,
+          expected_revenue: opportunityPremiumAmount,
+          category: serializeOpportunityProducts(selectedProductNames),
+          description: opportunity_description || data.description || null,
+          name: opportunity_name?.trim() || undefined,
+          sales_stage: resolvedOpportunityStageId,
           updatedBy: userId,
           last_activity_by: userId,
         },
@@ -216,8 +287,9 @@ export const updateContact = async (data: {
             ? { connect: { id: assigned_account } }
             : undefined,
           assigned_to_user: { connect: { id: assigned_to || userId } },
-          budget: opportunity_budget ? parseFloat(opportunity_budget) : undefined,
-          category: serializeOpportunityProducts(opportunity_products),
+          budget: opportunityBudgetAmount,
+          expected_revenue: opportunityPremiumAmount,
+          category: serializeOpportunityProducts(selectedProductNames),
           contact: contact.id,
           contacts: {
             create: {
@@ -227,8 +299,11 @@ export const updateContact = async (data: {
           created_by_user: { connect: { id: userId } },
           last_activity_by: userId,
           updatedBy: userId,
-          description: data.description || null,
-          name: opportunityName,
+          description: opportunity_description || data.description || null,
+          name: opportunity_name?.trim() || opportunityName,
+          assigned_sales_stage: resolvedOpportunityStageId
+            ? { connect: { id: resolvedOpportunityStageId } }
+            : undefined,
           status: "ACTIVE",
         },
       });

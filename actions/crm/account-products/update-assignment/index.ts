@@ -6,6 +6,7 @@ import { InputType, ReturnType } from "./types";
 import { createSafeAction } from "@/lib/create-safe-action";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { revalidatePath } from "next/cache";
+import { currencyInputToDecimalString } from "@/lib/currency-input";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const session = await getSession();
@@ -29,12 +30,16 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     if (updateData.renewal_date && updateData.renewal_date <= startDate) {
       return { error: "Renewal date must be after start date" };
     }
+    const customPriceAmount =
+      updateData.custom_price !== undefined
+        ? currencyInputToDecimalString(updateData.custom_price)
+        : undefined;
 
     const assignment = await prismadb.crm_AccountProducts.update({
       where: { id },
       data: {
         ...(updateData.quantity !== undefined && { quantity: updateData.quantity }),
-        ...(updateData.custom_price !== undefined && { custom_price: updateData.custom_price ? parseFloat(updateData.custom_price) : null }),
+        ...(updateData.custom_price !== undefined && { custom_price: customPriceAmount ?? null }),
         ...(updateData.status !== undefined && { status: updateData.status }),
         ...(updateData.start_date !== undefined && { start_date: updateData.start_date }),
         ...(updateData.end_date !== undefined && { end_date: updateData.end_date }),

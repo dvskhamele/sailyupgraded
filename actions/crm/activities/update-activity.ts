@@ -2,6 +2,7 @@
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { generateActivityTitle } from "@/lib/crm/activity-title";
 
 const ENTITY_SLUGS: Record<string, string> = {
   account: "accounts",
@@ -30,14 +31,28 @@ export const updateActivity = async (data: {
     const existingLinks = await (prismadb as any).crm_ActivityLinks.findMany({
       where: { activityId: data.id },
     });
+    const existingActivity = await (prismadb as any).crm_Activities.findUnique({
+      where: { id: data.id },
+    });
+    if (!existingActivity) return { error: "Activity not found" };
+    const title =
+      data.title !== undefined || data.description !== undefined || data.outcome !== undefined
+        ? generateActivityTitle({
+            type: existingActivity.type,
+            title: data.title ?? existingActivity.title,
+            description: data.description ?? existingActivity.description,
+            outcome: data.outcome ?? existingActivity.outcome,
+            note: data.description ?? existingActivity.description,
+          })
+        : undefined;
 
     const activity = await prismadb.$transaction(async (tx) => {
       const updated = await (tx as any).crm_Activities.update({
         where: { id: data.id },
         data: {
-          ...(data.title !== undefined && { title: data.title }),
+          ...(title !== undefined && { title }),
           ...(data.description !== undefined && {
-            description: data.description,
+            description: data.description?.trim() || null,
           }),
           ...(data.date !== undefined && { date: data.date }),
           ...(data.duration !== undefined && { duration: data.duration }),

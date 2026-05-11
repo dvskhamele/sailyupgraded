@@ -9,16 +9,7 @@ import { productTypes, productStatuses } from "../table-data/data";
 import { Product } from "../table-data/schema";
 import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
-
-function formatPrice(value: number, currency: string): string {
-  const isWhole = value % 1 === 0;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: isWhole ? 0 : 2,
-    maximumFractionDigits: isWhole ? 0 : 2,
-  }).format(value);
-}
+import { formatCurrencyDisplay } from "@/lib/currency-input";
 
 const typeColorMap: Record<string, string> = {
   PRODUCT: "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300",
@@ -111,7 +102,7 @@ export const columns: ColumnDef<Product>[] = [
     ),
     cell: ({ row }) => (
       <div className="text-right font-mono">
-        {formatPrice(row.original.unit_price, row.original.currency)}
+        {formatCurrencyDisplay(row.original.unit_price, row.original.currency)}
       </div>
     ),
     enableSorting: true,

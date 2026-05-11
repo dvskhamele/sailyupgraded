@@ -2,6 +2,7 @@
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
+import { generateActivityTitle } from "@/lib/crm/activity-title";
 
 const ENTITY_SLUGS: Record<string, string> = {
   account: "accounts",
@@ -13,9 +14,9 @@ const ENTITY_SLUGS: Record<string, string> = {
 
 export const createActivity = async (data: {
   type: "call" | "meeting" | "note" | "email";
-  title: string;
+  title?: string;
   description?: string;
-  date: Date;
+  date?: Date;
   duration?: number;
   outcome?: string;
   status: "scheduled" | "completed" | "cancelled";
@@ -25,14 +26,21 @@ export const createActivity = async (data: {
   try {
     const session = await getSession();
     if (!session) return { error: "Unauthorized" };
+    const title = generateActivityTitle({
+      type: data.type,
+      title: data.title,
+      description: data.description,
+      outcome: data.outcome,
+      note: data.description,
+    });
 
     const activity = await prismadb.$transaction(async (tx) => {
       const created = await (tx as any).crm_Activities.create({
         data: {
           type: data.type,
-          title: data.title,
-          description: data.description,
-          date: data.date,
+          title,
+          description: data.description?.trim() || null,
+          date: data.date ?? new Date(),
           duration: data.duration,
           outcome: data.outcome,
           status: data.status,

@@ -2,13 +2,6 @@ import Decimal from "decimal.js";
 
 type Rate = { fromCurrency: string; toCurrency: string; rate: Decimal };
 
-const currencyLocaleMap: Record<string, string> = {
-  EUR: "fr-FR",
-  USD: "en-US",
-  CZK: "cs-CZ",
-  GBP: "en-GB",
-};
-
 export type { Rate };
 
 export function findRate(
@@ -36,9 +29,8 @@ export function convertAmount(
 
 export function formatCurrency(amount: Decimal, currencyCode: string): string {
   const num = amount.toNumber();
-  const locale = currencyLocaleMap[currencyCode] || "en-US";
   const isWhole = num % 1 === 0;
-  const formatted = new Intl.NumberFormat(locale, {
+  const formatted = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: currencyCode,
     minimumFractionDigits: isWhole ? 0 : 2,

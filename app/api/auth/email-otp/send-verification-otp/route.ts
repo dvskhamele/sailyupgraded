@@ -1,6 +1,6 @@
 import { randomInt } from "crypto";
 import { NextRequest, NextResponse } from "next/server";
-import { prismadb } from "@/lib/prisma";
+import { isPrismaAccessDeniedError, prismadb } from "@/lib/prisma";
 
 const testOtpIdentifier = (email: string) => `test-otp-${email.toLowerCase()}`;
 const signInOtpIdentifier = (email: string) => `sign-in-otp-${email.toLowerCase()}`;
@@ -44,6 +44,18 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("[OTP Send] Failed to create verification OTP", error);
+
+    if (isPrismaAccessDeniedError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Database credentials were rejected. Update DATABASE_URL in .env.local, then restart the dev server.",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: "Failed to create verification OTP" },
       { status: 500 }

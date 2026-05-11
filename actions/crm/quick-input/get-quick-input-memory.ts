@@ -1,8 +1,34 @@
 "use server";
 
 import { getDefaultCurrency } from "@/lib/currency";
-import { prismadb } from "@/lib/prisma";
+import {
+  isPrismaAccessDeniedError,
+  isTransientPrismaConnectionError,
+  prismadb,
+} from "@/lib/prisma";
 import type { QuickDbMemory, QuickMemoryField } from "@/lib/crm/quick-input-engine";
+
+const bypassLogin =
+  process.env.BYPASS_LOGIN === "true" ||
+  process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";
+
+const fallbackQuickInputMemory: QuickDbMemory = {
+  names: [],
+  companies: [],
+  cities: [],
+  dealValues: [],
+  sources: [],
+  agentNumbers: [],
+  emails: [],
+  defaultCurrency: "EUR",
+  defaultSalesStageId: "local-prospecting",
+  defaultOpportunityTypeId: "",
+  defaultBudget: "1000",
+};
+
+function shouldUseFallback(error: unknown) {
+  return isPrismaAccessDeniedError(error) || isTransientPrismaConnectionError(error);
+}
 
 function compact(values: Array<string | number | null | undefined>, limit = 5) {
   const counts = new Map<string, number>();
@@ -25,40 +51,63 @@ function pickByName(items: { id: string; name: string }[], names: string[]) {
 }
 
 export async function getQuickInputMemory(): Promise<QuickDbMemory> {
-  const [contacts, opportunities, leadSources, stages, types, defaultCurrency] = await Promise.all([
-    prismadb.crm_Contacts.findMany({
-      where: { deletedAt: null },
-      select: {
-        first_name: true,
-        last_name: true,
-        company: true,
-        city: true,
-        email: true,
-        serial: true,
-      },
-      orderBy: { cratedAt: "desc" },
-      take: 150,
-    }),
-    prismadb.crm_Opportunities.findMany({
-      where: { deletedAt: null },
-      select: { budget: true },
-      orderBy: { createdAt: "desc" },
-      take: 100,
-    }),
-    prismadb.crm_Lead_Sources.findMany({
-      select: { name: true },
-      orderBy: { name: "asc" },
-    }),
-    prismadb.crm_Opportunities_Sales_Stages.findMany({
-      select: { id: true, name: true },
-      orderBy: [{ order: "asc" }, { name: "asc" }],
-    }),
-    prismadb.crm_Opportunities_Type.findMany({
-      select: { id: true, name: true },
-      orderBy: [{ order: "asc" }, { name: "asc" }],
-    }),
-    getDefaultCurrency(),
-  ]);
+  if (bypassLogin) {
+    return fallbackQuickInputMemory;
+  }
+
+  let contacts;
+  let opportunities;
+  let leadSources;
+  let stages;
+  let types;
+  let defaultCurrency;
+
+  try {
+    [contacts, opportunities, leadSources, stages, types, defaultCurrency] = await Promise.all([
+      prismadb.crm_Contacts.findMany({
+        where: { deletedAt: null },
+        select: {
+          first_name: true,
+          last_name: true,
+          company: true,
+          city: true,
+          email: true,
+          serial: true,
+        },
+        orderBy: { cratedAt: "desc" },
+        take: 150,
+      }),
+      prismadb.crm_Opportunities.findMany({
+        where: { deletedAt: null },
+        select: { budget: true },
+        orderBy: { createdAt: "desc" },
+        take: 100,
+      }),
+      prismadb.crm_Lead_Sources.findMany({
+        select: { name: true },
+        orderBy: { name: "asc" },
+      }),
+      prismadb.crm_Opportunities_Sales_Stages.findMany({
+        select: { id: true, name: true },
+        orderBy: [{ order: "asc" }, { name: "asc" }],
+      }),
+      prismadb.crm_Opportunities_Type.findMany({
+        select: { id: true, name: true },
+        orderBy: [{ order: "asc" }, { name: "asc" }],
+      }),
+      getDefaultCurrency(),
+    ]);
+  } catch (error) {
+    if (!shouldUseFallback(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[CRM] getQuickInputMemory failed; using local fallback data.",
+      error instanceof Error ? error.message : error
+    );
+    return fallbackQuickInputMemory;
+  }
 
   const names = contacts.map((contact) =>
     [contact.first_name, contact.last_name].filter(Boolean).join(" "),

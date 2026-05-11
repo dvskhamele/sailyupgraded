@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { POST as authPost } from "@/app/api/auth/[...all]/route";
-import { prismadb } from "@/lib/prisma";
+import { isPrismaAccessDeniedError, prismadb } from "@/lib/prisma";
 
 const testOtpIdentifier = (email: string) => `test-otp-${email.toLowerCase()}`;
 const fallbackOtpIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
@@ -61,6 +61,18 @@ export async function POST(request: NextRequest) {
     return await authPost(forwardedRequest);
   } catch (error) {
     console.error("[OTP Sign-In] Failed to sign in with OTP", error);
+
+    if (isPrismaAccessDeniedError(error)) {
+      return NextResponse.json(
+        {
+          success: false,
+          error:
+            "Database credentials were rejected. Update DATABASE_URL in .env.local, then restart the dev server.",
+        },
+        { status: 503 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: "Failed to sign in with OTP" },
       { status: 500 }

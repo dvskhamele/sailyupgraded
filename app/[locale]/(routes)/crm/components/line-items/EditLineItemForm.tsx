@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
 import { useAction } from "@/hooks/use-action";
+import { FormCurrencyInput } from "@/components/form/form-currency-input";
 import { FormInput } from "@/components/form/form-input";
 import { FormSubmit } from "@/components/form/form-submit";
 import { FormTextarea } from "@/components/form/form-textarea";
@@ -95,10 +96,9 @@ const EditLineItemForm = ({
                 errors={fieldErrors}
                 defaultValue={String(item.quantity)}
               />
-              <FormInput
+              <FormCurrencyInput
                 id="unit_price"
                 label="Unit Price"
-                type="text"
                 errors={fieldErrors}
                 defaultValue={String(item.unit_price)}
               />

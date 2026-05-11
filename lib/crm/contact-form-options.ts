@@ -100,6 +100,29 @@ export async function resolveLeadSourceId(value?: string | null): Promise<string
   return created.id;
 }
 
+export async function resolveContactTypeId(value?: string | null): Promise<string | undefined> {
+  const trimmedValue = value?.trim();
+  if (!trimmedValue) return undefined;
+
+  const existing = await prismadb.crm_Contact_Types.findFirst({
+    where: {
+      OR: [{ id: trimmedValue }, { name: trimmedValue }],
+    },
+    select: { id: true },
+  });
+
+  if (existing) return existing.id;
+
+  const created = await prismadb.crm_Contact_Types.upsert({
+    where: { name: trimmedValue },
+    update: {},
+    create: { name: trimmedValue },
+    select: { id: true },
+  });
+
+  return created.id;
+}
+
 export async function ensureDefaultContactTypes(): Promise<NamedOption[]> {
   const existing = await prismadb.crm_Contact_Types.findMany({
     select: { id: true, name: true },

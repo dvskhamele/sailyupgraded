@@ -27,6 +27,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { deleteContact } from "@/actions/crm/contacts/delete-contact";
+import { stopRowNavigation } from "../../components/table-row-navigation";
 
 type ConfigItem = { id: string; name: string };
 type AccountItem = {
@@ -43,6 +44,7 @@ interface DataTableRowActionsProps<TData> {
   leadStatuses?: ConfigItem[];
   leadTypes?: ConfigItem[];
   products?: ConfigItem[];
+  saleStages?: ConfigItem[];
 }
 
 export function DataTableRowActions<TData>({
@@ -53,6 +55,7 @@ export function DataTableRowActions<TData>({
   leadStatuses = [],
   leadTypes = [],
   products = [],
+  saleStages = [],
 }: DataTableRowActionsProps<TData>) {
   const router = useRouter();
   const contact = opportunitySchema.parse(row.original);
@@ -104,36 +107,49 @@ export function DataTableRowActions<TData>({
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
               products={products}
+              saleStages={saleStages}
             />
           </div>
         </SheetContent>
       </Sheet>
+      <div data-row-action onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+            onClick={stopRowNavigation}
           >
             <DotsHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[160px]">
+        <DropdownMenuContent align="end" className="w-[160px]" onClick={stopRowNavigation}>
           <DropdownMenuItem
-            onClick={() => router.push(`/crm/contacts/${contact?.id}`)}
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/crm/contacts/${contact?.id}`);
+            }}
           >
             View
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            setUpdateOpen(true);
+          }}>
             Update
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}>
             Delete
             <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </>
   );
 }

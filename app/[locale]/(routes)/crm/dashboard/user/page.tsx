@@ -22,12 +22,13 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatCurrencyAmount } from "@/lib/currency-input";
 
 const UserDashboardPage = async () => {
   const session = await getSession();
 
   if (!session) {
-    redirect("/auth/signin");
+    redirect("/sign-in");
   }
 
   const [tasks, leads, opportunities] = await Promise.all([
@@ -188,7 +189,7 @@ const UserDashboardPage = async () => {
                         {opp.assigned_sales_stage?.name ?? "—"}
                       </TableCell>
                       <TableCell>
-                        {opp.budget ? `$${Number(opp.budget).toLocaleString()}` : "—"}
+                        {formatCurrencyAmount(opp.budget, opp.currency || "USD", "—")}
                       </TableCell>
                     </TableRow>
                   ))}

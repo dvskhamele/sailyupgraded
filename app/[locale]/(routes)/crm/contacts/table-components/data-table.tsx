@@ -34,6 +34,7 @@ import AlertModal from "@/components/modals/alert-modal";
 import { bulkDeleteContacts } from "@/actions/crm/contacts/delete-contact";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -199,6 +200,19 @@ export function ContactsDataTable<TData, TValue>({
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && "selected"}
+                      role="link"
+                      tabIndex={0}
+                      className="cursor-pointer"
+                      onClick={(event) =>
+                        handleRowClick(event, () =>
+                          router.push(`/crm/contacts/${(row.original as { id: string }).id}`)
+                        )
+                      }
+                      onKeyDown={(event) =>
+                        handleRowKeyDown(event, () =>
+                          router.push(`/crm/contacts/${(row.original as { id: string }).id}`)
+                        )
+                      }
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>

@@ -95,12 +95,64 @@ export async function resetPrisma() {
 }
 
 export function isTransientPrismaConnectionError(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error);
+  const message = getPrismaErrorMessage(error);
+
+  if (isPrismaAccessDeniedErrorMessage(message)) {
+    return false;
+  }
+
   return (
     message.includes("pool timeout: failed to retrieve a connection from pool") ||
     message.includes("read ECONNRESET") ||
     message.includes("pool is ending")
   );
+}
+
+function getPrismaErrorMessage(error: unknown): string {
+  return collectPrismaErrorMessages(error).join("\n");
+}
+
+function collectPrismaErrorMessages(
+  error: unknown,
+  seen = new WeakSet<object>()
+): string[] {
+  if (!error || typeof error !== "object") {
+    return [String(error)];
+  }
+
+  if (seen.has(error)) {
+    return [];
+  }
+  seen.add(error);
+
+  const messages: string[] = [];
+  const record = error as Record<string, unknown>;
+  for (const key of ["message", "originalMessage", "code", "originalCode", "state"]) {
+    const value = record[key];
+    if (typeof value === "string" || typeof value === "number") {
+      messages.push(String(value));
+    }
+  }
+
+  for (const key of ["cause", "originalError"]) {
+    if (key in record) {
+      messages.push(...collectPrismaErrorMessages(record[key], seen));
+    }
+  }
+
+  return messages.length > 0 ? messages : [String(error)];
+}
+
+function isPrismaAccessDeniedErrorMessage(message: string) {
+  return (
+    message.includes("Access denied for user") ||
+    message.includes("ER_ACCESS_DENIED_ERROR") ||
+    message.includes("SQLState: 28000")
+  );
+}
+
+export function isPrismaAccessDeniedError(error: unknown) {
+  return isPrismaAccessDeniedErrorMessage(getPrismaErrorMessage(error));
 }
 
 export async function withPrismaRetry<T>(operation: () => Promise<T>) {

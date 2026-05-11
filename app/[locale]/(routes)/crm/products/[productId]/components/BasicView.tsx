@@ -18,8 +18,7 @@ import {
   Ruler,
 } from "lucide-react";
 import moment from "moment";
-import { Decimal } from "@prisma/client/runtime/client";
-import { formatCurrency } from "@/lib/currency";
+import { formatCurrencyAmount } from "@/lib/currency-input";
 
 interface BasicViewProps {
   data: {
@@ -61,7 +60,7 @@ export function BasicView({ data }: BasicViewProps) {
 
   const formatValue = (value: number | null | undefined) =>
     value != null
-      ? formatCurrency(new Decimal(value.toString()), data.currency || "EUR")
+      ? formatCurrencyAmount(value, data.currency || "USD")
       : "N/A";
 
   const marginPercentage =

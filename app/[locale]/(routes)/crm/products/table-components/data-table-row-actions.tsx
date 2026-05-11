@@ -20,6 +20,7 @@ import { useState } from "react";
 import { toast } from "sonner";
 
 import { deleteProduct } from "@/actions/crm/products/delete-product";
+import { stopRowNavigation } from "../../components/table-row-navigation";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -59,29 +60,46 @@ export function DataTableRowActions<TData>({
         loading={loading}
       />
 
+      <div data-row-action onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+            onClick={stopRowNavigation}
           >
             <DotsHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[160px]">
+        <DropdownMenuContent align="end" className="w-[160px]" onClick={stopRowNavigation}>
           <DropdownMenuItem
-            onClick={() => router.push(`/crm/products/${product.id}`)}
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/crm/products/${product.id}`);
+            }}
           >
            View
           </DropdownMenuItem>
+          <DropdownMenuItem
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/crm/products/${product.id}`);
+            }}
+          >
+            Edit
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}>
             Delete
             <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </>
   );
 }

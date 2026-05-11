@@ -29,32 +29,20 @@ import { formatAddress } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
+import { formatCurrencyDisplay } from "@/lib/currency-input";
+import { normalizeContactNotes } from "@/lib/crm/notes";
 // import { EnrichButton } from "./EnrichButton";
 
 interface OppsViewProps {
   data: any;
 }
 
-function getNoteText(note: unknown) {
-  if (typeof note === "string") return note;
-  if (note && typeof note === "object") {
-    const candidate = (note as { text?: unknown; content?: unknown; note?: unknown })
-      .text ??
-      (note as { text?: unknown; content?: unknown; note?: unknown }).content ??
-      (note as { text?: unknown; content?: unknown; note?: unknown }).note;
-    if (typeof candidate === "string") return candidate;
-    return JSON.stringify(note);
-  }
-  if (note == null) return "";
-  return String(note);
-}
-
 export async function BasicView({ data }: OppsViewProps) {
   //console.log(data, "data");
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
-  const notes = Array.isArray(data?.notes) ? data.notes : [];
+  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, saleStages, products } = crmData;
+  const notes = normalizeContactNotes(data?.notes);
   const linkedOpportunities = Array.isArray(data?.opportunities)
     ? data.opportunities
         .map((item: any) => item.opportunity)
@@ -68,10 +56,12 @@ export async function BasicView({ data }: OppsViewProps) {
         <CardHeader className="pb-3">
           <div className="flex w-full justify-between">
             <div>
-              <CardTitle>
-                {data.first_name} {data.last_name}
-              </CardTitle>
-              <CardDescription>ID:{data.id}</CardDescription>
+              <CardTitle>Basic Information</CardTitle>
+              <CardDescription>
+                {[`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(), `ID: ${data.id}`, data.serial ? `Serial: ${data.serial}` : null]
+                  .filter(Boolean)
+                  .join(" | ")}
+              </CardDescription>
             </div>
             <div className="flex items-center gap-2">
               {/* <EnrichButton
@@ -96,6 +86,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 leadSources={leadSources}
                 leadStatuses={leadStatuses}
                 leadTypes={leadTypes}
+                saleStages={saleStages}
                 products={(products ?? []).filter((product: any) => product.status === "ACTIVE")}
               />
             </div>
@@ -104,6 +95,15 @@ export async function BasicView({ data }: OppsViewProps) {
         <CardContent>
           <div className="grid grid-cols-2 w-full ">
             <div>
+              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                <CoinsIcon className="mt-px h-5 w-5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Contact Serial</p>
+                  <p className="text-sm text-muted-foreground">
+                    {data.serial || "N/A"}
+                  </p>
+                </div>
+              </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
@@ -212,7 +212,7 @@ export async function BasicView({ data }: OppsViewProps) {
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Type</p>
+                  <p className="text-sm font-medium leading-none">Contact type</p>
                   <p className="text-sm text-muted-foreground">{data.contact_type?.name ?? "—"}</p>
                 </div>
               </div>
@@ -255,7 +255,29 @@ export async function BasicView({ data }: OppsViewProps) {
       </Card>
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle>Opportunity</CardTitle>
+          <CardTitle>Insurance Information</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+            {[
+              ["Contact type", data.contact_type?.name],
+              ["Lead source", data.lead_source?.name],
+              ["Lead status", data.lead_status?.name],
+              ["Lead type", data.lead_type?.name],
+              ["Referred by", data.refered_by],
+              ["Campaign", data.campaign],
+            ].map(([label, value]) => (
+              <div key={label} className="rounded-md border bg-muted/20 px-3 py-2">
+                <p className="text-sm font-medium leading-none">{label}</p>
+                <p className="mt-1 text-sm text-muted-foreground">{value || "N/A"}</p>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle>Opportunities</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           {linkedOpportunities.length > 0 ? (
@@ -293,9 +315,10 @@ export async function BasicView({ data }: OppsViewProps) {
                   <div className="space-y-1">
                     <p className="text-sm font-medium leading-none">Budget</p>
                     <p className="text-sm text-muted-foreground">
-                      {opportunity.budget != null
-                        ? `${opportunity.currency ? `${opportunity.currency} ` : ""}${Number(opportunity.budget).toLocaleString()}`
-                        : "N/A"}
+                      {formatCurrencyDisplay(
+                        opportunity.budget,
+                        opportunity.currency || "USD"
+                      )}
                     </p>
                   </div>
                 </div>
@@ -460,18 +483,13 @@ export async function BasicView({ data }: OppsViewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
-              {notes.map((note: unknown, index: number) => {
-                const noteText = getNoteText(note);
-
-                return (
-                  <p
-                    className="text-sm text-muted-foreground"
-                    key={`${index}-${noteText}`}
-                  >
-                    {noteText}
-                  </p>
-                );
-              })}
+              {notes.length > 0 ? notes.map((note) => (
+                <p className="text-sm text-muted-foreground" key={note.id}>
+                  {note.text}
+                </p>
+              )) : (
+                <p className="text-sm text-muted-foreground">No notes</p>
+              )}
             </div>
           </CardContent>
         </Card>

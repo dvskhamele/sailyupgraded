@@ -9,7 +9,7 @@ export async function getUserById(userId: string) {
 
   const user = await prismadb.users.findFirst({
     where: { id: userId, userStatus: "ACTIVE" },
-    select: { id: true, name: true, avatar: true },
+    select: { id: true, name: true, email: true, avatar: true },
   });
 
   return user ?? null;

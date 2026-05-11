@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
+import { toUtcIsoString } from "@/lib/campaigns/scheduling";
 import { randomUUID } from "crypto";
 
 export const campaignScheduleSend = inngest.createFunction(
@@ -89,8 +90,8 @@ export const campaignScheduleSend = inngest.createFunction(
     // Schedule follow-up steps
     const followUpSteps = await step.run("get-follow-up-steps", async () => {
       return prismadb.crm_campaign_steps.findMany({
-        where: { campaign_id: campaignId, order: { gt: 0 } },
-        orderBy: { order: "asc" },
+        where: { campaign_id: campaignId, order: { gt: 0 }, scheduled_at: { not: null } },
+        orderBy: [{ scheduled_at: "asc" }, { order: "asc" }, { id: "asc" }],
       });
     });
 
@@ -102,7 +103,7 @@ export const campaignScheduleSend = inngest.createFunction(
           data: {
             campaignId,
             stepId: s.id,
-            scheduledAt: new Date(new Date(scheduledAt).getTime() + s.delay_days * 86_400_000).toISOString(),
+            scheduledAt: toUtcIsoString(s.scheduled_at!),
           },
         }))
       );

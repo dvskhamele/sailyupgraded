@@ -1,8 +1,15 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getCampaignScheduleAvailability } from "@/actions/campaigns/schedule-availability";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  formatLocalDateTime,
+  getBrowserTimeZone,
+  parseLocalDateTimeInput,
+  toLocalDateTimeInputValue,
+} from "@/lib/campaigns/scheduling";
 
 type FollowUpStep = {
   order: number;
@@ -30,6 +37,8 @@ type Props = {
   isSubmitting: boolean;
 };
 
+type Availability = Awaited<ReturnType<typeof getCampaignScheduleAvailability>>;
+
 export function Step4Schedule({
   initialData,
   templates,
@@ -40,7 +49,7 @@ export function Step4Schedule({
   const [sendNow, setSendNow] = useState(initialData.send_now ?? false);
   const [scheduledAt, setScheduledAt] = useState<string>(() => {
     if (initialData.scheduled_at) {
-      return new Date(initialData.scheduled_at).toISOString().slice(0, 16);
+      return toLocalDateTimeInputValue(initialData.scheduled_at);
     }
     return "";
   });
@@ -48,6 +57,49 @@ export function Step4Schedule({
     initialData.followUpSteps ?? []
   );
   const [error, setError] = useState("");
+  const [availability, setAvailability] = useState<Availability | null>(null);
+  const [isCheckingSlot, setIsCheckingSlot] = useState(false);
+  const [timeZone, setTimeZone] = useState("UTC");
+
+  useEffect(() => {
+    setTimeZone(getBrowserTimeZone());
+  }, []);
+
+  useEffect(() => {
+    if (sendNow || !scheduledAt) {
+      setAvailability(null);
+      setIsCheckingSlot(false);
+      return;
+    }
+
+    let active = true;
+    setIsCheckingSlot(true);
+    const timeout = window.setTimeout(async () => {
+      try {
+        const result = await getCampaignScheduleAvailability(
+          parseLocalDateTimeInput(scheduledAt)
+        );
+
+        if (active) {
+          setAvailability(result);
+          setError(result.reason === "past" ? "Choose a future time." : "");
+        }
+      } catch {
+        if (active) {
+          setAvailability(null);
+        }
+      } finally {
+        if (active) {
+          setIsCheckingSlot(false);
+        }
+      }
+    }, 350);
+
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+    };
+  }, [scheduledAt, sendNow]);
 
   const addFollowUp = () => {
     setFollowUps((prev) => [
@@ -80,19 +132,48 @@ export function Step4Schedule({
       setError("Pick a date or choose Send Now");
       return;
     }
-    await onSubmit({
-      send_now: sendNow,
-      scheduled_at: sendNow ? undefined : new Date(scheduledAt),
-      followUpSteps: followUps,
-    });
+    try {
+      const scheduledDate = sendNow ? undefined : parseLocalDateTimeInput(scheduledAt);
+
+      if (scheduledDate) {
+        const result = await getCampaignScheduleAvailability(scheduledDate);
+
+        if (!result.available) {
+          setAvailability(result);
+          setError(
+            result.reason === "past"
+              ? "Choose a future time."
+              : "This slot overlaps another scheduled campaign."
+          );
+          return;
+        }
+      }
+
+      await onSubmit({
+        send_now: sendNow,
+        scheduled_at: scheduledDate,
+        followUpSteps: followUps,
+      });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to schedule campaign.");
+    }
+  };
+
+  const applyNextAvailableSlot = () => {
+    if (!availability?.nextAvailableAt) {
+      return;
+    }
+
+    setScheduledAt(toLocalDateTimeInputValue(availability.nextAvailableAt));
+    setError("");
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-lg">
+    <div className="flex w-full max-w-2xl flex-col gap-6">
       {/* Send timing */}
       <div className="flex flex-col gap-3">
         <Label>When to send</Label>
-        <div className="flex gap-4">
+        <div className="flex flex-wrap gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="radio"
@@ -117,11 +198,54 @@ export function Step4Schedule({
           </label>
         </div>
         {!sendNow && (
-          <Input
-            type="datetime-local"
-            value={scheduledAt}
-            onChange={(e) => setScheduledAt(e.target.value)}
-          />
+          <div className="flex flex-col gap-2">
+            <Input
+              type="datetime-local"
+              value={scheduledAt}
+              aria-describedby="schedule-timezone schedule-warning"
+              aria-invalid={Boolean(error || availability?.reason === "collision")}
+              onChange={(e) => {
+                setScheduledAt(e.target.value);
+                setError("");
+              }}
+            />
+            <p id="schedule-timezone" className="text-xs text-muted-foreground">
+              Times are shown in {timeZone}; saved and queued in UTC.
+            </p>
+            {isCheckingSlot && (
+              <p className="text-xs text-muted-foreground" aria-live="polite">
+                Checking queue availability...
+              </p>
+            )}
+            {availability?.reason === "collision" && (
+              <div
+                id="schedule-warning"
+                role="alert"
+                className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900"
+              >
+                <p>
+                  This slot overlaps another scheduled campaign.
+                  {availability.nextAvailableAt
+                    ? ` Next available: ${formatLocalDateTime(
+                        availability.nextAvailableAt,
+                        timeZone
+                      )}.`
+                    : ""}
+                </p>
+                {availability.nextAvailableAt && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-2"
+                    onClick={applyNextAvailableSlot}
+                  >
+                    Use next available slot
+                  </Button>
+                )}
+              </div>
+            )}
+          </div>
         )}
       </div>
 
@@ -146,7 +270,7 @@ export function Step4Schedule({
                 Remove
               </Button>
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <div>
                 <Label className="text-xs">Delay (days after previous)</Label>
                 <Input
@@ -207,9 +331,13 @@ export function Step4Schedule({
         </Button>
       </div>
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && (
+        <p className="text-sm text-destructive" role="alert" aria-live="polite">
+          {error}
+        </p>
+      )}
 
-      <div className="flex justify-between">
+      <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-between">
         <Button variant="outline" onClick={onBack}>
           ← Back
         </Button>

@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -21,6 +21,7 @@ import {
 import { createActivity } from "@/actions/crm/activities/create-activity";
 import { updateActivity } from "@/actions/crm/activities/update-activity";
 import type { ActivityWithLinks } from "@/actions/crm/activities/get-activities-by-entity";
+import { generateActivityTitle } from "@/lib/crm/activity-title";
 
 type ActivityType = "call" | "meeting" | "note" | "email";
 type ActivityStatus = "scheduled" | "completed" | "cancelled";
@@ -31,6 +32,11 @@ const DEFAULT_STATUS: Record<ActivityType, ActivityStatus> = {
   note: "completed",
   email: "completed",
 };
+
+function toDateTimeLocalValue(value = new Date()) {
+  const offsetMs = value.getTimezoneOffset() * 60_000;
+  return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
+}
 
 interface Props {
   open: boolean;
@@ -43,13 +49,12 @@ interface Props {
 
 export function ActivityForm({ open, onOpenChange, entityType, entityId, activity, onSaved }: Props) {
   const isEdit = !!activity;
-  const skipValidation = entityType === "contact";
 
   const [type, setType] = useState<ActivityType>(activity?.type ?? "call");
   const [title, setTitle] = useState(activity?.title ?? "");
   const [description, setDescription] = useState(activity?.description ?? "");
   const [date, setDate] = useState(
-    activity ? new Date(activity.date).toISOString().slice(0, 16) : ""
+    activity ? toDateTimeLocalValue(new Date(activity.date)) : toDateTimeLocalValue()
   );
   const [selectedStatus, setSelectedStatus] = useState<ActivityStatus | null>(
     activity?.status ?? null
@@ -67,25 +72,28 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
   const status =
     selectedStatus ?? (isEdit ? activity?.status ?? "scheduled" : DEFAULT_STATUS[type]);
 
+  useEffect(() => {
+    if (!open || isEdit) return;
+    setDate(toDateTimeLocalValue());
+  }, [isEdit, open]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!skipValidation && !title.trim()) {
-      toast.error("Title is required");
-      return;
-    }
-    if (!skipValidation && !date) {
-      toast.error("Date is required");
-      return;
-    }
-
     setSaving(true);
 
     const metadata: Record<string, unknown> = {};
     if (showEmailSubject && emailSubject) metadata.subject = emailSubject;
 
+    const fallbackTitle = generateActivityTitle({
+      type,
+      title,
+      description,
+      outcome,
+      note: description,
+    });
     const payload = {
       type,
-      title: title.trim(),
+      title: fallbackTitle,
       description: description.trim() || undefined,
       date: date ? new Date(date) : new Date(),
       duration: showDuration && duration ? parseInt(duration, 10) : undefined,
@@ -143,7 +151,6 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Brief description"
-              required={!skipValidation}
             />
           </div>
 
@@ -154,7 +161,6 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
               type="datetime-local"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              required={!skipValidation}
             />
           </div>
 

@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation";
 import { useAction } from "@/hooks/use-action";
 import { assignProduct } from "@/actions/crm/account-products/assign-product";
 
+import { FormCurrencyInput } from "@/components/form/form-currency-input";
 import { FormInput } from "@/components/form/form-input";
 import FormSheet from "@/components/sheets/form-sheet";
 import { FormSubmit } from "@/components/form/form-submit";
@@ -92,10 +93,9 @@ const AssignProductForm = ({
           defaultValue="1"
           errors={fieldErrors}
         />
-        <FormInput
+        <FormCurrencyInput
           id="custom_price"
           label="Custom Price (optional)"
-          type="text"
           errors={fieldErrors}
         />
         <FormSelect

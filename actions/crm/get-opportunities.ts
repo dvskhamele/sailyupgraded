@@ -1,8 +1,21 @@
-import { prismadb, resetPrisma } from "@/lib/prisma";
+import {
+  isPrismaAccessDeniedError,
+  isTransientPrismaConnectionError,
+  prismadb,
+  resetPrisma,
+} from "@/lib/prisma";
+
+const bypassLogin =
+  process.env.BYPASS_LOGIN === "true" ||
+  process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";
 
 function isEndedPoolError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return message.includes("pool is ending");
+}
+
+function shouldUseFallback(error: unknown) {
+  return isPrismaAccessDeniedError(error) || isTransientPrismaConnectionError(error);
 }
 
 async function loadOpportunities() {
@@ -50,9 +63,21 @@ async function loadOpportunities() {
 }
 
 export const getOpportunities = async () => {
+  if (bypassLogin) {
+    return [];
+  }
+
   try {
     return await loadOpportunities();
   } catch (error) {
+    if (shouldUseFallback(error)) {
+      console.warn(
+        "[CRM] getOpportunities failed; using local fallback data.",
+        error instanceof Error ? error.message : error
+      );
+      return [];
+    }
+
     if (!isEndedPoolError(error)) {
       throw error;
     }

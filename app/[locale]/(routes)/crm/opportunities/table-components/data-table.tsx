@@ -28,6 +28,8 @@ import {
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
 import { PanelTopClose, PanelTopOpen } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -38,6 +40,7 @@ export function OpportunitiesDataTable<TData, TValue>({
   columns,
   data,
 }: DataTableProps<TData, TValue>) {
+  const router = useRouter();
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({});
@@ -122,6 +125,19 @@ export function OpportunitiesDataTable<TData, TValue>({
                     <TableRow
                       key={row.id}
                       data-state={row.getIsSelected() && "selected"}
+                      role="link"
+                      tabIndex={0}
+                      className="cursor-pointer"
+                      onClick={(event) =>
+                        handleRowClick(event, () =>
+                          router.push(`/crm/opportunities/${(row.original as { id: string }).id}`)
+                        )
+                      }
+                      onKeyDown={(event) =>
+                        handleRowKeyDown(event, () =>
+                          router.push(`/crm/opportunities/${(row.original as { id: string }).id}`)
+                        )
+                      }
                     >
                       {row.getVisibleCells().map((cell) => (
                         <TableCell key={cell.id}>

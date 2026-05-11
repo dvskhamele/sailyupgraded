@@ -13,6 +13,7 @@ import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { serializeOpportunityProducts } from "@/lib/opportunity-products";
 import { Prisma } from "@prisma/client";
+import { currencyInputToDecimalString } from "@/lib/currency-input";
 
 export const updateOpportunity = async (data: {
   id: string;
@@ -61,6 +62,8 @@ export const updateOpportunity = async (data: {
 
   try {
     const defaultCurrency = await getDefaultCurrency();
+    const budgetAmount = currencyInputToDecimalString(budget);
+    const expectedRevenueAmount = currencyInputToDecimalString(expected_revenue);
     const snapshotRate = currency
       ? await getSnapshotRate(currency, defaultCurrency)
       : null;
@@ -92,7 +95,7 @@ export const updateOpportunity = async (data: {
       data: {
         assigned_account: account ? { connect: { id: account } } : { disconnect: true },
         assigned_to_user: assigned_to ? { connect: { id: assigned_to } } : { disconnect: true },
-        budget: budget ? parseFloat(budget) : undefined,
+        budget: budgetAmount,
         assigned_campaings: campaign ? { connect: { id: campaign } } : { disconnect: true },
         category: serializeOpportunityProducts(category),
         clientName: clientName || null,
@@ -101,7 +104,7 @@ export const updateOpportunity = async (data: {
         updatedBy: userId,
         assigned_currency: currency ? { connect: { code: currency } } : { disconnect: true },
         description: description || null,
-        expected_revenue: expected_revenue ? parseFloat(expected_revenue) : undefined,
+        expected_revenue: expectedRevenueAmount,
         snapshot_rate: snapshotRate ? parseFloat(snapshotRate.toString()) : undefined,
         name: name || undefined,
         next_step: next_step || null,

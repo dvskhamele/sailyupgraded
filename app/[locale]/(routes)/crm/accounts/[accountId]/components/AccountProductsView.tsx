@@ -24,6 +24,7 @@ import {
 
 import AssignProductForm from "./AssignProductForm";
 import { removeAssignment } from "@/actions/crm/account-products/remove-assignment";
+import { formatCurrencyAmount } from "@/lib/currency-input";
 
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 
@@ -64,10 +65,8 @@ const AccountProductsView = ({
 
   const formatPrice = (item: any) => {
     const price = item.custom_price ?? item.product?.unit_price;
-    if (price == null) return "-";
-    const num = typeof price === "number" ? price : Number(price);
     const curr = item.currency || item.product?.currency || "EUR";
-    return `${num.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${curr}`;
+    return formatCurrencyAmount(price, curr, "-");
   };
 
   const formatDate = (date: string | Date | null | undefined) => {

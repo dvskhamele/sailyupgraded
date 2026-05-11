@@ -1,3 +1,5 @@
+import { ClientDateTime } from "@/components/campaigns/ClientDateTime";
+
 type Step = {
   id: string;
   order: number;
@@ -42,11 +44,11 @@ export default function StepsTimeline({ steps }: { steps: Step[] }) {
             <div className="text-right text-xs text-muted-foreground flex-shrink-0">
               {step.sent_at ? (
                 <div className="text-green-600">
-                  Sent {new Date(step.sent_at).toLocaleDateString()}
+                  Sent <ClientDateTime value={step.sent_at} />
                 </div>
               ) : step.scheduled_at ? (
                 <div className="text-blue-600">
-                  Scheduled {new Date(step.scheduled_at).toLocaleDateString()}
+                  Scheduled <ClientDateTime value={step.scheduled_at} />
                 </div>
               ) : (
                 <div>Pending</div>

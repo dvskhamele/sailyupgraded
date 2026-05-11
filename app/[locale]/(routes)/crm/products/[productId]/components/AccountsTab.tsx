@@ -2,8 +2,7 @@
 
 import Link from "next/link";
 import moment from "moment";
-import Decimal from "decimal.js";
-import { formatCurrency } from "@/lib/currency-format";
+import { formatCurrencyAmount } from "@/lib/currency-input";
 
 import {
   Table,
@@ -49,7 +48,7 @@ export function AccountsTab({
 
   const formatPrice = (value: number | null) => {
     const amount = value ?? productPrice;
-    return formatCurrency(new Decimal(amount.toString()), productCurrency);
+    return formatCurrencyAmount(amount, productCurrency);
   };
 
   if (!assignments || assignments.length === 0) {

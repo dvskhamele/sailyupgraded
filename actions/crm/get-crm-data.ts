@@ -1,5 +1,10 @@
 import { cache } from "react";
-import { prismadb, withPrismaRetry } from "@/lib/prisma";
+import {
+  isPrismaAccessDeniedError,
+  isTransientPrismaConnectionError,
+  prismadb,
+  withPrismaRetry,
+} from "@/lib/prisma";
 import {
   pickExistingDbModelFields,
   pickSupportedModelFields,
@@ -8,6 +13,68 @@ import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decima
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 import { appendSocialLeadSourceOptions, ensureDefaultContactTypes } from "@/lib/crm/contact-form-options";
 import { getAccountIndustries } from "@/lib/crm/industries";
+
+const bypassLogin =
+  process.env.BYPASS_LOGIN === "true" ||
+  process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";
+
+function shouldUseFallback(error: unknown) {
+  return isPrismaAccessDeniedError(error) || isTransientPrismaConnectionError(error);
+}
+
+const fallbackCurrencies = [
+  { code: "EUR", name: "Euro", symbol: "EUR" },
+  { code: "USD", name: "US Dollar", symbol: "USD" },
+  { code: "INR", name: "Indian Rupee", symbol: "INR" },
+];
+
+function getFallbackCrmData() {
+  const now = new Date();
+  const saleStages = [
+    {
+      id: "local-prospecting",
+      name: "Prospecting",
+      order: 1,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "local-qualified",
+      name: "Qualified",
+      order: 2,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: "local-proposal",
+      name: "Proposal",
+      order: 3,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  return serializeDecimals({
+    accounts: [],
+    opportunities: [],
+    leads: [],
+    contacts: [],
+    contracts: [],
+    saleTypes: [],
+    saleStages,
+    lostStage: null,
+    campaigns: [],
+    industries: [],
+    contactTypes: [],
+    leadSources: appendSocialLeadSourceOptions([]),
+    leadStatuses: [],
+    leadTypes: [],
+    currencies: fallbackCurrencies,
+    productCategories: [],
+    products: [],
+    exchangeRates: [],
+  });
+}
 
 const crmDashboardLeadSelectValues = {
   id: true,
@@ -204,5 +271,21 @@ async function loadAllCrmData() {
  * MariaDB driver pool under concurrent page loads.
  */
 export const getAllCrmData = cache(async () => {
-  return withPrismaRetry(loadAllCrmData);
+  if (bypassLogin) {
+    return getFallbackCrmData();
+  }
+
+  try {
+    return await withPrismaRetry(loadAllCrmData);
+  } catch (error) {
+    if (!shouldUseFallback(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[CRM] getAllCrmData failed; using local fallback data.",
+      error instanceof Error ? error.message : error
+    );
+    return getFallbackCrmData();
+  }
 });

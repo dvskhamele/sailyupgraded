@@ -12,6 +12,7 @@ import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 
 import { Button } from "@/components/ui/button";
+import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -114,9 +115,7 @@ export function UpdateOpportunityForm({
     id: z.uuid(),
     name: z.string().min(1, t("nameRequired")),
     clientName: z.string().nullable().optional(),
-    close_date: z.date({
-      message: "A expected close date is required.",
-    }),
+    close_date: z.date().optional(),
     description: z.string().nullable().optional(),
     type: z.string().nullable().optional(),
     sales_stage: z.string().nullable().optional(),
@@ -683,11 +682,11 @@ export function UpdateOpportunityForm({
                     <FormItem>
                       <FormLabel>{t("budget")}</FormLabel>
                       <FormControl>
-                        <Input
-                          type={"number"}
+                        <CurrencyInput
                           disabled={form.formState.isSubmitting}
                           placeholder="1000000"
-                          {...field}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />
@@ -725,11 +724,11 @@ export function UpdateOpportunityForm({
                     <FormItem>
                       <FormLabel>{t("expectedRevenue")}</FormLabel>
                       <FormControl>
-                        <Input
-                          type="number"
+                        <CurrencyInput
                           disabled={form.formState.isSubmitting}
                           placeholder="500000"
-                          {...field}
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
                         />
                       </FormControl>
                       <FormMessage />

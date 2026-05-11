@@ -1,8 +1,10 @@
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import type { PoolConfig } from "mariadb";
 
-const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
-const DEFAULT_ACQUIRE_TIMEOUT_MS = 30_000;
+const DEFAULT_CONNECT_TIMEOUT_MS =
+  process.env.NODE_ENV === "development" ? 5_000 : 10_000;
+const DEFAULT_ACQUIRE_TIMEOUT_MS =
+  process.env.NODE_ENV === "development" ? 5_000 : 30_000;
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 300;
 const DEFAULT_CONNECTION_LIMIT = 10;
 

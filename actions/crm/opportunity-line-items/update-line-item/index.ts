@@ -7,6 +7,7 @@ import { createSafeAction } from "@/lib/create-safe-action";
 import { writeAuditLog } from "@/lib/audit-log";
 import { revalidatePath } from "next/cache";
 import { calculateLineTotal, sumLineTotals } from "@/lib/line-items";
+import { currencyInputToNumber } from "@/lib/currency-input";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const session = await getSession();
@@ -24,9 +25,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
     }
 
     const qty = updateData.quantity ?? existing.quantity;
-    const price = updateData.unit_price ? parseFloat(updateData.unit_price) : Number(existing.unit_price);
+    const price = updateData.unit_price ? currencyInputToNumber(updateData.unit_price) ?? 0 : Number(existing.unit_price);
     const discType = updateData.discount_type ?? existing.discount_type;
-    const discVal = updateData.discount_value !== undefined ? parseFloat(updateData.discount_value) : Number(existing.discount_value);
+    const discVal = updateData.discount_value !== undefined ? currencyInputToNumber(updateData.discount_value) ?? 0 : Number(existing.discount_value);
 
     if (discType === "PERCENTAGE" && discVal > 100) {
       return { error: "Percentage discount cannot exceed 100%" };

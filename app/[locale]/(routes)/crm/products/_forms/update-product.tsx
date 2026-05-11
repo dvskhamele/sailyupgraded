@@ -10,6 +10,7 @@ import { crm_ProductCategories } from "@prisma/client";
 import { useAction } from "@/hooks/use-action";
 import { updateProduct } from "@/actions/crm/products/update-product";
 
+import { FormCurrencyInput } from "@/components/form/form-currency-input";
 import { FormInput } from "@/components/form/form-input";
 import FormSheetNoTrigger from "@/components/sheets/form-sheet-no-trigger";
 import { FormSubmit } from "@/components/form/form-submit";
@@ -154,10 +155,9 @@ const UpdateProductForm = ({
           defaultValue={product.status}
         />
         <div className="grid grid-cols-2 gap-4">
-          <FormInput
+          <FormCurrencyInput
             id="unit_price"
             label="Unit Price"
-            type="text"
             errors={fieldErrors}
             defaultValue={String(product.unit_price)}
           />

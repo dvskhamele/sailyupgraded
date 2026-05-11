@@ -7,6 +7,7 @@ import { createSafeAction } from "@/lib/create-safe-action";
 import { writeAuditLog } from "@/lib/audit-log";
 import { revalidatePath } from "next/cache";
 import { calculateLineTotal, sumLineTotals } from "@/lib/line-items";
+import { currencyInputToNumber } from "@/lib/currency-input";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const session = await getSession();
@@ -30,7 +31,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
     let snapshotName = name;
     let snapshotSku = sku;
-    let snapshotPrice = parseFloat(unit_price);
+    let snapshotPrice = currencyInputToNumber(unit_price) ?? 0;
 
     if (productId) {
       const product = await prismadb.crm_Products.findUnique({
@@ -45,7 +46,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       }
     }
 
-    const discountVal = parseFloat(discount_value) || 0;
+    const discountVal = currencyInputToNumber(discount_value) ?? 0;
     if (discount_type === "PERCENTAGE" && discountVal > 100) {
       return { error: "Percentage discount cannot exceed 100%" };
     }

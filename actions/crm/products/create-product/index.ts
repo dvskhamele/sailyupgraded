@@ -6,6 +6,7 @@ import { InputType, ReturnType } from "./types";
 import { createSafeAction } from "@/lib/create-safe-action";
 import { writeAuditLog } from "@/lib/audit-log";
 import { revalidatePath } from "next/cache";
+import { currencyInputToDecimalString, currencyInputToNumber } from "@/lib/currency-input";
 
 const handler = async (data: InputType): Promise<ReturnType> => {
   const session = await getSession();
@@ -24,13 +25,12 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   }
 
   try {
-    const parsedUnitPrice = Number(unit_price);
-    if (!Number.isFinite(parsedUnitPrice) || parsedUnitPrice < 0) {
+    const parsedUnitPrice = currencyInputToDecimalString(unit_price);
+    if (!parsedUnitPrice || Number(parsedUnitPrice) < 0) {
       return { error: "Valid unit price is required" };
     }
 
-    const parsedUnitCost =
-      unit_cost && unit_cost.trim() !== "" ? Number(unit_cost) : undefined;
+    const parsedUnitCost = currencyInputToNumber(unit_cost);
     if (
       parsedUnitCost !== undefined &&
       (!Number.isFinite(parsedUnitCost) || parsedUnitCost < 0)

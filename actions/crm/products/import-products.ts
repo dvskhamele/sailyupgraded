@@ -4,6 +4,7 @@ import { prismadb } from "@/lib/prisma";
 import Papa from "papaparse";
 import { writeAuditLog } from "@/lib/audit-log";
 import { revalidatePath } from "next/cache";
+import { parseCurrencyToDecimalString } from "@/lib/currency-input";
 
 const REQUIRED_FIELDS = ["name", "type", "unit_price", "currency"];
 const MAX_ROWS = 500;
@@ -66,16 +67,16 @@ export async function importProducts(
       return;
     }
 
-    const unitPrice = parseFloat(row.unit_price);
-    if (isNaN(unitPrice) || unitPrice < 0) {
+    const unitPrice = parseCurrencyToDecimalString(row.unit_price);
+    if (!unitPrice || Number(unitPrice) < 0) {
       errors.push(`Row ${rowNum}: invalid unit_price "${row.unit_price}"`);
       return;
     }
 
-    let unitCost: number | undefined;
+    let unitCost: string | undefined;
     if (row.unit_cost?.trim()) {
-      unitCost = parseFloat(row.unit_cost);
-      if (isNaN(unitCost) || unitCost < 0) {
+      unitCost = parseCurrencyToDecimalString(row.unit_cost);
+      if (!unitCost || Number(unitCost) < 0) {
         errors.push(`Row ${rowNum}: invalid unit_cost "${row.unit_cost}"`);
         return;
       }

@@ -30,6 +30,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { deleteAccount } from "@/actions/crm/accounts/delete-account";
 import { watchAccount } from "@/actions/crm/accounts/watch-account";
 import { unwatchAccount } from "@/actions/crm/accounts/unwatch-account";
+import { stopRowNavigation } from "../../components/table-row-navigation";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -118,41 +119,59 @@ export function DataTableRowActions<TData>({
         </SheetContent>
       </Sheet>
 
+      <div data-row-action onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+            onClick={stopRowNavigation}
           >
             <DotsHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[260px]">
+        <DropdownMenuContent align="end" className="w-[260px]" onClick={stopRowNavigation}>
           <DropdownMenuItem
-            onClick={() => router.push(`/crm/accounts/${account?.id}`)}
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/crm/accounts/${account?.id}`);
+            }}
           >
             View
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            setUpdateOpen(true);
+          }}>
             Update
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onWatch}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            onWatch();
+          }}>
             <Eye className="mr-2 w-4 h-4" />
             Watch Account
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={onUnWatch}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            onUnWatch();
+          }}>
             <EyeOff className="mr-2 w-4 h-4" />
             Stop watching Account
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}>
             Delete
             <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </>
   );
 }

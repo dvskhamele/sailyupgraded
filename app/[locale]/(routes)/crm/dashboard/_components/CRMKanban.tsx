@@ -81,6 +81,7 @@ import { useHydrated } from "@/hooks/use-hydrated";
 import { CategoryFilter } from "./CategoryFilter";
 import { filterOpportunitiesByCategory } from "@/lib/opportunity-categories";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
+import { formatCurrencyDisplay } from "@/lib/currency-input";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -125,7 +126,7 @@ function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
     <div className="flex items-center px-1 py-2 justify-between mb-2 bg-white border rounded shadow-sm">
       <div className="flex flex-col gap-1">
         <div className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full">
-          ${totalRevenue.toLocaleString("en-IN")}
+          {formatCurrencyDisplay(totalRevenue, "USD")}
         </div>
       </div>
       {/* <div className="h-6 w-px bg-gray-200 mx-3" /> */}
@@ -448,7 +449,7 @@ function OpportunityCard({
         <div className="flex items-center justify-between">
            <DollarSign className="w-4 h-4 text-green-600" />
           <span className="font-semibold text-gray-900 text-sm">
-            ${opportunity.budget?.toLocaleString("en-US")}
+            {formatCurrencyDisplay(opportunity.budget, (opportunity as any).currency || "USD")}
           </span>
         </div>
 
@@ -548,7 +549,7 @@ function OpportunityCardStatic({
           <div className="space-x-1">
             <span className="font-medium text-amber-800">Amount:</span>
             <span className="font-semibold text-emerald-700">
-              {opportunity.budget?.toString()}
+              {formatCurrencyDisplay(opportunity.budget, (opportunity as any).currency || "USD")}
             </span>
           </div>
           <div className="space-x-1">
