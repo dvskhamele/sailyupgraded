@@ -216,7 +216,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Industry</p>
                   <p className="text-sm text-muted-foreground">
-                    {data.industry}
+                    {data.industry_type?.name ?? data.industry ?? "Not assigned"}
                   </p>
                 </div>
               </div>

@@ -83,6 +83,14 @@ function textFieldProps(field: any) {
   };
 }
 
+function normalizeAccountPayload(data: any) {
+  return {
+    ...data,
+    assigned_to: data.assigned_to || null,
+    industry: data.industry || null,
+  };
+}
+
 export function UpdateAccountForm({
   initialData,
   open,
@@ -136,10 +144,7 @@ export function UpdateAccountForm({
   });
 
   const onSubmit = async (data: NewAccountFormValues) => {
-    const payload = Object.fromEntries(
-      Object.entries(data).map(([k, v]) => [k, v === null ? undefined : v])
-    ) as Parameters<typeof updateAccount>[0];
-    const result = await updateAccount(payload);
+    const result = await updateAccount(normalizeAccountPayload(data));
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {
@@ -502,14 +507,14 @@ export function UpdateAccountForm({
                     <FormLabel>{t("industry")}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value ?? ""}
                     >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={t("industryPlaceholder")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="flex overflow-y-auto h-56">
+                      <SelectContent className="max-h-72 overflow-y-auto">
                         {industries.map((industry: any) => (
                           <SelectItem key={industry.id} value={industry.id}>
                             {industry.name}

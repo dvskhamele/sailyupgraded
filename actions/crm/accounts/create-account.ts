@@ -37,12 +37,18 @@ export const createAccount = async (data: {
   if (!name) return { error: "name is required" };
 
   try {
+    const accountData = {
+      ...data,
+      assigned_to: data.assigned_to || null,
+      industry: data.industry || null,
+    };
+
     const account = await prismadb.crm_Accounts.create({
       data: {
         v: 0,
         createdBy: session.user.id,
         updatedBy: session.user.id,
-        ...data,
+        ...accountData,
         status: "Active",
       },
     });

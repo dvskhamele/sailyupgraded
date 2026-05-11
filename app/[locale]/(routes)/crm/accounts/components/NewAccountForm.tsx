@@ -33,6 +33,32 @@ type Props = {
   onFinish: () => void;
 };
 
+const defaultAccountFormValues = {
+  name: "",
+  office_phone: "",
+  website: "",
+  fax: "",
+  company_id: "",
+  vat: "",
+  email: "",
+  billing_street: "",
+  billing_postal_code: "",
+  billing_city: "",
+  billing_state: "",
+  billing_country: "",
+  shipping_street: "",
+  shipping_postal_code: "",
+  shipping_city: "",
+  shipping_state: "",
+  shipping_country: "",
+  description: "",
+  assigned_to: "",
+  status: "",
+  annual_revenue: "",
+  member_of: "",
+  industry: "",
+};
+
 export function NewAccountForm({ industries, onFinish }: Props) {
   const t = useTranslations("CrmAccountForm");
   const c = useTranslations("Common");
@@ -68,6 +94,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
   const form = useForm<NewAccountFormValues>({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
+    defaultValues: defaultAccountFormValues,
   });
 
   const onSubmit = async (data: NewAccountFormValues) => {
@@ -371,6 +398,7 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                         disabled={form.formState.isSubmitting}
                         placeholder="Czechia"
                         {...field}
+                        value={field.value ?? ""}
                       />
                     </FormControl>
                     <FormMessage />
@@ -445,14 +473,14 @@ export function NewAccountForm({ industries, onFinish }: Props) {
                     <FormLabel>{t("industry")}</FormLabel>
                     <Select
                       onValueChange={field.onChange}
-                      defaultValue={field.value}
+                      value={field.value ?? ""}
                     >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={t("industryPlaceholder")} />
                         </SelectTrigger>
                       </FormControl>
-                      <SelectContent className="flex overflow-y-auto h-56">
+                      <SelectContent className="max-h-72 overflow-y-auto">
                         {industries.map((industry) => (
                           <SelectItem key={industry.id} value={industry.id}>
                             {industry.name}

@@ -7,6 +7,7 @@ import {
 import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 import { appendSocialLeadSourceOptions, ensureDefaultContactTypes } from "@/lib/crm/contact-form-options";
+import { getAccountIndustries } from "@/lib/crm/industries";
 
 const crmDashboardLeadSelectValues = {
   id: true,
@@ -129,9 +130,7 @@ async function loadAllCrmData() {
     where: { deletedAt: null },
   });
 
-  const industries = await prismadb.crm_Industry_Type.findMany({
-    orderBy: { name: "asc" },
-  });
+  const industries = await getAccountIndustries();
 
   const contactTypes = await ensureDefaultContactTypes();
 

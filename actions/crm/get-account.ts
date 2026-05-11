@@ -36,6 +36,11 @@ export const getAccount = async (accountId: string) => {
           name: true,
         },
       },
+      industry_type: {
+        select: {
+          name: true,
+        },
+      },
       // Watchers relationship through AccountWatchers junction table
       watchers: {
         include: {

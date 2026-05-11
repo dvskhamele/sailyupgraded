@@ -1,8 +1,7 @@
 "use server";
 
-import { prismadb } from "@/lib/prisma";
+import { getAccountIndustries } from "@/lib/crm/industries";
 
 export const getIndustries = async () => {
-  const data = await prismadb.crm_Industry_Type.findMany({});
-  return data;
+  return getAccountIndustries();
 };

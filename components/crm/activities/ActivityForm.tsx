@@ -43,6 +43,7 @@ interface Props {
 
 export function ActivityForm({ open, onOpenChange, entityType, entityId, activity, onSaved }: Props) {
   const isEdit = !!activity;
+  const skipValidation = entityType === "contact";
 
   const [type, setType] = useState<ActivityType>(activity?.type ?? "call");
   const [title, setTitle] = useState(activity?.title ?? "");
@@ -68,11 +69,11 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim()) {
+    if (!skipValidation && !title.trim()) {
       toast.error("Title is required");
       return;
     }
-    if (!date) {
+    if (!skipValidation && !date) {
       toast.error("Date is required");
       return;
     }
@@ -86,7 +87,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
       type,
       title: title.trim(),
       description: description.trim() || undefined,
-      date: new Date(date),
+      date: date ? new Date(date) : new Date(),
       duration: showDuration && duration ? parseInt(duration, 10) : undefined,
       outcome: showOutcome && outcome.trim() ? outcome.trim() : undefined,
       status,
@@ -142,7 +143,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Brief description"
-              required
+              required={!skipValidation}
             />
           </div>
 
@@ -153,7 +154,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
               type="datetime-local"
               value={date}
               onChange={(e) => setDate(e.target.value)}
-              required
+              required={!skipValidation}
             />
           </div>
 

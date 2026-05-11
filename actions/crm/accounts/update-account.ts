@@ -25,11 +25,11 @@ export const updateAccount = async (data: {
   shipping_state?: string | null;
   shipping_country?: string | null;
   description?: string | null;
-  assigned_to?: string;
+  assigned_to?: string | null;
   status?: string | null;
   annual_revenue?: string | null;
   member_of?: string | null;
-  industry?: string;
+  industry?: string | null;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -38,13 +38,23 @@ export const updateAccount = async (data: {
   if (!id) return { error: "id is required" };
 
   try {
-    const before = await prismadb.crm_Accounts.findUnique({ where: { id, deletedAt: null } });
+    const before = await prismadb.crm_Accounts.findFirst({
+      where: { id, deletedAt: null },
+    });
+    if (!before) return { error: "Account not found" };
+
+    const accountData = {
+      ...rest,
+      assigned_to: rest.assigned_to || null,
+      industry: rest.industry || null,
+    };
+
     const account = await prismadb.crm_Accounts.update({
       where: { id },
       data: {
         v: 0,
         updatedBy: session.user.id,
-        ...rest,
+        ...accountData,
       },
     });
     const changes = before ? diffObjects(
