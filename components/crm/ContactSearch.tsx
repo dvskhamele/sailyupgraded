@@ -109,6 +109,11 @@ export function ContactSearch({ crmData }: ContactSearchProps) {
                           <span className="font-medium">
                             {contact.first_name} {contact.last_name}
                           </span>
+                          {contact.serial && (
+                            <span className="text-xs text-muted-foreground">
+                              ID: {contact.serial}
+                            </span>
+                          )}
                           {contact.email && (
                             <span className="text-xs text-muted-foreground">
                               {contact.email}

@@ -106,6 +106,7 @@ export async function unifiedSearch(
           OR: [
             { first_name: { contains: query } },
             { last_name: { contains: query } },
+            { serial: { contains: query } },
             { email: { contains: query } },
             { personal_email: { contains: query } },
             { office_phone: { contains: query } },
@@ -122,7 +123,7 @@ export async function unifiedSearch(
           ],
         },
         take: 10,
-        select: { id: true, first_name: true, last_name: true, email: true },
+        select: { id: true, serial: true, first_name: true, last_name: true, email: true },
       }),
       prismadb.crm_Leads.findMany({
         where: {
@@ -297,7 +298,7 @@ export async function unifiedSearch(
       kwContacts.map((r) => ({
         id: r.id,
         title: `${r.first_name ?? ""} ${r.last_name ?? ""}`.trim(),
-        subtitle: r.email ?? "",
+        subtitle: [r.serial, r.email].filter(Boolean).join(" - "),
         url: `/${locale}/crm/contacts/${r.id}`,
       }))
     );

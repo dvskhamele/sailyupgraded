@@ -24,6 +24,13 @@ const CONTACT_ROLE_IMPORT_ALIASES: Record<ContactRole, string[]> = {
   Vendor: ["vendor", "vendor id", "vendor number", "supplier", "supplier id", "supplier number"],
 };
 
+const CONTACT_ROLE_DB_VALUES: Record<ContactRole, string[]> = {
+  Agent: ["Agent", "agent", "Agents", "agents"],
+  Customer: ["Customer", "customer", "Customers", "customers", "Client", "client", "Clients", "clients"],
+  Partner: ["Partner", "partner", "Partners", "partners"],
+  Vendor: ["Vendor", "vendor", "Vendors", "vendors"],
+};
+
 export const CONTACT_STATUS_OPTIONS = [
   { label: "Active", value: true },
   { label: "Inactive", value: false },
@@ -45,26 +52,32 @@ export function buildContactRoleFilter(
   if (normalizedRole === "customer" || normalizedRole === "customers" || normalizedRole === "client") {
     return {
       role: {
-        in: ["Customer", "Client"],
+        in: CONTACT_ROLE_DB_VALUES.Customer,
       },
     };
   }
 
   if (normalizedRole === "agent" || normalizedRole === "agents") {
     return {
-      role: "Agent",
+      role: {
+        in: CONTACT_ROLE_DB_VALUES.Agent,
+      },
     };
   }
 
   if (normalizedRole === "vendor" || normalizedRole === "vendors") {
     return {
-      role: "Vendor",
+      role: {
+        in: CONTACT_ROLE_DB_VALUES.Vendor,
+      },
     };
   }
 
   if (normalizedRole === "partner" || normalizedRole === "partners") {
     return {
-      role: "Partner",
+      role: {
+        in: CONTACT_ROLE_DB_VALUES.Partner,
+      },
     };
   }
 

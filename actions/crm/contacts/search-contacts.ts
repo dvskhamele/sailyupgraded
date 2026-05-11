@@ -6,6 +6,7 @@ import type { Prisma } from "@prisma/client";
 
 export type ContactSearchItem = {
   id: string;
+  serial: string | null;
   first_name: string | null;
   last_name: string;
   email: string | null;
@@ -44,6 +45,7 @@ export const searchContacts = async ({
 
   if (isEmailSearch) {
     orConditions = [
+      { serial: { contains: trimmedSearch } },
       { email: { contains: trimmedSearch } },
       { personal_email: { contains: trimmedSearch } },
     ];
@@ -57,6 +59,7 @@ export const searchContacts = async ({
     );
 
     orConditions = phoneQueries.flatMap((value) => [
+      { serial: { contains: value } },
       { office_phone: { contains: value } },
       { mobile_phone: { contains: value } },
     ]);
@@ -64,6 +67,7 @@ export const searchContacts = async ({
     const nameParts = trimmedSearch.split(/\s+/).filter(Boolean);
 
     orConditions = [
+      { serial: { contains: trimmedSearch } },
       { first_name: { contains: trimmedSearch } },
       { last_name: { contains: trimmedSearch } },
       ...(nameParts.length > 1
@@ -88,6 +92,7 @@ export const searchContacts = async ({
     },
     select: {
       id: true,
+      serial: true,
       first_name: true,
       last_name: true,
       email: true,

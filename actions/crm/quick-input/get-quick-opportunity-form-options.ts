@@ -24,6 +24,7 @@ export async function getQuickOpportunityFormOptions() {
       where: { deletedAt: null },
       select: {
         id: true,
+        serial: true,
         first_name: true,
         last_name: true,
         accountsIDs: true,

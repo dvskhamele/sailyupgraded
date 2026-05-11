@@ -122,6 +122,9 @@ const DEFAULT_MAPPING = Object.fromEntries(
 const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
   serial: [
     "serial",
+    "contact id",
+    "contactid",
+    "contact_id",
     "sr no",
     "sr_no",
     "sequence",

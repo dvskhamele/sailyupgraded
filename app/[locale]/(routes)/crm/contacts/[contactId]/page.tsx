@@ -20,7 +20,7 @@ import { ActivitiesSection } from "./components/ActivitiesSection";
 import { ContactProductsSection } from "./components/ContactProductsSection";
 import { ContactTimeline } from "./components/ContactTimeline";
 import { buildContactTimelineEvents } from "@/lib/crm/timeline-events";
-import { ContactActivitySidebar } from "./components/ContactActivitySidebar";
+// import { ContactActivitySidebar } from "./components/ContactActivitySidebar";
 
 const ContactViewPage = async (props: any) => {
   const params = await props.params;
@@ -72,11 +72,11 @@ const ContactViewPage = async (props: any) => {
               <ContactProductsSection products={products} />
               <FindSimilarButton entityType="contact" recordId={contactId} />
             </div>
-            <ContactActivitySidebar
+            {/* <ContactActivitySidebar
               contactId={contact.id}
               initialContactStatus={Boolean(contact.status)}
               initialEvents={timelineEvents}
-            />
+            /> */}
           </div>
         </TabsContent>
         <TabsContent value="relations">

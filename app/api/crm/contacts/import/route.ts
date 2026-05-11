@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit-log";
 import {
+  type ContactRole,
   detectContactRole,
   inferContactRoleFromIdentifierContext,
   normalizeContactRole,
@@ -103,6 +104,24 @@ function parseSerial(value: string): string | undefined {
   return value.trim() || undefined;
 }
 
+function getFallbackSerialPrefix(role: ContactRole) {
+  switch (role) {
+    case "Agent":
+      return "AGT";
+    case "Partner":
+      return "PRT";
+    case "Vendor":
+      return "VND";
+    case "Customer":
+    default:
+      return "CUST";
+  }
+}
+
+function generateFallbackSerial(role: ContactRole, row: number, importBatchId: string) {
+  return `${getFallbackSerialPrefix(role)}-${importBatchId}-${String(row).padStart(4, "0")}`;
+}
+
 function normalizeOptionalText(value: string | undefined) {
   const trimmed = value?.trim() ?? "";
   return trimmed || undefined;
@@ -149,6 +168,7 @@ export async function POST(request: NextRequest) {
   }
 
   const userId = session.user.id;
+  const importBatchId = Date.now().toString(36).toUpperCase();
   const seenEmails = new Set<string>();
   const seenPhones = new Set<string>();
   const failures: Array<{ row: number; email: string | null; reason: string }> = [];
@@ -304,14 +324,15 @@ export async function POST(request: NextRequest) {
     },
     select: {
       id: true,
+      serial: true,
       email: true,
       mobile_phone: true,
       office_phone: true,
     },
   });
 
-  const existingByEmail = new Map<string, { id: string }>();
-  const existingByPhone = new Map<string, { id: string }>();
+  const existingByEmail = new Map<string, { id: string; serial: string | null }>();
+  const existingByPhone = new Map<string, { id: string; serial: string | null }>();
 
   const uniqueAssignedUserValues = Array.from(
     new Set(candidates.map((candidate) => candidate.data.assigned_to?.trim()).filter(Boolean)),
@@ -383,13 +404,13 @@ export async function POST(request: NextRequest) {
       : "";
 
     if (normalizedEmail) {
-      existingByEmail.set(normalizedEmail, { id: contact.id });
+      existingByEmail.set(normalizedEmail, { id: contact.id, serial: contact.serial });
     }
     if (mobilePhone) {
-      existingByPhone.set(mobilePhone, { id: contact.id });
+      existingByPhone.set(mobilePhone, { id: contact.id, serial: contact.serial });
     }
     if (officePhone) {
-      existingByPhone.set(officePhone, { id: contact.id });
+      existingByPhone.set(officePhone, { id: contact.id, serial: contact.serial });
     }
   });
 
@@ -470,8 +491,13 @@ export async function POST(request: NextRequest) {
       continue;
     }
 
+    const normalizedRole = normalizeContactRole(resolvedRole);
+    const resolvedSerial =
+      serial ||
+      existingMatch?.serial ||
+      generateFallbackSerial(normalizedRole, candidate.row, importBatchId);
     const supportedSerialField = await pickExistingDbModelFields("crm_Contacts", {
-      serial: serial ?? undefined,
+      serial: resolvedSerial,
     });
 
     const contactPayload = {
@@ -504,7 +530,7 @@ export async function POST(request: NextRequest) {
       social_youtube: normalizeOptionalText(candidate.data.social_youtube),
       social_tiktok: normalizeOptionalText(candidate.data.social_tiktok),
       ...(await pickExistingDbModelFields("crm_Contacts", {
-        role: normalizeContactRole(resolvedRole),
+        role: normalizedRole,
       })),
     };
 
@@ -533,13 +559,13 @@ export async function POST(request: NextRequest) {
         });
 
         if (candidate.normalizedEmail) {
-          existingByEmail.set(candidate.normalizedEmail, { id: created.id });
+          existingByEmail.set(candidate.normalizedEmail, { id: created.id, serial: resolvedSerial });
         }
         if (candidate.normalizedMobilePhone) {
-          existingByPhone.set(candidate.normalizedMobilePhone, { id: created.id });
+          existingByPhone.set(candidate.normalizedMobilePhone, { id: created.id, serial: resolvedSerial });
         }
         if (candidate.normalizedOfficePhone) {
-          existingByPhone.set(candidate.normalizedOfficePhone, { id: created.id });
+          existingByPhone.set(candidate.normalizedOfficePhone, { id: created.id, serial: resolvedSerial });
         }
         imported += 1;
       }

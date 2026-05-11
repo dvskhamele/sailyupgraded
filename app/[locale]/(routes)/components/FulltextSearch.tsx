@@ -186,6 +186,7 @@ const FulltextSearch = () => {
     const loadedOpportunityOptions = await getQuickOpportunityFormOptions();
     const contactOption = {
       id: contactId,
+      serial: values.serial ?? null,
       first_name: values.first_name ?? "",
       last_name: values.last_name ?? "",
       accountsIDs: values.assigned_account ?? null,

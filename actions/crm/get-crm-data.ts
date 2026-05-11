@@ -33,21 +33,27 @@ function getFallbackCrmData() {
   const saleStages = [
     {
       id: "local-prospecting",
+      v: 0,
       name: "Prospecting",
+      probability: 0,
       order: 1,
       createdAt: now,
       updatedAt: now,
     },
     {
       id: "local-qualified",
+      v: 0,
       name: "Qualified",
+      probability: 50,
       order: 2,
       createdAt: now,
       updatedAt: now,
     },
     {
       id: "local-proposal",
+      v: 0,
       name: "Proposal",
+      probability: 75,
       order: 3,
       createdAt: now,
       updatedAt: now,
