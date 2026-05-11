@@ -170,7 +170,40 @@ export const updateContact = async (data: {
       });
     }
 
-    if ((opportunity_products?.length ?? 0) > 0 || opportunity_budget?.trim()) {
+    const existingOpportunity = (before as any)?.opportunities
+      ?.map((item: any) => item?.opportunity)
+      .find(Boolean);
+    const hasOpportunityInput = (opportunity_products?.length ?? 0) > 0 || Boolean(opportunity_budget?.trim());
+
+    if (existingOpportunity) {
+      const updatedOpportunity = await prismadb.crm_Opportunities.update({
+        where: { id: existingOpportunity.id },
+        data: {
+          account: assigned_account || null,
+          assigned_to: assigned_to || userId,
+          budget: opportunity_budget?.trim() ? parseFloat(opportunity_budget) : 0,
+          category: serializeOpportunityProducts(opportunity_products),
+          description: data.description || null,
+          updatedBy: userId,
+          last_activity_by: userId,
+        },
+      });
+
+      contact = {
+        ...contact,
+        opportunities: ((contact as any).opportunities ?? []).map((item: any) =>
+          item?.opportunity?.id === existingOpportunity.id
+            ? {
+                ...item,
+                opportunity: serializeDecimals({
+                  ...item.opportunity,
+                  ...updatedOpportunity,
+                }),
+              }
+            : item,
+        ),
+      };
+    } else if (hasOpportunityInput) {
       const opportunityName = [
         data.first_name,
         data.last_name,

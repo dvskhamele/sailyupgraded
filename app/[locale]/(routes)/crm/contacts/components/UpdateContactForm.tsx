@@ -3,6 +3,7 @@
 import { useTranslations } from "next-intl";
 import { updateContact } from "@/actions/crm/contacts/update-contact";
 import { getAddressLine1 } from "@/lib/crm-address";
+import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
 
 type Option = { id: string; name: string };
@@ -38,6 +39,10 @@ export function UpdateContactForm({
   if (!initialData) {
     return null;
   }
+
+  const primaryOpportunity = Array.isArray(initialData.opportunities)
+    ? initialData.opportunities.map((item: any) => item?.opportunity).find(Boolean)
+    : null;
 
   const initialValues = {
     ...initialData,
@@ -82,6 +87,11 @@ export function UpdateContactForm({
     social_instagram: initialData.social_instagram ?? "",
     social_youtube: initialData.social_youtube ?? "",
     social_tiktok: initialData.social_tiktok ?? "",
+    opportunity_products: parseOpportunityProducts(primaryOpportunity?.category),
+    opportunity_budget:
+      primaryOpportunity?.budget != null
+        ? String(primaryOpportunity.budget)
+        : "",
     birthday_year: initialData.birthday ? new Date(initialData.birthday).getFullYear().toString() : "",
     birthday_month: initialData.birthday ? (new Date(initialData.birthday).getMonth() + 1).toString() : "",
     birthday_day: initialData.birthday ? new Date(initialData.birthday).getDate().toString() : "",

@@ -23,6 +23,10 @@ type AccountItem = {
 export const createColumns = (
   contactTypes: ConfigItem[] = [],
   accounts: AccountItem[] = [],
+  leadSources: ConfigItem[] = [],
+  leadStatuses: ConfigItem[] = [],
+  leadTypes: ConfigItem[] = [],
+  products: ConfigItem[] = [],
 ): ColumnDef<Opportunity>[] => [
   {
     id: "select",
@@ -171,7 +175,15 @@ export const createColumns = (
   {
     id: "actions",
     cell: ({ row }) => (
-      <DataTableRowActions row={row} contactTypes={contactTypes} accounts={accounts} />
+      <DataTableRowActions
+        row={row}
+        contactTypes={contactTypes}
+        accounts={accounts}
+        leadSources={leadSources}
+        leadStatuses={leadStatuses}
+        leadTypes={leadTypes}
+        products={products}
+      />
     ),
   },
 ];

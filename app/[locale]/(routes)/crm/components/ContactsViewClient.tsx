@@ -90,7 +90,7 @@ const ContactsViewClient = ({ data, crmData, activeRole }: ContactsViewProps) =>
         ) : (
           <ContactsDataTable
             data={filteredData}
-            columns={createColumns(contactTypes, accounts)}
+            columns={createColumns(contactTypes, accounts, leadSources, leadStatuses, leadTypes, products)}
           />
         )}
       </CardContent>

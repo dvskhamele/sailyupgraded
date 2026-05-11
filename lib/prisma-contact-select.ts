@@ -105,6 +105,8 @@ const contactListRelationSelect = {
         select: {
           id: true,
           name: true,
+          budget: true,
+          category: true,
         },
       },
     },

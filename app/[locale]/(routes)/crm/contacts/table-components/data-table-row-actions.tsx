@@ -39,12 +39,20 @@ interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
   contactTypes: ConfigItem[];
   accounts: AccountItem[];
+  leadSources?: ConfigItem[];
+  leadStatuses?: ConfigItem[];
+  leadTypes?: ConfigItem[];
+  products?: ConfigItem[];
 }
 
 export function DataTableRowActions<TData>({
   row,
   contactTypes,
   accounts,
+  leadSources = [],
+  leadStatuses = [],
+  leadTypes = [],
+  products = [],
 }: DataTableRowActionsProps<TData>) {
   const router = useRouter();
   const contact = opportunitySchema.parse(row.original);
@@ -92,6 +100,10 @@ export function DataTableRowActions<TData>({
               setOpen={setUpdateOpen}
               accounts={accounts}
               contactTypes={contactTypes}
+              leadSources={leadSources}
+              leadStatuses={leadStatuses}
+              leadTypes={leadTypes}
+              products={products}
             />
           </div>
         </SheetContent>
