@@ -135,7 +135,7 @@ function ContactTypeCombobox({
               {trimmedSearch && !hasExactMatch && (
                 <CommandItem value={trimmedSearch} onSelect={() => selectValue(trimmedSearch)}>
                   <Plus className="mr-2 h-4 w-4" />
-                  Add "{trimmedSearch}"
+                  Add &quot;{trimmedSearch}&quot;
                 </CommandItem>
               )}
             </CommandGroup>
@@ -218,6 +218,7 @@ type UnifiedPersonFormProps = {
   saleStages?: Option[];
   products?: Option[];
   initialValues?: Partial<UnifiedPersonFormValues>;
+  hideOpportunitySection?: boolean;
   onSubmitAction: (data: UnifiedPersonFormValues) => Promise<{ error?: string; data?: unknown } | undefined>;
   onSuccess: (result?: { data?: unknown }, submittedData?: UnifiedPersonFormValues) => void | Promise<void>;
 };
@@ -236,6 +237,7 @@ export function UnifiedPersonForm({
   saleStages = [],
   products = [],
   initialValues,
+  hideOpportunitySection = false,
   onSubmitAction,
   onSuccess,
 }: UnifiedPersonFormProps) {
@@ -329,7 +331,19 @@ export function UnifiedPersonForm({
     ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
     : COUNTRY_OPTIONS;
   const handleSubmit = async (data: UnifiedPersonFormValues) => {
-    const result = await onSubmitAction(data);
+    const submittedData = hideOpportunitySection
+      ? {
+          ...data,
+          opportunity_enabled: false,
+          opportunity_name: "",
+          opportunity_products: [],
+          opportunity_budget: "",
+          opportunity_premium: "",
+          opportunity_stage_id: "",
+          opportunity_description: "",
+        }
+      : data;
+    const result = await onSubmitAction(submittedData);
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
       return;
@@ -1168,17 +1182,19 @@ export function UnifiedPersonForm({
               />
             </div>
 
-            <Button
-              type="button"
-              variant={opportunityEnabled ? "secondary" : "outline"}
-              onClick={() => form.setValue("opportunity_enabled", !opportunityEnabled)}
-              disabled={form.formState.isSubmitting}
-              className="w-fit"
-            >
-              {opportunityEnabled ? "Hide Create Opportunity" : "Create Opportunity"}
-            </Button>
+            {!hideOpportunitySection && (
+              <Button
+                type="button"
+                variant={opportunityEnabled ? "secondary" : "outline"}
+                onClick={() => form.setValue("opportunity_enabled", !opportunityEnabled)}
+                disabled={form.formState.isSubmitting}
+                className="w-fit"
+              >
+                {opportunityEnabled ? "Hide Create Opportunity" : "Create Opportunity"}
+              </Button>
+            )}
 
-            {opportunityEnabled && (
+            {!hideOpportunitySection && opportunityEnabled && (
               <div className="space-y-4 border-t pt-5">
                 <h3 className="text-sm font-semibold">Create Opportunity</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

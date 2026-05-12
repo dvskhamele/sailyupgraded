@@ -25,6 +25,7 @@ type NewContactFormProps = {
   onCreated?: (contact: unknown, submittedData: UnifiedPersonFormValues) => void | Promise<void>;
   initialValues?: Partial<UnifiedPersonFormValues>;
   defaultRole?: ContactRole;
+  hideOpportunitySection?: boolean;
 };
 
 export function NewContactForm({
@@ -39,6 +40,7 @@ export function NewContactForm({
   onCreated,
   initialValues,
   defaultRole,
+  hideOpportunitySection = false,
 }: NewContactFormProps) {
   const t = useTranslations("CrmContactForm");
 
@@ -56,6 +58,7 @@ export function NewContactForm({
       leadTypes={leadTypes}
       saleStages={saleStages}
       products={products}
+      hideOpportunitySection={hideOpportunitySection}
       initialValues={{
         role: defaultRole,
         ...initialValues,

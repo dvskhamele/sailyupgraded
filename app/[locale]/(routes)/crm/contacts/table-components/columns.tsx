@@ -89,25 +89,25 @@ export const createColumns = (
     enableSorting: false,
     enableHiding: true,
   },
-  {
-    accessorKey: "serial",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Role ID" />
-    ),
-    cell: ({ row }) => {
-      const role = normalizeContactRole((row.original as any).role);
-      const label = getContactIdentifierLabel(role);
-      const value = row.getValue("serial");
+  // {
+  //   accessorKey: "serial",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Role ID" />
+  //   ),
+  //   cell: ({ row }) => {
+  //     const role = normalizeContactRole((row.original as any).role);
+  //     const label = getContactIdentifierLabel(role);
+  //     const value = row.getValue("serial");
 
-      return (
-        <div className="min-w-[120px]">
-          {value ? `${label}: ${value}` : "N/A"}
-        </div>
-      );
-    },
-    enableSorting: true,
-    enableHiding: true,
-  },
+  //     return (
+  //       <div className="min-w-[120px]">
+  //         {value ? `${label}: ${value}` : "N/A"}
+  //       </div>
+  //     );
+  //   },
+  //   enableSorting: true,
+  //   enableHiding: true,
+  // },
   {
     accessorKey: "first_name",
     header: ({ column }) => (

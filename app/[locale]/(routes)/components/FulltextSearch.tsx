@@ -339,6 +339,7 @@ const FulltextSearch = () => {
               }}
               onCreated={handleCreated}
               initialValues={initialValues}
+              hideOpportunitySection
             />
           )}
         </DialogContent>
