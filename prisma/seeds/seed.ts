@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
 import dotenv from "dotenv";
 import path from "path";
-import { createMariaDbAdapter } from "../../lib/prisma-mariadb";
+import { prisma } from "../../lib/prisma";
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env.local") });
 
@@ -16,11 +15,6 @@ import leadTypesData from "../initial-data/crm_Lead_Types.json";
 
 import { seedCurrencies } from "./currencies";
 import { seedInvoices } from "./invoices";
-
-const connectionString = process.env.DATABASE_URL!;
-const adapter = createMariaDbAdapter(connectionString);
-
-const prisma = new PrismaClient({ adapter });
 
 async function upsertByName(
   model: any,
@@ -155,7 +149,4 @@ main()
   .catch((e) => {
     console.error(e);
     process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
   });

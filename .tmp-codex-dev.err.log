@@ -1,12 +1,32 @@
-⚠ Blocked cross-origin request to Next.js dev resource /_next/webpack-hmr from "127.0.0.1".
-Cross-origin access to Next.js dev resources is blocked by default for safety.
-
-To allow this host in development, add it to "allowedDevOrigins" in next.config.js and restart the dev server:
-
-// next.config.js
-module.exports = {
-  allowedDevOrigins: ['127.0.0.1'],
-}
-
-Read more: https://nextjs.org/docs/app/api-reference/config/next-config-js/allowedDevOrigins
 ⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[Prisma slow query] Verification.deleteMany took 4652ms (active queries: 0)
+[Prisma slow query] Verification.createMany took 1041ms (active queries: 0)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[Prisma slow query] Verification.findFirst took 1281ms (active queries: 0)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[Prisma slow query] Verification.create took 1754ms (active queries: 0)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[Prisma slow query] Verification.create took 1826ms (active queries: 0)
+[Prisma slow query] Verification.findFirst took 1024ms (active queries: 0)
+[Prisma slow query] Verification.create took 2044ms (active queries: 0)
+[Prisma slow query] Verification.deleteMany took 1096ms (active queries: 0)
+[Prisma slow query] Users.findFirst took 1226ms (active queries: 0)
+[Prisma slow query] Session.create took 2269ms (active queries: 0)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[Prisma slow query] Users.findFirst took 1197ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 3242ms (active queries: 1)
+[Prisma slow query] crm_Leads.findMany took 6991ms (active queries: 5)
+[Prisma slow query] crm_Opportunities_Type.findMany took 1989ms (active queries: 5)
+[Prisma slow query] crm_Contacts.findMany took 4568ms (active queries: 5)
+[Prisma slow query] crm_Opportunities.findMany took 4568ms (active queries: 4)
+[Prisma slow query] crm_Lead_Sources.findMany took 4568ms (active queries: 3)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 4569ms (active queries: 2)
+[Prisma slow query] crm_Opportunities_Type.findMany took 4569ms (active queries: 1)
+[Prisma slow query] crm_campaigns.findMany took 1097ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 2799ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 2928ms (active queries: 0)
+[Prisma slow query] crm_Lead_Sources.findMany took 1257ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 1877ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 6546ms (active queries: 0)
+[Prisma slow query] crm_Contact_Types.findMany took 1268ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 2551ms (active queries: 0)

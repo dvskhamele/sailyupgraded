@@ -9,9 +9,7 @@
  *
  * Run: npx tsx scripts/migration/backfill-roles.ts
  */
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
+import { prisma } from "../../lib/prisma";
 
 async function main() {
   console.log("Starting role backfill...");
@@ -38,5 +36,4 @@ main()
   .catch((e) => {
     console.error("Backfill failed:", e);
     process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+  });

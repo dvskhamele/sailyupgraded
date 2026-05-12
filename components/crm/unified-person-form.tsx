@@ -723,34 +723,35 @@ export function UnifiedPersonForm({
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
-                control={form.control}
-                name="address_line1"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{contactT("addressLine1")}</FormLabel>
+ <FormField
+              control={form.control}
+              name="country"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>{contactT("country")}</FormLabel>
+                  <Select
+                    onValueChange={(value) => {
+                      field.onChange(value);
+                      form.setValue("state", "");
+                    }}
+                    value={field.value ?? ""}
+                    disabled={form.formState.isSubmitting}
+                  >
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("addressLine1Placeholder")} {...field} value={field.value ?? ""} />
+                      <SelectTrigger>
+                        <SelectValue placeholder={contactT("countryPlaceholder")} />
+                      </SelectTrigger>
                     </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="address_line2"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{contactT("addressLine2")}</FormLabel>
-                    <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("addressLine2Placeholder")} {...field} value={field.value ?? ""} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
+                    <SelectContent className="max-h-56">
+                      {countryOptions.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <FormField
@@ -802,37 +803,35 @@ export function UnifiedPersonForm({
                 )}
               />
             </div>
-
-            <FormField
-              control={form.control}
-              name="country"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{contactT("country")}</FormLabel>
-                  <Select
-                    onValueChange={(value) => {
-                      field.onChange(value);
-                      form.setValue("state", "");
-                    }}
-                    value={field.value ?? ""}
-                    disabled={form.formState.isSubmitting}
-                  >
+ 
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="address_line1"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{contactT("addressLine1")}</FormLabel>
                     <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={contactT("countryPlaceholder")} />
-                      </SelectTrigger>
+                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("addressLine1Placeholder")} {...field} value={field.value ?? ""} />
                     </FormControl>
-                    <SelectContent className="max-h-56">
-                      {countryOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="address_line2"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{contactT("addressLine2")}</FormLabel>
+                    <FormControl>
+                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("addressLine2Placeholder")} {...field} value={field.value ?? ""} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="description"

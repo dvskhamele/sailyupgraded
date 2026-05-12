@@ -621,6 +621,7 @@ model crm_Activities {
   @@index([createdBy])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([deletedAt, date, id])
   @@index([updatedBy], map: "crm_Activities_updatedBy_fkey")
 }
 
@@ -632,6 +633,8 @@ model crm_ActivityLinks {
   activity   crm_Activities @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   @@index([activityId])
+  @@index([entityId])
+  @@index([entityType, entityId])
   @@index([entityType, entityId, activityId])
 }
 

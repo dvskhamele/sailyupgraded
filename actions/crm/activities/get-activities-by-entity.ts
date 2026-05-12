@@ -1,7 +1,19 @@
 "use server";
-import { prismadb } from "@/lib/prisma";
+import { cache } from "react";
+import {
+  isTransientPrismaConnectionError,
+  prisma,
+  withPrismaRetry,
+} from "@/lib/prisma";
 
 const PAGE_SIZE = 25;
+const VALID_ENTITY_TYPES = new Set([
+  "account",
+  "contact",
+  "lead",
+  "opportunity",
+  "contract",
+]);
 
 export type ActivityWithLinks = {
   id: string;
@@ -21,45 +33,63 @@ export type ActivityWithLinks = {
 
 export type ActivityCursor = { date: string; id: string };
 
-export const getActivitiesByEntity = async (
+const loadActivitiesByEntity = cache(async (
   entityType: string,
   entityId: string,
-  cursor?: ActivityCursor
+  cursorKey: string | null
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
+  const cursor = cursorKey ? (JSON.parse(cursorKey) as ActivityCursor) : undefined;
+  const cursorDate = cursor ? new Date(cursor.date) : null;
+
+  if (!VALID_ENTITY_TYPES.has(entityType) || !entityId) {
+    return { data: [], nextCursor: null };
+  }
+
+  if (cursorDate && Number.isNaN(cursorDate.getTime())) {
+    return { data: [], nextCursor: null };
+  }
+
   try {
-    // Use `as any` for both models — same pattern as crm_AuditLog throughout the codebase
-    // (Prisma client cache may not include new models until IDE restarts)
-    const links = await (prismadb as any).crm_ActivityLinks.findMany({
-      where: { entityType, entityId },
-      select: { activityId: true },
-    });
+    const andClauses: Record<string, unknown>[] = [
+      {
+        deletedAt: null,
+        links: {
+          some: { entityType, entityId },
+        },
+      },
+    ];
 
-    const activityIds = (links as Array<{ activityId: string }>).map((l) => l.activityId);
-
-    if (activityIds.length === 0) {
-      return { data: [], nextCursor: null };
-    }
-
-    const andClauses: Record<string, unknown>[] = [{ id: { in: activityIds }, deletedAt: null }];
-
-    if (cursor) {
+    if (cursor && cursorDate) {
       andClauses.push({
         OR: [
-          { date: { lt: new Date(cursor.date) } },
-          { date: new Date(cursor.date), id: { lt: cursor.id } },
+          { date: { lt: cursorDate } },
+          { date: cursorDate, id: { lt: cursor.id } },
         ],
       });
     }
 
-    const activities = await (prismadb as any).crm_Activities.findMany({
-      where: { AND: andClauses },
-      orderBy: [{ date: "desc" }, { id: "desc" }],
-      take: PAGE_SIZE,
-      include: {
-        created_by_user: { select: { id: true, name: true, avatar: true } },
-        links: { select: { id: true, entityType: true, entityId: true } },
-      },
-    });
+    const activities = await withPrismaRetry(() =>
+      (prisma as any).crm_Activities.findMany({
+        where: { AND: andClauses },
+        orderBy: [{ date: "desc" }, { id: "desc" }],
+        take: PAGE_SIZE,
+        select: {
+          id: true,
+          type: true,
+          title: true,
+          description: true,
+          date: true,
+          duration: true,
+          outcome: true,
+          status: true,
+          metadata: true,
+          createdAt: true,
+          createdBy: true,
+          created_by_user: { select: { id: true, name: true, avatar: true } },
+          links: { select: { id: true, entityType: true, entityId: true } },
+        },
+      })
+    ) as ActivityWithLinks[];
 
     const nextCursor =
       activities.length < PAGE_SIZE
@@ -71,7 +101,26 @@ export const getActivitiesByEntity = async (
 
     return { data: activities as ActivityWithLinks[], nextCursor };
   } catch (error) {
-    console.error("getActivitiesByEntity error:", error);
+    if (isTransientPrismaConnectionError(error)) {
+      console.warn(
+        `getActivitiesByEntity skipped after database pool timeout for ${entityType}:${entityId}.`,
+      );
+    } else {
+      console.warn(
+        "getActivitiesByEntity failed:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+
     return { data: [], nextCursor: null };
   }
+});
+
+export const getActivitiesByEntity = async (
+  entityType: string,
+  entityId: string,
+  cursor?: ActivityCursor
+): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
+  const cursorKey = cursor ? JSON.stringify(cursor) : null;
+  return loadActivitiesByEntity(entityType, entityId, cursorKey);
 };

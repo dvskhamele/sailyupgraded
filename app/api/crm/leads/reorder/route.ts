@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prisma";
 import { revalidateTag } from "next/cache";
+import type { Prisma } from "@prisma/client";
 
 const configTypeSupportsOrder: Record<string, boolean> = {
   salesStage: true,
@@ -35,51 +36,57 @@ export async function POST(req: Request) {
       return NextResponse.json({ success: true, skipped: true });
     }
 
+    const updatePromises: Prisma.PrismaPromise<unknown>[] = [];
+
     // Determine which model to update based on configType
-    const updatePromises = items.map((item: any, index: number) => {
-      if (!item?.id) return null;
+    items.forEach((item: any, index: number) => {
+      if (!item?.id) return;
 
       switch (configType) {
         case "salesStage":
           // Sales Stages map to crm_Opportunities_Sales_Stages
-          return prismadb.crm_Opportunities_Sales_Stages.update({
+          updatePromises.push(prismadb.crm_Opportunities_Sales_Stages.update({
             where: { id: item.id },
             data: { order: index },
-          });
+          }));
+          return;
         case "leadStatus":
           // Lead Statuses map to crm_Lead_Statuses
-          return prismadb.crm_Lead_Statuses.update({
+          updatePromises.push(prismadb.crm_Lead_Statuses.update({
             where: { id: item.id },
             data: { order: index },
-          });
+          }));
+          return;
         case "leadSource":
-          return null;
         case "leadType":
-          return null;
+          return;
         case "industry":
-          return prismadb.crm_Industry_Type.update({
+          updatePromises.push(prismadb.crm_Industry_Type.update({
             where: { id: item.id },
             data: { order: index },
-          });
+          }));
+          return;
         case "contactType":
-          return null;
+          return;
         case "opportunityType":
-          return prismadb.crm_Opportunities_Type.update({
+          updatePromises.push(prismadb.crm_Opportunities_Type.update({
             where: { id: item.id },
             data: { order: index },
-          });
+          }));
+          return;
         case "leads":
-          return prismadb.crm_Leads.update({
+          updatePromises.push(prismadb.crm_Leads.update({
             where: { id: item.id },
             data: { order: index },
-          });
+          }));
+          return;
         default:
-          return null;
+          return;
       }
-    }).filter(Boolean);
+    });
 
     if (updatePromises.length > 0) {
-      await Promise.all(updatePromises);
+      await prismadb.$transaction(updatePromises);
     }
 
     // Refresh appropriate tags

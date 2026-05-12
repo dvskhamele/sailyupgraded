@@ -85,7 +85,7 @@ type ImportResult = {
 
 const SKIP_VALUE = "__skip__";
 const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
-  { key: "serial", label: "Role ID / Agent Number" },
+  { key: "serial", label: "Reference ID" },
   { key: "name", label: "Full name" },
   { key: "first_name", label: "First name" },
   { key: "last_name", label: "Last name" },
@@ -97,12 +97,12 @@ const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
   { key: "position", label: "Position" },
   { key: "description", label: "Description" },
   { key: "birthday", label: "Birthday" },
+  { key: "country", label: "Country" },
   { key: "address", label: "Address" },
   { key: "address_line1", label: "Address line 1" },
   { key: "address_line2", label: "Address line 2" },
   { key: "city", label: "City" },
   { key: "state", label: "State / Region" },
-  { key: "country", label: "Country" },
   { key: "postal_code", label: "Postal code" },
   { key: "status", label: "Status" },
   { key: "role", label: "Role" },
@@ -121,6 +121,15 @@ const DEFAULT_MAPPING = Object.fromEntries(
 ) as ColumnMapping;
 const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
   serial: [
+    "reference id",
+    "referenceid",
+    "reference_id",
+    "reference number",
+    "referencenumber",
+    "reference_number",
+    "role id",
+    "roleid",
+    "role_id",
     "serial",
     "contact id",
     "contactid",
@@ -134,6 +143,9 @@ const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
     "customer id",
     "customer number",
     "client id",
+    "client number",
+    "other id",
+    "other number",
     "partner id",
     "partner number",
     "vendor id",
@@ -161,7 +173,19 @@ const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
   role: ["role"],
   contact_type_id: ["contact type", "contact_type", "contact_type_id", "type"],
   assigned_to: ["assigned to", "assigned_to", "owner", "user", "assignee"],
-  assigned_account: ["account", "assigned account", "assigned_account", "company"],
+  assigned_account: [
+    "account",
+    "account name",
+    "assigned account",
+    "assigned_account",
+    "company",
+    "company name",
+    "company_name",
+    "organization",
+    "organisation",
+    "employer",
+    "business",
+  ],
   social_twitter: ["twitter", "x"],
   social_facebook: ["facebook"],
   social_linkedin: ["linkedin", "linkedin url", "linkedin profile"],
@@ -169,6 +193,38 @@ const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
   social_youtube: ["youtube"],
   social_tiktok: ["tiktok", "tik tok"],
 };
+const AUTO_MAP_PRIORITY: MappingKey[] = [
+  "serial",
+  "first_name",
+  "last_name",
+  "email",
+  "personal_email",
+  "mobile_phone",
+  "office_phone",
+  "website",
+  "assigned_account",
+  "name",
+  "position",
+  "description",
+  "birthday",
+  "address_line1",
+  "address_line2",
+  "address",
+  "city",
+  "state",
+  "country",
+  "postal_code",
+  "status",
+  "role",
+  "contact_type_id",
+  "assigned_to",
+  "social_twitter",
+  "social_facebook",
+  "social_linkedin",
+  "social_skype",
+  "social_youtube",
+  "social_tiktok",
+];
 
 function normalizeHeader(value: string) {
   return value.trim().toLowerCase();
@@ -180,9 +236,11 @@ function normalizeHeaderToken(value: string) {
 
 function suggestMapping(headers: string[]): ColumnMapping {
   const defaults: ColumnMapping = { ...DEFAULT_MAPPING };
+  const usedHeaders = new Set<string>();
 
-  for (const key of Object.keys(defaults) as MappingKey[]) {
+  for (const key of AUTO_MAP_PRIORITY) {
     const match = headers.find((header) => {
+      if (usedHeaders.has(header)) return false;
       const normalized = normalizeHeaderToken(header);
       return AUTO_MAP_CANDIDATES[key].some(
         (candidate) =>
@@ -193,6 +251,7 @@ function suggestMapping(headers: string[]): ColumnMapping {
 
     if (match) {
       defaults[key] = match;
+      usedHeaders.add(match);
     }
   }
 

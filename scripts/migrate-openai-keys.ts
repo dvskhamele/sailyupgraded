@@ -8,10 +8,6 @@
  * and run this script against a schema that still has both tables.
  * For new installations this is a no-op.
  */
-import { PrismaClient } from "@prisma/client";
-
-const prisma = new PrismaClient();
-
 async function main() {
   console.log("openAi_keys table was dropped in the Task 1 migration.");
   console.log(
@@ -21,5 +17,4 @@ async function main() {
 }
 
 main()
-  .catch(console.error)
-  .finally(() => prisma.$disconnect());
+  .catch(console.error);

@@ -25,23 +25,13 @@ import { buildContactTimelineEvents } from "@/lib/crm/timeline-events";
 const ContactViewPage = async (props: any) => {
   const params = await props.params;
   const { contactId } = params;
-  const [
-    contact,
-    opportunities,
-    documents,
-    accounts,
-    products,
-    activities,
-    crmData,
-  ]: any = await Promise.all([
-    getContact(contactId),
-    getOpportunitiesFullByContactId(contactId),
-    getDocumentsByContactId(contactId),
-    getAccountsByContactId(contactId),
-    getProductsByContactId(contactId),
-    getActivitiesByEntity("contact", contactId),
-    getAllCrmData(),
-  ]);
+  const contact = await getContact(contactId);
+  const opportunities = await getOpportunitiesFullByContactId(contactId);
+  const documents = await getDocumentsByContactId(contactId);
+  const accounts = await getAccountsByContactId(contactId);
+  const products = await getProductsByContactId(contactId);
+  const activities = await getActivitiesByEntity("contact", contactId);
+  const crmData = await getAllCrmData();
 
   //  console.log(accounts, "accounts");
 

@@ -108,10 +108,14 @@ function getFallbackSerialPrefix(role: ContactRole) {
   switch (role) {
     case "Agent":
       return "AGT";
+    case "Client":
+      return "CLT";
     case "Partner":
       return "PRT";
     case "Vendor":
       return "VND";
+    case "Other":
+      return "OTH";
     case "Customer":
     default:
       return "CUST";
@@ -125,6 +129,66 @@ function generateFallbackSerial(role: ContactRole, row: number, importBatchId: s
 function normalizeOptionalText(value: string | undefined) {
   const trimmed = value?.trim() ?? "";
   return trimmed || undefined;
+}
+
+function normalizeLookupKey(value: string) {
+  return value.trim().toLowerCase();
+}
+
+const ROLE_REFERENCE_ID_HEADERS = {
+  agent: ["agentNumber", "agentId", "agent number", "agent id", "agent no", "agent code"],
+  customer: ["customerNumber", "customerId", "customer number", "customer id", "customer no", "customer code"],
+  client: ["clientNumber", "clientId", "client number", "client id", "client no", "client code"],
+  other: ["otherNumber", "otherId", "other number", "other id", "other no", "other code"],
+} as const;
+
+const GENERIC_REFERENCE_ID_HEADERS = [
+  "referenceId",
+  "referenceNumber",
+  "reference id",
+  "reference number",
+  "role id",
+  "serial",
+  "contact id",
+  "contactid",
+  "contact_id",
+];
+
+function normalizeHeaderToken(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
+function getReferenceHeaderGroup(role: ContactRole) {
+  switch (role) {
+    case "Agent":
+      return "agent";
+    case "Client":
+      return "client";
+    case "Customer":
+      return "customer";
+    default:
+      return "other";
+  }
+}
+
+function findReferenceIdFromRow(row: RawRow, role: ContactRole) {
+  const roleSpecificHeaders = ROLE_REFERENCE_ID_HEADERS[getReferenceHeaderGroup(role)];
+  const orderedCandidates = [...roleSpecificHeaders, ...GENERIC_REFERENCE_ID_HEADERS].map(
+    normalizeHeaderToken,
+  );
+
+  for (const candidate of orderedCandidates) {
+    for (const [header, value] of Object.entries(row)) {
+      const normalizedHeader = normalizeHeaderToken(header);
+      const isMatch = normalizedHeader === candidate || normalizedHeader.includes(candidate);
+      const normalizedValue = value.trim();
+      if (isMatch && normalizedValue) {
+        return normalizedValue;
+      }
+    }
+  }
+
+  return undefined;
 }
 
 export async function POST(request: NextRequest) {
@@ -177,6 +241,7 @@ export async function POST(request: NextRequest) {
     normalizedEmail: string;
     normalizedMobilePhone: string;
     normalizedOfficePhone: string;
+    rawRow: RawRow;
     data: Record<string, string>;
   }> = [];
 
@@ -273,6 +338,7 @@ export async function POST(request: NextRequest) {
       normalizedEmail,
       normalizedMobilePhone,
       normalizedOfficePhone,
+      rawRow: row,
       data: Object.fromEntries(
         Object.entries(mapping)
           .filter(([, column]) => Boolean(column))
@@ -388,6 +454,7 @@ export async function POST(request: NextRequest) {
   accounts.forEach((account) => {
     accountLookup.set(account.id, account.id);
     accountLookup.set(account.name, account.id);
+    accountLookup.set(normalizeLookupKey(account.name), account.id);
   });
   contactTypes.forEach((contactType) => {
     contactTypeLookup.set(contactType.id, contactType.id);
@@ -413,6 +480,30 @@ export async function POST(request: NextRequest) {
       existingByPhone.set(officePhone, { id: contact.id, serial: contact.serial });
     }
   });
+
+  const missingAccountNames = uniqueAccountValues.filter((value) => {
+    const trimmed = value.trim();
+    return trimmed && !accountLookup.get(trimmed) && !accountLookup.get(normalizeLookupKey(trimmed));
+  });
+  const uniqueMissingAccountNames = Array.from(
+    new Map(missingAccountNames.map((name) => [normalizeLookupKey(name), name.trim()])).values(),
+  );
+
+  for (const accountName of uniqueMissingAccountNames) {
+    const account = await prismadb.crm_Accounts.create({
+      data: {
+        v: 0,
+        name: accountName,
+        status: "Active",
+        createdBy: userId,
+        updatedBy: userId,
+      },
+      select: { id: true, name: true },
+    });
+    accountLookup.set(account.id, account.id);
+    accountLookup.set(account.name, account.id);
+    accountLookup.set(normalizeLookupKey(account.name), account.id);
+  }
 
   let imported = 0;
   let updated = 0;
@@ -465,13 +556,12 @@ export async function POST(request: NextRequest) {
     const contactTypeRaw = candidate.data.contact_type_id?.trim() || "";
     const resolvedAssignedTo = assignedToRaw ? userLookup.get(assignedToRaw) : undefined;
     const resolvedAssignedAccount = assignedAccountRaw
-      ? accountLookup.get(assignedAccountRaw)
+      ? accountLookup.get(assignedAccountRaw) ?? accountLookup.get(normalizeLookupKey(assignedAccountRaw))
       : undefined;
     const resolvedContactType = contactTypeRaw
       ? contactTypeLookup.get(contactTypeRaw)
       : undefined;
 
-    const serial = parseSerial(candidate.data.serial || "");
     const parsedStatus = parseStatus(candidate.data.status || "");
     const inferredRoleFromIdentifier = inferContactRoleFromIdentifierContext(
       mapping.serial,
@@ -492,6 +582,8 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedRole = normalizeContactRole(resolvedRole);
+    const serial = findReferenceIdFromRow(candidate.rawRow, normalizedRole) ||
+      parseSerial(candidate.data.serial || "");
     const resolvedSerial =
       serial ||
       existingMatch?.serial ||

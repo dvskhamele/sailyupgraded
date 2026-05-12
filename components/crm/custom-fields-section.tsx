@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import type {
@@ -39,7 +39,11 @@ export function CustomFieldsSection({
   disabled = false,
   contactRole,
 }: CustomFieldsSectionProps) {
-  const [fields, setFields] = useState<NormalizedCustomFieldDefinition[]>([]);
+  const [allFields, setAllFields] = useState<CustomFieldDefinition[]>([]);
+  const fields = useMemo(
+    () => filterCustomFieldsForEntity(allFields, entityType, contactRole),
+    [allFields, contactRole, entityType],
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -56,7 +60,7 @@ export function CustomFieldsSection({
           return;
         }
 
-        setFields(filterCustomFieldsForEntity(payload, entityType, contactRole));
+        setAllFields(payload);
       } catch (error) {
         console.error("[CUSTOM_FIELDS_SECTION]", error);
       }
@@ -67,7 +71,28 @@ export function CustomFieldsSection({
     return () => {
       isMounted = false;
     };
-  }, [contactRole, entityType]);
+  }, []);
+
+  useEffect(() => {
+    const visibleFieldIds = new Set(fields.map((field) => field.id));
+    const currentValues = form.getValues("custom_fields_data");
+
+    if (!currentValues || typeof currentValues !== "object" || Array.isArray(currentValues)) {
+      return;
+    }
+
+    const nextValues = Object.fromEntries(
+      Object.entries(currentValues).filter(([fieldId]) => visibleFieldIds.has(fieldId)),
+    );
+
+    if (Object.keys(nextValues).length !== Object.keys(currentValues).length) {
+      form.setValue("custom_fields_data", nextValues, {
+        shouldDirty: true,
+        shouldTouch: false,
+        shouldValidate: false,
+      });
+    }
+  }, [fields, form]);
 
   if (fields.length === 0) {
     return null;

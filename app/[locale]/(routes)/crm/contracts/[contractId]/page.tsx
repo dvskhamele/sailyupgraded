@@ -16,11 +16,9 @@ interface ContractDetailPageProps {
 const ContractPage = async (props: ContractDetailPageProps) => {
   const params = await props.params;
   const { contractId } = params;
-  const [contract, allProducts, crmData] = await Promise.all([
-    getContract(contractId),
-    getProductsFull(),
-    getAllCrmData(),
-  ]);
+  const contract = await getContract(contractId);
+  const allProducts = await getProductsFull();
+  const crmData = await getAllCrmData();
 
   if (!contract) return <div>Contract not found</div>;
 

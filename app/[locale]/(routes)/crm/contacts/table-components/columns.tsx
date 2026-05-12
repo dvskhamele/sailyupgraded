@@ -11,7 +11,7 @@ import { DataTableColumnHeader } from "./data-table-column-header";
 import { DataTableRowActions } from "./data-table-row-actions";
 import moment from "moment";
 import { formatAddress } from "@/lib/crm-address";
-import { getContactIdentifierLabel, normalizeContactRole } from "@/lib/contact-options";
+import { getReferenceId, normalizeContactRole } from "@/lib/contact-options";
 
 type ConfigItem = { id: string; name: string };
 type AccountItem = {
@@ -76,38 +76,7 @@ export const createColumns = (
     enableSorting: true,
     enableHiding: true,
   },
-  {
-    accessorKey: "assigned_account",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Assigned company" />
-    ),
-    cell: ({ row }) => (
-      <div className="min-w-[150px]">
-        {(row.original as any).assigned_accounts?.name ?? "Unassigned"}
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: true,
-  },
-  // {
-  //   accessorKey: "serial",
-  //   header: ({ column }) => (
-  //     <DataTableColumnHeader column={column} title="Role ID" />
-  //   ),
-  //   cell: ({ row }) => {
-  //     const role = normalizeContactRole((row.original as any).role);
-  //     const label = getContactIdentifierLabel(role);
-  //     const value = row.getValue("serial");
-
-  //     return (
-  //       <div className="min-w-[120px]">
-  //         {value ? `${label}: ${value}` : "N/A"}
-  //       </div>
-  //     );
-  //   },
-  //   enableSorting: true,
-  //   enableHiding: true,
-  // },
+ 
   {
     accessorKey: "first_name",
     header: ({ column }) => (
@@ -141,6 +110,31 @@ export const createColumns = (
       </div>
     ),
     enableSorting: true,
+    enableHiding: true,
+  },
+  {
+    id: "referenceId",
+    accessorFn: (row) => getReferenceId(row as any),
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Reference ID" />
+    ),
+    cell: ({ row }) => (
+      <div className="min-w-[120px]">{getReferenceId(row.original as any)}</div>
+    ),
+    enableSorting: true,
+    enableHiding: true,
+  },
+   {
+    accessorKey: "assigned_account",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Assigned company" />
+    ),
+    cell: ({ row }) => (
+      <div className="min-w-[150px]">
+        {(row.original as any).assigned_accounts?.name ?? "Unassigned"}
+      </div>
+    ),
+    enableSorting: false,
     enableHiding: true,
   },
   {

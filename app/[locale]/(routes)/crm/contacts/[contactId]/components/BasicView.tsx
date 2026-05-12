@@ -26,7 +26,7 @@ import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { ContactDetailActions } from "./ContactDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
-import { normalizeContactRole } from "@/lib/contact-options";
+import { getReferenceId, normalizeContactRole } from "@/lib/contact-options";
 import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { formatCurrencyDisplay } from "@/lib/currency-input";
@@ -48,6 +48,7 @@ export async function BasicView({ data }: OppsViewProps) {
         .map((item: any) => item.opportunity)
         .filter(Boolean)
     : [];
+  const referenceId = getReferenceId(data);
   if (!data) return <div>Opportunity not found</div>;
   return (
     <div className="pb-3 space-y-5">
@@ -58,7 +59,7 @@ export async function BasicView({ data }: OppsViewProps) {
             <div>
               <CardTitle>Basic Information</CardTitle>
               <CardDescription>
-                {[`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(), `ID: ${data.id}`, data.serial ? `Serial: ${data.serial}` : null]
+                {[`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(), `ID: ${data.id}`, referenceId !== "-" ? `Reference ID: ${referenceId}` : null]
                   .filter(Boolean)
                   .join(" | ")}
               </CardDescription>
@@ -98,9 +99,9 @@ export async function BasicView({ data }: OppsViewProps) {
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Contact Serial</p>
+                  <p className="text-sm font-medium leading-none">Reference ID</p>
                   <p className="text-sm text-muted-foreground">
-                    {data.serial || "N/A"}
+                    {referenceId}
                   </p>
                 </div>
               </div>

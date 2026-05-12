@@ -31,15 +31,12 @@ const OpportunityView = async (
     opportunityId
   } = params;
 
-  const [opportunity, crmData, accounts, contacts, documents, allProducts] =
-    await Promise.all([
-      getOpportunity(opportunityId),
-      getAllCrmData(),
-      getAccountsByOpportunityId(opportunityId),
-      getContactsByOpportunityId(opportunityId),
-      getDocumentsByOpportunityId(opportunityId),
-      getProductsFull(),
-    ]);
+  const opportunity = await getOpportunity(opportunityId);
+  const crmData = await getAllCrmData();
+  const accounts = await getAccountsByOpportunityId(opportunityId);
+  const contacts = await getContactsByOpportunityId(opportunityId);
+  const documents = await getDocumentsByOpportunityId(opportunityId);
+  const allProducts = await getProductsFull();
 
   const activeProducts = allProducts
     .filter((p: any) => p.status === "ACTIVE")

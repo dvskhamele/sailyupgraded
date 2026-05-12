@@ -3,8 +3,10 @@ import type { Prisma } from "@prisma/client";
 export const CONTACT_ROLE_OPTIONS = [
   "Agent",
   "Customer",
+  "Client",
   "Partner",
   "Vendor",
+  "Other",
 ] as const;
 
 export type ContactRole = (typeof CONTACT_ROLE_OPTIONS)[number];
@@ -19,16 +21,20 @@ type ContactRoleView = {
 
 const CONTACT_ROLE_IMPORT_ALIASES: Record<ContactRole, string[]> = {
   Agent: ["agent", "agent id", "agent number", "agent no", "agent code"],
-  Customer: ["customer", "customer id", "customer number", "client", "client id", "client number"],
+  Customer: ["customer", "customer id", "customer number"],
+  Client: ["client", "client id", "client number"],
   Partner: ["partner", "partner id", "partner number", "partner code"],
   Vendor: ["vendor", "vendor id", "vendor number", "supplier", "supplier id", "supplier number"],
+  Other: ["other", "others", "other id", "other number"],
 };
 
 const CONTACT_ROLE_DB_VALUES: Record<ContactRole, string[]> = {
   Agent: ["Agent", "agent", "Agents", "agents"],
-  Customer: ["Customer", "customer", "Customers", "customers", "Client", "client", "Clients", "clients"],
+  Customer: ["Customer", "customer", "Customers", "customers"],
+  Client: ["Client", "client", "Clients", "clients"],
   Partner: ["Partner", "partner", "Partners", "partners"],
   Vendor: ["Vendor", "vendor", "Vendors", "vendors"],
+  Other: ["Other", "other", "Others", "others"],
 };
 
 export const CONTACT_STATUS_OPTIONS = [
@@ -52,16 +58,14 @@ export function buildContactRoleFilter(
   if (normalizedRole === "customer" || normalizedRole === "customers" || normalizedRole === "client") {
     return {
       role: {
-        in: CONTACT_ROLE_DB_VALUES.Customer,
+        in: [...CONTACT_ROLE_DB_VALUES.Customer, ...CONTACT_ROLE_DB_VALUES.Client],
       },
     };
   }
 
   if (normalizedRole === "agent" || normalizedRole === "agents") {
     return {
-      role: {
-        in: CONTACT_ROLE_DB_VALUES.Agent,
-      },
+      role: "Agent",
     };
   }
 
@@ -207,10 +211,14 @@ export function getContactIdentifierLabel(role?: string | null): string {
   switch (normalizedRole) {
     case "Agent":
       return "Agent Number";
+    case "Client":
+      return "Client ID";
     case "Partner":
       return "Partner ID";
     case "Vendor":
       return "Vendor ID";
+    case "Other":
+      return "Other ID";
     case "Customer":
     default:
       return "Customer ID";
@@ -224,8 +232,12 @@ export function detectContactRole(role?: string | null): ContactRole | undefined
     return undefined;
   }
 
-  if (normalizedRole === "customer" || normalizedRole === "customers" || normalizedRole === "client") {
+  if (normalizedRole === "customer" || normalizedRole === "customers") {
     return "Customer";
+  }
+
+  if (normalizedRole === "client" || normalizedRole === "clients") {
+    return "Client";
   }
 
   if (normalizedRole === "agent" || normalizedRole === "agents") {
@@ -238,6 +250,10 @@ export function detectContactRole(role?: string | null): ContactRole | undefined
 
   if (normalizedRole === "partner" || normalizedRole === "partners") {
     return "Partner";
+  }
+
+  if (normalizedRole === "other" || normalizedRole === "others") {
+    return "Other";
   }
 
   return CONTACT_ROLE_OPTIONS.includes(role as ContactRole) ? (role as ContactRole) : undefined;
@@ -266,4 +282,68 @@ export function inferContactRoleFromIdentifierContext(...values: Array<string | 
   }
 
   return undefined;
+}
+
+type ReferenceIdContact = {
+  role?: string | null;
+  serial?: string | number | null;
+  agentNumber?: string | number | null;
+  agentId?: string | number | null;
+  customerNumber?: string | number | null;
+  customerId?: string | number | null;
+  clientNumber?: string | number | null;
+  clientId?: string | number | null;
+  otherNumber?: string | number | null;
+  otherId?: string | number | null;
+};
+
+function formatReferenceIdValue(value: string | number | null | undefined) {
+  const normalized = String(value ?? "").trim();
+  return normalized || undefined;
+}
+
+export function getReferenceId(contact: ReferenceIdContact | null | undefined): string {
+  if (!contact) {
+    return "-";
+  }
+
+  const role = contact.role?.trim().toLowerCase();
+  const fallback = formatReferenceIdValue(contact.serial);
+
+  switch (role) {
+    case "agent":
+    case "agents":
+      return (
+        formatReferenceIdValue(contact.agentNumber) ||
+        formatReferenceIdValue(contact.agentId) ||
+        fallback ||
+        "-"
+      );
+
+    case "customer":
+    case "customers":
+      return (
+        formatReferenceIdValue(contact.customerNumber) ||
+        formatReferenceIdValue(contact.customerId) ||
+        fallback ||
+        "-"
+      );
+
+    case "client":
+    case "clients":
+      return (
+        formatReferenceIdValue(contact.clientNumber) ||
+        formatReferenceIdValue(contact.clientId) ||
+        fallback ||
+        "-"
+      );
+
+    default:
+      return (
+        formatReferenceIdValue(contact.otherNumber) ||
+        formatReferenceIdValue(contact.otherId) ||
+        fallback ||
+        "-"
+      );
+  }
 }

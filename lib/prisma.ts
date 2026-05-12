@@ -7,15 +7,24 @@ declare global {
   var cachedPrismaSchemaSignature: string | undefined;
   var cachedPrismaRuntimeVersion: string | undefined;
   var cachedPrismaResetPromise: Promise<void> | undefined;
+  var cachedPrismaQueryStats: { activeQueries: number } | undefined;
 }
 
 const databaseUrl = process.env.DATABASE_URL;
-const prismaRuntimeVersion = "mariadb-adapter-no-auto-disconnect-v1";
+const prismaRuntimeVersion = "mariadb-adapter-singleton-v2";
+const slowQueryThresholdMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 1000);
 
 function getPrismaSchemaSignature() {
   return Prisma.dmmf.datamodel.models
     .map((model) => `${model.name}:${model.fields.map((field) => field.name).join(",")}`)
     .join("|");
+}
+
+function getQueryStats() {
+  if (!global.cachedPrismaQueryStats) {
+    global.cachedPrismaQueryStats = { activeQueries: 0 };
+  }
+  return global.cachedPrismaQueryStats;
 }
 
 // Prisma Client configuration with connection pooling.
@@ -24,10 +33,36 @@ const prismaClientSingleton = () => {
     throw new Error("DATABASE_URL is not set. Please provide DATABASE_URL environment variable.");
   }
 
-  return new PrismaClient({
+  const client = new PrismaClient({
     adapter: createMariaDbAdapter(databaseUrl),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
   });
+
+  return client.$extends({
+    query: {
+      $allModels: {
+        $allOperations: async ({ model, operation, args, query }) => {
+          const stats = getQueryStats();
+          const startedAt = Date.now();
+          stats.activeQueries += 1;
+
+          try {
+            return await query(args ?? {});
+          } finally {
+            const elapsedMs = Date.now() - startedAt;
+            stats.activeQueries = Math.max(0, stats.activeQueries - 1);
+
+            if (elapsedMs >= slowQueryThresholdMs) {
+              console.warn(
+                `[Prisma slow query] ${model}.${operation} took ${elapsedMs}ms ` +
+                  `(active queries: ${stats.activeQueries})`,
+              );
+            }
+          }
+        },
+      },
+    },
+  }) as unknown as PrismaClient;
 };
 
 let _prisma: PrismaClient | undefined;
@@ -163,14 +198,13 @@ export async function withPrismaRetry<T>(operation: () => Promise<T>) {
       throw error;
     }
 
-    await resetPrisma();
     await new Promise((resolve) => setTimeout(resolve, 150));
     return operation();
   }
 }
 
 // Use a proxy to lazily initialize the Prisma client only when accessed
-export const prismadb = new Proxy({} as PrismaClient, {
+export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop, receiver) {
     if (prop === "$disconnect") {
       return resetPrisma;
@@ -184,3 +218,5 @@ export const prismadb = new Proxy({} as PrismaClient, {
     return value;
   },
 });
+
+export const prismadb = prisma;

@@ -25,7 +25,7 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const loadMore = () => {
-    if (!cursor) return;
+    if (!cursor || isPending) return;
     startTransition(async () => {
       const result = await getActivitiesByEntity(entityType, entityId, cursor);
       setActivities((prev) => [...prev, ...result.data]);

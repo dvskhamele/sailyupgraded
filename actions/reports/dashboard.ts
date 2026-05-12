@@ -43,7 +43,7 @@ export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: 
     accountsPrev,
     contractsCurr,
     contractsPrev,
-  ] = await Promise.all([
+  ] = await prismadb.$transaction([
     // totalRevenue
     prismadb.crm_Opportunities.findMany({
       where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null, status: "CLOSED" },

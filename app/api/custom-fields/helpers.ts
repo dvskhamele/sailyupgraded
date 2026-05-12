@@ -29,7 +29,7 @@ export function normalizeContactRoleScope(value: unknown) {
     return undefined;
   }
 
-  return ["Agent", "Customer", "Partner", "Vendor"].includes(normalized)
+  return ["Agent", "Customer", "Client", "Partner", "Vendor", "Other"].includes(normalized)
     ? normalized
     : undefined;
 }

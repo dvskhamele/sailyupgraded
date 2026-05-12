@@ -1,5 +1,5 @@
 export type CustomFieldEntity = "Contact" | "Lead" | "Opportunity";
-export type CustomFieldContactRole = "Agent" | "Customer" | "Partner" | "Vendor";
+export type CustomFieldContactRole = "Agent" | "Customer" | "Client" | "Partner" | "Vendor" | "Other";
 
 export type CustomFieldDefinition = {
   id: string;
@@ -7,6 +7,7 @@ export type CustomFieldDefinition = {
   type: string;
   applies_to: unknown;
   options?: unknown;
+  contact_role?: unknown;
 };
 
 export type NormalizedCustomFieldDefinition = {
@@ -31,12 +32,45 @@ function normalizeStringArray(value: unknown) {
     .filter(Boolean);
 }
 
+function normalizeContactRoleScope(value: unknown): CustomFieldContactRole | undefined {
+  if (typeof value !== "string") {
+    return undefined;
+  }
+
+  const normalized = value.trim().toLowerCase();
+  switch (normalized) {
+    case "agent":
+    case "agents":
+      return "Agent";
+    case "customer":
+    case "customers":
+      return "Customer";
+    case "client":
+    case "clients":
+      return "Client";
+    case "partner":
+    case "partners":
+      return "Partner";
+    case "vendor":
+    case "vendors":
+      return "Vendor";
+    case "other":
+    case "others":
+      return "Other";
+    default:
+      return undefined;
+  }
+}
+
 export function normalizeCustomField(field: CustomFieldDefinition) {
   const rawAppliesTo = normalizeStringArray(field.applies_to);
-  const contactRoleScope = rawAppliesTo
-    .find((item) => item.startsWith("Contact:"))
-    ?.split(":")[1]
-    ?.trim();
+  const contactRoleScope =
+    normalizeContactRoleScope(field.contact_role) ??
+    normalizeContactRoleScope(
+      rawAppliesTo
+        .find((item) => item.toLowerCase().startsWith("contact:"))
+        ?.split(":")[1],
+    );
   const appliesTo = Array.from(
     new Set(
       rawAppliesTo
@@ -49,13 +83,7 @@ export function normalizeCustomField(field: CustomFieldDefinition) {
     ...field,
     applies_to: appliesTo,
     options: normalizeStringArray(field.options),
-    contact_role:
-      contactRoleScope === "Agent" ||
-      contactRoleScope === "Customer" ||
-      contactRoleScope === "Partner" ||
-      contactRoleScope === "Vendor"
-        ? contactRoleScope
-        : undefined,
+    contact_role: contactRoleScope,
   } satisfies NormalizedCustomFieldDefinition;
 }
 
@@ -76,7 +104,7 @@ export function fieldAppliesToContactRole(
     return true;
   }
 
-  return normalizedField.contact_role === contactRole;
+  return normalizedField.contact_role === normalizeContactRoleScope(contactRole);
 }
 
 export function fieldAppliesToEntity(

@@ -5,7 +5,7 @@ import { serializeDecimals } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 
 export async function getQuickOpportunityFormOptions() {
-  const [accounts, contacts, salesType, stageCollections, campaigns, currencies, products] = await Promise.all([
+  const [accounts, contacts, salesType, campaigns, currencies, products] = await prismadb.$transaction([
     prismadb.crm_Accounts.findMany({
       where: { deletedAt: null },
       include: {
@@ -34,7 +34,6 @@ export async function getQuickOpportunityFormOptions() {
     prismadb.crm_Opportunities_Type.findMany({
       orderBy: { name: "asc" },
     }),
-    getSalesStageCollections(),
     prismadb.crm_campaigns.findMany({
       where: { deletedAt: null },
       orderBy: { name: "asc" },
@@ -53,6 +52,7 @@ export async function getQuickOpportunityFormOptions() {
       orderBy: { name: "asc" },
     }),
   ]);
+  const stageCollections = await getSalesStageCollections();
 
   const categoryOptions = Array.from(
     new Map(

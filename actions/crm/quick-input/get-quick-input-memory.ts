@@ -63,7 +63,7 @@ export async function getQuickInputMemory(): Promise<QuickDbMemory> {
   let defaultCurrency;
 
   try {
-    [contacts, opportunities, leadSources, stages, types, defaultCurrency] = await Promise.all([
+    [contacts, opportunities, leadSources, stages, types] = await prismadb.$transaction([
       prismadb.crm_Contacts.findMany({
         where: { deletedAt: null },
         select: {
@@ -95,8 +95,8 @@ export async function getQuickInputMemory(): Promise<QuickDbMemory> {
         select: { id: true, name: true },
         orderBy: [{ order: "asc" }, { name: "asc" }],
       }),
-      getDefaultCurrency(),
     ]);
+    defaultCurrency = await getDefaultCurrency();
   } catch (error) {
     if (!shouldUseFallback(error)) {
       throw error;

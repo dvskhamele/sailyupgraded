@@ -69,7 +69,7 @@ export function LoginComponent({
 
       let usedDevFallback = false;
 
-      if (allowDevOtpPreview) {
+      if (!error && allowDevOtpPreview) {
         try {
           const response = await fetch(
             `/api/auth/test-otp?email=${encodeURIComponent(normalizedEmail)}`,
