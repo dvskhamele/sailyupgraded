@@ -64,8 +64,9 @@ export const updateOpportunity = async (data: {
     const defaultCurrency = await getDefaultCurrency();
     const budgetAmount = currencyInputToDecimalString(budget);
     const expectedRevenueAmount = currencyInputToDecimalString(expected_revenue);
-    const snapshotRate = currency
-      ? await getSnapshotRate(currency, defaultCurrency)
+    const resolvedCurrency = currency || "USD";
+    const snapshotRate = resolvedCurrency
+      ? await getSnapshotRate(resolvedCurrency, defaultCurrency)
       : null;
     const opportunityCustomFields = await prismadb.custom_fields.findMany({
       orderBy: { createdAt: "asc" },
@@ -102,7 +103,7 @@ export const updateOpportunity = async (data: {
         close_date,
         contact: contact || null,
         updatedBy: userId,
-        assigned_currency: currency ? { connect: { code: currency } } : { disconnect: true },
+        assigned_currency: resolvedCurrency ? { connect: { code: resolvedCurrency } } : { disconnect: true },
         description: description || null,
         expected_revenue: expectedRevenueAmount,
         snapshot_rate: snapshotRate ? parseFloat(snapshotRate.toString()) : undefined,

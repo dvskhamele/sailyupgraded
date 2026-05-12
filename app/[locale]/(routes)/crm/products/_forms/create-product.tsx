@@ -30,7 +30,10 @@ const CreateProductForm = ({
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
   const [isRecurring, setIsRecurring] = useState(false);
-  const defaultCurrency = currencies[0]?.code;
+  const defaultCurrency =
+    currencies.find((currency) => currency.code === "USD")?.code ??
+    currencies[0]?.code ??
+    "USD";
 
   const { execute, fieldErrors, isLoading } = useAction(createProduct, {
     onSuccess: () => {

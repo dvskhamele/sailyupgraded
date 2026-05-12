@@ -87,6 +87,7 @@ export function DataTableRowActions<TData>({
               saleTypes={config.saleTypes}
               saleStages={config.saleStages}
               campaigns={config.campaigns}
+              contacts={config.contacts}
               currencies={config.currencies}
               categoryOptions={config.productOptions}
             />

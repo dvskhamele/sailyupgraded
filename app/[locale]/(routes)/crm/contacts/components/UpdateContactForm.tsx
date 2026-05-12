@@ -62,7 +62,7 @@ export function UpdateContactForm({
     office_phone: initialData.office_phone ?? "",
     mobile_phone: initialData.mobile_phone ?? "",
     website: initialData.website ?? "",
-    country: initialData.country ?? "",
+    country: initialData.country ?? "United States",
     address: initialData.address ?? "",
     address_line1: getAddressLine1(initialData.address, initialData.address_line1),
     address_line2: initialData.address_line2 ?? "",

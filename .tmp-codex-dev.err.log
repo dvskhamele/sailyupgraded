@@ -30,3 +30,865 @@
 [Prisma slow query] crm_Contacts.findMany took 6546ms (active queries: 0)
 [Prisma slow query] crm_Contact_Types.findMany took 1268ms (active queries: 0)
 [Prisma slow query] crm_Contacts.findMany took 2551ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 4678ms (active queries: 3)
+[Prisma slow query] crm_Accounts.findMany took 9080ms (active queries: 3)
+[Prisma slow query] Session.findFirst took 8805ms (active queries: 2)
+[Prisma slow query] Users.findFirst took 7736ms (active queries: 1)
+[2m2026-05-12T09:17:56.420Z[0m [31mERROR[0m [1m[Better Auth]:[0m Failed to query fallback join for model Users: {
+  where: [
+    {
+      operator: 'eq',
+      connector: 'AND',
+      field: 'id',
+      value: '9fbd3f90-030e-4a81-ba7f-8a036aaa4284',
+      mode: 'sensitive'
+    }
+  ],
+  limit: 1
+}
+Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 7561ms
+    (pool connections: active=1 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async getSession (lib\auth-server.ts:43:21)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 7561ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 7561ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[2m2026-05-12T09:17:59.944Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 8638ms
+    (pool connections: active=1 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async getSession (lib\auth-server.ts:43:21)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 8638ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 8638ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[2m2026-05-12T09:18:01.082Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 7561ms
+    (pool connections: active=1 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async getSession (lib\auth-server.ts:43:21)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 7561ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 7561ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+[Prisma slow query] crm_Accounts.findMany took 18546ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1671ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 5016ms (active queries: 1)
+[Prisma slow query] crm_Lead_Sources.findMany took 5122ms (active queries: 1)
+[Prisma slow query] crm_Lead_Sources.findMany took 1393ms (active queries: 1)
+[Prisma slow query] crm_Lead_Statuses.findMany took 4071ms (active queries: 1)
+[Prisma slow query] crm_Lead_Statuses.findMany took 3781ms (active queries: 1)
+[Prisma slow query] crm_Lead_Types.findMany took 16106ms (active queries: 1)
+[Prisma slow query] crm_Lead_Types.findMany took 16271ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 9573ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 10883ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 17716ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 17716ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 8098ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 8789ms (active queries: 0)
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+⚠ Fast Refresh had to perform a full reload. Read more: https://nextjs.org/docs/messages/fast-refresh-reload
+[Prisma slow query] crm_Accounts.findMany took 1541ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 1438ms (active queries: 1)
+[Prisma slow query] crm_Lead_Types.findMany took 5144ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 2962ms (active queries: 0)
+[Prisma slow query] Currency.findMany took 1233ms (active queries: 6)
+[Prisma slow query] crm_Contacts.findMany took 4266ms (active queries: 6)
+[Prisma slow query] crm_Opportunities.findMany took 4267ms (active queries: 5)
+[Prisma slow query] crm_Lead_Sources.findMany took 4267ms (active queries: 4)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 4267ms (active queries: 3)
+[Prisma slow query] crm_Opportunities_Type.findMany took 4267ms (active queries: 2)
+[Prisma slow query] crm_SystemSettings.findUnique took 1377ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 3793ms (active queries: 5)
+[Prisma slow query] crm_Contacts.findMany took 5251ms (active queries: 4)
+[Prisma slow query] crm_Opportunities.findMany took 5252ms (active queries: 3)
+[Prisma slow query] crm_Lead_Sources.findMany took 5253ms (active queries: 2)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 5253ms (active queries: 1)
+[Prisma slow query] crm_Opportunities_Type.findMany took 5254ms (active queries: 0)
+[Prisma slow query] crm_SystemSettings.findUnique took 1312ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1012ms (active queries: 0)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1096ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 2202ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 3127ms (active queries: 2)
+[Prisma slow query] Currency.findMany took 1283ms (active queries: 1)
+[Prisma slow query] crm_Lead_Sources.findMany took 2036ms (active queries: 1)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1196ms (active queries: 0)
+[Prisma slow query] crm_Lead_Types.findMany took 8776ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 1920ms (active queries: 0)
+[Prisma slow query] Users.findFirst took 2757ms (active queries: 2)
+[Prisma slow query] crm_Accounts.findMany took 2487ms (active queries: 3)
+[Prisma slow query] crm_Contacts.findMany took 7650ms (active queries: 3)
+[Prisma slow query] Users.findMany took 2656ms (active queries: 2)
+[Prisma slow query] Users.count took 2658ms (active queries: 1)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1235ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 2881ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 1231ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 1570ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 1908ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 1355ms (active queries: 5)
+[Prisma slow query] custom_fields.delete took 2128ms (active queries: 0)
+[Prisma slow query] custom_fields.delete took 1894ms (active queries: 0)
+[Prisma slow query] custom_fields.create took 5177ms (active queries: 0)
+[Prisma slow query] crm_Lead_Sources.findMany took 1758ms (active queries: 0)
+[Prisma slow query] crm_Lead_Types.findMany took 1012ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3585ms (active queries: 0)
+[Prisma slow query] crm_Contact_Types.findMany took 1254ms (active queries: 0)
+[Prisma slow query] crm_Lead_Sources.findMany took 1037ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 2776ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 4990ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 2516ms (active queries: 0)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1022ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 4276ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 1035ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 2225ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 5266ms (active queries: 0)
+[Prisma slow query] crm_Contacts.create took 3062ms (active queries: 0)
+[Prisma slow query] crm_AuditLog.create took 2717ms (active queries: 0)
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[Prisma slow query] crm_Contact_Types.findMany took 1007ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1289ms (active queries: 1)
+[Prisma slow query] crm_Lead_Sources.findMany took 1123ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 3497ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 3612ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 2584ms (active queries: 0)
+[Prisma slow query] crm_Contacts.update took 2329ms (active queries: 0)
+[Prisma slow query] crm_AuditLog.create took 2170ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 1168ms (active queries: 3)
+[Prisma slow query] crm_Accounts.findMany took 2023ms (active queries: 3)
+[Prisma slow query] crm_Accounts.findMany took 2794ms (active queries: 3)
+[Prisma slow query] Users.findFirst took 2150ms (active queries: 3)
+[Prisma slow query] Users.findFirst took 1814ms (active queries: 3)
+[Prisma slow query] crm_Contact_Types.findMany took 1330ms (active queries: 3)
+[Prisma slow query] crm_Contact_Types.findMany took 1229ms (active queries: 3)
+[Prisma slow query] crm_SystemSettings.findUnique took 3847ms (active queries: 3)
+[Prisma slow query] crm_Lead_Statuses.findMany took 4087ms (active queries: 2)
+[Prisma slow query] crm_Lead_Statuses.findMany took 4709ms (active queries: 2)
+[Prisma slow query] crm_SystemSettings.findUnique took 6439ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 4423ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 4603ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 5171ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 4323ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 4261ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 6882ms (active queries: 1)
+[Prisma slow query] Currency.findMany took 3356ms (active queries: 1)
+[Prisma slow query] crm_SystemSettings.findUnique took 2303ms (active queries: 1)
+[Prisma slow query] crm_Lead_Sources.findMany took 3105ms (active queries: 0)
+[Prisma slow query] crm_Lead_Types.findMany took 5564ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 6604ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 5367ms (active queries: 0)
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 5114ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async eval (lib\crm\contact-form-options.ts:161:22)
+    at async AccountsPage (app\[locale]\(routes)\crm\contacts\page.tsx:22:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  digest: '826232868',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 5114ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 5114ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:11483593, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 5293ms\n' +
+      '    (pool connections: active=1 idle=1 limit=10)'
+  }
+}
+[Prisma slow query] crm_Accounts.findMany took 3890ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 4388ms (active queries: 5)
+[Prisma slow query] crm_Accounts.findMany took 1988ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 2211ms (active queries: 5)
+[Prisma slow query] crm_Accounts.findMany took 1742ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 2037ms (active queries: 5)
+[Prisma slow query] crm_Contact_Types.findMany took 2639ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 2240ms (active queries: 5)
+[Prisma slow query] crm_Contact_Types.findMany took 1985ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 1956ms (active queries: 5)
+[Prisma slow query] crm_Contact_Types.findMany took 1842ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 1825ms (active queries: 5)
+[Prisma slow query] crm_Lead_Sources.findMany took 1432ms (active queries: 5)
+[Prisma slow query] Currency.findMany took 1811ms (active queries: 5)
+[Prisma slow query] Currency.findMany took 1571ms (active queries: 5)
+[Prisma slow query] crm_Lead_Sources.findMany took 1823ms (active queries: 5)
+[Prisma slow query] crm_Lead_Sources.findMany took 1738ms (active queries: 7)
+[Prisma slow query] Currency.findMany took 1440ms (active queries: 7)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1508ms (active queries: 7)
+[Prisma slow query] crm_SystemSettings.findUnique took 1120ms (active queries: 6)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1131ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 1172ms (active queries: 5)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1408ms (active queries: 5)
+[Prisma slow query] crm_SystemSettings.findUnique took 1411ms (active queries: 5)
+[Prisma slow query] crm_Lead_Types.findMany took 1277ms (active queries: 4)
+[Prisma slow query] crm_Products.findMany took 1430ms (active queries: 3)
+[Prisma slow query] crm_Contacts.findMany took 6560ms (active queries: 3)
+[Prisma slow query] crm_Contacts.findMany took 6675ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 9208ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 7765ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 1573ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 2334ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1235ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 1332ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3492ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1124ms (active queries: 3)
+[Prisma slow query] custom_fields.findMany took 5639ms (active queries: 3)
+[Prisma slow query] custom_fields.findMany took 5876ms (active queries: 2)
+[Prisma slow query] Users.findFirst took 1368ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1076ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 3523ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 4117ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 2405ms (active queries: 1)
+[Prisma slow query] custom_fields.findMany took 2548ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 4297ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 1147ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 3542ms (active queries: 0)
+[Prisma slow query] Users.findFirst took 1285ms (active queries: 1)
+[Prisma slow query] custom_fields.findMany took 6170ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 1278ms (active queries: 1)
+[Prisma slow query] crm_Contacts.create took 3170ms (active queries: 0)
+[Prisma slow query] crm_AuditLog.create took 2150ms (active queries: 0)
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[Prisma slow query] Session.findFirst took 1141ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1286ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 3457ms (active queries: 1)
+[Prisma slow query] crm_Leads.findMany took 1406ms (active queries: 0)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 1852ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1149ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1719ms (active queries: 1)
+[Prisma slow query] crm_Opportunities.findMany took 5328ms (active queries: 1)
+[Prisma slow query] crm_Lead_Sources.findMany took 2080ms (active queries: 0)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1272ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 1227ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3493ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 2447ms (active queries: 0)
+[Prisma slow query] crm_Contact_Types.findMany took 4054ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 1444ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 4080ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 36263ms (active queries: 3)
+[Prisma slow query] custom_fields.findMany took 36270ms (active queries: 2)
+[Prisma slow query] crm_Accounts.findMany took 10809ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 14098ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 9511ms (active queries: 2)
+[Prisma slow query] crm_Accounts.findMany took 9184ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 9043ms (active queries: 0)
+[CRM] getAllCrmData failed; using local fallback data. pool timeout: failed to retrieve a connection from pool after 9038ms
+    (pool connections: active=0 idle=0 limit=10)
+[CRM] getAllCrmData failed; using local fallback data. pool timeout: failed to retrieve a connection from pool after 8879ms
+    (pool connections: active=0 idle=0 limit=10)
+[2m2026-05-12T09:56:35.828Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 9350ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async getSession (lib\auth-server.ts:43:21)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 9350ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 9350ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:11491500, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 23200ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)'
+  }
+}
+[AUTH_GET_SESSION] [Error [APIError]: Failed to get session] {
+  status: 'INTERNAL_SERVER_ERROR',
+  body: { message: 'Failed to get session', code: 'FAILED_TO_GET_SESSION' },
+  headers: {},
+  statusCode: 500
+}
+[Prisma slow query] crm_Opportunities.findMany took 7520ms (active queries: 1)
+[Prisma slow query] crm_Opportunities.findMany took 7519ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 5079ms (active queries: 1)
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 5002ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async AccountsPage (app\[locale]\(routes)\crm\opportunities\page.tsx:15:47)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  digest: '1148625447',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 5002ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 5002ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:11491500, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 23200ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)'
+  }
+}
+[Prisma slow query] crm_Opportunities.findMany took 5113ms (active queries: 0)
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 5087ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async AccountsPage (app\[locale]\(routes)\crm\opportunities\page.tsx:15:47)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  digest: '1557529927',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 5087ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 5087ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:11491500, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 23200ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)'
+  }
+}
+[Prisma slow query] Verification.deleteMany took 4379ms (active queries: 0)
+[Prisma slow query] Verification.create took 1933ms (active queries: 0)
+[Prisma slow query] Verification.findFirst took 2126ms (active queries: 0)
+[Prisma slow query] Verification.findFirst took 7901ms (active queries: 0)
+[Prisma slow query] Verification.create took 4293ms (active queries: 0)
+[Prisma slow query] Verification.findMany took 1113ms (active queries: 0)
+[Prisma slow query] Verification.findMany took 1116ms (active queries: 0)
+[Prisma slow query] Users.findUnique took 1024ms (active queries: 0)
+[Prisma slow query] Session.create took 1838ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 1199ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1515ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 5259ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 3678ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 2078ms (active queries: 4)
+[Prisma slow query] crm_Opportunities.findMany took 2078ms (active queries: 3)
+[Prisma slow query] crm_Lead_Sources.findMany took 2078ms (active queries: 2)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 2079ms (active queries: 1)
+[Prisma slow query] crm_Opportunities_Type.findMany took 2079ms (active queries: 0)
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.crm_Contacts.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  code: 'P2028',
+  meta: { modelName: 'crm_Contacts' },
+  clientVersion: '7.8.0',
+  digest: '415265592'
+}
+[Prisma slow query] crm_Leads.findMany took 1685ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 9730ms (active queries: 0)
+[Prisma slow query] crm_Contracts.findMany took 2441ms (active queries: 0)
+[Prisma slow query] ExchangeRate.findMany took 2449ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 4001ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 2425ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 2123ms (active queries: 0)
+[Prisma slow query] crm_Leads.findMany took 1180ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3585ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 3019ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 8320ms (active queries: 3)
+[Prisma slow query] Session.findFirst took 2306ms (active queries: 2)
+[Prisma slow query] custom_fields.findMany took 3200ms (active queries: 2)
+[Prisma slow query] crm_Accounts.findMany took 4065ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1694ms (active queries: 1)
+[Prisma slow query] crm_Leads.findMany took 2600ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1112ms (active queries: 1)
+[Prisma slow query] crm_Contracts.findMany took 1089ms (active queries: 0)
+[Prisma slow query] crm_Contacts.create took 3064ms (active queries: 1)
+[Prisma slow query] crm_Lead_Types.findMany took 1531ms (active queries: 1)
+[Prisma slow query] crm_AuditLog.create took 2211ms (active queries: 1)
+[Inngest] Skipping send because INNGEST_ID/INNGEST_APP_NAME are not configured.
+[Prisma slow query] ExchangeRate.findMany took 1202ms (active queries: 2)
+[Prisma slow query] crm_Accounts.findMany took 2025ms (active queries: 2)
+[Prisma slow query] crm_Opportunities.findMany took 1427ms (active queries: 1)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 1330ms (active queries: 0)
+[Prisma slow query] crm_campaigns.findMany took 1946ms (active queries: 0)
+[Prisma slow query] crm_Contact_Types.findMany took 1331ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 2177ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1946ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 2336ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 10651ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 2704ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 6774ms (active queries: 0)
+[Prisma slow query] crm_Leads.findMany took 1021ms (active queries: 0)
+[Prisma slow query] crm_Contracts.findMany took 1874ms (active queries: 0)
+[Prisma slow query] crm_Opportunities_Type.findMany took 1026ms (active queries: 0)
+[Prisma slow query] crm_Lead_Sources.findMany took 1023ms (active queries: 0)
+[Prisma slow query] crm_Lead_Types.findMany took 1131ms (active queries: 0)
+[Prisma slow query] Currency.findMany took 1016ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 2566ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 4269ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 1024ms (active queries: 0)
+[Prisma slow query] crm_Leads.findMany took 1024ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 1004ms (active queries: 1)
+[Prisma slow query] crm_Contracts.findMany took 1015ms (active queries: 1)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 1982ms (active queries: 0)
+[Prisma slow query] crm_campaigns.findMany took 1915ms (active queries: 0)
+[Prisma slow query] crm_Lead_Sources.findMany took 1126ms (active queries: 0)
+[Prisma slow query] ExchangeRate.findMany took 2229ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 1022ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 2663ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 5082ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 10195ms (active queries: 0)
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 5008ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async eval (lib\crm\contact-form-options.ts:161:22)
+    at async AccountsPage (app\[locale]\(routes)\crm\contacts\page.tsx:22:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  digest: '174755044',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 5008ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 5008ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: 'getaddrinfo ENOTFOUND gateway01.us-east-1.prod.aws.tidbcloud.com'
+  }
+}
+[browser] Uncaught DriverAdapterError: pool timeout: failed to retrieve a connection from pool after 5008ms
+    (pool connections: active=0 idle=0 limit=10)
+    at  Array.$allOperations (lib\prisma.ts:50:20)
+    at  eval (lib\crm\contact-form-options.ts:161:22)
+    at  AccountsPage (app\[locale]\(routes)\crm\contacts\page.tsx:22:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1);
+[Prisma slow query] Session.findFirst took 5030ms (active queries: 1)
+[2m2026-05-12T10:16:41.949Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 5006ms
+    (pool connections: active=1 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async getSession (lib\auth-server.ts:46:21)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 5006ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 5006ms\n' +
+      '    (pool connections: active=1 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[AUTH_GET_SESSION] Failed to get session
+[Prisma slow query] crm_Accounts.findMany took 6483ms (active queries: 0)
+[Prisma slow query] crm_Contact_Types.findMany took 1439ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 5151ms (active queries: 0)
+[Prisma slow query] Verification.deleteMany took 3621ms (active queries: 0)
+[Prisma slow query] Verification.create took 2046ms (active queries: 0)
+[Prisma slow query] Verification.findFirst took 2588ms (active queries: 0)
+[Prisma slow query] Verification.findFirst took 4113ms (active queries: 0)
+[Prisma slow query] Verification.create took 2150ms (active queries: 0)
+[Prisma slow query] Verification.findMany took 1821ms (active queries: 0)
+[Prisma slow query] Users.findFirst took 1010ms (active queries: 0)
+[Prisma slow query] Session.create took 1839ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 7167ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 6624ms (active queries: 0)
+[Prisma slow query] Users.findFirst took 3374ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 15300ms (active queries: 0)
+[Prisma slow query] crm_Opportunities.findMany took 15996ms (active queries: 5)
+[CRM] getAllCrmData failed; using local fallback data. pool timeout: failed to retrieve a connection from pool after 7749ms
+    (pool connections: active=0 idle=0 limit=10)
+[Prisma slow query] crm_Contacts.findMany took 2065ms (active queries: 5)
+[Prisma slow query] crm_Opportunities.findMany took 2065ms (active queries: 4)
+[Prisma slow query] crm_Lead_Sources.findMany took 2066ms (active queries: 3)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 2065ms (active queries: 2)
+[Prisma slow query] crm_Opportunities_Type.findMany took 2065ms (active queries: 1)
+⨯ Error [PrismaClientKnownRequestError]: 
+Invalid `prisma.crm_Contacts.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  code: 'P2028',
+  meta: { modelName: 'crm_Contacts' },
+  clientVersion: '7.8.0',
+  digest: '415265592'
+}
+[Prisma slow query] crm_Opportunities.findMany took 6209ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 4878ms (active queries: 0)
+[Prisma slow query] crm_Lead_Types.findMany took 1025ms (active queries: 0)
+[Prisma slow query] crm_Products.findMany took 1055ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 23711ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 23112ms (active queries: 0)
+⨯ Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 8093ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async loadContacts (actions\crm\get-contacts.ts:10:22)
+    at async AccountsPage (app\[locale]\(routes)\crm\contacts\page.tsx:23:20)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  digest: '153505234',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 8093ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 8093ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:-1, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 14150ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)'
+  }
+}
+[browser] Uncaught DriverAdapterError: pool timeout: failed to retrieve a connection from pool after 8093ms
+    (pool connections: active=0 idle=0 limit=10)
+    at  Array.$allOperations (lib\prisma.ts:50:20)
+    at  loadContacts (actions\crm\get-contacts.ts:10:22)
+    at  AccountsPage (app\[locale]\(routes)\crm\contacts\page.tsx:23:20)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1);
+⚠ Fast Refresh had to perform a full reload due to a runtime error.
+[Prisma slow query] crm_Accounts.findMany took 7343ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 5770ms (active queries: 0)
+[2m2026-05-12T10:23:42.418Z[0m [31mERROR[0m [1m[Better Auth]:[0m INTERNAL_SERVER_ERROR Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 5351ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async getSession (lib\auth-server.ts:46:21)
+    at async AppLayout (app\[locale]\(routes)\layout.tsx:50:19)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 5351ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 5351ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: '(conn:-1, no: 45012, SQLState: 08S01) Connection timeout: failed to create socket after 14150ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)'
+  }
+}
+[AUTH_GET_SESSION] Failed to get session
+[Prisma slow query] crm_Accounts.findMany took 4700ms (active queries: 0)
+[Prisma slow query] crm_Contact_Types.findMany took 1396ms (active queries: 0)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1016ms (active queries: 0)
+[Prisma slow query] crm_Lead_Types.findMany took 1044ms (active queries: 0)
+⚠ Server is approaching the used memory threshold, restarting...
+[Prisma slow query] crm_Accounts.findMany took 10792ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 11703ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 2851ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 4135ms (active queries: 3)
+[Prisma slow query] crm_Lead_Sources.findMany took 2981ms (active queries: 3)
+[Prisma slow query] crm_Accounts.findMany took 2372ms (active queries: 3)
+[Prisma slow query] Session.findFirst took 2977ms (active queries: 3)
+[Prisma slow query] Currency.findMany took 3658ms (active queries: 5)
+[Prisma slow query] crm_Lead_Statuses.findMany took 3581ms (active queries: 5)
+[Prisma slow query] crm_Contact_Types.findMany took 2002ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 1566ms (active queries: 5)
+[Prisma slow query] crm_Accounts.findMany took 1176ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 1354ms (active queries: 5)
+[Prisma slow query] crm_SystemSettings.findUnique took 1361ms (active queries: 5)
+⨯ Error: No intl context found. Have you configured the provider? See https://next-intl.dev/docs/usage/configuration#server-client-components
+    at ignore-listed frames {
+  digest: '1919238115'
+}
+[Prisma slow query] crm_Lead_Types.findMany took 2125ms (active queries: 4)
+[Prisma slow query] crm_Lead_Sources.findMany took 2085ms (active queries: 4)
+[Prisma slow query] Currency.findMany took 1839ms (active queries: 4)
+[Prisma slow query] crm_Contact_Types.findMany took 1821ms (active queries: 4)
+[Prisma slow query] Users.findFirst took 1892ms (active queries: 3)
+[Prisma slow query] crm_Lead_Sources.findMany took 1448ms (active queries: 2)
+[Prisma slow query] crm_Lead_Types.findMany took 1274ms (active queries: 3)
+[Prisma slow query] Currency.findMany took 1602ms (active queries: 3)
+[Prisma slow query] crm_Contact_Types.findMany took 3978ms (active queries: 9)
+[Prisma slow query] Session.findFirst took 4509ms (active queries: 9)
+[Prisma slow query] crm_Products.findMany took 4283ms (active queries: 9)
+[Prisma slow query] crm_Contacts.findMany took 6014ms (active queries: 9)
+[Prisma slow query] Users.findFirst took 1099ms (active queries: 8)
+[Prisma slow query] Currency.findMany took 1128ms (active queries: 8)
+[Prisma slow query] crm_Lead_Types.findMany took 2147ms (active queries: 8)
+[Prisma slow query] crm_SystemSettings.findUnique took 1695ms (active queries: 8)
+[Prisma slow query] crm_Contacts.findMany took 5153ms (active queries: 7)
+[Prisma slow query] crm_Opportunities.findMany took 5153ms (active queries: 6)
+[Prisma slow query] crm_Lead_Sources.findMany took 5154ms (active queries: 5)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 5153ms (active queries: 4)
+[Prisma slow query] crm_Opportunities_Type.findMany took 5153ms (active queries: 3)
+[Prisma slow query] crm_Contacts.findMany took 4006ms (active queries: 3)
+[Prisma slow query] crm_Contacts.findMany took 4127ms (active queries: 2)
+[Prisma slow query] crm_Products.findMany took 1473ms (active queries: 1)
+[Prisma slow query] crm_SystemSettings.findUnique took 1972ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 3297ms (active queries: 5)
+[Prisma slow query] crm_Opportunities.findMany took 3298ms (active queries: 4)
+[Prisma slow query] crm_Lead_Sources.findMany took 3298ms (active queries: 3)
+[Prisma slow query] crm_Opportunities_Sales_Stages.findMany took 3299ms (active queries: 2)
+[Prisma slow query] crm_Opportunities_Type.findMany took 3299ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 4922ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 1048ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1924ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 2258ms (active queries: 1)
+[Prisma slow query] crm_Lead_Sources.findMany took 1205ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 1713ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3928ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 2054ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 2644ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1244ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 1308ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 4993ms (active queries: 2)
+[Prisma slow query] crm_Lead_Types.findMany took 1651ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3813ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1367ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 1918ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1120ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 1288ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3842ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 1345ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 3771ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 1332ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 2103ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 1362ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 3591ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 1121ms (active queries: 0)
+[Prisma slow query] custom_fields.findMany took 3138ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 2933ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 3416ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1078ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 1230ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 6178ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1091ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 1610ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1081ms (active queries: 1)
+[Prisma slow query] crm_Products.findMany took 1313ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1539ms (active queries: 2)
+[Prisma slow query] Session.findFirst took 1916ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 6187ms (active queries: 2)
+[Prisma slow query] crm_Products.findMany took 2178ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 2110ms (active queries: 2)
+[Prisma slow query] Session.findFirst took 2399ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 4604ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 4340ms (active queries: 2)
+[Prisma slow query] crm_SystemSettings.findUnique took 1075ms (active queries: 1)
+[Prisma slow query] crm_Lead_Statuses.findMany took 3038ms (active queries: 0)
+[Prisma slow query] crm_Lead_Types.findMany took 7889ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 3270ms (active queries: 2)
+[Prisma slow query] crm_Accounts.findMany took 2677ms (active queries: 2)
+[Prisma slow query] Session.findFirst took 5753ms (active queries: 2)
+[Prisma slow query] crm_Contact_Types.findMany took 5328ms (active queries: 2)
+[Prisma slow query] crm_Contact_Types.findMany took 5070ms (active queries: 2)
+[Prisma slow query] Users.findFirst took 2438ms (active queries: 4)
+[Prisma slow query] crm_Lead_Sources.findMany took 2097ms (active queries: 4)
+[Prisma slow query] crm_Lead_Sources.findMany took 2189ms (active queries: 4)
+[Prisma slow query] crm_Accounts.findMany took 1022ms (active queries: 4)
+[Prisma slow query] Session.findFirst took 1343ms (active queries: 4)
+[Prisma slow query] Currency.findMany took 1515ms (active queries: 4)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1651ms (active queries: 4)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1439ms (active queries: 4)
+[Prisma slow query] crm_Contact_Types.findMany took 1205ms (active queries: 4)
+[Prisma slow query] Users.findFirst took 1368ms (active queries: 4)
+[Prisma slow query] crm_SystemSettings.findUnique took 1354ms (active queries: 4)
+[Prisma slow query] crm_Lead_Types.findMany took 1184ms (active queries: 3)
+[Prisma slow query] crm_Lead_Sources.findMany took 1333ms (active queries: 3)
+[Prisma slow query] crm_Products.findMany took 1007ms (active queries: 3)
+[Prisma slow query] crm_Products.findMany took 2715ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 4583ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 4816ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 5347ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 5953ms (active queries: 3)
+[Prisma slow query] Session.findFirst took 7239ms (active queries: 4)
+[Prisma slow query] crm_Accounts.findMany took 4426ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 4631ms (active queries: 5)
+[Prisma slow query] crm_Contact_Types.findMany took 2507ms (active queries: 5)
+[Prisma slow query] crm_Accounts.findMany took 1549ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 1741ms (active queries: 5)
+[Prisma slow query] Session.findFirst took 2080ms (active queries: 5)
+[Prisma slow query] crm_Contact_Types.findMany took 1693ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 1472ms (active queries: 5)
+[Prisma slow query] crm_Lead_Sources.findMany took 1563ms (active queries: 5)
+[Prisma slow query] crm_Contact_Types.findMany took 1438ms (active queries: 5)
+[Prisma slow query] Currency.findMany took 1199ms (active queries: 5)
+[Prisma slow query] Users.findFirst took 1275ms (active queries: 5)
+[Prisma slow query] crm_Lead_Sources.findMany took 1224ms (active queries: 5)
+[Prisma slow query] Currency.findMany took 1289ms (active queries: 5)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1082ms (active queries: 5)
+[Prisma slow query] crm_Lead_Sources.findMany took 1261ms (active queries: 5)
+[Prisma slow query] crm_SystemSettings.findUnique took 1285ms (active queries: 5)
+[Prisma slow query] Currency.findMany took 1073ms (active queries: 4)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1052ms (active queries: 4)
+[Prisma slow query] crm_SystemSettings.findUnique took 1188ms (active queries: 4)
+[Prisma slow query] crm_Lead_Types.findMany took 1196ms (active queries: 3)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1074ms (active queries: 2)
+[Prisma slow query] crm_Lead_Types.findMany took 3572ms (active queries: 2)
+[Prisma slow query] crm_Products.findMany took 3140ms (active queries: 2)
+[Prisma slow query] crm_Lead_Types.findMany took 3244ms (active queries: 2)
+[Prisma slow query] crm_Products.findMany took 1020ms (active queries: 3)
+[Prisma slow query] crm_Products.findMany took 1487ms (active queries: 3)
+[Prisma slow query] Session.findFirst took 1989ms (active queries: 4)
+[Prisma slow query] crm_Contact_Types.findMany took 1816ms (active queries: 4)
+[Prisma slow query] crm_Contacts.findMany took 7176ms (active queries: 4)
+[Prisma slow query] Users.findFirst took 3811ms (active queries: 3)
+[Prisma slow query] crm_Lead_Sources.findMany took 5290ms (active queries: 4)
+[Prisma slow query] crm_Contacts.findMany took 8026ms (active queries: 5)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1255ms (active queries: 4)
+[Prisma slow query] crm_Accounts.findMany took 1340ms (active queries: 4)
+[Prisma slow query] Session.findFirst took 1283ms (active queries: 4)
+[Prisma slow query] crm_Contacts.findMany took 8954ms (active queries: 4)
+[Prisma slow query] Currency.findMany took 3045ms (active queries: 3)
+[Prisma slow query] crm_Lead_Types.findMany took 1047ms (active queries: 2)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1100ms (active queries: 1)
+[Prisma slow query] crm_Lead_Types.findMany took 3115ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 5043ms (active queries: 3)
+[Prisma slow query] Session.findFirst took 1225ms (active queries: 2)
+[Prisma slow query] Users.findFirst took 2305ms (active queries: 2)
+[Prisma slow query] crm_Lead_Statuses.findMany took 1731ms (active queries: 2)
+[Prisma slow query] crm_Contacts.findMany took 3474ms (active queries: 2)
+[Prisma slow query] crm_Products.findMany took 2179ms (active queries: 0)
+[Prisma slow query] crm_Contacts.findMany took 4104ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 3648ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 3597ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1223ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 4772ms (active queries: 0)
+[Prisma slow query] Session.findFirst took 1062ms (active queries: 1)
+[Prisma slow query] crm_Accounts.findMany took 1669ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1120ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 1401ms (active queries: 1)
+[Prisma slow query] Currency.findMany took 1434ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 3828ms (active queries: 0)
+[Prisma slow query] crm_Accounts.findMany took 1058ms (active queries: 1)
+[Prisma slow query] Session.findFirst took 2429ms (active queries: 1)
+[Prisma slow query] crm_Contact_Types.findMany took 2026ms (active queries: 1)
+[Prisma slow query] Users.findFirst took 1193ms (active queries: 1)
+[Prisma slow query] crm_Contacts.findMany took 3951ms (active queries: 0)

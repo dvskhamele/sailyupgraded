@@ -58,6 +58,7 @@ import {
   getConfigValues,
   updateConfigValue,
 } from "@/app/[locale]/(routes)/admin/crm-settings/_actions/crm-settings";
+import { OpportunityClientSelect } from "./OpportunityClientSelect";
 
 //TODO: fix all the types
 type ConfigItem = {
@@ -118,7 +119,6 @@ export function NewOpportunityForm({
   const router = useRouter();
 
   const [searchAccountValue, setSearchAccountValue] = useState<string>("");
-  const [searchContactValue, setSearchContactValue] = useState<string>("");
   const [saleTypeOptions, setSaleTypeOptions] = useState<ConfigItem[]>(salesType);
   const [saleStageOptions, setSaleStageOptions] = useState<ConfigItem[]>(saleStages);
   const [isSalesTypeDialogOpen, setIsSalesTypeDialogOpen] = useState(false);
@@ -143,21 +143,6 @@ export function NewOpportunityForm({
         account.name.toLowerCase().includes(searchAccountValue.toLowerCase())
       ),
     [accounts, searchAccountValue]
-  );
-
-  const filteredContacts = useMemo(
-    () =>
-      contacts.filter(
-        (contact) =>
-          contact.last_name
-            .toLowerCase()
-            .includes(searchContactValue.toLowerCase()) ||
-          (contact.first_name &&
-            contact.first_name
-              .toLowerCase()
-              .includes(searchContactValue.toLowerCase()))
-      ),
-    [contacts, searchContactValue]
   );
 
   const normalizedCategoryOptions = useMemo(
@@ -220,7 +205,7 @@ export function NewOpportunityForm({
       category: initialValues?.category ?? selectedCategories,
       type: initialValues?.type ?? "",
       budget: initialValues?.budget ?? "",
-      currency: initialValues?.currency ?? "",
+      currency: initialValues?.currency ?? "USD",
       expected_revenue: initialValues?.expected_revenue ?? "",
       next_step: initialValues?.next_step ?? "",
       assigned_to: initialValues?.assigned_to ?? "",
@@ -246,7 +231,7 @@ export function NewOpportunityForm({
         type: "",
         sales_stage: "",
         budget: "",
-        currency: "",
+        currency: "USD",
         expected_revenue: "",
         next_step: "",
         assigned_to: "",
@@ -581,29 +566,15 @@ export function NewOpportunityForm({
                   render={({ field }) => (
                     <FormItem>
                       <FormLabel>Assigned Client</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select a user to assign the Client" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent className="flex overflow-y-auto h-56">
-                          <Input
-                            placeholder="Search contact..."
-                            onChange={(e) =>
-                              setSearchContactValue(e.target.value)
-                            }
-                          />
-                          {filteredContacts.map((contact) => (
-                            <SelectItem key={contact.id} value={contact.id}>
-                              {contact.first_name + " " + contact.last_name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <FormControl>
+                        <OpportunityClientSelect
+                          value={field.value}
+                          onChange={field.onChange}
+                          contacts={contacts}
+                          accountId={form.watch("account") || accountId}
+                          disabled={form.formState.isSubmitting}
+                        />
+                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}

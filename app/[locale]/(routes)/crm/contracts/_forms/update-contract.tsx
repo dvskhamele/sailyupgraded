@@ -143,7 +143,7 @@ const UpdateContractForm = ({
               name: `${c.symbol} ${c.code} — ${c.name}`,
             }))}
             errors={fieldErrors}
-            defaultValue={data.currency ?? ""}
+            defaultValue={data.currency ?? "USD"}
           />
           <FormDatePicker
             id="startDate"

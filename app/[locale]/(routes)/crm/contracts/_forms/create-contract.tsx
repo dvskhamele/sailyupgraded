@@ -34,6 +34,10 @@ const CreateContractForm = ({
   const [assignedTo, setAssignedTo] = useState<string>("");
   const t = useTranslations("CrmContractForm");
   const c = useTranslations("Common");
+  const defaultCurrency =
+    currencies.find((currency) => currency.code === "USD")?.code ??
+    currencies[0]?.code ??
+    "USD";
 
   //console.log(accountId, "accountId");
 
@@ -100,6 +104,7 @@ const CreateContractForm = ({
           type="hidden"
           data={currencies.map((c) => ({ id: c.code, name: `${c.symbol} ${c.code} — ${c.name}` }))}
           errors={fieldErrors}
+          defaultValue={defaultCurrency}
         />
         <FormDatePicker
           id="startDate"

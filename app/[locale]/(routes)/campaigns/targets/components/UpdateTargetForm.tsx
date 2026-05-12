@@ -100,7 +100,7 @@ export function UpdateTargetForm({ initialData, setOpen }: UpdateTargetFormProps
       personal_email: initialData?.personal_email || "",
       company_email: initialData?.company_email || "",
       company_phone: initialData?.company_phone || "",
-      country: initialData?.country || "",
+      country: initialData?.country || "United States",
       city: initialData?.city || "",
       industry: initialData?.industry || "",
       employees: initialData?.employees || "",

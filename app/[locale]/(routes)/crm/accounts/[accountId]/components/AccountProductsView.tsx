@@ -65,7 +65,7 @@ const AccountProductsView = ({
 
   const formatPrice = (item: any) => {
     const price = item.custom_price ?? item.product?.unit_price;
-    const curr = item.currency || item.product?.currency || "EUR";
+    const curr = item.currency || item.product?.currency || "USD";
     return formatCurrencyAmount(price, curr, "-");
   };
 

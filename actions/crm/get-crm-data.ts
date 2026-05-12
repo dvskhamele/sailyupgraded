@@ -23,8 +23,8 @@ function shouldUseFallback(error: unknown) {
 }
 
 const fallbackCurrencies = [
-  { code: "EUR", name: "Euro", symbol: "EUR" },
   { code: "USD", name: "US Dollar", symbol: "USD" },
+  { code: "EUR", name: "Euro", symbol: "EUR" },
   { code: "INR", name: "Indian Rupee", symbol: "INR" },
 ];
 

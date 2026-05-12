@@ -65,7 +65,7 @@ export function TotalsPanel({ lineItems, currency, locale }: TotalsPanelProps) {
   const fmt = (n: number) =>
     new Intl.NumberFormat(locale, {
       style: "currency",
-      currency: currency || "CZK",
+      currency: currency || "USD",
       minimumFractionDigits: 2,
     }).format(n);
 

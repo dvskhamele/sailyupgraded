@@ -20,7 +20,7 @@ const fallbackQuickInputMemory: QuickDbMemory = {
   sources: [],
   agentNumbers: [],
   emails: [],
-  defaultCurrency: "EUR",
+  defaultCurrency: "USD",
   defaultSalesStageId: "local-prospecting",
   defaultOpportunityTypeId: "",
   defaultBudget: "1000",

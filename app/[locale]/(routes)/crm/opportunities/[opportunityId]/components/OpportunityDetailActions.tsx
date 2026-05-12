@@ -25,6 +25,12 @@ interface OpportunityDetailActionsProps {
   saleTypes: ConfigItem[];
   saleStages: ConfigItem[];
   campaigns: ConfigItem[];
+  contacts?: {
+    id: string;
+    first_name?: string | null;
+    last_name?: string | null;
+    email?: string | null;
+  }[];
   currencies: { code: string; name: string; symbol: string }[];
   categoryOptions?: string[];
 }
@@ -34,6 +40,7 @@ export function OpportunityDetailActions({
   saleTypes,
   saleStages,
   campaigns,
+  contacts = [],
   currencies,
   categoryOptions = [],
 }: OpportunityDetailActionsProps) {
@@ -54,6 +61,7 @@ export function OpportunityDetailActions({
               saleTypes={saleTypes}
               saleStages={saleStages}
               campaigns={campaigns}
+              contacts={contacts}
               currencies={currencies}
               categoryOptions={categoryOptions}
             />

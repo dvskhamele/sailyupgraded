@@ -199,7 +199,7 @@ export function buildQuickOpportunityDefaults(args: {
     expected_revenue: revenue,
     sales_stage: args.dbMemory?.defaultSalesStageId ?? "",
     type: args.dbMemory?.defaultOpportunityTypeId ?? "",
-    currency: signals.currency || args.dbMemory?.defaultCurrency || "",
+    currency: signals.currency || args.dbMemory?.defaultCurrency || "USD",
     contact: args.contactId ?? "",
     assigned_to: args.assignedTo ?? args.contactValues.assigned_to ?? "",
     description: args.contactValues.description ?? "",

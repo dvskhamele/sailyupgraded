@@ -54,8 +54,15 @@ import {
 } from "@/components/ui/dialog";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
+import { OpportunityClientSelect } from "./OpportunityClientSelect";
 
 type ConfigItem = { id: string; name: string };
+type ContactOption = {
+  id: string;
+  first_name?: string | null;
+  last_name?: string | null;
+  email?: string | null;
+};
 
 type UpdateOpportunityFormProps = {
   initialData: any;
@@ -65,6 +72,7 @@ type UpdateOpportunityFormProps = {
   campaigns: ConfigItem[];
   currencies: { code: string; name: string; symbol: string }[];
   categoryOptions?: string[];
+  contacts?: ContactOption[];
 };
 
 export function UpdateOpportunityForm({
@@ -75,6 +83,7 @@ export function UpdateOpportunityForm({
   campaigns,
   currencies,
   categoryOptions = [],
+  contacts = [],
 }: UpdateOpportunityFormProps) {
   const t = useTranslations("CrmOpportunityForm");
   const c = useTranslations("Common");
@@ -145,7 +154,7 @@ export function UpdateOpportunityForm({
       clientName: initialData.clientName ?? "",
       description: initialData.description ?? "",
       budget: String(initialData.budget ?? ""),
-      currency: initialData.currency ?? "",
+      currency: initialData.currency ?? "USD",
       expected_revenue: String(initialData.expected_revenue ?? ""),
       next_step: initialData.next_step ?? "",
       assigned_to: initialData.assigned_to ?? "",
@@ -797,10 +806,12 @@ export function UpdateOpportunityForm({
                     <FormItem>
                       <FormLabel>Assigned Client</FormLabel>
                       <FormControl>
-                        <Input
+                        <OpportunityClientSelect
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          contacts={contacts}
+                          accountId={form.watch("account")}
                           disabled={form.formState.isSubmitting}
-                          placeholder="Client ID"
-                          {...field}
                         />
                       </FormControl>
                       <FormMessage />

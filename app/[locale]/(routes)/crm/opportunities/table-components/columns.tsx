@@ -20,6 +20,12 @@ export type OpportunityConfig = {
   saleTypes: ConfigItem[];
   saleStages: ConfigItem[];
   campaigns: ConfigItem[];
+  contacts?: {
+    id: string;
+    first_name?: string | null;
+    last_name?: string | null;
+    email?: string | null;
+  }[];
   currencies: { code: string; name: string; symbol: string }[];
   displayCurrency?: string;
   exchangeRates?: Rate[];
@@ -123,7 +129,7 @@ export const createColumns = (config: OpportunityConfig): ColumnDef<Opportunity>
 
     cell: ({ row }) => {
       const budget = row.original.budget;
-      const fromCurrency = row.original.currency || "EUR";
+      const fromCurrency = row.original.currency || "USD";
       if (!budget) return <div>—</div>;
       const amount = new Decimal(budget.toString());
       const targetCurrency = config.displayCurrency || fromCurrency;

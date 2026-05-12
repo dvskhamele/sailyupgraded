@@ -59,7 +59,7 @@ const ContractPage = async (props: ContractDetailPageProps) => {
             <LineItemsSection
               contractId={contractId}
               lineItems={serializedLineItems}
-              currency={(contract as any)?.currency || "EUR"}
+              currency={(contract as any)?.currency || "USD"}
               products={activeProducts}
               opportunities={opportunities}
             />

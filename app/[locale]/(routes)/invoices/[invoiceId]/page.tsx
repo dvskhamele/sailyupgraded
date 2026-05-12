@@ -31,7 +31,7 @@ function formatCurrency(amount: string | number, currency: string, locale: strin
   if (isNaN(num)) return String(amount);
   return new Intl.NumberFormat(locale, {
     style: "currency",
-    currency: currency || "CZK",
+    currency: currency || "USD",
     minimumFractionDigits: 2,
   }).format(num);
 }

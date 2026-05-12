@@ -63,8 +63,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
   try {
     const defaultCurrency = await getDefaultCurrency();
-    const snapshotRate = currency
-      ? await getSnapshotRate(currency, defaultCurrency)
+    const resolvedCurrency = currency || "USD";
+    const snapshotRate = resolvedCurrency
+      ? await getSnapshotRate(resolvedCurrency, defaultCurrency)
       : null;
     const result = await prismadb.crm_Contracts.update({
       where: {
@@ -84,7 +85,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         account: account || undefined,
         assigned_to: assigned_to || undefined,
         createdBy: user.id,
-        currency: currency || undefined,
+        currency: resolvedCurrency,
         snapshot_rate: snapshotRate ? parseFloat(snapshotRate.toString()) : undefined,
       },
     });

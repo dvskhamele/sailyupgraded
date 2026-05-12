@@ -178,7 +178,7 @@ const UpdateProductForm = ({
             name: `${c.symbol} ${c.code} — ${c.name}`,
           }))}
           errors={fieldErrors}
-          defaultValue={product.currency}
+          defaultValue={product.currency || "USD"}
         />
         <div className="grid grid-cols-2 gap-4">
           <FormInput

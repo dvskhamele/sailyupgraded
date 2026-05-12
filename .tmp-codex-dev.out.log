@@ -31,3 +31,377 @@
  GET /manifest.webmanifest 200 in 3.7s (next.js: 3.6s, application-code: 86ms)
  GET /en/crm/contacts?role=customer 200 in 16.2s (next.js: 2.0s, proxy.ts: 1306ms, application-code: 12.8s)
  GET /manifest.webmanifest 200 in 133ms (next.js: 10ms, application-code: 122ms)
+ GET /en/crm/contacts?role=customer 200 in 18.6s (next.js: 4.7s, proxy.ts: 227ms, application-code: 13.7s)
+○ Compiling /manifest.webmanifest ...
+prisma:error pool timeout: failed to retrieve a connection from pool after 8882ms
+    (pool connections: active=1 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 8638ms
+    (pool connections: active=1 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 7561ms
+    (pool connections: active=1 idle=0 limit=10)
+ GET /en/crm/contacts?role=customer 200 in 58s (next.js: 492ms, proxy.ts: 1913ms, application-code: 56s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 12678ms
+    (pool connections: active=1 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 11815ms
+    (pool connections: active=1 idle=0 limit=10)
+ GET /manifest.webmanifest 200 in 188ms (next.js: 90ms, application-code: 98ms)
+ GET /en/crm/contacts 200 in 24.7s (next.js: 1611ms, proxy.ts: 2.8s, application-code: 20.3s)
+ POST /en/crm/contacts 200 in 4.8s (next.js: 101ms, proxy.ts: 48ms, application-code: 4.7s)
+ GET /manifest.webmanifest 200 in 45ms (next.js: 18ms, application-code: 27ms)
+ GET /en/crm/contacts 200 in 10.9s (next.js: 57ms, proxy.ts: 40ms, application-code: 10.8s)
+ POST /en/crm/contacts 200 in 6.8s (next.js: 86ms, proxy.ts: 33ms, application-code: 6.6s)
+  └─ ƒ getQuickInputMemory() in 6590ms ..//actions/crm/quick-input/get-quick-input-memory.ts
+ GET /en/crm/contacts?role=customer 200 in 7.5s (next.js: 45ms, proxy.ts: 13ms, application-code: 7.4s)
+ GET /manifest.webmanifest 200 in 29ms (next.js: 11ms, application-code: 18ms)
+○ Compiling /api/custom-fields ...
+ GET /api/custom-fields 200 in 14.8s (next.js: 11.6s, application-code: 3.2s)
+ GET /api/custom-fields 200 in 963ms (next.js: 6ms, application-code: 956ms)
+○ Compiling /api/crm/agents/search ...
+ GET /api/crm/agents/search?skip=0&take=50 200 in 19.3s (next.js: 19.1s, application-code: 228ms)
+ GET /en/crm/contacts?role=customer 200 in 28.5s (next.js: 500ms, proxy.ts: 35ms, application-code: 28.0s)
+ GET /manifest.webmanifest 200 in 230ms (next.js: 152ms, application-code: 78ms)
+ GET /en/crm/contacts?role=agent 200 in 11.5s (next.js: 519ms, proxy.ts: 39ms, application-code: 10.9s)
+ GET /manifest.webmanifest 200 in 43ms (next.js: 8ms, application-code: 35ms)
+ GET /api/custom-fields 200 in 1270ms (next.js: 14ms, application-code: 1256ms)
+ GET /api/custom-fields 200 in 745ms (next.js: 7ms, application-code: 738ms)
+○ Compiling /[locale]/profile ...
+ GET /en/profile?tab=administration 200 in 3.6s (next.js: 263ms, proxy.ts: 38ms, application-code: 3.3s)
+ GET /en/profile?tab=administration 200 in 3.6s (next.js: 63ms, proxy.ts: 38ms, application-code: 3.5s)
+ GET /en/profile?tab=administration 200 in 3.7s (next.js: 769ms, proxy.ts: 38ms, application-code: 2.8s)
+ GET /en/profile?tab=administration 200 in 3.7s (next.js: 463ms, proxy.ts: 38ms, application-code: 3.2s)
+ GET /en/profile?tab=administration 200 in 3.9s (next.js: 63ms, proxy.ts: 29ms, application-code: 3.8s)
+ GET /en/profile?tab=administration 200 in 44s (next.js: 37.2s, proxy.ts: 14ms, application-code: 6.6s)
+ GET /manifest.webmanifest 200 in 99ms (next.js: 54ms, application-code: 44ms)
+ GET /en/profile?tab=administration 200 in 2.5s (next.js: 44ms, proxy.ts: 25ms, application-code: 2.4s)
+ GET /api/custom-fields 200 in 772ms (next.js: 18ms, application-code: 754ms)
+ GET /api/custom-fields 200 in 777ms (next.js: 4ms, application-code: 773ms)
+○ Compiling /api/custom-fields/[fieldId] ...
+ DELETE /api/custom-fields/2ece9a4f-c082-4bf3-9e99-9255c091202e 200 in 8.8s (next.js: 6.6s, application-code: 2.2s)
+ DELETE /api/custom-fields/1c967fb9-a9e0-463e-b28d-35b5f64ed52b 200 in 1950ms (next.js: 38ms, application-code: 1912ms)
+ POST /api/custom-fields 201 in 5.7s (next.js: 269ms, application-code: 5.4s)
+ GET /manifest.webmanifest 200 in 83ms (next.js: 49ms, application-code: 34ms)
+ GET /en/crm/contacts?role=customer 200 in 18.5s (next.js: 1521ms, proxy.ts: 1096ms, application-code: 15.9s)
+ GET /api/custom-fields 200 in 753ms (next.js: 5ms, application-code: 748ms)
+ GET /api/custom-fields 200 in 781ms (next.js: 8ms, application-code: 773ms)
+ GET /en/crm/contacts?role=agent 200 in 8.4s (next.js: 28ms, proxy.ts: 10ms, application-code: 8.3s)
+ GET /manifest.webmanifest 200 in 28ms (next.js: 8ms, application-code: 19ms)
+ GET /api/custom-fields 200 in 5.0s (next.js: 5ms, application-code: 5.0s)
+ GET /api/custom-fields 200 in 645ms (next.js: 4ms, application-code: 641ms)
+ GET /en/crm/contacts?role=customer 200 in 11.1s (next.js: 36ms, proxy.ts: 10ms, application-code: 11.1s)
+ GET /manifest.webmanifest 200 in 16ms (next.js: 4ms, application-code: 12ms)
+ GET /api/custom-fields 200 in 1062ms (next.js: 4ms, application-code: 1059ms)
+ GET /api/custom-fields 200 in 2.2s (next.js: 4ms, application-code: 2.2s)
+ POST /en/crm/contacts?role=customer 200 in 26.8s (next.js: 54ms, proxy.ts: 21ms, application-code: 26.8s)
+  └─ ƒ createContact({"address":"","address_line1":"","address_line2":"","...":"47 items not stringified"}) in 15064ms ..//actions/crm/contacts/create-contact.ts
+ GET /manifest.webmanifest 200 in 19ms (next.js: 11ms, application-code: 8ms)
+ GET /api/custom-fields 200 in 3.7s (next.js: 14ms, application-code: 3.7s)
+ GET /api/custom-fields 200 in 651ms (next.js: 13ms, application-code: 638ms)
+ POST /en/crm/contacts?role=customer 200 in 22.5s (next.js: 78ms, proxy.ts: 54ms, application-code: 22.4s)
+  └─ ƒ deleteContact("b4fe150b-072d-4347-85be-f770cd6e05c9") in 7629ms ..//actions/crm/contacts/delete-contact.ts
+ GET /en/crm/contacts?role=customer 200 in 15.2s (next.js: 38ms, proxy.ts: 32ms, application-code: 15.1s)
+ GET /manifest.webmanifest 200 in 23ms (next.js: 7ms, application-code: 16ms)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5294ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5114ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/contacts?role=customer 200 in 39.9s (next.js: 499ms, proxy.ts: 347ms, application-code: 39.0s)
+ GET /en/crm/contacts?role=customer 200 in 17.7s (next.js: 131ms, proxy.ts: 36ms, application-code: 17.5s)
+ GET /en/crm/contacts?role=customer 200 in 29.7s (next.js: 2.8s, proxy.ts: 45ms, application-code: 26.9s)
+ GET /en/crm/contacts?role=customer 200 in 17.7s (next.js: 25ms, proxy.ts: 19ms, application-code: 17.7s)
+ GET /en/crm/contacts?role=customer 200 in 13.8s (next.js: 35ms, proxy.ts: 15ms, application-code: 13.7s)
+○ Compiling /manifest.webmanifest ...
+ GET /manifest.webmanifest 200 in 9.3s (next.js: 8.8s, application-code: 558ms)
+ GET /en/crm/contacts?role=customer 200 in 14.9s (next.js: 767ms, proxy.ts: 66ms, application-code: 14.1s)
+ GET /manifest.webmanifest 200 in 12ms (next.js: 4ms, application-code: 8ms)
+○ Compiling /api/custom-fields ...
+ GET /api/custom-fields 200 in 58s (next.js: 53s, application-code: 5.7s)
+ GET /api/custom-fields 200 in 31.0s (next.js: 25.0s, application-code: 6.0s)
+ GET /en/crm/contacts?role=customer 200 in 16.7s (next.js: 655ms, proxy.ts: 31ms, application-code: 16.0s)
+○ Compiling /manifest.webmanifest ...
+ GET /manifest.webmanifest 200 in 12.5s (next.js: 12.2s, application-code: 278ms)
+○ Compiling /api/custom-fields ...
+ GET /api/custom-fields 200 in 18.9s (next.js: 16.4s, application-code: 2.4s)
+ GET /api/custom-fields 200 in 2.6s (next.js: 4ms, application-code: 2.6s)
+○ Compiling /[locale]/crm/opportunities ...
+ GET /en/crm/opportunities 200 in 55s (next.js: 31.0s, proxy.ts: 28ms, application-code: 24.3s)
+○ Compiling /manifest.webmanifest ...
+ GET /manifest.webmanifest 200 in 5.3s (next.js: 5.3s, application-code: 73ms)
+○ Compiling /api/custom-fields ...
+ GET /api/custom-fields 200 in 17.8s (next.js: 11.5s, application-code: 6.3s)
+ GET /api/custom-fields 200 in 1293ms (next.js: 5ms, application-code: 1288ms)
+ POST /en/crm/opportunities 200 in 38.5s (next.js: 452ms, proxy.ts: 35ms, application-code: 38.0s)
+  └─ ƒ createContact({"first_name":"","last_name":"nasd","role":"Client","...":"1 item not stringified"}) in 10358ms ..//actions/crm/contacts/create-contact.ts
+ GET /manifest.webmanifest 200 in 94ms (next.js: 49ms, application-code: 45ms)
+ GET /en/crm/contacts 200 in 14.1s (next.js: 378ms, proxy.ts: 16ms, application-code: 13.7s)
+ GET /manifest.webmanifest 200 in 39ms (next.js: 8ms, application-code: 31ms)
+ GET /en/crm/contacts?role=others 200 in 14.0s (next.js: 87ms, proxy.ts: 30ms, application-code: 13.9s)
+ GET /manifest.webmanifest 200 in 17ms (next.js: 4ms, application-code: 13ms)
+○ Compiling /api/custom-fields ...
+prisma:error pool timeout: failed to retrieve a connection from pool after 9593ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 9591ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 10672ms
+    (pool connections: active=0 idle=0 limit=10)
+[CUSTOM_FIELDS_GET] Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 9593ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async GET (app\api\custom-fields\route.ts:56:20)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 9593ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 9593ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+[CUSTOM_FIELDS_GET] Error [DriverAdapterError]: pool timeout: failed to retrieve a connection from pool after 9591ms
+    (pool connections: active=0 idle=0 limit=10)
+    at async Array.$allOperations (lib\prisma.ts:50:20)
+    at async GET (app\api\custom-fields\route.ts:56:20)
+  48 |
+  49 |           try {
+> 50 |             return await query(args ?? {});
+     |                    ^
+  51 |           } finally {
+  52 |             const elapsedMs = Date.now() - startedAt;
+  53 |             stats.activeQueries = Math.max(0, stats.activeQueries - 1); {
+  clientVersion: '7.8.0',
+  [cause]: {
+    originalCode: '45028',
+    originalMessage: 'pool timeout: failed to retrieve a connection from pool after 9591ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    kind: 'mysql',
+    code: 45028,
+    message: 'pool timeout: failed to retrieve a connection from pool after 9591ms\n' +
+      '    (pool connections: active=0 idle=0 limit=10)',
+    state: 'HY000',
+    cause: undefined
+  }
+}
+ GET /api/custom-fields 500 in 75s (next.js: 25.4s, application-code: 50s)
+ GET /api/custom-fields 500 in 94s (next.js: 44s, application-code: 50s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 14007ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 9350ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 9038ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 8879ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 7422ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 7403ms
+    (pool connections: active=0 idle=0 limit=10)
+○ Compiling /manifest.webmanifest ...
+prisma:error pool timeout: failed to retrieve a connection from pool after 5002ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5087ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/opportunities 200 in 82s (next.js: 1736ms, proxy.ts: 8.2s, application-code: 73s)
+ GET /en/crm/opportunities 200 in 49s (next.js: 1027ms, proxy.ts: 471ms, application-code: 47s)
+ GET /manifest.webmanifest 200 in 16.1s (next.js: 16.0s, application-code: 54ms)
+ GET /en/sign-in 200 in 574ms (next.js: 224ms, proxy.ts: 13ms, application-code: 337ms)
+ GET /en/sign-in 200 in 166ms (next.js: 50ms, proxy.ts: 16ms, application-code: 100ms)
+ GET /manifest.webmanifest 200 in 27ms (next.js: 5ms, application-code: 22ms)
+ GET /en/sign-in 200 in 2.7s (next.js: 1575ms, proxy.ts: 33ms, application-code: 1096ms)
+○ Compiling /manifest.webmanifest ...
+ GET /manifest.webmanifest 200 in 14.0s (next.js: 13.9s, application-code: 99ms)
+ GET /en/sign-in 200 in 2.3s (next.js: 424ms, proxy.ts: 29ms, application-code: 1798ms)
+ GET /manifest.webmanifest 200 in 141ms (next.js: 48ms, application-code: 93ms)
+○ Compiling /api/auth/email-otp/send-verification-otp ...
+ GET /en/sign-in 200 in 991ms (next.js: 311ms, proxy.ts: 29ms, application-code: 651ms)
+ GET /manifest.webmanifest 200 in 101ms (next.js: 67ms, application-code: 34ms)
+ POST /api/auth/email-otp/send-verification-otp 200 in 24.7s (next.js: 18.2s, proxy.ts: 12ms, application-code: 6.5s)
+○ Compiling /api/auth/test-otp ...
+ GET /en/sign-in 200 in 402ms (next.js: 118ms, proxy.ts: 13ms, application-code: 270ms)
+ GET /manifest.webmanifest 200 in 49ms (next.js: 21ms, application-code: 28ms)
+ GET /api/auth/test-otp?email=dr.oscar%40signimus.com 200 in 6.1s (next.js: 3.9s, proxy.ts: 30ms, application-code: 2.2s)
+○ Compiling /api/auth/sign-in/email-otp ...
+ GET /en/sign-in 200 in 1461ms (next.js: 728ms, proxy.ts: 86ms, application-code: 647ms)
+ GET /manifest.webmanifest 200 in 63ms (next.js: 40ms, application-code: 23ms)
+ GET /manifest.webmanifest 200 in 36ms (next.js: 12ms, application-code: 24ms)
+ POST /api/auth/sign-in/email-otp 200 in 47s (next.js: 24.8s, proxy.ts: 15ms, application-code: 22.1s)
+ GET /manifest.webmanifest 200 in 41ms (next.js: 9ms, application-code: 32ms)
+prisma:error 
+Invalid `prisma.crm_Contacts.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Opportunities.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Lead_Sources.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Opportunities_Sales_Stages.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Opportunities_Type.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+ POST /en/crm/dashboard 500 in 5.2s (next.js: 73ms, proxy.ts: 24ms, application-code: 5.1s)
+  └─ ƒ getQuickInputMemory() in 2096ms ..//actions/crm/quick-input/get-quick-input-memory.ts
+ GET /en/crm/dashboard 200 in 47s (next.js: 269ms, proxy.ts: 24ms, application-code: 46s)
+ GET /en/crm/opportunities 200 in 25.2s (next.js: 387ms, proxy.ts: 75ms, application-code: 24.7s)
+ GET /manifest.webmanifest 200 in 540ms (next.js: 35ms, application-code: 505ms)
+○ Compiling /api/custom-fields ...
+ GET /api/custom-fields 200 in 25.2s (next.js: 16.8s, application-code: 8.4s)
+ GET /api/custom-fields 200 in 3.3s (next.js: 19ms, application-code: 3.3s)
+ GET /en/crm/opportunities 200 in 28.0s (next.js: 3.6s, proxy.ts: 35ms, application-code: 24.4s)
+ POST /en/crm/opportunities 200 in 29.7s (next.js: 48ms, proxy.ts: 16ms, application-code: 29.7s)
+  └─ ƒ createContact({"first_name":"","last_name":"manas","status":true}) in 9355ms ..//actions/crm/contacts/create-contact.ts
+ GET /manifest.webmanifest 200 in 38ms (next.js: 21ms, application-code: 17ms)
+ GET /en/crm/contacts 200 in 18.7s (next.js: 99ms, proxy.ts: 10ms, application-code: 18.6s)
+ GET /manifest.webmanifest 200 in 23ms (next.js: 8ms, application-code: 15ms)
+ GET /api/custom-fields 200 in 2.7s (next.js: 3ms, application-code: 2.7s)
+ GET /api/custom-fields 200 in 811ms (next.js: 2ms, application-code: 809ms)
+ GET /en/crm/opportunities 200 in 23.6s (next.js: 29ms, proxy.ts: 8ms, application-code: 23.6s)
+ GET /manifest.webmanifest 200 in 16ms (next.js: 4ms, application-code: 12ms)
+ GET /en/crm/opportunities 200 in 56ms (next.js: 23ms, proxy.ts: 13ms, application-code: 20ms)
+ GET /api/custom-fields 200 in 729ms (next.js: 6ms, application-code: 723ms)
+ GET /api/custom-fields 200 in 832ms (next.js: 25ms, application-code: 807ms)
+ GET /api/custom-fields 200 in 1022ms (next.js: 4ms, application-code: 1018ms)
+ GET /api/custom-fields 200 in 610ms (next.js: 2ms, application-code: 607ms)
+ GET /en/crm/opportunities 200 in 24.3s (next.js: 13ms, proxy.ts: 9ms, application-code: 24.3s)
+ GET /manifest.webmanifest 200 in 16ms (next.js: 8ms, application-code: 9ms)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5009ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5008ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/contacts 200 in 17.9s (next.js: 146ms, proxy.ts: 43ms, application-code: 17.7s)
+ GET /manifest.webmanifest 200 in 96ms (next.js: 13ms, application-code: 83ms)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5006ms
+    (pool connections: active=1 idle=0 limit=10)
+ GET /en/crm/contacts 200 in 8.9s (next.js: 110ms, proxy.ts: 82ms, application-code: 8.7s)
+ GET /manifest.webmanifest 200 in 24ms (next.js: 8ms, application-code: 16ms)
+ GET /en/sign-in 200 in 2.2s (next.js: 196ms, proxy.ts: 37ms, application-code: 1917ms)
+○ Compiling /api/auth/email-otp/send-verification-otp ...
+ GET /en/sign-in 200 in 857ms (next.js: 400ms, proxy.ts: 25ms, application-code: 432ms)
+ GET /manifest.webmanifest 200 in 86ms (next.js: 65ms, application-code: 21ms)
+ POST /api/auth/email-otp/send-verification-otp 200 in 35.7s (next.js: 29.9s, proxy.ts: 20ms, application-code: 5.8s)
+○ Compiling /api/auth/test-otp ...
+ GET /api/auth/test-otp?email=dr.oscar%40signimus.com 200 in 9.1s (next.js: 6.5s, proxy.ts: 13ms, application-code: 2.6s)
+ POST /api/auth/sign-in/email-otp 200 in 27.8s (next.js: 11.8s, proxy.ts: 12ms, application-code: 16.1s)
+ GET /manifest.webmanifest 200 in 78ms (next.js: 53ms, application-code: 25ms)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5024ms
+    (pool connections: active=1 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 7749ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error 
+Invalid `prisma.crm_Contacts.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Opportunities.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Lead_Sources.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Opportunities_Sales_Stages.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+prisma:error 
+Invalid `prisma.crm_Opportunities_Type.findMany()` invocation:
+
+
+Transaction API error: Unable to start a transaction in the given time.
+ POST /en/crm/dashboard 500 in 7.8s (next.js: 584ms, proxy.ts: 157ms, application-code: 7.1s)
+  └─ ƒ getQuickInputMemory() in 2087ms ..//actions/crm/quick-input/get-quick-input-memory.ts
+ GET /en/crm/dashboard 200 in 51s (next.js: 1137ms, proxy.ts: 29ms, application-code: 49s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 9293ms
+    (pool connections: active=2 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 8093ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/contacts 200 in 63s (next.js: 386ms, proxy.ts: 42ms, application-code: 63s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 6497ms
+    (pool connections: active=0 idle=0 limit=10)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5351ms
+    (pool connections: active=0 idle=0 limit=10)
+○ Compiling /manifest.webmanifest ...
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://172.20.10.3:3000
+- Environments: .env.local, .env
+✓ Ready in 2.2s
+
+○ Compiling /[locale]/crm/contacts ...
+○ Compiling /manifest.webmanifest ...
+ GET /manifest.webmanifest 200 in 11.3s (next.js: 11.2s, application-code: 115ms)
+ GET /manifest.webmanifest 200 in 18ms (next.js: 5ms, application-code: 13ms)
+ GET /en/crm/contacts 200 in 91s (next.js: 57s, proxy.ts: 941ms, application-code: 33.1s)
+ GET /en/crm/contacts 200 in 20.3s (next.js: 527ms, proxy.ts: 52ms, application-code: 19.7s)
+ GET /en/crm/contacts 200 in 15.0s (next.js: 74ms, proxy.ts: 49ms, application-code: 14.9s)
+ POST /en/crm/contacts 200 in 9.7s (next.js: 27ms, proxy.ts: 21ms, application-code: 9.7s)
+  └─ ƒ getQuickInputMemory() in 7156ms ..//actions/crm/quick-input/get-quick-input-memory.ts
+ GET /en/crm/contacts 200 in 14.9s (next.js: 49ms, proxy.ts: 24ms, application-code: 14.8s)
+ POST /en/crm/contacts 200 in 4.0s (next.js: 39ms, proxy.ts: 16ms, application-code: 4.0s)
+  └─ ƒ getQuickInputMemory() in 3936ms ..//actions/crm/quick-input/get-quick-input-memory.ts
+ GET /manifest.webmanifest 200 in 18ms (next.js: 5ms, application-code: 12ms)
+ GET /en/crm/contacts 200 in 11.0s (next.js: 36ms, proxy.ts: 18ms, application-code: 11.0s)
+ GET /manifest.webmanifest 200 in 16ms (next.js: 6ms, application-code: 10ms)
+ GET /en/crm/contacts 200 in 13.3s (next.js: 330ms, proxy.ts: 22ms, application-code: 13.0s)
+ GET /en/crm/contacts 200 in 9.3s (next.js: 40ms, proxy.ts: 16ms, application-code: 9.3s)
+ GET /manifest.webmanifest 200 in 34ms (next.js: 20ms, application-code: 14ms)
+ GET /en/crm/contacts 200 in 9.9s (next.js: 28ms, proxy.ts: 16ms, application-code: 9.8s)
+ GET /en/crm/contacts 200 in 8.3s (next.js: 38ms, proxy.ts: 31ms, application-code: 8.2s)
+ GET /manifest.webmanifest 200 in 12ms (next.js: 3ms, application-code: 8ms)
+ GET /en/crm/contacts 200 in 10.1s (next.js: 65ms, proxy.ts: 22ms, application-code: 10.0s)
+ GET /manifest.webmanifest 200 in 59ms (next.js: 8ms, application-code: 50ms)
+○ Compiling /api/custom-fields ...
+ GET /api/custom-fields 200 in 6.9s (next.js: 5.7s, application-code: 1172ms)
+ GET /api/custom-fields 200 in 3.2s (next.js: 6ms, application-code: 3.2s)
+ GET /manifest.webmanifest 200 in 120ms (next.js: 84ms, application-code: 37ms)
+ GET /en/crm/contacts 200 in 20.0s (next.js: 576ms, proxy.ts: 34ms, application-code: 19.4s)
+ GET /manifest.webmanifest 200 in 160ms (next.js: 36ms, application-code: 124ms)
+ GET /en/crm/contacts 200 in 12.6s (next.js: 161ms, proxy.ts: 74ms, application-code: 12.4s)
+ GET /en/crm/contacts 200 in 12.3s (next.js: 59ms, proxy.ts: 52ms, application-code: 12.2s)
+ GET /en/crm/contacts 200 in 10.9s (next.js: 64ms, proxy.ts: 39ms, application-code: 10.8s)
+prisma:error pool timeout: failed to retrieve a connection from pool after 5194ms
+    (pool connections: active=0 idle=0 limit=10)
+ GET /en/crm/contacts 200 in 20.1s (next.js: 273ms, proxy.ts: 142ms, application-code: 19.7s)
+ GET /en/crm/contacts 200 in 34.7s (next.js: 42ms, proxy.ts: 17ms, application-code: 34.6s)
+ GET /en/crm/contacts 200 in 15.8s (next.js: 1120ms, proxy.ts: 271ms, application-code: 14.4s)
+ GET /en/crm/contacts 200 in 26.0s (next.js: 1851ms, proxy.ts: 298ms, application-code: 23.8s)
+ GET /en/crm/contacts 200 in 19.4s (next.js: 100ms, proxy.ts: 149ms, application-code: 19.1s)
+ GET /en/crm/contacts 200 in 23.4s (next.js: 102ms, proxy.ts: 127ms, application-code: 23.2s)
+ GET /en/crm/contacts 200 in 16.8s (next.js: 100ms, proxy.ts: 33ms, application-code: 16.6s)
+ GET /en/crm/contacts 200 in 12.4s (next.js: 132ms, proxy.ts: 50ms, application-code: 12.3s)
+ GET /en/crm/contacts 200 in 11.6s (next.js: 85ms, proxy.ts: 32ms, application-code: 11.5s)
+ GET /manifest.webmanifest 200 in 1319ms (next.js: 490ms, application-code: 829ms)
+ GET /en/crm/contacts 200 in 13.0s (next.js: 158ms, proxy.ts: 32ms, application-code: 12.9s)
+ GET /manifest.webmanifest 200 in 45ms (next.js: 15ms, application-code: 29ms)
+ GET /en/crm/contacts 200 in 23.6s (next.js: 3.4s, proxy.ts: 153ms, application-code: 20.0s)
+ GET /manifest.webmanifest 200 in 164ms (next.js: 79ms, application-code: 85ms)
+○ Compiling /api/crm/contacts ...
+ GET /api/crm/contacts?role=Customer 401 in 18.4s (next.js: 18.3s, application-code: 128ms)
+ GET /en/crm/contacts 200 in 12.2s (next.js: 431ms, proxy.ts: 36ms, application-code: 11.7s)
+ GET /manifest.webmanifest 200 in 31ms (next.js: 13ms, application-code: 18ms)
+[?25h

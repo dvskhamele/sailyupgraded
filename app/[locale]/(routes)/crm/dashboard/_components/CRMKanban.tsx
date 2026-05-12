@@ -1012,6 +1012,7 @@ const CRMKanban = ({
                 saleTypes={saleTypes}
                 saleStages={saleStages}
                 campaigns={campaigns}
+                contacts={contacts}
                 currencies={(currencies ?? []).map((c: any) => ({
                   code: c.code,
                   name: c.name,

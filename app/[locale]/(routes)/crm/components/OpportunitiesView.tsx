@@ -109,6 +109,7 @@ const OpportunitiesView = ({
     saleTypes,
     saleStages,
     campaigns,
+    contacts,
     currencies: currencies.map((c: { code: string; name: string; symbol: string }) => ({ code: c.code, name: c.name, symbol: c.symbol })),
     displayCurrency,
     exchangeRates: rates,

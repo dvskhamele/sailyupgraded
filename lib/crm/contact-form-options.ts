@@ -1,4 +1,9 @@
-import { prismadb, withPrismaRetry } from "@/lib/prisma";
+import {
+  isPrismaAccessDeniedError,
+  isTransientPrismaConnectionError,
+  prismadb,
+  withPrismaRetry,
+} from "@/lib/prisma";
 
 export type NamedOption = { id: string; name: string };
 
@@ -156,42 +161,68 @@ export async function ensureDefaultContactTypes(): Promise<NamedOption[]> {
   return getVisibleContactTypes(updated);
 }
 
-export async function getContactFormOptionsData() {
-  return withPrismaRetry(async () => {
-    const accounts = await prismadb.crm_Accounts.findMany({
-      where: { deletedAt: null },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
-    const contactTypes = await ensureDefaultContactTypes();
-    const leadSources = await prismadb.crm_Lead_Sources.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
-    const leadStatuses = await prismadb.crm_Lead_Statuses.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
-    const leadTypes = await prismadb.crm_Lead_Types.findMany({
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
-    const products = await prismadb.crm_Products.findMany({
-      where: {
-        deletedAt: null,
-        status: "ACTIVE",
-      },
-      select: { id: true, name: true },
-      orderBy: { name: "asc" },
-    });
+function getFallbackContactFormOptionsData() {
+  return {
+    accounts: [],
+    contactTypes: DEFAULT_CONTACT_TYPE_NAMES.map((name) => ({ id: name, name })),
+    leadSources: appendSocialLeadSourceOptions([]),
+    leadStatuses: [],
+    leadTypes: [],
+    products: [],
+  };
+}
 
-    return {
-      accounts,
-      contactTypes,
-      leadSources: appendSocialLeadSourceOptions(leadSources),
-      leadStatuses,
-      leadTypes,
-      products,
-    };
-  });
+function shouldUseContactOptionsFallback(error: unknown) {
+  return isPrismaAccessDeniedError(error) || isTransientPrismaConnectionError(error);
+}
+
+export async function getContactFormOptionsData() {
+  try {
+    return await withPrismaRetry(async () => {
+      const accounts = await prismadb.crm_Accounts.findMany({
+        where: { deletedAt: null },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      });
+      const contactTypes = await ensureDefaultContactTypes();
+      const leadSources = await prismadb.crm_Lead_Sources.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      });
+      const leadStatuses = await prismadb.crm_Lead_Statuses.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      });
+      const leadTypes = await prismadb.crm_Lead_Types.findMany({
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      });
+      const products = await prismadb.crm_Products.findMany({
+        where: {
+          deletedAt: null,
+          status: "ACTIVE",
+        },
+        select: { id: true, name: true },
+        orderBy: { name: "asc" },
+      });
+
+      return {
+        accounts,
+        contactTypes,
+        leadSources: appendSocialLeadSourceOptions(leadSources),
+        leadStatuses,
+        leadTypes,
+        products,
+      };
+    });
+  } catch (error) {
+    if (!shouldUseContactOptionsFallback(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[Contact form options] database unavailable; using local fallback options.",
+    );
+    return getFallbackContactFormOptionsData();
+  }
 }

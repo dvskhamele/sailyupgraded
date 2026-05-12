@@ -65,7 +65,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
         discount_type,
         discount_value: discountVal,
         line_total: lineTotal,
-        currency: contract.currency || "EUR",
+        currency: contract.currency || "USD",
         sort_order,
         createdBy: userId,
         updatedBy: userId,

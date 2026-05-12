@@ -59,7 +59,7 @@ export function NewTargetForm({ onFinish }: NewTargetFormProps) {
       company_email: "",
       company_phone: "",
       city: "",
-      country: "",
+      country: "United States",
       industry: "",
       employees: "",
       description: "",
@@ -78,7 +78,7 @@ export function NewTargetForm({ onFinish }: NewTargetFormProps) {
       form.setError("root.serverError", { message: result.error });
     } else {
       toast.success("Target created successfully");
-      form.reset({ status: true });
+      form.reset({ status: true, country: "United States" });
       onFinish();
     }
   };

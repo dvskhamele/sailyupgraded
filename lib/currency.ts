@@ -14,8 +14,8 @@ export {
 } from "@/lib/currency-input";
 
 const FALLBACK_CURRENCIES = [
-  { code: "EUR", name: "Euro", symbol: "EUR" },
   { code: "USD", name: "US Dollar", symbol: "USD" },
+  { code: "EUR", name: "Euro", symbol: "EUR" },
   { code: "INR", name: "Indian Rupee", symbol: "INR" },
 ];
 
@@ -106,14 +106,14 @@ export async function getDefaultCurrency(): Promise<string> {
     const setting = await prismadb.crm_SystemSettings.findUnique({
       where: { key: "default_currency" },
     });
-    return setting?.value || "EUR";
+    return setting?.value || "USD";
   } catch (error) {
     if (!shouldUseCurrencyFallback(error)) {
       throw error;
     }
 
     warnCurrencyFallback("getDefaultCurrency", error);
-    return "EUR";
+    return "USD";
   }
 }
 

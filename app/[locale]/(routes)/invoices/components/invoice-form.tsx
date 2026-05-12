@@ -105,7 +105,7 @@ export function InvoiceForm({
     initialData?.seriesId ?? settings?.defaultSeriesId ?? ""
   );
   const [currency, setCurrency] = useState(
-    initialData?.currency ?? settings?.baseCurrency ?? "CZK"
+    initialData?.currency ?? settings?.baseCurrency ?? "USD"
   );
   const [dueDate, setDueDate] = useState(() => {
     if (initialData?.dueDate) {

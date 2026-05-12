@@ -16,7 +16,7 @@ function prevPeriod(filters: ReportFilters): { dateFrom: Date; dateTo: Date } {
   };
 }
 
-export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: string = "EUR"): Promise<KPIData[]> {
+export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: string = "USD"): Promise<KPIData[]> {
   const prev = prevPeriod(filters);
   const rates = await getExchangeRates();
 

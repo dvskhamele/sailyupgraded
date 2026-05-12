@@ -48,7 +48,7 @@ export async function BasicView({ data }: BasicViewProps) {
 
   const formatValue = (value: number | string | null | undefined) =>
     value != null
-      ? formatCurrencyUtil(new Decimal(value.toString()), data.currency || "EUR")
+      ? formatCurrencyUtil(new Decimal(value.toString()), data.currency || "USD")
       : "N/A";
 
   return (

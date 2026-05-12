@@ -43,7 +43,7 @@ export async function BasicView({ data }: OppsViewProps) {
   //console.log(data, "data");
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const { saleTypes, saleStages, campaigns, currencies, products } = crmData;
+  const { saleTypes, saleStages, campaigns, contacts, currencies, products } = crmData;
   const cookieStore = await cookies();
   const defaultCurrency = await getDefaultCurrency();
   const displayCurrency = cookieStore.get("display_currency")?.value || defaultCurrency;
@@ -51,7 +51,7 @@ export async function BasicView({ data }: OppsViewProps) {
   if (!data) return <div>Opportunity not found</div>;
   const selectedProducts = parseOpportunityProducts(data.category);
 
-  const fromCurrency = data.currency || "EUR";
+  const fromCurrency = data.currency || "USD";
   const budgetAmount = new Decimal(data.budget?.toString() ?? "0");
   const displayBudget = displayCurrency !== fromCurrency
     ? convertAmount(budgetAmount, fromCurrency, displayCurrency, rates)
@@ -69,6 +69,7 @@ export async function BasicView({ data }: OppsViewProps) {
             saleTypes={saleTypes}
             saleStages={saleStages}
             campaigns={campaigns}
+            contacts={contacts}
             currencies={currencies.map((c: { code: string; name: string; symbol: string }) => ({ code: c.code, name: c.name, symbol: c.symbol }))}
             categoryOptions={Array.from(
               new Set(

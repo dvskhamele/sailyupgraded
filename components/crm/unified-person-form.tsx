@@ -286,7 +286,7 @@ export function UnifiedPersonForm({
       address_line2: "",
       city: "",
       state: "",
-      country: "",
+      country: "United States",
       postal_code: "",
       position: "",
       contact_type_id: defaultContactTypeId,
@@ -323,6 +323,10 @@ export function UnifiedPersonForm({
   const selectedState = form.watch("state");
   const selectedRole = form.watch("role");
   const opportunityEnabled = form.watch("opportunity_enabled");
+  const canShowOpportunitySection =
+    !hideOpportunitySection &&
+    entityType === "Contact" &&
+    normalizeContactRole(selectedRole) === "Customer";
   const selectedOpportunityProducts = form.watch("opportunity_products") ?? [];
   const firstSelectedOpportunityProduct = selectedOpportunityProducts[0] ?? "";
   const stateOptions = getStateOptions(selectedCountry, selectedState);
@@ -331,7 +335,7 @@ export function UnifiedPersonForm({
     ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
     : COUNTRY_OPTIONS;
   const handleSubmit = async (data: UnifiedPersonFormValues) => {
-    const submittedData = hideOpportunitySection
+    const submittedData = !canShowOpportunitySection
       ? {
           ...data,
           opportunity_enabled: false,
@@ -369,6 +373,46 @@ export function UnifiedPersonForm({
   };
 
   useEffect(() => {
+    if (canShowOpportunitySection) return;
+
+    form.setValue("opportunity_enabled", false, {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+    form.setValue("opportunity_name", "", {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+    form.setValue("opportunity_products", [], {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+    form.setValue("opportunity_budget", "", {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+    form.setValue("opportunity_premium", "", {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+    form.setValue("opportunity_stage_id", "", {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+    form.setValue("opportunity_description", "", {
+      shouldDirty: false,
+      shouldTouch: false,
+      shouldValidate: false,
+    });
+  }, [canShowOpportunitySection, form]);
+
+  useEffect(() => {
     if (mode !== "create") return;
     if (form.getValues("contact_type_id")) return;
     if (!defaultContactTypeId) return;
@@ -381,6 +425,7 @@ export function UnifiedPersonForm({
   }, [defaultContactTypeId, form, mode]);
 
   useEffect(() => {
+    if (!canShowOpportunitySection) return;
     if (!opportunityEnabled) return;
     if (form.getValues("opportunity_stage_id")) return;
     if (!defaultOpportunityStage) return;
@@ -390,9 +435,10 @@ export function UnifiedPersonForm({
       shouldTouch: false,
       shouldValidate: false,
     });
-  }, [defaultOpportunityStage, form, opportunityEnabled]);
+  }, [canShowOpportunitySection, defaultOpportunityStage, form, opportunityEnabled]);
 
   useEffect(() => {
+    if (!canShowOpportunitySection) return;
     if (!opportunityEnabled) return;
     if (form.getValues("opportunity_name")) return;
 
@@ -411,7 +457,7 @@ export function UnifiedPersonForm({
       shouldTouch: false,
       shouldValidate: false,
     });
-  }, [firstSelectedOpportunityProduct, form, opportunityEnabled]);
+  }, [canShowOpportunitySection, firstSelectedOpportunityProduct, form, opportunityEnabled]);
 
   const yearOptions = Array.from({ length: 100 }, (_, i) => birthYearEnd - i);
 
@@ -1181,7 +1227,7 @@ export function UnifiedPersonForm({
               />
             </div>
 
-            {!hideOpportunitySection && (
+            {canShowOpportunitySection && (
               <Button
                 type="button"
                 variant={opportunityEnabled ? "secondary" : "outline"}
@@ -1193,7 +1239,7 @@ export function UnifiedPersonForm({
               </Button>
             )}
 
-            {!hideOpportunitySection && opportunityEnabled && (
+            {canShowOpportunitySection && opportunityEnabled && (
               <div className="space-y-4 border-t pt-5">
                 <h3 className="text-sm font-semibold">Create Opportunity</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

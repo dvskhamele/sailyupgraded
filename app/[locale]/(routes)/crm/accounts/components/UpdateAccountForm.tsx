@@ -53,12 +53,12 @@ const emptyAccountFormValues = {
   billing_postal_code: "",
   billing_city: "",
   billing_state: "",
-  billing_country: "",
+  billing_country: "United States",
   shipping_street: "",
   shipping_postal_code: "",
   shipping_city: "",
   shipping_state: "",
-  shipping_country: "",
+  shipping_country: "United States",
   description: "",
   assigned_to: "",
   status: "",
@@ -68,12 +68,18 @@ const emptyAccountFormValues = {
 };
 
 function normalizeAccountFormValues(initialData: any) {
-  return Object.fromEntries(
+  const values = Object.fromEntries(
     Object.entries({
       ...emptyAccountFormValues,
       ...(initialData ?? {}),
     }).map(([key, value]) => [key, value ?? ""])
   );
+
+  return {
+    ...values,
+    billing_country: values.billing_country || "United States",
+    shipping_country: values.shipping_country || "United States",
+  };
 }
 
 function textFieldProps(field: any) {

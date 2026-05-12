@@ -1,5 +1,10 @@
 import { cache } from "react";
-import { prismadb, withPrismaRetry } from "@/lib/prisma";
+import {
+  isPrismaAccessDeniedError,
+  isTransientPrismaConnectionError,
+  prismadb,
+  withPrismaRetry,
+} from "@/lib/prisma";
 import { getCrmContactListSelect } from "@/lib/prisma-contact-select";
 import { buildContactRoleFilter } from "@/lib/contact-options";
 import { serializeDecimalsList } from "@/lib/serialize-decimals";
@@ -18,5 +23,14 @@ export const getContacts = cache(async (role?: string) => {
     return serializeDecimalsList(contacts);
   };
 
-  return withPrismaRetry(loadContacts);
+  try {
+    return await withPrismaRetry(loadContacts);
+  } catch (error) {
+    if (!isTransientPrismaConnectionError(error) && !isPrismaAccessDeniedError(error)) {
+      throw error;
+    }
+
+    console.warn("[Contacts] database unavailable; rendering empty contact list.");
+    return [];
+  }
 });

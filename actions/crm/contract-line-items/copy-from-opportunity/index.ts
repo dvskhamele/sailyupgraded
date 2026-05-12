@@ -25,8 +25,8 @@ export const copyLineItemsFromOpportunity = async (
     if (!contract || contract.deletedAt) return { error: "Contract not found" };
     if (!opportunity || opportunity.deletedAt) return { error: "Opportunity not found" };
 
-    const contractCurrency = contract.currency || "EUR";
-    const opportunityCurrency = opportunity.currency || "EUR";
+    const contractCurrency = contract.currency || "USD";
+    const opportunityCurrency = opportunity.currency || "USD";
     if (contractCurrency !== opportunityCurrency) {
       return {
         error: `Currency mismatch: contract uses ${contractCurrency} but opportunity uses ${opportunityCurrency}. Cannot copy line items across currencies.`,

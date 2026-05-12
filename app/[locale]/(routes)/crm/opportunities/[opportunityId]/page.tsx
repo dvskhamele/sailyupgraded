@@ -69,7 +69,7 @@ const OpportunityView = async (
             <LineItemsSection
               opportunityId={opportunityId}
               lineItems={serializedLineItems}
-              currency={(opportunity as any)?.currency || "EUR"}
+              currency={(opportunity as any)?.currency || "USD"}
               products={activeProducts}
             />
             <ActivitiesSection opportunityId={opportunityId} />
