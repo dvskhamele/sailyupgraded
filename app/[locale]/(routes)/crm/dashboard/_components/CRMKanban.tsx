@@ -82,6 +82,7 @@ import { CategoryFilter } from "./CategoryFilter";
 import { filterOpportunitiesByCategory } from "@/lib/opportunity-categories";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { formatCurrencyDisplay } from "@/lib/currency-input";
+import { stopRowNavigation } from "../../components/table-row-navigation";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -431,8 +432,11 @@ function OpportunityCard({
               />
             </DropdownMenuTrigger>
 
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={() => onOpenEdit(opportunity)}>
+            <DropdownMenuContent align="end" onClick={stopRowNavigation}>
+              <DropdownMenuItem onClick={(event) => {
+                event.stopPropagation();
+                onOpenEdit(opportunity);
+              }}>
                 ✏️ Update
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -996,7 +1000,11 @@ const CRMKanban = ({
       />
 
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
+        <SheetContent
+          className="w-full md:max-w-[771px] overflow-y-auto"
+          onClick={stopRowNavigation}
+          onKeyDown={stopRowNavigation}
+        >
           <SheetHeader>
             <SheetTitle>
               Update Opportunity

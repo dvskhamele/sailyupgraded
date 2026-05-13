@@ -24,21 +24,9 @@ export const columns: ColumnDef<Account>[] = [
     enableSorting: false,
     enableHiding: false,
   },
-  {
-    accessorKey: "assigned_to_user",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Assigned to" />
-    ),
+ 
 
-    cell: ({ row }) => (
-      <div className="w-[150px]">
-        {(row.getValue("assigned_to_user") as { name?: string } | null)?.name ??
-          "Unassigned"}
-      </div>
-    ),
-    enableSorting: true,
-    enableHiding: true,
-  },
+
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -111,6 +99,23 @@ export const columns: ColumnDef<Account>[] = [
       return value.includes(row.getValue(id));
     },
   },
+
+ {
+    accessorKey: "assigned_to_user",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Assigned to" />
+    ),
+
+    cell: ({ row }) => (
+      <div className="w-[150px]">
+        {(row.getValue("assigned_to_user") as { name?: string } | null)?.name ??
+          "Unassigned"}
+      </div>
+    ),
+    enableSorting: true,
+    enableHiding: true,
+  },
+
   {
     id: "actions",
     cell: ({ row }) => <DataTableRowActions row={row} />,

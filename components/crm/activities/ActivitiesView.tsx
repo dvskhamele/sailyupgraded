@@ -6,15 +6,15 @@ import { Button } from "@/components/ui/button";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { ActivityEntry } from "./ActivityEntry";
 import { ActivityForm } from "./ActivityForm";
-import { getActivitiesByEntity } from "@/actions/crm/activities/get-activities-by-entity";
+import { getActivities, getActivitiesByEntity } from "@/actions/crm/activities/get-activities-by-entity";
 import type {
   ActivityWithLinks,
   ActivityCursor,
 } from "@/actions/crm/activities/get-activities-by-entity";
 
 interface Props {
-  entityType: string;
-  entityId: string;
+  entityType?: string;
+  entityId?: string;
   initialData: { data: ActivityWithLinks[]; nextCursor: ActivityCursor | null };
 }
 
@@ -23,11 +23,14 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
   const [cursor, setCursor] = useState<ActivityCursor | null>(initialData.nextCursor);
   const [createOpen, setCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const hasEntityContext = !!entityType && !!entityId;
 
   const loadMore = () => {
     if (!cursor || isPending) return;
     startTransition(async () => {
-      const result = await getActivitiesByEntity(entityType, entityId, cursor);
+      const result = hasEntityContext
+        ? await getActivitiesByEntity(entityType, entityId, cursor)
+        : await getActivities(cursor);
       setActivities((prev) => [...prev, ...result.data]);
       setCursor(result.nextCursor);
     });
@@ -68,6 +71,7 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
                   activity={activity}
                   entityType={entityType}
                   entityId={entityId}
+                  editLinks={hasEntityContext ? undefined : activity.links}
                   onDeleted={handleDeleted}
                   onUpdated={handleUpdated}
                 />
@@ -88,13 +92,15 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
           )}
         </CardContent>
 
-        <ActivityForm
-          open={createOpen}
-          onOpenChange={setCreateOpen}
-          entityType={entityType}
-          entityId={entityId}
-          onSaved={handleCreated}
-        />
+        {createOpen && (
+          <ActivityForm
+            open={createOpen}
+            onOpenChange={setCreateOpen}
+            entityType={entityType}
+            entityId={entityId}
+            onSaved={handleCreated}
+          />
+        )}
       </Card>
     </TooltipProvider>
   );

@@ -118,7 +118,7 @@ export function ContactsDataTable<TData, TValue>({
         description="Selected contacts will be moved to deleted records."
       />
       <div className="flex justify-between items-start gap-3">
-        <div></div>
+        {/* <div></div> */}
         <div className="flex justify-end items-center gap-2">
           {selectedCount > 0 && (
             <Button
@@ -131,7 +131,7 @@ export function ContactsDataTable<TData, TValue>({
               Delete selected
             </Button>
           )}
-          {hide ? (
+          {/* {hide ? (
             <PanelTopOpen
               onClick={() => setHide(!hide)}
               className="text-muted-foreground"
@@ -141,16 +141,16 @@ export function ContactsDataTable<TData, TValue>({
               onClick={() => setHide(!hide)}
               className="text-muted-foreground"
             />
-          )}
+          )} */}
         </div>
       </div>
 
-      {hide ? (
+      {/* {hide ? (
         <div className="flex gap-2">
           This content is hidden now. Click on <PanelTopOpen /> to show content
         </div>
       ) : (
-        <>
+        <> */}
           <DataTableToolbar table={table} />
           {selectedCount > 0 && (
             <>
@@ -238,8 +238,7 @@ export function ContactsDataTable<TData, TValue>({
             </Table>
           </div>
           <DataTablePagination table={table} />
-        </>
-      )}
+        {/* </> */}
     </div>
   );
 }

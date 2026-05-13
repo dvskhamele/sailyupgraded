@@ -5,6 +5,7 @@ import { getSession } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 import { prismadb } from "@/lib/prisma";
+import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
 
 type RawRow = Record<string, string>;
 type MappingKey =
@@ -146,6 +147,7 @@ export async function POST(request: NextRequest) {
   const failures: Array<{ row: number; name: string | null; reason: string }> = [];
   let imported = 0;
   const { firstStage } = await getSalesStageCollections();
+  const resolvedUserId = await resolveExistingUserId(userId);
 
   const uniqueCampaignNames = Array.from(
     new Set(
@@ -203,7 +205,7 @@ export async function POST(request: NextRequest) {
     try {
       await prismadb.crm_Opportunities.create({
         data: {
-          assigned_to_user: { connect: { id: userId } },
+          assigned_to_user: connectUserById(resolvedUserId),
           assigned_campaings: matchedCampaignId
             ? { connect: { id: matchedCampaignId } }
             : undefined,
@@ -212,7 +214,7 @@ export async function POST(request: NextRequest) {
             : undefined,
           budget: parsedBudget,
           clientName: normalizeOptionalText(fullName) || null,
-          created_by_user: { connect: { id: userId } },
+          created_by_user: connectUserById(resolvedUserId),
           created_on: parsedCreatedTime,
           createdAt: parsedCreatedTime,
           description: buildDescription({

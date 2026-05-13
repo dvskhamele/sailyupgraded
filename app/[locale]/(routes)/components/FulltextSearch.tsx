@@ -143,7 +143,7 @@ const FulltextSearch = () => {
         getContactFormOptions(),
         searchUsers({ take: 1 }),
       ]);
-      const assignedTo = users.users[0]?.id ?? "";
+      const assignedTo =" ";
 
       const parsedInitialValues = buildQuickContactValues(search, {
         accounts: options.accounts,
@@ -198,7 +198,7 @@ const FulltextSearch = () => {
         companies: values.company,
         cities: values.city,
         dealValues: opportunityDefaults.budget,
-        sources: values.campaign || "Inbound",
+        sources: values.campaign ?? "",
         agentNumbers: values.serial,
         emails: values.email,
       }),

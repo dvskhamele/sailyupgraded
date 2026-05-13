@@ -33,15 +33,15 @@ export type ActivityWithLinks = {
 
 export type ActivityCursor = { date: string; id: string };
 
-const loadActivitiesByEntity = cache(async (
-  entityType: string,
-  entityId: string,
+const loadActivities = cache(async (
+  entityType: string | null,
+  entityId: string | null,
   cursorKey: string | null
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
   const cursor = cursorKey ? (JSON.parse(cursorKey) as ActivityCursor) : undefined;
   const cursorDate = cursor ? new Date(cursor.date) : null;
 
-  if (!VALID_ENTITY_TYPES.has(entityType) || !entityId) {
+  if (entityType && (!VALID_ENTITY_TYPES.has(entityType) || !entityId)) {
     return { data: [], nextCursor: null };
   }
 
@@ -50,14 +50,15 @@ const loadActivitiesByEntity = cache(async (
   }
 
   try {
-    const andClauses: Record<string, unknown>[] = [
-      {
-        deletedAt: null,
+    const andClauses: Record<string, unknown>[] = [{ deletedAt: null }];
+
+    if (entityType && entityId) {
+      andClauses.push({
         links: {
           some: { entityType, entityId },
         },
-      },
-    ];
+      });
+    }
 
     if (cursor && cursorDate) {
       andClauses.push({
@@ -103,11 +104,11 @@ const loadActivitiesByEntity = cache(async (
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
       console.warn(
-        `getActivitiesByEntity skipped after database pool timeout for ${entityType}:${entityId}.`,
+        `getActivities skipped after database pool timeout for ${entityType ?? "global"}:${entityId ?? "all"}.`,
       );
     } else {
       console.warn(
-        "getActivitiesByEntity failed:",
+        "getActivities failed:",
         error instanceof Error ? error.message : error,
       );
     }
@@ -122,5 +123,12 @@ export const getActivitiesByEntity = async (
   cursor?: ActivityCursor
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
   const cursorKey = cursor ? JSON.stringify(cursor) : null;
-  return loadActivitiesByEntity(entityType, entityId, cursorKey);
+  return loadActivities(entityType, entityId, cursorKey);
+};
+
+export const getActivities = async (
+  cursor?: ActivityCursor
+): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
+  const cursorKey = cursor ? JSON.stringify(cursor) : null;
+  return loadActivities(null, null, cursorKey);
 };

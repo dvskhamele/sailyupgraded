@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -41,13 +41,14 @@ function toDateTimeLocalValue(value = new Date()) {
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  entityType: string;
-  entityId: string;
+  entityType?: string;
+  entityId?: string;
+  links?: Array<{ entityType: string; entityId: string }>;
   activity?: ActivityWithLinks; // if provided: edit mode
   onSaved: (activity: ActivityWithLinks) => void;
 }
 
-export function ActivityForm({ open, onOpenChange, entityType, entityId, activity, onSaved }: Props) {
+export function ActivityForm({ open, onOpenChange, entityType, entityId, links, activity, onSaved }: Props) {
   const isEdit = !!activity;
 
   const [type, setType] = useState<ActivityType>(activity?.type ?? "call");
@@ -72,11 +73,6 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
   const status =
     selectedStatus ?? (isEdit ? activity?.status ?? "scheduled" : DEFAULT_STATUS[type]);
 
-  useEffect(() => {
-    if (!open || isEdit) return;
-    setDate(toDateTimeLocalValue());
-  }, [isEdit, open]);
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -91,6 +87,15 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
       outcome,
       note: description,
     });
+    const activityLinks =
+      links ?? (entityType && entityId ? [{ entityType, entityId }] : activity?.links ?? []);
+
+    if ((entityType || entityId) && activityLinks.length === 0) {
+      setSaving(false);
+      toast.error("Activity must be linked to a CRM record");
+      return;
+    }
+
     const payload = {
       type,
       title: fallbackTitle,
@@ -100,15 +105,25 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, activit
       outcome: showOutcome && outcome.trim() ? outcome.trim() : undefined,
       status,
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
-      links: [{ entityType, entityId }],
+      links: activityLinks,
     };
 
     let result: { data?: ActivityWithLinks; error?: string };
 
-    if (isEdit) {
-      result = await updateActivity({ id: activity.id, ...payload });
-    } else {
-      result = await createActivity(payload);
+    try {
+      if (isEdit) {
+        result = await updateActivity({ id: activity.id, ...payload });
+      } else {
+        result = await createActivity(payload);
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to save activity. Please try again.";
+      setSaving(false);
+      toast.error(message);
+      return;
     }
 
     setSaving(false);

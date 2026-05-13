@@ -11,8 +11,10 @@ declare global {
 }
 
 const databaseUrl = process.env.DATABASE_URL;
-const prismaRuntimeVersion = "mariadb-adapter-singleton-v2";
+const prismaRuntimeVersion = "mariadb-adapter-singleton-v3";
 const slowQueryThresholdMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 1000);
+const transactionMaxWaitMs = Number(process.env.PRISMA_TRANSACTION_MAX_WAIT_MS ?? 10_000);
+const transactionTimeoutMs = Number(process.env.PRISMA_TRANSACTION_TIMEOUT_MS ?? 30_000);
 
 function getPrismaSchemaSignature() {
   return Prisma.dmmf.datamodel.models
@@ -36,6 +38,10 @@ const prismaClientSingleton = () => {
   const client = new PrismaClient({
     adapter: createMariaDbAdapter(databaseUrl),
     log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    transactionOptions: {
+      maxWait: transactionMaxWaitMs,
+      timeout: transactionTimeoutMs,
+    },
   });
 
   return client.$extends({
@@ -198,6 +204,7 @@ export async function withPrismaRetry<T>(operation: () => Promise<T>) {
       throw error;
     }
 
+    await resetPrisma();
     await new Promise((resolve) => setTimeout(resolve, 150));
     return operation();
   }

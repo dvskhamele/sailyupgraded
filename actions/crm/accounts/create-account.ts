@@ -39,7 +39,9 @@ export const createAccount = async (data: {
   try {
     const accountData = {
       ...data,
-      assigned_to: data.assigned_to || null,
+      assigned_to:  data.assigned_to && data.assigned_to.trim() !== ""
+      ? data.assigned_to
+      : null,
       industry: data.industry || null,
     };
 

@@ -15,6 +15,7 @@ import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import getContactsMenuItem from "./menu-items/Contacts";
 import getCrmMenuItem from "./menu-items/Crm";
+import getActivitiesMenuItem from "./menu-items/Activities";
 // import getProjectsMenuItem from "./menu-items/Projects";
 // import getEmailsMenuItem from "./menu-items/Emails";
 import getReportsMenuItem from "./menu-items/Reports";
@@ -95,10 +96,11 @@ export function AppSidebar({
   const navItems = [
     getCrmMenuItem({ localizations: dict.crm }),
     getContactsMenuItem(),
+    getReportsMenuItem({ title: dict?.reports || "Reports" }),
+    getActivitiesMenuItem(),
     getTemplatesMenuItem({
       localizations: dict.campaigns,
     }),
-    getReportsMenuItem({ title: dict?.reports || "Reports" }),
   ];
 
   // Administration: admin users only

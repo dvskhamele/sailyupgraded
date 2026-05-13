@@ -64,7 +64,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
         url: "https://chromewebstore.google.com/detail/instadm-auto-dm-leads-col/mfmhpjojeelkcnejjlmjdgipfdaefkad?authuser=0&hl=en-GB",
       },
       login: {
-        label: "Login",
+        label: "Start",
         url: "https://www.instagram.com/accounts/login/",
       },
     },
@@ -79,7 +79,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
         url: "https://chromewebstore.google.com/search/facebook",
       },
       login: {
-        label: "Login",
+        label: "Start",
         url: "https://www.facebook.com/login",
       },
     },
@@ -94,7 +94,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
         url: "https://chromewebstore.google.com/detail/ingage-%E2%80%94-one-click-ai-lin/nkaegpeiilppheefgalffciemnamogla?authuser=0&hl=en-GB",
       },
       login: {
-        label: "Login",
+        label: "Start",
         url: "https://www.linkedin.com/login",
       },
     },
@@ -109,7 +109,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
         url: "https://chromewebstore.google.com/search/threads",
       },
       login: {
-        label: "Login",
+        label: "Start",
         url: "https://www.threads.net/login",
       },
     },
@@ -124,7 +124,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
         url: "https://chromewebstore.google.com/search/tiktok",
       },
       login: {
-        label: "Login",
+        label: "Start",
         url: "https://www.tiktok.com/login",
       },
     },
@@ -139,7 +139,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
         url: "https://chromewebstore.google.com/search/google%20ads",
       },
       login: {
-        label: "Login",
+        label: "Start",
         url: "https://accounts.google.com/",
       },
     },
@@ -154,7 +154,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
         url: "https://chromewebstore.google.com/search/twitter%20x",
       },
       login: {
-        label: "Login",
+        label: "Start",
         url: "https://x.com/i/flow/login",
       },
     },

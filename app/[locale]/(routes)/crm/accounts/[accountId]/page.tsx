@@ -12,7 +12,7 @@ import { getDocumentsByAccountId } from "@/actions/documents/get-documents-by-ac
 import { getContractsByAccountId } from "@/actions/crm/get-contracts";
 import { getAccountProducts } from "@/actions/crm/account-products/get-account-products";
 import { getProductsFull } from "@/actions/crm/products/get-products";
-import { serializeDecimalsList } from "@/lib/serialize-decimals";
+import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getAccountsTasks } from "@/actions/crm/account/get-tasks";
 
 import OpportunitiesView from "../../components/OpportunitiesView";
@@ -57,7 +57,7 @@ const AccountDetailPage = async (props: AccountDetailPageProps) => {
   const leads = await getLeadsByAccountId(accountId);
   const documents: Documents[] = await getDocumentsByAccountId(accountId);
   const tasks: crm_Accounts_Tasks[] = await getAccountsTasks(accountId);
-  const crmData = await getAllCrmData();
+  const crmData = serializeDecimals(await getAllCrmData());
   const accountProducts = serializeDecimalsList(
     await getAccountProducts(accountId)
   );

@@ -11,6 +11,7 @@ const INTERACTIVE_ROW_TARGETS = [
   "summary",
   "[role='button']",
   "[role='checkbox']",
+  "[role='dialog']",
   "[role='menuitem']",
   "[data-row-action]",
 ].join(",");

@@ -14,6 +14,7 @@ import { serializeDecimals } from "@/lib/serialize-decimals";
 import { serializeOpportunityProducts } from "@/lib/opportunity-products";
 import { Prisma } from "@prisma/client";
 import { currencyInputToDecimalString } from "@/lib/currency-input";
+import { resolveExistingUserId } from "@/lib/crm/resolve-user";
 
 export const updateOpportunity = async (data: {
   id: string;
@@ -64,6 +65,7 @@ export const updateOpportunity = async (data: {
     const defaultCurrency = await getDefaultCurrency();
     const budgetAmount = currencyInputToDecimalString(budget);
     const expectedRevenueAmount = currencyInputToDecimalString(expected_revenue);
+    const resolvedAssignedTo = await resolveExistingUserId(assigned_to);
     const resolvedCurrency = currency || "USD";
     const snapshotRate = resolvedCurrency
       ? await getSnapshotRate(resolvedCurrency, defaultCurrency)
@@ -95,7 +97,7 @@ export const updateOpportunity = async (data: {
       where: { id },
       data: {
         assigned_account: account ? { connect: { id: account } } : { disconnect: true },
-        assigned_to_user: assigned_to ? { connect: { id: assigned_to } } : { disconnect: true },
+        assigned_to_user: resolvedAssignedTo ? { connect: { id: resolvedAssignedTo } } : { disconnect: true },
         budget: budgetAmount,
         assigned_campaings: campaign ? { connect: { id: campaign } } : { disconnect: true },
         category: serializeOpportunityProducts(category),

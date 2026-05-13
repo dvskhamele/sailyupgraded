@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { formatDistanceToNow } from "date-fns";
 import { Phone, Users, FileText, Mail, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -49,23 +49,19 @@ interface Props {
   activity: ActivityWithLinks;
   onDeleted: (id: string) => void;
   onUpdated: (activity: ActivityWithLinks) => void;
-  entityType: string;
-  entityId: string;
+  entityType?: string;
+  entityId?: string;
+  editLinks?: Array<{ entityType: string; entityId: string }>;
 }
 
-export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, entityId }: Props) {
+export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, entityId, editLinks }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [relativeDate, setRelativeDate] = useState("");
-  const [absoluteDate, setAbsoluteDate] = useState("");
 
   const Icon = TYPE_ICONS[activity.type];
-
-  useEffect(() => {
-    const date = new Date(activity.date);
-    setRelativeDate(formatDistanceToNow(date, { addSuffix: true }));
-    setAbsoluteDate(date.toLocaleString());
-  }, [activity.date]);
+  const activityDate = new Date(activity.date);
+  const relativeDate = formatDistanceToNow(activityDate, { addSuffix: true });
+  const absoluteDate = activityDate.toLocaleString();
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -150,14 +146,17 @@ export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, enti
         )}
       </div>
 
-      <ActivityForm
-        open={editOpen}
-        onOpenChange={setEditOpen}
-        entityType={entityType}
-        entityId={entityId}
-        activity={activity}
-        onSaved={onUpdated}
-      />
+      {editOpen && (
+        <ActivityForm
+          open={editOpen}
+          onOpenChange={setEditOpen}
+          entityType={entityType}
+          entityId={entityId}
+          links={editLinks}
+          activity={activity}
+          onSaved={onUpdated}
+        />
+      )}
     </div>
   );
 }

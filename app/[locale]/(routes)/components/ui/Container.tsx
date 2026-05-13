@@ -1,5 +1,5 @@
 import Heading from "@/components/ui/heading";
-import { Separator } from "@/components/ui/separator";
+// import { Separator } from "@/components/ui/separator";
 import React from "react";
 
 interface ContainerProps {
@@ -22,7 +22,7 @@ const Container = ({
         description={description}
         visibility={visibility}
       />
-      <Separator className="my-4" />
+      {/* <Separator className="my-4" /> */}
       <div className="flex-1 min-h-0 w-full">
         {children}
       </div>

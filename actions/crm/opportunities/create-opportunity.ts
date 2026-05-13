@@ -14,6 +14,7 @@ import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { serializeOpportunityProducts } from "@/lib/opportunity-products";
 import { currencyInputToDecimalString } from "@/lib/currency-input";
+import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
 
 export const createOpportunity = async (data: {
   account?: string;
@@ -60,6 +61,8 @@ export const createOpportunity = async (data: {
     const defaultCurrency = await getDefaultCurrency();
     const budgetAmount = currencyInputToDecimalString(budget);
     const expectedRevenueAmount = currencyInputToDecimalString(expected_revenue);
+    const resolvedAssignedTo = await resolveExistingUserId(assigned_to, userId);
+    const resolvedCreatedBy = await resolveExistingUserId(userId);
     const resolvedCurrency = currency || "USD";
     const snapshotRate = resolvedCurrency
       ? await getSnapshotRate(resolvedCurrency, defaultCurrency)
@@ -86,14 +89,14 @@ export const createOpportunity = async (data: {
     const opportunity = await prismadb.crm_Opportunities.create({
       data: {
         assigned_account: account ? { connect: { id: account } } : undefined,
-        assigned_to_user: { connect: { id: assigned_to || userId } },
+        assigned_to_user: connectUserById(resolvedAssignedTo),
         budget: budgetAmount,
         assigned_campaings: campaign ? { connect: { id: campaign } } : undefined,
         category: serializeOpportunityProducts(category),
         clientName: clientName?.trim() || null,
         close_date: close_date || null,
         contact: contact || null,
-        created_by_user: { connect: { id: userId } },
+        created_by_user: connectUserById(resolvedCreatedBy),
         last_activity_by: userId,
         updatedBy: userId,
         assigned_currency: resolvedCurrency ? { connect: { code: resolvedCurrency } } : undefined,
@@ -109,9 +112,9 @@ export const createOpportunity = async (data: {
       },
     });
 
-    if (assigned_to && assigned_to !== userId) {
+    if (resolvedAssignedTo && resolvedAssignedTo !== userId) {
       const notifyRecipient = await prismadb.users.findFirst({
-        where: { id: assigned_to },
+        where: { id: resolvedAssignedTo },
       });
 
       if (notifyRecipient) {

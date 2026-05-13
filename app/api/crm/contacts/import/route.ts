@@ -108,8 +108,6 @@ function getFallbackSerialPrefix(role: ContactRole) {
   switch (role) {
     case "Agent":
       return "AGT";
-    case "Client":
-      return "CLT";
     case "Partner":
       return "PRT";
     case "Vendor":
@@ -162,8 +160,6 @@ function getReferenceHeaderGroup(role: ContactRole) {
   switch (role) {
     case "Agent":
       return "agent";
-    case "Client":
-      return "client";
     case "Customer":
       return "customer";
     default:

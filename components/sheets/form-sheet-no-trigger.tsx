@@ -28,7 +28,12 @@ const FormSheetNoTrigger = ({
 }: RightSheetProps) => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
-      <SheetContent side={position || "right"} className="max-w-3xl overflow-y-auto">
+      <SheetContent
+        side={position || "right"}
+        className="max-w-3xl overflow-y-auto"
+        onClick={(event) => event.stopPropagation()}
+        onKeyDown={(event) => event.stopPropagation()}
+      >
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>

@@ -77,7 +77,7 @@ export function AccountDataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-start gap-3">
+      {/* <div className="flex justify-between items-start gap-3">
         <div></div>
         <div className="flex justify-end space-x-2">
           {hide ? (
@@ -92,14 +92,14 @@ export function AccountDataTable<TData, TValue>({
             />
           )}
         </div>
-      </div>
+      </div> */}
 
-      {hide ? (
+      {/* {hide ? (
         <div className="flex gap-2">
           This content is hidden now. Click on <PanelTopOpen /> to show content
         </div>
       ) : (
-        <>
+        <> */}
           <DataTableToolbar table={table} />
           <div className="rounded-md border overflow-x-auto">
             <Table data-testid="accounts-table">
@@ -165,8 +165,8 @@ export function AccountDataTable<TData, TValue>({
             </Table>
           </div>
           <DataTablePagination table={table} />
-        </>
-      )}
+        {/* </>
+      )} */}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { toast } from "sonner";
 
 import { deleteContract } from "@/actions/crm/contracts/delete-contract";
 import UpdateContractForm from "../_forms/update-contract";
+import { stopRowNavigation } from "../../components/table-row-navigation";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -65,32 +66,44 @@ export function DataTableRowActions<TData>({
         data={contract}
       />
 
+      <div data-row-action onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
             className="flex h-8 w-8 p-0 data-[state=open]:bg-muted"
+            onClick={stopRowNavigation}
           >
             <DotsHorizontalIcon className="h-4 w-4" />
             <span className="sr-only">Open menu</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[160px]">
+        <DropdownMenuContent align="end" className="w-[160px]" onClick={stopRowNavigation}>
           <DropdownMenuItem
-            onClick={() => router.push(`/crm/contracts/${contract?.id}`)}
+            onClick={(event) => {
+              event.stopPropagation();
+              router.push(`/crm/contracts/${contract?.id}`);
+            }}
           >
             View
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => setUpdateOpen(true)}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            setUpdateOpen(true);
+          }}>
             Update
           </DropdownMenuItem>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={() => setOpen(true)}>
+          <DropdownMenuItem onClick={(event) => {
+            event.stopPropagation();
+            setOpen(true);
+          }}>
             Delete
             <DropdownMenuShortcut>⌘⌫</DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
+      </div>
     </>
   );
 }

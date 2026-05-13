@@ -30,32 +30,8 @@ export const createColumns = (
   accounts: AccountItem[] = [],
   products: ProductItem[] = [],
 ): ColumnDef<Lead>[] => [
-  {
-    accessorKey: "createdAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Expected close" />
-    ),
-    cell: ({ row }) => (
-      <div className="w-[80px]">
-        {moment(row.getValue("createdAt")).format("YY-MM-DD")}
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "updatedAt",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Last update" />
-    ),
-    cell: ({ row }) => (
-      <div className="w-[80px]">
-        {moment(row.getValue("updatedAt")).format("YY-MM-DD")}
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
+
+
     {
     accessorKey: "firstName",
     header: ({ column }) => (
@@ -227,6 +203,34 @@ export const createColumns = (
       return <div className="w-[100px]">{source}</div>;
     },
   },
+
+    {
+    accessorKey: "createdAt",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Expected close" />
+    ),
+    cell: ({ row }) => (
+      <div className="w-[80px]">
+        {moment(row.getValue("createdAt")).format("YY-MM-DD")}
+      </div>
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "updatedAt",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Last update" />
+    ),
+    cell: ({ row }) => (
+      <div className="w-[80px]">
+        {moment(row.getValue("updatedAt")).format("YY-MM-DD")}
+      </div>
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+
   {
     id: "actions",
     cell: ({ row }) => (

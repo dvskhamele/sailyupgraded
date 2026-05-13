@@ -6,7 +6,7 @@ import { getAllCrmData } from "@/actions/crm/get-crm-data";
 // import { getLeads } from "@/actions/crm/get-leads";
 // import { getContractsWithIncludes } from "@/actions/crm/get-contracts";
 import { getOpportunitiesFull } from "@/actions/crm/get-opportunities-with-includes";
-import { serializeDecimalsList } from "@/lib/serialize-decimals";
+import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 
 import AccountsView from "./AccountsView";
 import ContactsView from "./ContactsView";
@@ -24,11 +24,13 @@ const MainPageView = async () => {
       // getLeads(),
       // getContractsWithIncludes(),
     ]);
+  const serializedCrmData = serializeDecimals(crmData);
+
   return (
     <>
-      <AccountsView crmData={crmData} data={accounts} />
-      <OpportunitiesView crmData={crmData} data={serializeDecimalsList(opportunities)} />
-      <ContactsView crmData={crmData} data={contacts} />
+      <AccountsView crmData={serializedCrmData} data={accounts} />
+      <OpportunitiesView crmData={serializedCrmData} data={serializeDecimalsList(opportunities)} />
+      <ContactsView crmData={serializedCrmData} data={contacts} />
       {/* <LeadsView crmData={crmData} data={leads} /> */}
       {/* <ContractsView crmData={crmData} data={contracts} /> */}
     </>

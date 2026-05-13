@@ -36,8 +36,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
+import {
+  parseContactWorkbookRows,
+  type ContactImportRawRow,
+} from "@/lib/contact-import-workbook";
 
-type RawRow = Record<string, string>;
+type RawRow = ContactImportRawRow;
 type MappingKey =
   | "serial"
   | "name"
@@ -363,29 +367,14 @@ export function ImportContactsDialog() {
         raw: false,
         cellDates: false,
       });
-      const firstSheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[firstSheetName];
-      const parsedRows = XLSX.utils.sheet_to_json<RawRow>(sheet, {
-        defval: "",
-        raw: false,
-      });
-
-      const nextHeaders = parsedRows.length > 0 ? Object.keys(parsedRows[0]) : [];
+      const { headers: nextHeaders, rows: parsedRows } =
+        parseContactWorkbookRows(workbook);
       if (nextHeaders.length === 0) {
         throw new Error("The selected file does not contain any importable rows.");
       }
 
       setHeaders(nextHeaders);
-      setRows(
-        parsedRows.map((row) =>
-          Object.fromEntries(
-            Object.entries(row).map(([key, value]) => [
-              key,
-              String(value ?? "").trim(),
-            ]),
-          ),
-        ),
-      );
+      setRows(parsedRows);
       setMapping(suggestMapping(nextHeaders));
       setOpen(true);
     } catch (error) {

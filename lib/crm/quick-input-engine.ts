@@ -185,10 +185,10 @@ export function buildQuickOpportunityDefaults(args: {
 }) {
   const fullName = [args.contactValues.first_name, args.contactValues.last_name].filter(Boolean).join(" ").trim();
   const signals = extractOpportunitySignals(args.contactValues.description ?? "");
-  const budget = clean(signals.budget) || clean(args.dbMemory?.defaultBudget) || "1000";
-  const revenue = String(Math.round(Number(budget || 0) * 0.5));
+  const budget = clean(signals.budget) ?? "";
+  const revenue =  budget ? String(Math.round(Number(budget || 0) * 0.5)) : "";
   const closeDate = new Date();
-  closeDate.setDate(closeDate.getDate() + 7);
+  closeDate.setDate(closeDate.getDate() + 2);
 
   return {
     name: signals.intent

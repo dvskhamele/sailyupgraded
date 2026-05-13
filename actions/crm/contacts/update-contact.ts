@@ -13,6 +13,7 @@ import { serializeDecimals } from "@/lib/serialize-decimals";
 import { currencyInputToDecimalString } from "@/lib/currency-input";
 import { normalizeContactNotes } from "@/lib/crm/notes";
 import { parseOpportunityProducts, serializeOpportunityProducts } from "@/lib/opportunity-products";
+import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -213,6 +214,8 @@ export const updateContact = async (data: {
     const selectedProductValues = parseOpportunityProducts(opportunity_products);
     const opportunityBudgetAmount = currencyInputToDecimalString(opportunity_budget);
     const opportunityPremiumAmount = currencyInputToDecimalString(opportunity_premium);
+    const resolvedOpportunityAssignedTo = await resolveExistingUserId(assigned_to, userId);
+    const resolvedOpportunityCreatedBy = await resolveExistingUserId(userId);
     const hasOpportunityInput =
       Boolean(opportunity_enabled) &&
       Boolean(
@@ -248,7 +251,7 @@ export const updateContact = async (data: {
         where: { id: existingOpportunity.id },
         data: {
           account: assigned_account || null,
-          assigned_to: assigned_to || userId,
+          assigned_to: resolvedOpportunityAssignedTo,
           budget: opportunityBudgetAmount ?? 0,
           expected_revenue: opportunityPremiumAmount,
           category: serializeOpportunityProducts(selectedProductNames),
@@ -286,7 +289,7 @@ export const updateContact = async (data: {
           assigned_account: assigned_account
             ? { connect: { id: assigned_account } }
             : undefined,
-          assigned_to_user: { connect: { id: assigned_to || userId } },
+          assigned_to_user: connectUserById(resolvedOpportunityAssignedTo),
           budget: opportunityBudgetAmount,
           expected_revenue: opportunityPremiumAmount,
           category: serializeOpportunityProducts(selectedProductNames),
@@ -296,7 +299,7 @@ export const updateContact = async (data: {
               contact: { connect: { id: contact.id } },
             },
           },
-          created_by_user: { connect: { id: userId } },
+          created_by_user: connectUserById(resolvedOpportunityCreatedBy),
           last_activity_by: userId,
           updatedBy: userId,
           description: opportunity_description || data.description || null,

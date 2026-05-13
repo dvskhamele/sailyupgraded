@@ -7,11 +7,11 @@ import OpportunitiesView from "../components/OpportunitiesView";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { getOpportunitiesFull } from "@/actions/crm/get-opportunities-with-includes";
 import { getTranslations } from "next-intl/server";
-import { serializeDecimalsList } from "@/lib/serialize-decimals";
+import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 
 const AccountsPage = async () => {
   const t = await getTranslations("CrmPage");
-  const crmData = await getAllCrmData();
+  const crmData = serializeDecimals(await getAllCrmData());
   const opportunities = serializeDecimalsList(await getOpportunitiesFull());
 
   return (

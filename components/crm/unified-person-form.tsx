@@ -1,7 +1,7 @@
 "use client";
 
 import { z } from "zod";
-import { useEffect, useState } from "react";
+import { type ReactNode, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -75,11 +75,14 @@ function ContactTypeCombobox({
 }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState("");
-  const selectedOption = options.find((option) => option.id === value || option.name === value);
+  const selectedOption = options.find(
+    (option) => option.id === value || option.name === value,
+  );
   const displayValue = selectedOption?.name ?? value;
   const trimmedSearch = search.trim();
   const hasExactMatch = options.some(
-    (option) => option.name.trim().toLowerCase() === trimmedSearch.toLowerCase()
+    (option) =>
+      option.name.trim().toLowerCase() === trimmedSearch.toLowerCase(),
   );
 
   const selectValue = (nextValue: string) => {
@@ -99,13 +102,18 @@ function ContactTypeCombobox({
           disabled={disabled}
           className="w-full justify-between font-normal"
         >
-          <span className={cn("truncate", !displayValue && "text-muted-foreground")}>
+          <span
+            className={cn("truncate", !displayValue && "text-muted-foreground")}
+          >
             {displayValue || placeholder}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="w-[var(--radix-popover-trigger-width)] p-0">
+      <PopoverContent
+        align="start"
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+      >
         <Command shouldFilter>
           <CommandInput
             placeholder="Search or type contact type..."
@@ -114,7 +122,9 @@ function ContactTypeCombobox({
           />
           <CommandList onWheelCapture={(event) => event.stopPropagation()}>
             <CommandEmpty>
-              {trimmedSearch ? "No matching contact type." : "No contact types found."}
+              {trimmedSearch
+                ? "No matching contact type."
+                : "No contact types found."}
             </CommandEmpty>
             <CommandGroup>
               {options.map((option) => (
@@ -126,14 +136,17 @@ function ContactTypeCombobox({
                   <Check
                     className={cn(
                       "mr-2 h-4 w-4",
-                      value === option.id ? "opacity-100" : "opacity-0"
+                      value === option.id ? "opacity-100" : "opacity-0",
                     )}
                   />
                   {option.name}
                 </CommandItem>
               ))}
               {trimmedSearch && !hasExactMatch && (
-                <CommandItem value={trimmedSearch} onSelect={() => selectValue(trimmedSearch)}>
+                <CommandItem
+                  value={trimmedSearch}
+                  onSelect={() => selectValue(trimmedSearch)}
+                >
                   <Plus className="mr-2 h-4 w-4" />
                   Add &quot;{trimmedSearch}&quot;
                 </CommandItem>
@@ -143,6 +156,30 @@ function ContactTypeCombobox({
         </Command>
       </PopoverContent>
     </Popover>
+  );
+}
+
+function ExtraFieldsCollapsible({
+  open,
+  children,
+}: {
+  open: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div
+      aria-hidden={!open}
+      className={cn(
+        "grid transition-[grid-template-rows,opacity] duration-300 ease-in-out",
+        open
+          ? "visible grid-rows-[1fr] opacity-100"
+          : "invisible grid-rows-[0fr] opacity-0 pointer-events-none",
+      )}
+    >
+      <div className="overflow-hidden">
+        <div className="space-y-4 pt-4">{children}</div>
+      </div>
+    </div>
   );
 }
 
@@ -219,8 +256,13 @@ type UnifiedPersonFormProps = {
   products?: Option[];
   initialValues?: Partial<UnifiedPersonFormValues>;
   hideOpportunitySection?: boolean;
-  onSubmitAction: (data: UnifiedPersonFormValues) => Promise<{ error?: string; data?: unknown } | undefined>;
-  onSuccess: (result?: { data?: unknown }, submittedData?: UnifiedPersonFormValues) => void | Promise<void>;
+  onSubmitAction: (
+    data: UnifiedPersonFormValues,
+  ) => Promise<{ error?: string; data?: unknown } | undefined>;
+  onSuccess: (
+    result?: { data?: unknown },
+    submittedData?: UnifiedPersonFormValues,
+  ) => void | Promise<void>;
 };
 
 export function UnifiedPersonForm({
@@ -245,6 +287,7 @@ export function UnifiedPersonForm({
   const leadT = useTranslations("CrmLeadForm");
   const c = useTranslations("Common");
   const [birthYearEnd, setBirthYearEnd] = useState(FALLBACK_BIRTH_YEAR_END);
+  const [showExtraFields, setShowExtraFields] = useState(false);
 
   useEffect(() => {
     setBirthYearEnd(new Date().getFullYear());
@@ -252,10 +295,15 @@ export function UnifiedPersonForm({
 
   const formSchema = unifiedPersonFormSchema.extend({
     last_name: z.string().min(1, contactT("lastNameRequired")),
-    email: z.union([z.string().email(contactT("emailInvalid")), z.literal(""), z.null()]).optional(),
+    email: z
+      .union([
+        z.string().email(contactT("emailInvalid")),
+        z.literal(""),
+        z.null(),
+      ])
+      .optional(),
   });
-  const defaultContactTypeId =
-    initialValues?.contact_type_id ?? (mode === "create" ? contactTypes[0]?.id ?? "" : "");
+  const defaultContactTypeId = initialValues?.contact_type_id ?? "";
   const defaultOpportunityStage =
     initialValues?.opportunity_stage_id ??
     saleStages.find((stage) => stage.name === "New Lead Intake")?.id ??
@@ -331,9 +379,11 @@ export function UnifiedPersonForm({
   const firstSelectedOpportunityProduct = selectedOpportunityProducts[0] ?? "";
   const stateOptions = getStateOptions(selectedCountry, selectedState);
   const serialLabel = getContactIdentifierLabel(selectedRole);
-  const countryOptions = selectedCountry && !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
-    ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
-    : COUNTRY_OPTIONS;
+  const countryOptions =
+    selectedCountry &&
+    !COUNTRY_OPTIONS.some((option) => option.value === selectedCountry)
+      ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
+      : COUNTRY_OPTIONS;
   const handleSubmit = async (data: UnifiedPersonFormValues) => {
     const submittedData = !canShowOpportunitySection
       ? {
@@ -347,7 +397,21 @@ export function UnifiedPersonForm({
           opportunity_description: "",
         }
       : data;
-    const result = await onSubmitAction(submittedData);
+
+    let result: { error?: string; data?: unknown } | undefined;
+
+    try {
+      result = await onSubmitAction(submittedData);
+    } catch (error) {
+      const message =
+        error instanceof Error && error.message
+          ? error.message
+          : "Failed to save. Please try again.";
+      form.setError("root.serverError", { message });
+      toast.error(message);
+      return;
+    }
+
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
       return;
@@ -435,7 +499,12 @@ export function UnifiedPersonForm({
       shouldTouch: false,
       shouldValidate: false,
     });
-  }, [canShowOpportunitySection, defaultOpportunityStage, form, opportunityEnabled]);
+  }, [
+    canShowOpportunitySection,
+    defaultOpportunityStage,
+    form,
+    opportunityEnabled,
+  ]);
 
   useEffect(() => {
     if (!canShowOpportunitySection) return;
@@ -445,7 +514,9 @@ export function UnifiedPersonForm({
     const clientName = [
       form.getValues("first_name"),
       form.getValues("last_name"),
-    ].filter(Boolean).join(" ");
+    ]
+      .filter(Boolean)
+      .join(" ");
     const fallbackName = [clientName, firstSelectedOpportunityProduct]
       .filter(Boolean)
       .join(" - ");
@@ -457,13 +528,21 @@ export function UnifiedPersonForm({
       shouldTouch: false,
       shouldValidate: false,
     });
-  }, [canShowOpportunitySection, firstSelectedOpportunityProduct, form, opportunityEnabled]);
+  }, [
+    canShowOpportunitySection,
+    firstSelectedOpportunityProduct,
+    form,
+    opportunityEnabled,
+  ]);
 
   const yearOptions = Array.from({ length: 100 }, (_, i) => birthYearEnd - i);
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="h-full px-4 md:px-10">
+      <form
+        onSubmit={form.handleSubmit(handleSubmit)}
+        className="h-full px-4 md:px-10"
+      >
         <div className="w-full text-sm">
           <div className="pb-5 space-y-4">
             <FormField
@@ -480,7 +559,9 @@ export function UnifiedPersonForm({
                     </FormControl>
                     <SelectContent>
                       {CONTACT_ROLE_OPTIONS.map((role) => (
-                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                        <SelectItem key={role} value={role}>
+                          {role}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -496,7 +577,12 @@ export function UnifiedPersonForm({
                 <FormItem>
                   <FormLabel>{serialLabel}</FormLabel>
                   <FormControl>
-                    <Input placeholder="ID / serial" disabled={form.formState.isSubmitting} {...field} value={field.value ?? ""} />
+                    <Input
+                      placeholder="ID / serial"
+                      disabled={form.formState.isSubmitting}
+                      {...field}
+                      value={field.value ?? ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -511,7 +597,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("firstName")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="John" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="John"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -524,13 +615,18 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("lastName")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="Doe" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Doe"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
-                />
-              </div>
+              />
+            </div>
 
             <CustomFieldsSection
               entityType={entityType}
@@ -566,7 +662,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{leadT("company")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="Saily Inc." {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Saily Inc."
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -579,7 +680,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{leadT("jobTitle")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="CTO" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="CTO"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -595,7 +701,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("email")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="john@domain.com" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="john@domain.com"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -608,7 +719,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("personalEmail")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="john.personal@domain.com" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="john.personal@domain.com"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -624,7 +740,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{leadT("phone")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="+11 123 456 789" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="+11 123 456 789"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -637,7 +758,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("mobilePhone")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="+11 123 456 789" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="+11 123 456 789"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -650,7 +776,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("officePhone")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="+11 123 456 789" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="+11 123 456 789"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -666,7 +797,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("website")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="https://www.domain.com" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="https://www.domain.com"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -679,7 +815,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("position")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="CTO" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="CTO"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -687,15 +828,34 @@ export function UnifiedPersonForm({
               />
             </div>
 
+            <div className="border-t pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowExtraFields((current) => !current)}
+                disabled={form.formState.isSubmitting}
+                aria-expanded={showExtraFields}
+                className="w-fit"
+              >
+                {showExtraFields ? "Hide Extra Fields" : "Show More Fields"}
+              </Button>
+            </div>
+
+            <ExtraFieldsCollapsible open={showExtraFields}>
             <div>
-              <label className="text-sm font-medium leading-none">{contactT("birthday")}</label>
+              <label className="text-sm font-medium leading-none">
+                {contactT("birthday")}
+              </label>
               <div className="flex space-x-3 w-full mt-2">
                 <FormField
                   control={form.control}
                   name="birthday_year"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value ?? ""}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder={contactT("year")} />
@@ -703,7 +863,9 @@ export function UnifiedPersonForm({
                         </FormControl>
                         <SelectContent className="h-56">
                           {yearOptions.map((year) => (
-                            <SelectItem key={year} value={year.toString()}>{year}</SelectItem>
+                            <SelectItem key={year} value={year.toString()}>
+                              {year}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -716,7 +878,10 @@ export function UnifiedPersonForm({
                   name="birthday_month"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value ?? ""}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder={contactT("month")} />
@@ -737,7 +902,9 @@ export function UnifiedPersonForm({
                             { value: "11", label: contactT("november") },
                             { value: "12", label: contactT("december") },
                           ].map((month) => (
-                            <SelectItem key={month.value} value={month.value}>{month.label}</SelectItem>
+                            <SelectItem key={month.value} value={month.value}>
+                              {month.label}
+                            </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
@@ -750,16 +917,23 @@ export function UnifiedPersonForm({
                   name="birthday_day"
                   render={({ field }) => (
                     <FormItem className="flex-1">
-                      <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value ?? ""}
+                      >
                         <FormControl>
                           <SelectTrigger>
                             <SelectValue placeholder={contactT("day")} />
                           </SelectTrigger>
                         </FormControl>
                         <SelectContent className="h-56">
-                          {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                            <SelectItem key={day} value={day.toString()}>{day}</SelectItem>
-                          ))}
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map(
+                            (day) => (
+                              <SelectItem key={day} value={day.toString()}>
+                                {day}
+                              </SelectItem>
+                            ),
+                          )}
                         </SelectContent>
                       </Select>
                       <FormMessage />
@@ -769,7 +943,7 @@ export function UnifiedPersonForm({
               </div>
             </div>
 
- <FormField
+            <FormField
               control={form.control}
               name="country"
               render={({ field }) => (
@@ -785,12 +959,16 @@ export function UnifiedPersonForm({
                   >
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder={contactT("countryPlaceholder")} />
+                        <SelectValue
+                          placeholder={contactT("countryPlaceholder")}
+                        />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent className="max-h-56">
                       {countryOptions.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -807,7 +985,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("city")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("cityPlaceholder")} {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={contactT("cityPlaceholder")}
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -819,15 +1002,23 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{contactT("state")}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""} disabled={form.formState.isSubmitting}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                      disabled={form.formState.isSubmitting}
+                    >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={contactT("statePlaceholder")} />
+                          <SelectValue
+                            placeholder={contactT("statePlaceholder")}
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="max-h-56">
                         {stateOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -842,14 +1033,19 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("postalCode")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("postalCodePlaceholder")} {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={contactT("postalCodePlaceholder")}
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
- 
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
@@ -858,7 +1054,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("addressLine1")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("addressLine1Placeholder")} {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={contactT("addressLine1Placeholder")}
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -871,7 +1072,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("addressLine2")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder={contactT("addressLine2Placeholder")} {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder={contactT("addressLine2Placeholder")}
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -885,7 +1091,12 @@ export function UnifiedPersonForm({
                 <FormItem>
                   <FormLabel>{c("description")}</FormLabel>
                   <FormControl>
-                    <Textarea disabled={form.formState.isSubmitting} placeholder={contactT("descriptionPlaceholder")} {...field} value={field.value ?? ""} />
+                    <Textarea
+                      disabled={form.formState.isSubmitting}
+                      placeholder={contactT("descriptionPlaceholder")}
+                      {...field}
+                      value={field.value ?? ""}
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -926,12 +1137,16 @@ export function UnifiedPersonForm({
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder={contactT("assignAccountPlaceholder")} />
+                          <SelectValue
+                            placeholder={contactT("assignAccountPlaceholder")}
+                          />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent className="max-h-56">
                         {accounts.map((account) => (
-                          <SelectItem key={account.id} value={account.id}>{account.name}</SelectItem>
+                          <SelectItem key={account.id} value={account.id}>
+                            {account.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -948,7 +1163,12 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <Select onValueChange={(value) => field.onChange(value === "active")} value={field.value ? "active" : "inactive"}>
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value === "active")
+                      }
+                      value={field.value ? "active" : "inactive"}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
@@ -956,7 +1176,10 @@ export function UnifiedPersonForm({
                       </FormControl>
                       <SelectContent>
                         {CONTACT_STATUS_OPTIONS.map((option) => (
-                          <SelectItem key={option.label} value={option.value ? "active" : "inactive"}>
+                          <SelectItem
+                            key={option.label}
+                            value={option.value ? "active" : "inactive"}
+                          >
                             {option.label}
                           </SelectItem>
                         ))}
@@ -975,15 +1198,32 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{contactT("contactType")}</FormLabel>
-                    <FormControl>
-                      <ContactTypeCombobox
-                        value={field.value ?? ""}
-                        onChange={field.onChange}
-                        options={contactTypes}
-                        placeholder={contactT("contactTypePlaceholder")}
-                        disabled={form.formState.isSubmitting}
-                      />
-                    </FormControl>
+
+                    <Select
+                      onValueChange={(value) =>
+                        field.onChange(value === "__none__" ? "" : value)
+                      }
+                      value={field.value ?? "__none__"}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select contact type" />
+                        </SelectTrigger>
+                      </FormControl>
+
+                      <SelectContent>
+                        <SelectItem value="__none__">
+                          Select contact type
+                        </SelectItem>
+
+                        {contactTypes.map((type) => (
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+
                     <FormMessage />
                   </FormItem>
                 )}
@@ -994,7 +1234,10 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>{leadT("leadSource")}</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select source" />
@@ -1002,7 +1245,9 @@ export function UnifiedPersonForm({
                       </FormControl>
                       <SelectContent>
                         {leadSources.map((source) => (
-                          <SelectItem key={source.id} value={source.id}>{source.name}</SelectItem>
+                          <SelectItem key={source.id} value={source.id}>
+                            {source.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1019,7 +1264,10 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lead Status</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select status" />
@@ -1027,7 +1275,12 @@ export function UnifiedPersonForm({
                       </FormControl>
                       <SelectContent>
                         {leadStatuses.map((statusOption) => (
-                          <SelectItem key={statusOption.id} value={statusOption.id}>{statusOption.name}</SelectItem>
+                          <SelectItem
+                            key={statusOption.id}
+                            value={statusOption.id}
+                          >
+                            {statusOption.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1041,7 +1294,10 @@ export function UnifiedPersonForm({
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Lead Type</FormLabel>
-                    <Select onValueChange={field.onChange} value={field.value ?? ""}>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value ?? ""}
+                    >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder="Select type" />
@@ -1049,7 +1305,9 @@ export function UnifiedPersonForm({
                       </FormControl>
                       <SelectContent>
                         {leadTypes.map((type) => (
-                          <SelectItem key={type.id} value={type.id}>{type.name}</SelectItem>
+                          <SelectItem key={type.id} value={type.id}>
+                            {type.name}
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
@@ -1067,7 +1325,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{leadT("referredBy")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="John Walker" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="John Walker"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1080,7 +1343,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{leadT("campaign")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="Social networks" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="Social networks"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1131,7 +1399,12 @@ export function UnifiedPersonForm({
                     <FormItem>
                       <FormLabel>{contactT("twitter")}</FormLabel>
                       <FormControl>
-                        <Input disabled={form.formState.isSubmitting} placeholder="https://twitter.com/john" {...field} value={field.value ?? ""} />
+                        <Input
+                          disabled={form.formState.isSubmitting}
+                          placeholder="https://twitter.com/john"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
@@ -1148,7 +1421,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("facebook")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="https://facebook.com/john" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="https://facebook.com/john"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1161,7 +1439,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("linkedin")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="https://linkedin.com/in/john" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="https://linkedin.com/in/john"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1177,7 +1460,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("thread")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="thread/john" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="thread/john"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1190,7 +1478,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>Instagram</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="https://instagram.com/john" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="https://instagram.com/john"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1206,7 +1499,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("youtube")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="https://youtube.com/@john" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="https://youtube.com/@john"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1219,7 +1517,12 @@ export function UnifiedPersonForm({
                   <FormItem>
                     <FormLabel>{contactT("tiktok")}</FormLabel>
                     <FormControl>
-                      <Input disabled={form.formState.isSubmitting} placeholder="https://tiktok.com/@john" {...field} value={field.value ?? ""} />
+                      <Input
+                        disabled={form.formState.isSubmitting}
+                        placeholder="https://tiktok.com/@john"
+                        {...field}
+                        value={field.value ?? ""}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -1231,11 +1534,15 @@ export function UnifiedPersonForm({
               <Button
                 type="button"
                 variant={opportunityEnabled ? "secondary" : "outline"}
-                onClick={() => form.setValue("opportunity_enabled", !opportunityEnabled)}
+                onClick={() =>
+                  form.setValue("opportunity_enabled", !opportunityEnabled)
+                }
                 disabled={form.formState.isSubmitting}
                 className="w-fit"
               >
-                {opportunityEnabled ? "Hide Create Opportunity" : "Create Opportunity"}
+                {opportunityEnabled
+                  ? "Hide Create Opportunity"
+                  : "Create Opportunity"}
               </Button>
             )}
 
@@ -1269,12 +1576,20 @@ export function UnifiedPersonForm({
                         <FormLabel>Product</FormLabel>
                         <Select
                           value={(field.value ?? [])[0] ?? ""}
-                          onValueChange={(value) => field.onChange(value ? [value] : [])}
+                          onValueChange={(value) =>
+                            field.onChange(value ? [value] : [])
+                          }
                           disabled={form.formState.isSubmitting}
                         >
                           <FormControl>
                             <SelectTrigger>
-                              <SelectValue placeholder={products.length > 0 ? "Select product" : "No active products"} />
+                              <SelectValue
+                                placeholder={
+                                  products.length > 0
+                                    ? "Select product"
+                                    : "No active products"
+                                }
+                              />
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent className="max-h-56">
@@ -1374,7 +1689,7 @@ export function UnifiedPersonForm({
                 </div>
               </div>
             )}
-
+            </ExtraFieldsCollapsible>
           </div>
         </div>
 
@@ -1384,8 +1699,18 @@ export function UnifiedPersonForm({
               {form.formState.errors.root.serverError.message}
             </p>
           )}
-          <Button disabled={form.formState.isSubmitting} type="submit" data-testid={submitTestId}>
-            {form.formState.isSubmitting ? <span className="flex items-center animate-pulse">{c("savingData")}</span> : submitButtonLabel}
+          <Button
+            disabled={form.formState.isSubmitting}
+            type="submit"
+            data-testid={submitTestId}
+          >
+            {form.formState.isSubmitting ? (
+              <span className="flex items-center animate-pulse">
+                {c("savingData")}
+              </span>
+            ) : (
+              submitButtonLabel
+            )}
           </Button>
         </div>
       </form>

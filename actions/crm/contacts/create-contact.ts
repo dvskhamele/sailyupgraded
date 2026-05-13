@@ -14,6 +14,7 @@ import { serializeDecimals } from "@/lib/serialize-decimals";
 import { currencyInputToDecimalString } from "@/lib/currency-input";
 import { normalizeContactNotes } from "@/lib/crm/notes";
 import { parseOpportunityProducts, serializeOpportunityProducts } from "@/lib/opportunity-products";
+import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -25,6 +26,18 @@ function isMissingContactSerialColumnError(error: unknown) {
 }
 
 const DEFAULT_ONBOARDING_STAGE_NAME = "New Lead Intake";
+
+async function resolveAssignedUserId(assignedTo?: string | null) {
+  const candidateId = assignedTo?.trim();
+  if (!candidateId) return null;
+
+  const user = await prismadb.users.findUnique({
+    where: { id: candidateId },
+    select: { id: true },
+  });
+
+  return user?.id ?? null;
+}
 
 async function ensureOnboardingSalesStage(tx: any) {
   const existing = await tx.crm_Opportunities_Sales_Stages.findFirst({
@@ -133,6 +146,7 @@ export const createContact = async (data: {
   const resolvedAddressLine1 = getAddressLine1(address, address_line1);
   const resolvedContactTypeId = await resolveContactTypeId(contact_type_id);
   const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
+  const resolvedAssignedTo = await resolveAssignedUserId(assigned_to);
   const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
     country: country || undefined,
     address: resolvedAddressLine1 || undefined,
@@ -158,7 +172,7 @@ export const createContact = async (data: {
     createdBy: userId,
     updatedBy: userId,
     accountsIDs: assigned_account || undefined,
-    assigned_to: assigned_to || undefined,
+    assigned_to: resolvedAssignedTo || undefined,
     contact_type_id: resolvedContactTypeId,
     lead_source_id: resolvedLeadSourceId,
     lead_status_id: lead_status_id || undefined,
@@ -183,6 +197,7 @@ export const createContact = async (data: {
     const selectedProductValues = parseOpportunityProducts(opportunity_products);
     const opportunityBudgetAmount = currencyInputToDecimalString(opportunity_budget);
     const opportunityPremiumAmount = currencyInputToDecimalString(opportunity_premium);
+    const resolvedCreatedBy = await resolveExistingUserId(userId);
     const shouldCreateOpportunity =
       Boolean(opportunity_enabled) &&
       Boolean(
@@ -251,7 +266,9 @@ export const createContact = async (data: {
           assigned_account: assigned_account
             ? { connect: { id: assigned_account } }
             : undefined,
-          assigned_to_user: { connect: { id: assigned_to || userId } },
+          assigned_to_user: resolvedAssignedTo
+            ? { connect: { id: resolvedAssignedTo } }
+            : undefined,
           budget: opportunityBudgetAmount,
           expected_revenue: opportunityPremiumAmount,
           category: serializeOpportunityProducts(selectedProductNames),
@@ -261,7 +278,7 @@ export const createContact = async (data: {
               contact: { connect: { id: createdContact.id } },
             },
           },
-          created_by_user: { connect: { id: userId } },
+          created_by_user: connectUserById(resolvedCreatedBy),
           last_activity_by: userId,
           updatedBy: userId,
           description: opportunity_description || data.description || null,
@@ -311,9 +328,9 @@ export const createContact = async (data: {
       };
     });
 
-    if (assigned_to && assigned_to !== userId) {
+    if (resolvedAssignedTo && resolvedAssignedTo !== userId) {
       const notifyRecipient = await prismadb.users.findFirst({
-        where: { id: assigned_to },
+        where: { id: resolvedAssignedTo },
       });
 
       if (notifyRecipient) {
@@ -350,6 +367,7 @@ export const createContact = async (data: {
       meta: error.meta,
       data: {
         assigned_to,
+        resolvedAssignedTo,
         assigned_account,
         contact_type_id,
         custom_fields_data,

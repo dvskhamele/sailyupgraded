@@ -96,7 +96,11 @@ export function DataTableRowActions<TData>({
         loading={loading}
       />
       <Sheet open={updateOpen} onOpenChange={setUpdateOpen}>
-        <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
+        <SheetContent
+          className="w-full md:max-w-[771px] overflow-y-auto"
+          onClick={stopRowNavigation}
+          onKeyDown={stopRowNavigation}
+        >
           <SheetHeader>
             <SheetTitle>Update lead - {lead?.firstName} {lead?.lastName}</SheetTitle>
             <SheetDescription>Update lead details</SheetDescription>

@@ -1,5 +1,5 @@
 export type CustomFieldEntity = "Contact" | "Lead" | "Opportunity";
-export type CustomFieldContactRole = "Agent" | "Customer" | "Client" | "Partner" | "Vendor" | "Other";
+export type CustomFieldContactRole = "Agent" | "Customer" | "Partner" | "Vendor" | "Other";
 
 export type CustomFieldDefinition = {
   id: string;
@@ -45,9 +45,6 @@ function normalizeContactRoleScope(value: unknown): CustomFieldContactRole | und
     case "customer":
     case "customers":
       return "Customer";
-    case "client":
-    case "clients":
-      return "Client";
     case "partner":
     case "partners":
       return "Partner";

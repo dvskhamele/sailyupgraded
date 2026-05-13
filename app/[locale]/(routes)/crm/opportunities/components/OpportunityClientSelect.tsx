@@ -163,7 +163,7 @@ export function OpportunityClientSelect({
               onClick={handleCreateClient}
             >
               <Plus className="mr-2 h-4 w-4" />
-              {isCreating ? "Creating..." : `Create contact "${searchValue.trim()}"`}
+              {isCreating ? "Creating..." : `Create client "${searchValue.trim()}"`}
             </Button>
           </div>
         ) : null}

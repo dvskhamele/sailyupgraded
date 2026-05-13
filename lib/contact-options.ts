@@ -3,7 +3,6 @@ import type { Prisma } from "@prisma/client";
 export const CONTACT_ROLE_OPTIONS = [
   "Agent",
   "Customer",
-  "Client",
   "Partner",
   "Vendor",
   "Other",
@@ -21,8 +20,7 @@ type ContactRoleView = {
 
 const CONTACT_ROLE_IMPORT_ALIASES: Record<ContactRole, string[]> = {
   Agent: ["agent", "agent id", "agent number", "agent no", "agent code"],
-  Customer: ["customer", "customer id", "customer number"],
-  Client: ["client", "client id", "client number"],
+  Customer: ["customer", "customer id", "customer number","client", "client id", "client number"],
   Partner: ["partner", "partner id", "partner number", "partner code"],
   Vendor: ["vendor", "vendor id", "vendor number", "supplier", "supplier id", "supplier number"],
   Other: ["other", "others", "other id", "other number"],
@@ -30,8 +28,7 @@ const CONTACT_ROLE_IMPORT_ALIASES: Record<ContactRole, string[]> = {
 
 const CONTACT_ROLE_DB_VALUES: Record<ContactRole, string[]> = {
   Agent: ["Agent", "agent", "Agents", "agents"],
-  Customer: ["Customer", "customer", "Customers", "customers"],
-  Client: ["Client", "client", "Clients", "clients"],
+  Customer: ["Customer", "customer", "Customers", "customers","Client", "client", "Clients", "clients"],
   Partner: ["Partner", "partner", "Partners", "partners"],
   Vendor: ["Vendor", "vendor", "Vendors", "vendors"],
   Other: ["Other", "other", "Others", "others"],
@@ -58,7 +55,7 @@ export function buildContactRoleFilter(
   if (normalizedRole === "customer" || normalizedRole === "customers" || normalizedRole === "client") {
     return {
       role: {
-        in: [...CONTACT_ROLE_DB_VALUES.Customer, ...CONTACT_ROLE_DB_VALUES.Client],
+        in: [...CONTACT_ROLE_DB_VALUES.Customer, ...CONTACT_ROLE_DB_VALUES.Customer],
       },
     };
   }
@@ -88,7 +85,7 @@ export function buildContactRoleFilter(
   if (normalizedRole === "others" || normalizedRole === "other") {
     return {
       role: {
-        notIn: ["Customer", "Client", "Agent"],
+        notIn: ["Customer", "Agent"],
       },
     };
   }
@@ -210,9 +207,7 @@ export function getContactIdentifierLabel(role?: string | null): string {
 
   switch (normalizedRole) {
     case "Agent":
-      return "Agent Number";
-    case "Client":
-      return "Client ID";
+      return "Agent ID";
     case "Partner":
       return "Partner ID";
     case "Vendor":
@@ -232,12 +227,8 @@ export function detectContactRole(role?: string | null): ContactRole | undefined
     return undefined;
   }
 
-  if (normalizedRole === "customer" || normalizedRole === "customers") {
+  if (normalizedRole === "customer" || normalizedRole === "customers"|| normalizedRole === "client" || normalizedRole === "clients") {
     return "Customer";
-  }
-
-  if (normalizedRole === "client" || normalizedRole === "clients") {
-    return "Client";
   }
 
   if (normalizedRole === "agent" || normalizedRole === "agents") {

@@ -76,6 +76,7 @@ export const createActivity = async (data: {
         "page"
       );
     }
+    revalidatePath("/[locale]/(routes)/activities", "page");
 
     return { data: fullActivity };
   } catch (error) {

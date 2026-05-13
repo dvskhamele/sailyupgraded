@@ -10,6 +10,7 @@ import { getDocumentsByContactId } from "@/actions/documents/get-documents-by-co
 import { getAccountsByContactId } from "@/actions/crm/get-accounts-by-contactId";
 import { getProductsByContactId } from "@/actions/crm/get-products-by-contactId";
 import { getActivitiesByEntity } from "@/actions/crm/activities/get-activities-by-entity";
+import { serializeDecimals } from "@/lib/serialize-decimals";
 
 import AccountsView from "../../components/AccountsView";
 import OpportunitiesView from "../../components/OpportunitiesView";
@@ -31,7 +32,7 @@ const ContactViewPage = async (props: any) => {
   const accounts = await getAccountsByContactId(contactId);
   const products = await getProductsByContactId(contactId);
   const activities = await getActivitiesByEntity("contact", contactId);
-  const crmData = await getAllCrmData();
+  const crmData = serializeDecimals(await getAllCrmData());
 
   //  console.log(accounts, "accounts");
 

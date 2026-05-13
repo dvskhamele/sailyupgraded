@@ -49,33 +49,11 @@ export const createColumns = (
     enableSorting: false,
     enableHiding: false,
   },
-  {
-    accessorKey: "created_on",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Date created" />
-    ),
-    cell: ({ row }) => (
-      <div className="w-[80px]">
-        {moment(row.getValue("created_on")).format("YY-MM-DD")}
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: false,
-  },
-  {
-    accessorKey: "assigned_to_user",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Assigned to" />
-    ),
-    cell: ({ row }) => (
-      <div className="w-[150px]">
-        {(row.getValue("assigned_to_user") as { name?: string } | null)?.name ??
-          "Unassigned"}
-      </div>
-    ),
-    enableSorting: true,
-    enableHiding: true,
-  },
+
+
+
+
+
  
   {
     accessorKey: "first_name",
@@ -189,6 +167,35 @@ export const createColumns = (
     enableSorting: true,
     enableHiding: true,
   },
+
+  {
+    accessorKey: "created_on",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Date created" />
+    ),
+    cell: ({ row }) => (
+      <div className="w-[80px]">
+        {moment(row.getValue("created_on")).format("YY-MM-DD")}
+      </div>
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
+  {
+    accessorKey: "assigned_to_user",
+    header: ({ column }) => (
+      <DataTableColumnHeader column={column} title="Assigned to" />
+    ),
+    cell: ({ row }) => (
+      <div className="w-[150px]">
+        {(row.getValue("assigned_to_user") as { name?: string } | null)?.name ??
+          "Unassigned"}
+      </div>
+    ),
+    enableSorting: true,
+    enableHiding: true,
+  },
+
   {
     id: "actions",
     cell: ({ row }) => (
