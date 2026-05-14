@@ -1,7 +1,6 @@
 import * as XLSX from "xlsx";
 
 import {
-  MAX_CONTACT_IMPORT_ROWS,
   SOURCE_SHEET_HEADER,
   parseContactWorkbookRows,
 } from "@/lib/contact-import-workbook";
@@ -43,11 +42,12 @@ describe("parseContactWorkbookRows", () => {
     ]);
   });
 
-  it("rejects workbooks above the contact import row limit", () => {
+  it("parses workbooks above the previous contact import row limit", () => {
     const workbook = XLSX.utils.book_new();
+    const rowCount = 501;
     const rows = [
       ["Full name", "Email"],
-      ...Array.from({ length: MAX_CONTACT_IMPORT_ROWS + 1 }, (_, index) => [
+      ...Array.from({ length: rowCount }, (_, index) => [
         `Contact ${index + 1}`,
         `contact${index + 1}@example.com`,
       ]),
@@ -59,8 +59,6 @@ describe("parseContactWorkbookRows", () => {
       "ACTIVE",
     );
 
-    expect(() => parseContactWorkbookRows(workbook)).toThrow(
-      `Import limited to ${MAX_CONTACT_IMPORT_ROWS} rows per file`,
-    );
+    expect(parseContactWorkbookRows(workbook).rows).toHaveLength(rowCount);
   });
 });

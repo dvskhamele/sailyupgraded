@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState, useTransition } from "react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
 import { toast } from "sonner";
 import {
   Sheet,
@@ -18,10 +19,27 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { createActivity } from "@/actions/crm/activities/create-activity";
 import { updateActivity } from "@/actions/crm/activities/update-activity";
 import type { ActivityWithLinks } from "@/actions/crm/activities/get-activities-by-entity";
 import { generateActivityTitle } from "@/lib/crm/activity-title";
+import { searchContacts, type ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
+import { createContact } from "@/actions/crm/contacts/create-contact";
+import useDebounce from "@/hooks/useDebounce";
+import { cn } from "@/lib/utils";
 
 type ActivityType = "call" | "meeting" | "note" | "email";
 type ActivityStatus = "scheduled" | "completed" | "cancelled";
@@ -32,6 +50,189 @@ const DEFAULT_STATUS: Record<ActivityType, ActivityStatus> = {
   note: "completed",
   email: "completed",
 };
+
+function getContactName(contact: Pick<ContactSearchItem, "first_name" | "last_name" | "email">) {
+  return [contact.first_name, contact.last_name].filter(Boolean).join(" ") || contact.email || "Contact";
+}
+
+function splitContactName(value: string) {
+  const cleanValue = value.trim();
+  const isEmail = cleanValue.includes("@");
+  const nameValue = isEmail ? cleanValue.split("@")[0].replace(/[._-]+/g, " ") : cleanValue;
+  const parts = nameValue.split(/\s+/).filter(Boolean);
+  const lastName = parts.length > 1 ? parts.slice(1).join(" ") : parts[0] || "New Contact";
+
+  return {
+    firstName: parts.length > 1 ? parts[0] : "",
+    lastName,
+    email: isEmail ? cleanValue : "",
+  };
+}
+
+function ContactActivitySelector({
+  value,
+  onChange,
+}: {
+  value: ContactSearchItem | null;
+  onChange: (contact: ContactSearchItem | null) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
+  const [contacts, setContacts] = useState<ContactSearchItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [, startTransition] = useTransition();
+  const debouncedSearch = useDebounce(search, 300);
+  const trimmedSearch = search.trim();
+  const selectedName = value ? getContactName(value) : "";
+
+  useEffect(() => {
+    if (!open) return;
+
+    const query = debouncedSearch.trim();
+    if (query.length < 2) {
+      setContacts([]);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
+    setLoading(true);
+    startTransition(async () => {
+      const result = await searchContacts({ search: query, take: 8 }).catch(() => []);
+      if (!active) return;
+      setContacts(result);
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [debouncedSearch, open]);
+
+  const handleCreateContact = async () => {
+    const query = trimmedSearch;
+    if (!query) return;
+
+    const parsed = splitContactName(query);
+    setCreating(true);
+    const result = await createContact({
+      first_name: parsed.firstName,
+      last_name: parsed.lastName,
+      email: parsed.email,
+    });
+    setCreating(false);
+
+    if (result.error || !result.data) {
+      toast.error(result.error ?? "Failed to create contact");
+      return;
+    }
+
+    const createdContact = result.data as {
+      id: string;
+      serial?: string | null;
+      first_name?: string | null;
+      last_name: string;
+      email?: string | null;
+    };
+
+    onChange({
+      id: createdContact.id,
+      serial: createdContact.serial ?? null,
+      first_name: createdContact.first_name ?? null,
+      last_name: createdContact.last_name,
+      email: createdContact.email ?? null,
+    });
+    setSearch("");
+    setContacts([]);
+    setOpen(false);
+    toast.success("Contact created");
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className="w-full justify-between font-normal"
+          type="button"
+        >
+          <span className="truncate text-sm">
+            {selectedName || <span className="text-muted-foreground">Select contact</span>}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] max-w-[calc(100vw-2rem)] p-0"
+        align="start"
+      >
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder="Search contacts..."
+            value={search}
+            onValueChange={setSearch}
+          />
+          <CommandList onWheelCapture={(e) => e.stopPropagation()}>
+            {loading ? (
+              <div className="py-6 text-center text-sm text-muted-foreground">Loading...</div>
+            ) : (
+              <>
+                <CommandEmpty>
+                  <span className="text-muted-foreground">
+                    {trimmedSearch.length < 2 ? "Type at least 2 characters." : "No contacts found."}
+                  </span>
+                </CommandEmpty>
+                <CommandGroup>
+                  {contacts.map((contact) => (
+                    <CommandItem
+                      key={contact.id}
+                      value={contact.id}
+                      onSelect={() => {
+                        onChange(contact.id === value?.id ? null : contact);
+                        setOpen(false);
+                      }}
+                    >
+                      <Check
+                        className={cn(
+                          "mr-2 h-4 w-4",
+                          value?.id === contact.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                      <div className="min-w-0">
+                        <p className="truncate">{getContactName(contact)}</p>
+                        {contact.email && (
+                          <p className="truncate text-xs text-muted-foreground">{contact.email}</p>
+                        )}
+                      </div>
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </>
+            )}
+          </CommandList>
+        </Command>
+        {trimmedSearch.length >= 2 && contacts.length === 0 && !loading && (
+          <div className="border-t p-2">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="w-full justify-start"
+              onClick={handleCreateContact}
+              disabled={creating}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {creating ? "Creating..." : `Create "${trimmedSearch}"`}
+            </Button>
+          </div>
+        )}
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 function toDateTimeLocalValue(value = new Date()) {
   const offsetMs = value.getTimezoneOffset() * 60_000;
@@ -50,6 +251,8 @@ interface Props {
 
 export function ActivityForm({ open, onOpenChange, entityType, entityId, links, activity, onSaved }: Props) {
   const isEdit = !!activity;
+  const hasEntityContext = !!entityType && !!entityId;
+  const showContactField = !hasEntityContext && !isEdit;
 
   const [type, setType] = useState<ActivityType>(activity?.type ?? "call");
   const [title, setTitle] = useState(activity?.title ?? "");
@@ -65,6 +268,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
   const [emailSubject, setEmailSubject] = useState(
     (activity?.metadata as Record<string, string> | null)?.subject ?? ""
   );
+  const [selectedContact, setSelectedContact] = useState<ContactSearchItem | null>(null);
   const [saving, setSaving] = useState(false);
 
   const showDuration = type === "call" || type === "meeting";
@@ -87,10 +291,22 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
       outcome,
       note: description,
     });
+    const contextLinks = entityType && entityId ? [{ entityType, entityId }] : [];
     const activityLinks =
-      links ?? (entityType && entityId ? [{ entityType, entityId }] : activity?.links ?? []);
+      links ??
+      (hasEntityContext
+        ? contextLinks
+        : selectedContact
+          ? [{ entityType: "contact", entityId: selectedContact.id }]
+          : activity?.links ?? []);
 
-    if ((entityType || entityId) && activityLinks.length === 0) {
+    if (showContactField && !selectedContact) {
+      setSaving(false);
+      toast.error("Select a contact for this activity");
+      return;
+    }
+
+    if ((entityType || entityId || showContactField) && activityLinks.length === 0) {
       setSaving(false);
       toast.error("Activity must be linked to a CRM record");
       return;
@@ -158,6 +374,16 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
               </SelectContent>
             </Select>
           </div>
+
+          {showContactField && (
+            <div className="space-y-1">
+              <Label>Contact</Label>
+              <ContactActivitySelector
+                value={selectedContact}
+                onChange={setSelectedContact}
+              />
+            </div>
+          )}
 
           <div className="space-y-1">
             <Label htmlFor="activity-title">Title</Label>

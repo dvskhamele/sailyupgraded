@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
+import { Prisma } from "@prisma/client";
 
 import { getSession } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit-log";
@@ -9,6 +10,12 @@ import {
   inferContactRoleFromIdentifierContext,
   normalizeContactRole,
 } from "@/lib/contact-options";
+import {
+  fieldAppliesToEntity,
+  normalizeCustomField,
+  sanitizeCustomFieldValues,
+  type CustomFieldDefinition,
+} from "@/lib/custom-fields";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { prismadb } from "@/lib/prisma";
 
@@ -45,9 +52,62 @@ type MappingKey =
   | "social_youtube"
   | "social_tiktok";
 type ColumnMapping = Partial<Record<MappingKey, string>>;
+type ExistingContactMatch = {
+  id: string;
+  serial: string | null;
+  custom_fields_data?: unknown;
+};
 
-const MAX_ROWS = 500;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const SKIP_VALUE = "__skip__";
+const STANDARD_FIELD_ALIASES: Record<string, string[]> = {
+  serial: ["reference id", "reference number", "role id", "contact id"],
+  first_name: ["first name", "given name"],
+  last_name: ["last name", "surname", "family name"],
+  email: ["e-mail", "email address", "mail"],
+  personal_email: ["personal email", "private email"],
+  mobile_phone: ["mobile", "mobile phone", "cell", "cell phone"],
+  office_phone: ["office phone", "telephone", "tel", "work phone"],
+  position: ["title", "job title", "designation"],
+  birthday: ["birth date", "birthdate", "dob"],
+  address_line1: ["address line 1", "street", "street 1"],
+  address_line2: ["address line 2", "street 2"],
+  postal_code: ["postal code", "zip", "zip code", "pincode"],
+  assigned_to: ["assigned to", "owner", "user", "assignee"],
+  accountsIDs: ["account id", "assigned account id", "company id"],
+  assigned_account: ["account", "account name", "assigned account", "company", "company name"],
+  contact_type_id: ["contact type", "contact type id", "type"],
+  social_twitter: ["twitter", "x"],
+  social_facebook: ["facebook"],
+  social_linkedin: ["linkedin", "linkedin url", "linkedin profile"],
+  social_skype: ["thread", "skype"],
+  social_youtube: ["youtube"],
+  social_tiktok: ["tiktok", "tik tok"],
+  social_instagram: ["instagram"],
+  lead_source_id: ["lead source", "lead source id"],
+  lead_status_id: ["lead status", "lead status id"],
+  lead_type_id: ["lead type", "lead type id"],
+  refered_by: ["referred by", "refered by", "referrer"],
+};
+const EXCLUDED_STANDARD_IMPORT_FIELDS = new Set([
+  "id",
+  "v",
+  "__v",
+  "createdAt",
+  "createdBy",
+  "created_by",
+  "created_on",
+  "cratedAt",
+  "updatedAt",
+  "updatedBy",
+  "deletedAt",
+  "deletedBy",
+  "last_activity",
+  "last_activity_by",
+  "tags",
+  "notes",
+  "custom_fields_data",
+]);
 
 function splitFullName(name: string, fallbackEmail: string) {
   const trimmed = name.trim();
@@ -156,6 +216,256 @@ function normalizeHeaderToken(value: string) {
   return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
+function normalizeComparableHeader(value: string) {
+  return value.trim().toLowerCase().replace(/[^a-z0-9]+/g, "");
+}
+
+function getAllHeaders(rows: RawRow[]) {
+  return Array.from(
+    rows.reduce((headers, row) => {
+      Object.keys(row).forEach((header) => {
+        if (header.trim()) headers.add(header);
+      });
+      return headers;
+    }, new Set<string>()),
+  );
+}
+
+function getMappedColumns(mapping: ColumnMapping) {
+  return new Set(
+    Object.values(mapping)
+      .filter((column): column is string => Boolean(column) && column !== SKIP_VALUE),
+  );
+}
+
+function hasAnyValue(rows: RawRow[], header: string) {
+  return rows.some((row) => String(row[header] ?? "").trim().length > 0);
+}
+
+function normalizeImportedColumnName(header: string) {
+  const normalized = header
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .slice(0, 60);
+  const columnName = normalized || "imported_field";
+  return /^[a-z]/.test(columnName) ? columnName : `imported_${columnName}`;
+}
+
+function quoteIdentifier(identifier: string) {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier)) {
+    throw new Error(`Invalid import column name: ${identifier}`);
+  }
+
+  return `\`${identifier}\``;
+}
+
+function getImportedColumnValue(row: RawRow, column: string) {
+  const value = row[column];
+  if (value == null) return undefined;
+  const normalized = String(value).trim();
+  return normalized || undefined;
+}
+
+async function getContactTableColumns() {
+  const rows = await prismadb.$queryRaw<Array<{ COLUMN_NAME: string }>>`
+    SELECT COLUMN_NAME
+    FROM INFORMATION_SCHEMA.COLUMNS
+    WHERE TABLE_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'crm_Contacts'
+  `;
+
+  return new Set(rows.map((row) => row.COLUMN_NAME));
+}
+
+function getContactModelColumnNames() {
+  const model = Prisma.dmmf.datamodel.models.find((entry) => entry.name === "crm_Contacts");
+  return new Set(
+    model?.fields
+      .filter((field) => field.kind === "scalar" || field.kind === "enum")
+      .map((field) => field.dbName ?? field.name) ?? [],
+  );
+}
+
+function getContactImportableFieldLookup() {
+  const model = Prisma.dmmf.datamodel.models.find((entry) => entry.name === "crm_Contacts");
+  const lookup = new Map<string, string>();
+
+  for (const field of model?.fields ?? []) {
+    if ((field.kind !== "scalar" && field.kind !== "enum") || EXCLUDED_STANDARD_IMPORT_FIELDS.has(field.name)) {
+      continue;
+    }
+
+    const dbName = field.dbName ?? field.name;
+    if (EXCLUDED_STANDARD_IMPORT_FIELDS.has(dbName)) {
+      continue;
+    }
+
+    lookup.set(normalizeComparableHeader(field.name), field.name);
+    lookup.set(normalizeComparableHeader(dbName), field.name);
+  }
+
+  for (const [field, aliases] of Object.entries(STANDARD_FIELD_ALIASES)) {
+    lookup.set(normalizeComparableHeader(field), field);
+    aliases.forEach((alias) => lookup.set(normalizeComparableHeader(alias), field));
+  }
+
+  lookup.set(normalizeComparableHeader("full name"), "name");
+  lookup.set(normalizeComparableHeader("contact name"), "name");
+
+  return lookup;
+}
+
+function getCustomFieldHeaderLookup(fields: CustomFieldDefinition[]) {
+  const lookup = new Map<string, CustomFieldDefinition>();
+
+  fields.forEach((field) => {
+    const normalizedField = normalizeCustomField(field);
+    lookup.set(normalizeComparableHeader(normalizedField.name), field);
+  });
+
+  return lookup;
+}
+
+function classifyExtraHeaders(headers: string[], customFields: CustomFieldDefinition[]) {
+  const standardLookup = getContactImportableFieldLookup();
+  const customLookup = getCustomFieldHeaderLookup(customFields);
+  const standardHeaders = new Map<string, string>();
+  const customFieldHeaders = new Map<string, CustomFieldDefinition>();
+  const importedHeaders: string[] = [];
+
+  headers.forEach((header) => {
+    const normalized = normalizeComparableHeader(header);
+    const standardField = standardLookup.get(normalized);
+    if (standardField) {
+      standardHeaders.set(header, standardField);
+      return;
+    }
+
+    const customField = customLookup.get(normalized);
+    if (customField) {
+      customFieldHeaders.set(header, customField);
+      return;
+    }
+
+    importedHeaders.push(header);
+  });
+
+  return {
+    standardHeaders,
+    customFieldHeaders,
+    importedHeaders,
+  };
+}
+
+function getDetectedStandardFieldValues(
+  row: RawRow,
+  standardHeaders: Map<string, string>,
+  mappedFields: Set<string>,
+) {
+  const values: Record<string, string> = {};
+
+  standardHeaders.forEach((field, header) => {
+    if (mappedFields.has(field)) {
+      return;
+    }
+
+    const value = getImportedColumnValue(row, header);
+    if (value) {
+      values[field] = value;
+    }
+  });
+
+  return values;
+}
+
+function getDetectedCustomFieldValues(
+  row: RawRow,
+  customFieldHeaders: Map<string, CustomFieldDefinition>,
+) {
+  const values: Record<string, string> = {};
+
+  customFieldHeaders.forEach((field, header) => {
+    const value = getImportedColumnValue(row, header);
+    if (value) {
+      values[field.id] = value;
+    }
+  });
+
+  return values;
+}
+
+function mergeCustomFieldValues(existingValues: unknown, importedValues: Record<string, string>) {
+  const existing =
+    existingValues && typeof existingValues === "object" && !Array.isArray(existingValues)
+      ? (existingValues as Record<string, unknown>)
+      : {};
+
+  return {
+    ...existing,
+    ...importedValues,
+  };
+}
+
+async function ensureImportedContactColumns(headers: string[]) {
+  if (headers.length === 0) {
+    return new Map<string, string>();
+  }
+
+  const existingColumns = await getContactTableColumns();
+  const modelColumns = getContactModelColumnNames();
+  const usedColumns = new Set(existingColumns);
+  const headerToColumn = new Map<string, string>();
+
+  for (const header of headers) {
+    const baseColumn = normalizeImportedColumnName(header);
+    let column = baseColumn;
+    let suffix = 2;
+
+    while (
+      headerToColumnHasValue(headerToColumn, column) ||
+      (usedColumns.has(column) && modelColumns.has(column))
+    ) {
+      const suffixText = `_${suffix}`;
+      column = `${baseColumn.slice(0, 64 - suffixText.length)}${suffixText}`;
+      suffix += 1;
+    }
+
+    if (!usedColumns.has(column)) {
+      await prismadb.$executeRawUnsafe(
+        `ALTER TABLE ${quoteIdentifier("crm_Contacts")} ADD COLUMN ${quoteIdentifier(column)} TEXT NULL`,
+      );
+      usedColumns.add(column);
+    }
+
+    headerToColumn.set(header, column);
+  }
+
+  return headerToColumn;
+}
+
+function headerToColumnHasValue(headerToColumn: Map<string, string>, column: string) {
+  return Array.from(headerToColumn.values()).includes(column);
+}
+
+async function updateImportedContactColumns(
+  contactId: string,
+  values: Record<string, string>,
+) {
+  const entries = Object.entries(values).filter(([, value]) => value.trim().length > 0);
+  if (entries.length === 0) return;
+
+  const assignments = entries
+    .map(([column]) => `${quoteIdentifier(column)} = ?`)
+    .join(", ");
+  await prismadb.$executeRawUnsafe(
+    `UPDATE ${quoteIdentifier("crm_Contacts")} SET ${assignments} WHERE ${quoteIdentifier("id")} = ?`,
+    ...entries.map(([, value]) => value),
+    contactId,
+  );
+}
+
 function getReferenceHeaderGroup(role: ContactRole) {
   switch (role) {
     case "Agent":
@@ -220,15 +530,26 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (rows.length > MAX_ROWS) {
-    return NextResponse.json(
-      { error: `Import limited to ${MAX_ROWS} rows per file` },
-      { status: 400 },
-    );
-  }
-
   const userId = session.user.id;
   const importBatchId = Date.now().toString(36).toUpperCase();
+  const allHeaders = getAllHeaders(rows);
+  const mappedColumns = getMappedColumns(mapping);
+  const mappedFields = new Set(
+    Object.entries(mapping)
+      .filter(([, column]) => Boolean(column) && column !== SKIP_VALUE)
+      .map(([field]) => field),
+  );
+  const contactCustomFields = await prismadb.custom_fields.findMany({
+    orderBy: { createdAt: "asc" },
+  });
+  const extraHeaders = allHeaders
+    .filter((header) => !mappedColumns.has(header))
+    .filter((header) => hasAnyValue(rows, header));
+  const {
+    standardHeaders,
+    customFieldHeaders,
+    importedHeaders,
+  } = classifyExtraHeaders(extraHeaders, contactCustomFields);
   const seenEmails = new Set<string>();
   const seenPhones = new Set<string>();
   const failures: Array<{ row: number; email: string | null; reason: string }> = [];
@@ -241,15 +562,27 @@ export async function POST(request: NextRequest) {
     data: Record<string, string>;
   }> = [];
 
+  const importedColumns = await ensureImportedContactColumns(importedHeaders);
+
   rows.forEach((row, index) => {
     const rowNumber = index + 2;
-    const email = mappedValue(row, mapping.email);
+    const detectedStandardValues = getDetectedStandardFieldValues(row, standardHeaders, mappedFields);
+    const mappedData = Object.fromEntries(
+      Object.entries(mapping)
+        .filter(([, column]) => Boolean(column) && column !== SKIP_VALUE)
+        .map(([field, column]) => [field, mappedValue(row, column)]),
+    );
+    const data = {
+      ...detectedStandardValues,
+      ...mappedData,
+    };
+    const email = data.email || "";
     const normalizedEmail = email ? normalizeEmail(email) : "";
-    const firstName = mappedValue(row, mapping.first_name);
-    const lastName = mappedValue(row, mapping.last_name);
-    const fullName = mappedValue(row, mapping.name);
-    const mobilePhone = mappedValue(row, mapping.mobile_phone);
-    const officePhone = mappedValue(row, mapping.office_phone);
+    const firstName = data.first_name || "";
+    const lastName = data.last_name || "";
+    const fullName = data.name || "";
+    const mobilePhone = data.mobile_phone || "";
+    const officePhone = data.office_phone || "";
     const normalizedMobilePhone = mobilePhone ? normalizePhone(mobilePhone) : "";
     const normalizedOfficePhone = officePhone ? normalizePhone(officePhone) : "";
     const computedName = fullName || [firstName, lastName].filter(Boolean).join(" ");
@@ -335,11 +668,7 @@ export async function POST(request: NextRequest) {
       normalizedMobilePhone,
       normalizedOfficePhone,
       rawRow: row,
-      data: Object.fromEntries(
-        Object.entries(mapping)
-          .filter(([, column]) => Boolean(column))
-          .map(([field, column]) => [field, mappedValue(row, column)]),
-      ),
+      data,
     });
   });
 
@@ -390,11 +719,12 @@ export async function POST(request: NextRequest) {
       email: true,
       mobile_phone: true,
       office_phone: true,
+      custom_fields_data: true,
     },
   });
 
-  const existingByEmail = new Map<string, { id: string; serial: string | null }>();
-  const existingByPhone = new Map<string, { id: string; serial: string | null }>();
+  const existingByEmail = new Map<string, ExistingContactMatch>();
+  const existingByPhone = new Map<string, ExistingContactMatch>();
 
   const uniqueAssignedUserValues = Array.from(
     new Set(candidates.map((candidate) => candidate.data.assigned_to?.trim()).filter(Boolean)),
@@ -467,13 +797,25 @@ export async function POST(request: NextRequest) {
       : "";
 
     if (normalizedEmail) {
-      existingByEmail.set(normalizedEmail, { id: contact.id, serial: contact.serial });
+      existingByEmail.set(normalizedEmail, {
+        id: contact.id,
+        serial: contact.serial,
+        custom_fields_data: contact.custom_fields_data,
+      });
     }
     if (mobilePhone) {
-      existingByPhone.set(mobilePhone, { id: contact.id, serial: contact.serial });
+      existingByPhone.set(mobilePhone, {
+        id: contact.id,
+        serial: contact.serial,
+        custom_fields_data: contact.custom_fields_data,
+      });
     }
     if (officePhone) {
-      existingByPhone.set(officePhone, { id: contact.id, serial: contact.serial });
+      existingByPhone.set(officePhone, {
+        id: contact.id,
+        serial: contact.serial,
+        custom_fields_data: contact.custom_fields_data,
+      });
     }
   });
 
@@ -548,7 +890,8 @@ export async function POST(request: NextRequest) {
           );
 
     const assignedToRaw = candidate.data.assigned_to?.trim() || "";
-    const assignedAccountRaw = candidate.data.assigned_account?.trim() || "";
+    const assignedAccountRaw =
+      candidate.data.assigned_account?.trim() || candidate.data.accountsIDs?.trim() || "";
     const contactTypeRaw = candidate.data.contact_type_id?.trim() || "";
     const resolvedAssignedTo = assignedToRaw ? userLookup.get(assignedToRaw) : undefined;
     const resolvedAssignedAccount = assignedAccountRaw
@@ -578,6 +921,23 @@ export async function POST(request: NextRequest) {
     }
 
     const normalizedRole = normalizeContactRole(resolvedRole);
+    const customFieldsForRole = contactCustomFields.filter((field) =>
+      fieldAppliesToEntity(field, "Contact", normalizedRole),
+    );
+    const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
+      getDetectedCustomFieldValues(candidate.rawRow, customFieldHeaders),
+      customFieldsForRole,
+    );
+    const mergedCustomFieldValues =
+      Object.keys(sanitizedCustomFieldValues).length > 0
+        ? mergeCustomFieldValues(existingMatch?.custom_fields_data, sanitizedCustomFieldValues)
+        : undefined;
+    const importedColumnValues = Object.fromEntries(
+      Array.from(importedColumns.entries()).flatMap(([header, column]) => {
+        const value = getImportedColumnValue(candidate.rawRow, header);
+        return value ? [[column, value] as const] : [];
+      }),
+    );
     const serial = findReferenceIdFromRow(candidate.rawRow, normalizedRole) ||
       parseSerial(candidate.data.serial || "");
     const resolvedSerial =
@@ -599,6 +959,9 @@ export async function POST(request: NextRequest) {
       website: normalizeOptionalText(candidate.data.website),
       position: normalizeOptionalText(candidate.data.position),
       description: normalizeOptionalText(candidate.data.description),
+      company: normalizeOptionalText(candidate.data.company),
+      jobTitle: normalizeOptionalText(candidate.data.jobTitle),
+      phone: normalizeOptionalText(candidate.data.phone),
       birthday: normalizeOptionalText(candidate.data.birthday),
       address: normalizeOptionalText(candidate.data.address),
       address_line1: normalizeOptionalText(candidate.data.address_line1),
@@ -611,12 +974,19 @@ export async function POST(request: NextRequest) {
       assigned_to: resolvedAssignedTo,
       accountsIDs: resolvedAssignedAccount,
       contact_type_id: resolvedContactType,
+      lead_source_id: normalizeOptionalText(candidate.data.lead_source_id),
+      lead_status_id: normalizeOptionalText(candidate.data.lead_status_id),
+      lead_type_id: normalizeOptionalText(candidate.data.lead_type_id),
+      refered_by: normalizeOptionalText(candidate.data.refered_by),
+      campaign: normalizeOptionalText(candidate.data.campaign),
       social_twitter: normalizeOptionalText(candidate.data.social_twitter),
       social_facebook: normalizeOptionalText(candidate.data.social_facebook),
       social_linkedin: normalizeOptionalText(candidate.data.social_linkedin),
       social_skype: normalizeOptionalText(candidate.data.social_skype),
+      social_instagram: normalizeOptionalText(candidate.data.social_instagram),
       social_youtube: normalizeOptionalText(candidate.data.social_youtube),
       social_tiktok: normalizeOptionalText(candidate.data.social_tiktok),
+      custom_fields_data: mergedCustomFieldValues,
       ...(await pickExistingDbModelFields("crm_Contacts", {
         role: normalizedRole,
       })),
@@ -632,6 +1002,7 @@ export async function POST(request: NextRequest) {
           } as any,
           select: { id: true },
         });
+        await updateImportedContactColumns(existingMatch.id, importedColumnValues);
         updated += 1;
       } else {
         const created = await prismadb.crm_Contacts.create({
@@ -645,15 +1016,28 @@ export async function POST(request: NextRequest) {
           } as any,
           select: { id: true },
         });
+        await updateImportedContactColumns(created.id, importedColumnValues);
 
         if (candidate.normalizedEmail) {
-          existingByEmail.set(candidate.normalizedEmail, { id: created.id, serial: resolvedSerial });
+          existingByEmail.set(candidate.normalizedEmail, {
+            id: created.id,
+            serial: resolvedSerial,
+            custom_fields_data: mergedCustomFieldValues,
+          });
         }
         if (candidate.normalizedMobilePhone) {
-          existingByPhone.set(candidate.normalizedMobilePhone, { id: created.id, serial: resolvedSerial });
+          existingByPhone.set(candidate.normalizedMobilePhone, {
+            id: created.id,
+            serial: resolvedSerial,
+            custom_fields_data: mergedCustomFieldValues,
+          });
         }
         if (candidate.normalizedOfficePhone) {
-          existingByPhone.set(candidate.normalizedOfficePhone, { id: created.id, serial: resolvedSerial });
+          existingByPhone.set(candidate.normalizedOfficePhone, {
+            id: created.id,
+            serial: resolvedSerial,
+            custom_fields_data: mergedCustomFieldValues,
+          });
         }
         imported += 1;
       }

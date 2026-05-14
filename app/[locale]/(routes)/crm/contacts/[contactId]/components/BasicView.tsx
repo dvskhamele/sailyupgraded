@@ -49,6 +49,9 @@ export async function BasicView({ data }: OppsViewProps) {
         .filter(Boolean)
     : [];
   const referenceId = getReferenceId(data);
+  const importedColumns = Array.isArray(data?.imported_columns_data)
+    ? data.imported_columns_data
+    : [];
   if (!data) return <div>Opportunity not found</div>;
   return (
     <div className="pb-3 space-y-5">
@@ -251,6 +254,27 @@ export async function BasicView({ data }: OppsViewProps) {
               values={data.custom_fields_data}
               contactRole={data.role}
             />
+            {importedColumns.length > 0 ? (
+              <div className="col-span-full border-t pt-4">
+                <div className="mb-3 flex items-center gap-2">
+                  <LayoutGrid className="h-5 w-5 text-muted-foreground" />
+                  <h3 className="text-sm font-semibold">Imported Fields</h3>
+                </div>
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                  {importedColumns.map((field: any) => (
+                    <div
+                      key={field.column}
+                      className="rounded-md border bg-muted/20 px-3 py-2"
+                    >
+                      <p className="text-sm font-medium leading-none">{field.label}</p>
+                      <p className="mt-1 break-words text-sm text-muted-foreground">
+                        {field.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </CardContent>
       </Card>
