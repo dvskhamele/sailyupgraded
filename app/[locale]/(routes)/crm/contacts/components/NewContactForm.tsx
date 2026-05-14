@@ -26,6 +26,8 @@ type NewContactFormProps = {
   initialValues?: Partial<UnifiedPersonFormValues>;
   defaultRole?: ContactRole;
   hideOpportunitySection?: boolean;
+  quickOpportunitySection?: boolean;
+  quickEmptyDefaults?: boolean;
 };
 
 export function NewContactForm({
@@ -41,6 +43,8 @@ export function NewContactForm({
   initialValues,
   defaultRole,
   hideOpportunitySection = false,
+  quickOpportunitySection = false,
+  quickEmptyDefaults = false,
 }: NewContactFormProps) {
   const t = useTranslations("CrmContactForm");
 
@@ -59,6 +63,8 @@ export function NewContactForm({
       saleStages={saleStages}
       products={products}
       hideOpportunitySection={hideOpportunitySection}
+      quickOpportunitySection={quickOpportunitySection}
+      quickEmptyDefaults={quickEmptyDefaults}
       initialValues={{
         role: defaultRole,
         ...initialValues,

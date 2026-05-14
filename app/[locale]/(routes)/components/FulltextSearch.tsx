@@ -8,7 +8,6 @@ import React, { useMemo, useState, useEffect, useTransition } from "react";
 import { toast } from "sonner";
 import useDebounce from "@/hooks/useDebounce";
 import { searchContacts, ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
-import { searchUsers } from "@/actions/user/search-users";
 import { getQuickInputMemory } from "@/actions/crm/quick-input/get-quick-input-memory";
 import { getQuickOpportunityFormOptions } from "@/actions/crm/quick-input/get-quick-opportunity-form-options";
 import {
@@ -35,7 +34,6 @@ import { getContactFormOptions } from "@/actions/crm/contacts/get-contact-form-o
 import type { UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
 import {
   buildQuickContactValues,
-  buildQuickOpportunityDefaults,
   buildQuickSuggestions,
   loadQuickMemory,
   rememberQuickValues,
@@ -43,6 +41,105 @@ import {
   type QuickMemory,
   type QuickSuggestion,
 } from "@/lib/crm/quick-input-engine";
+import { extractOpportunitySignals } from "@/lib/smart-contact-input";
+
+function hasEmailInput(value: string) {
+  return /[a-zA-Z0-9._%+-]+\s*@\s*[a-zA-Z0-9.-]+/i.test(value);
+}
+
+function hasLocationInput(value: string) {
+  return /\b(?:address|city|state|country|zip|postal|india|usa|united states|dallas|houston|texas|indore|delhi|mumbai|pune|bhopal)\b/i.test(value);
+}
+
+function hasRoleInput(value: string) {
+  return /\b(?:role|agent|customer|client|partner|vendor|other)\b/i.test(value);
+}
+
+function normalizeAmount(value: string, unit = "") {
+  const amount = Number(value.replace(/,/g, ""));
+  if (!Number.isFinite(amount)) return "";
+
+  const normalizedUnit = unit.toLowerCase();
+  if (["lakh", "lac"].includes(normalizedUnit)) return String(Math.round(amount * 100000));
+  if (["cr", "crore"].includes(normalizedUnit)) return String(Math.round(amount * 10000000));
+  if (["grand", "k"].includes(normalizedUnit)) return String(Math.round(amount * 1000));
+  if (["m", "million"].includes(normalizedUnit)) return String(Math.round(amount * 1000000));
+
+  return String(amount);
+}
+
+function extractAmountByLabels(input: string, labels: string[]) {
+  const labelPattern = labels.map((label) => label.replace(/\s+/g, "\\s+")).join("|");
+  const unitPattern = "(lakh|lac|grand|k|m|million|cr|crore)?";
+  const afterLabel = new RegExp(
+    `\\b(?:${labelPattern})\\s*[:\\-]?\\s*\\$?\\s*([\\d,]+(?:\\.\\d+)?)\\s*${unitPattern}\\b`,
+    "i",
+  );
+  const beforeLabel = new RegExp(
+    `\\b\\$?\\s*([\\d,]+(?:\\.\\d+)?)\\s*${unitPattern}\\s*(?:${labelPattern})\\b`,
+    "i",
+  );
+  const match = input.match(afterLabel) ?? input.match(beforeLabel);
+
+  return match ? normalizeAmount(match[1], match[2] ?? "") : "";
+}
+
+function matchDetectedProducts(productNames: string[], products: { name: string }[] = []) {
+  return productNames.flatMap((name) => {
+    const normalizedName = name.toLowerCase();
+    const product = products.find((item) => {
+      const normalizedProduct = item.name.toLowerCase();
+      return normalizedProduct === normalizedName ||
+        normalizedProduct.includes(normalizedName) ||
+        normalizedName.includes(normalizedProduct);
+    });
+
+    return product ? [product.name] : [];
+  });
+}
+
+function buildSearchContactInitialValues(
+  input: string,
+  options: Awaited<ReturnType<typeof getContactFormOptions>>,
+): Partial<UnifiedPersonFormValues> {
+  const parsed = buildQuickContactValues(input, {
+    accounts: options.accounts,
+    contactTypes: options.contactTypes,
+    leadSources: options.leadSources,
+    leadStatuses: options.leadStatuses,
+    leadTypes: options.leadTypes,
+    assignedTo: "",
+  });
+  const signals = extractOpportunitySignals(input);
+  const detectedProducts = matchDetectedProducts(signals.products, options.products);
+  const detectedBudget = extractAmountByLabels(input, ["budget", "premium", "monthly"]);
+  const detectedFaceAmount =
+    extractAmountByLabels(input, ["face amount", "coverage", "cover", "policy"]) ||
+    (!detectedBudget ? signals.budget : "");
+  const hasOpportunityValues =
+    detectedProducts.length > 0 || Boolean(detectedBudget) || Boolean(detectedFaceAmount);
+
+  return {
+    ...parsed,
+    serial: "",
+    email: hasEmailInput(input) ? parsed.email ?? "" : "",
+    personal_email: hasEmailInput(input) ? parsed.personal_email ?? "" : "",
+    country: hasLocationInput(input) ? parsed.country ?? "" : "",
+    role: hasRoleInput(input) ? parsed.role ?? "" : "",
+    contact_type_id: "",
+    lead_status_id: "",
+    lead_type_id: "",
+    assigned_to: "",
+    status: null,
+    opportunity_enabled: hasOpportunityValues,
+    opportunity_products: detectedProducts,
+    opportunity_budget: detectedBudget,
+    opportunity_premium: detectedFaceAmount,
+    opportunity_name: "",
+    opportunity_stage_id: "",
+    opportunity_description: "",
+  };
+}
 
 const FulltextSearch = () => {
   const [search, setSearch] = useState("");
@@ -139,25 +236,15 @@ const FulltextSearch = () => {
 
   const openAddContact = async () => {
     try {
-      const [options, users] = await Promise.all([
-        getContactFormOptions(),
-        searchUsers({ take: 1 }),
-      ]);
-      const assignedTo =" ";
-
-      const parsedInitialValues = buildQuickContactValues(search, {
-        accounts: options.accounts,
-        contactTypes: options.contactTypes,
-        leadSources: options.leadSources,
-        leadStatuses: options.leadStatuses,
-        leadTypes: options.leadTypes,
-        assignedTo,
-      });
+      const options = await getContactFormOptions();
+      const assignedTo = "";
+      const parsedInitialValues = buildSearchContactInitialValues(search, options);
 
       setFormOptions(options);
       setInitialValues(parsedInitialValues);
       setAssignedUserId(assignedTo);
     } catch {
+      const parsedFallbackValues = buildQuickContactValues(search);
       setFormOptions({
         accounts: [],
         contactTypes: [],
@@ -166,23 +253,28 @@ const FulltextSearch = () => {
         leadTypes: [],
         products: [],
       });
-      setInitialValues(buildQuickContactValues(search));
+      setInitialValues({
+        ...parsedFallbackValues,
+        serial: "",
+        contact_type_id: "",
+        lead_status_id: "",
+        lead_type_id: "",
+        assigned_to: "",
+        role: hasRoleInput(search) ? parsedFallbackValues.role ?? "" : "",
+        country: hasLocationInput(search) ? parsedFallbackValues.country ?? "" : "",
+        status: null,
+      });
     }
     setDialogOpen(true);
     setOpen(false);
   };
 
-  const handleCreated = async (contact: unknown, submittedData: UnifiedPersonFormValues) => {
-    const contactId = typeof contact === "object" && contact && "id" in contact
-      ? String((contact as { id?: string }).id ?? "")
-      : "";
+  const handleCreated = async (_contact: unknown, submittedData: UnifiedPersonFormValues) => {
+    const contactId =
+      typeof _contact === "object" && _contact && "id" in _contact
+        ? String((_contact as { id?: string }).id ?? "")
+        : "";
     const values = submittedData;
-    const opportunityDefaults = buildQuickOpportunityDefaults({
-      contactId,
-      contactValues: values,
-      dbMemory,
-      assignedTo: assignedUserId,
-    });
     const loadedOpportunityOptions = await getQuickOpportunityFormOptions();
     const contactOption = {
       id: contactId,
@@ -197,7 +289,7 @@ const FulltextSearch = () => {
         names: [values.first_name, values.last_name].filter(Boolean).join(" "),
         companies: values.company,
         cities: values.city,
-        dealValues: opportunityDefaults.budget,
+        dealValues: values.opportunity_budget || values.opportunity_premium,
         sources: values.campaign ?? "",
         agentNumbers: values.serial,
         emails: values.email,
@@ -211,15 +303,22 @@ const FulltextSearch = () => {
         : loadedOpportunityOptions.contacts,
     });
     setOpportunityInitialValues({
-      ...opportunityDefaults,
+      name: [values.first_name, values.last_name, "Opportunity"].filter(Boolean).join(" "),
       account: values.assigned_account ?? "",
       contact: contactId,
-      category: values.opportunity_products ?? opportunityDefaults.category,
-      budget: values.opportunity_budget || opportunityDefaults.budget,
-      description: values.description ?? search,
+      category: values.opportunity_products ?? [],
+      budget: values.opportunity_budget ?? "",
+      expected_revenue: values.opportunity_premium ?? "",
+      sales_stage: dbMemory.defaultSalesStageId ?? "",
+      type: dbMemory.defaultOpportunityTypeId ?? "",
+      currency: dbMemory.defaultCurrency || "USD",
+      description: "",
+      next_step: "",
+      campaign: "",
+      assigned_to: assignedUserId,
     });
     setOpportunityDialogOpen(true);
-    toast.success("Contact created. Opportunity form is ready.");
+    toast.success("Contact saved. Opportunity form is ready.");
   };
 
   return (
@@ -339,7 +438,8 @@ const FulltextSearch = () => {
               }}
               onCreated={handleCreated}
               initialValues={initialValues}
-              hideOpportunitySection
+              quickOpportunitySection
+              quickEmptyDefaults
             />
           )}
         </DialogContent>

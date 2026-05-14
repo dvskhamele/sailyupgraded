@@ -209,8 +209,8 @@ export const unifiedPersonFormSchema = z.object({
   country: z.string().optional().nullable(),
   postal_code: z.string().optional().nullable(),
   position: z.string().optional().nullable(),
-  status: z.boolean(),
-  role: z.enum(CONTACT_ROLE_OPTIONS),
+  status: z.boolean().nullable().optional(),
+  role: z.union([z.enum(CONTACT_ROLE_OPTIONS), z.literal("")]).optional(),
   contact_type_id: z.string().optional().nullable(),
   lead_source_id: z.string().optional().nullable(),
   lead_status_id: z.string().optional().nullable(),
@@ -256,6 +256,8 @@ type UnifiedPersonFormProps = {
   products?: Option[];
   initialValues?: Partial<UnifiedPersonFormValues>;
   hideOpportunitySection?: boolean;
+  quickOpportunitySection?: boolean;
+  quickEmptyDefaults?: boolean;
   onSubmitAction: (
     data: UnifiedPersonFormValues,
   ) => Promise<{ error?: string; data?: unknown } | undefined>;
@@ -280,6 +282,8 @@ export function UnifiedPersonForm({
   products = [],
   initialValues,
   hideOpportunitySection = false,
+  quickOpportunitySection = false,
+  quickEmptyDefaults = false,
   onSubmitAction,
   onSuccess,
 }: UnifiedPersonFormProps) {
@@ -334,7 +338,7 @@ export function UnifiedPersonForm({
       address_line2: "",
       city: "",
       state: "",
-      country: "United States",
+      country: quickEmptyDefaults ? "" : "United States",
       postal_code: "",
       position: "",
       contact_type_id: defaultContactTypeId,
@@ -362,8 +366,8 @@ export function UnifiedPersonForm({
       opportunity_description: "",
       custom_fields_data: {},
       ...initialValues,
-      status: initialValues?.status ?? true,
-      role: normalizeContactRole(initialValues?.role),
+      status: initialValues?.status ?? (quickEmptyDefaults ? null : true),
+      role: initialValues?.role ?? (quickEmptyDefaults ? "" : normalizeContactRole(initialValues?.role)),
     },
   });
 
@@ -375,6 +379,10 @@ export function UnifiedPersonForm({
     !hideOpportunitySection &&
     entityType === "Contact" &&
     normalizeContactRole(selectedRole) === "Customer";
+  const showInlineOpportunitySection =
+    canShowOpportunitySection && quickOpportunitySection;
+  const showToggleOpportunitySection =
+    canShowOpportunitySection && !quickOpportunitySection;
   const selectedOpportunityProducts = form.watch("opportunity_products") ?? [];
   const firstSelectedOpportunityProduct = selectedOpportunityProducts[0] ?? "";
   const stateOptions = getStateOptions(selectedCountry, selectedState);
@@ -385,23 +393,59 @@ export function UnifiedPersonForm({
       ? [{ label: selectedCountry, value: selectedCountry }, ...COUNTRY_OPTIONS]
       : COUNTRY_OPTIONS;
   const handleSubmit = async (data: UnifiedPersonFormValues) => {
-    const submittedData = !canShowOpportunitySection
-      ? {
-          ...data,
-          opportunity_enabled: false,
-          opportunity_name: "",
-          opportunity_products: [],
-          opportunity_budget: "",
-          opportunity_premium: "",
-          opportunity_stage_id: "",
-          opportunity_description: "",
-        }
-      : data;
+    let submittedData = data;
+    let actionData = data;
+
+    if (!canShowOpportunitySection) {
+      actionData = {
+        ...data,
+        status: data.status ?? true,
+        role: data.role || "Customer",
+        opportunity_enabled: false,
+        opportunity_name: "",
+        opportunity_products: [],
+        opportunity_budget: "",
+        opportunity_premium: "",
+        opportunity_stage_id: "",
+        opportunity_description: "",
+      };
+      submittedData = actionData;
+    } else if (quickOpportunitySection) {
+      actionData = {
+        ...data,
+        status: data.status ?? true,
+        role: data.role || "Customer",
+        opportunity_enabled: false,
+        opportunity_name: "",
+        opportunity_products: [],
+        opportunity_budget: "",
+        opportunity_premium: "",
+        opportunity_stage_id: "",
+        opportunity_description: "",
+      };
+      submittedData = {
+        ...data,
+        status: data.status ?? true,
+        role: data.role || "Customer",
+        opportunity_enabled: Boolean(
+          data.opportunity_products?.length ||
+            data.opportunity_budget ||
+            data.opportunity_premium,
+        ),
+      };
+    } else {
+      actionData = {
+        ...data,
+        status: data.status ?? true,
+        role: data.role || "Customer",
+      };
+      submittedData = actionData;
+    }
 
     let result: { error?: string; data?: unknown } | undefined;
 
     try {
-      result = await onSubmitAction(submittedData);
+      result = await onSubmitAction(actionData);
     } catch (error) {
       const message =
         error instanceof Error && error.message
@@ -429,11 +473,11 @@ export function UnifiedPersonForm({
         opportunity_premium: "",
         opportunity_stage_id: defaultOpportunityStage,
         opportunity_description: "",
-        status: true,
-        role: normalizeContactRole(initialValues?.role),
+        status: quickEmptyDefaults ? null : true,
+        role: initialValues?.role ?? (quickEmptyDefaults ? "" : normalizeContactRole(initialValues?.role)),
       });
     }
-    await onSuccess(result, data);
+    await onSuccess(result, submittedData);
   };
 
   useEffect(() => {
@@ -551,7 +595,7 @@ export function UnifiedPersonForm({
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Role</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <Select onValueChange={field.onChange} value={field.value ?? ""}>
                     <FormControl>
                       <SelectTrigger>
                         <SelectValue placeholder="Select role" />
@@ -1167,7 +1211,7 @@ export function UnifiedPersonForm({
                       onValueChange={(value) =>
                         field.onChange(value === "active")
                       }
-                      value={field.value ? "active" : "inactive"}
+                      value={field.value == null ? "" : field.value ? "active" : "inactive"}
                     >
                       <FormControl>
                         <SelectTrigger>
@@ -1530,7 +1574,7 @@ export function UnifiedPersonForm({
               />
             </div>
 
-            {canShowOpportunitySection && (
+            {showToggleOpportunitySection && (
               <Button
                 type="button"
                 variant={opportunityEnabled ? "secondary" : "outline"}
@@ -1546,7 +1590,7 @@ export function UnifiedPersonForm({
               </Button>
             )}
 
-            {canShowOpportunitySection && opportunityEnabled && (
+            {showToggleOpportunitySection && opportunityEnabled && (
               <div className="space-y-4 border-t pt-5">
                 <h3 className="text-sm font-semibold">Create Opportunity</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -1690,6 +1734,86 @@ export function UnifiedPersonForm({
               </div>
             )}
             </ExtraFieldsCollapsible>
+
+            {showInlineOpportunitySection && (
+              <div className="space-y-4 border-t pt-5">
+                <h3 className="text-sm font-semibold">Create Opportunity</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="opportunity_products"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Product</FormLabel>
+                        <Select
+                          value={(field.value ?? [])[0] ?? ""}
+                          onValueChange={(value) =>
+                            field.onChange(value ? [value] : [])
+                          }
+                          disabled={form.formState.isSubmitting}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue
+                                placeholder={
+                                  products.length > 0
+                                    ? "Select product"
+                                    : "No active products"
+                                }
+                              />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent className="max-h-56">
+                            {products.map((product) => (
+                              <SelectItem key={product.id} value={product.name}>
+                                {product.name}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="opportunity_budget"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Budget</FormLabel>
+                        <FormControl>
+                          <CurrencyInput
+                            disabled={form.formState.isSubmitting}
+                            placeholder="0"
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="opportunity_premium"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Face Amount</FormLabel>
+                        <FormControl>
+                          <CurrencyInput
+                            disabled={form.formState.isSubmitting}
+                            placeholder="1000000"
+                            value={field.value ?? ""}
+                            onChange={field.onChange}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
