@@ -58,7 +58,7 @@ const ContactsViewClient = ({ data, crmData, activeRole, labels: providedLabels 
             </CardTitle>
           </div>
           <div className="flex space-x-2">
-            <ImportContactsDialog />
+            <ImportContactsDialog importRole={roleView.defaultCreateRole} />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button size="sm" aria-label={labels.addNew} data-testid="add-contact-btn">+</Button>

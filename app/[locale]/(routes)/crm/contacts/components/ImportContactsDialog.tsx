@@ -262,7 +262,11 @@ function suggestMapping(headers: string[]): ColumnMapping {
   return defaults;
 }
 
-export function ImportContactsDialog() {
+type ImportContactsDialogProps = {
+  importRole?: string;
+};
+
+export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -409,6 +413,7 @@ export function ImportContactsDialog() {
           rows,
           mapping,
           duplicateMode,
+          importRole,
         }),
       });
 

@@ -508,6 +508,9 @@ export async function POST(request: NextRequest) {
   const mapping = (body?.mapping || {}) as ColumnMapping;
   const duplicateMode =
     body?.duplicateMode === "update" ? "update" : "skip";
+  const importRole = detectContactRole(
+    typeof body?.importRole === "string" ? body.importRole : undefined,
+  );
 
   if (!mapping.name && !mapping.last_name) {
     return NextResponse.json(
@@ -908,6 +911,7 @@ export async function POST(request: NextRequest) {
       candidate.data.role,
     );
     const resolvedRole =
+      importRole ??
       detectContactRole(candidate.data.role) ??
       inferredRoleFromIdentifier;
 
