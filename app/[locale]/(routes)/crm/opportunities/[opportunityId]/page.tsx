@@ -22,7 +22,7 @@ import { ActivitiesSection } from "./components/ActivitiesSection";
 
 const OpportunityView = async (
   props: {
-    params: Promise<{ opportunityId: string }>;
+    params: Promise<{ locale: string; opportunityId: string }>;
   }
 ) => {
   const params = await props.params;

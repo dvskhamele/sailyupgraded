@@ -10,6 +10,7 @@ import { ActivitiesSection } from "./components/ActivitiesSection";
 
 interface LeadDetailPageProps {
   params: Promise<{
+    locale: string;
     leadId: string;
   }>;
 }
