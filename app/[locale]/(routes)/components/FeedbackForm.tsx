@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { Icons } from "@/components/ui/icons";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 const formSchema = z.object({
   feedback: z.string().min(1, {
@@ -37,6 +38,10 @@ const FeedbackForm = ({ setOpen }: FeedbackFormProps) => {
   const form = useForm({
     resolver: zodResolver(formSchema),
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: "feedback-form-draft",
+    form,
+  });
 
   const onSubmit = async (data: any) => {
     setLoading(true);
@@ -45,6 +50,7 @@ const FeedbackForm = ({ setOpen }: FeedbackFormProps) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success("Thank you for your feedback.");
         setOpen(false);
       }

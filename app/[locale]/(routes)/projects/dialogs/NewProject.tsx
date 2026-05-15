@@ -38,6 +38,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createProject } from "@/actions/projects/create-project";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 const NewProjectDialog = () => {
   const [open, setOpen] = useState(false);
@@ -58,6 +59,11 @@ const NewProjectDialog = () => {
   const form = useForm<NewAccountFormValues>({
     resolver: zodResolver(formSchema),
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: "project-create-draft",
+    form,
+    enabled: open,
+  });
 
   if (!isHydrated) {
     return null;
@@ -73,6 +79,7 @@ const NewProjectDialog = () => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`New project: ${data.title}, created successfully`);
       }
     } catch (error: any) {

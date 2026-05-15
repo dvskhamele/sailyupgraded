@@ -21,6 +21,7 @@ import { AccountSearchCombobox } from "@/components/ui/account-search-combobox";
 import { INVOICE_TYPES } from "@/types/invoice";
 import { createInvoice } from "@/actions/invoices/create-invoice";
 import { updateInvoice } from "@/actions/invoices/update-invoice";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 interface Product {
   id: string;
@@ -164,6 +165,39 @@ export function InvoiceForm({
       },
     ];
   });
+  const invoiceDraft = {
+    type,
+    accountId,
+    seriesId,
+    currency,
+    dueDate,
+    bankName,
+    iban,
+    swift,
+    variableSymbol,
+    publicNotes,
+    internalNotes,
+    lineItems,
+  };
+  const { clearDraft } = useAutoSaveForm({
+    key: `invoice-${isEdit ? `update-${initialData.id}` : "create"}-draft`,
+    data: invoiceDraft,
+    setData: (value) => {
+      const next = typeof value === "function" ? value(invoiceDraft) : value;
+      setType(next.type ?? "INVOICE");
+      setAccountId(next.accountId ?? "");
+      setSeriesId(next.seriesId ?? "");
+      setCurrency(next.currency ?? settings?.baseCurrency ?? "USD");
+      setDueDate(next.dueDate ?? "");
+      setBankName(next.bankName ?? "");
+      setIban(next.iban ?? "");
+      setSwift(next.swift ?? "");
+      setVariableSymbol(next.variableSymbol ?? "");
+      setPublicNotes(next.publicNotes ?? "");
+      setInternalNotes(next.internalNotes ?? "");
+      setLineItems(next.lineItems ?? []);
+    },
+  });
 
   const getTaxRateValue = (taxRateId: string) => {
     const tr = taxRates.find((t) => t.id === taxRateId);
@@ -218,6 +252,7 @@ export function InvoiceForm({
         ? await updateInvoice(initialData.id, body)
         : await createInvoice(body);
 
+      clearDraft();
       toast.success(isEdit ? "Invoice updated" : "Invoice created");
       router.push(`/invoices/${result.id}`);
     } catch (err) {

@@ -8,6 +8,7 @@ import { Step1Details } from "./Step1Details";
 import { Step2Template } from "./Step2Template";
 import { Step3Audience } from "./Step3Audience";
 import { Step4Schedule } from "./Step4Schedule";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 type Template = {
   id: string;
@@ -58,6 +59,15 @@ export function WizardShell({
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState<FormData>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const { clearDraft } = useAutoSaveForm({
+    key: "campaign-create-wizard-draft",
+    data: { step, formData },
+    setData: (value) => {
+      const next = typeof value === "function" ? value({ step, formData }) : value;
+      setStep(next.step ?? 1);
+      setFormData(next.formData ?? {});
+    },
+  });
 
   const handleNext = (data: Partial<FormData>) => {
     setFormData((prev) => ({ ...prev, ...data }));
@@ -96,6 +106,7 @@ export function WizardShell({
         await scheduleCampaign(campaign.id, merged.scheduled_at);
       }
 
+      clearDraft();
       router.push("/campaigns");
     } finally {
       setIsSubmitting(false);

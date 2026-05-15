@@ -61,7 +61,7 @@ const ContactViewPage = async (props: any) => {
               <BasicView data={contact} />
               <ActivitiesSection contactId={contact.id} initialData={activities} />
               <ContactProductsSection products={products} />
-              <FindSimilarButton entityType="contact" recordId={contactId} />
+              <FindSimilarButton entityType="contact" recordId={contactId} locale={params.locale} />
             </div>
             {/* <ContactActivitySidebar
               contactId={contact.id}

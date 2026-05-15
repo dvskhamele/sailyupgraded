@@ -89,7 +89,7 @@ type ImportResult = {
 
 const SKIP_VALUE = "__skip__";
 const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
-  { key: "serial", label: "Reference ID" },
+  { key: "serial", label: " ID" },
   { key: "name", label: "Full name" },
   { key: "first_name", label: "First name" },
   { key: "last_name", label: "Last name" },

@@ -35,7 +35,7 @@ const LeadDetailPage = async (props: LeadDetailPageProps) => {
           <div className="space-y-5">
             <BasicView data={lead} />
             <ActivitiesSection leadId={lead.id} />
-            <FindSimilarButton entityType="lead" recordId={leadId} />
+            <FindSimilarButton entityType="lead" recordId={leadId} locale={params.locale} />
             {/*         <DocumentsView data={lead?.documents} /> */}
           </div>
         </TabsContent>

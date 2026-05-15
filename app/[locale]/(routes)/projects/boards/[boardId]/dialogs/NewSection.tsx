@@ -30,6 +30,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useTranslations } from "next-intl";
 import { createSection } from "@/actions/projects/create-section";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type Props = {
   boardId: string;
@@ -52,6 +53,11 @@ const NewSectionDialog = ({ boardId }: Props) => {
   const form = useForm<NewAccountFormValues>({
     resolver: zodResolver(formSchema),
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `project-board-${boardId}-section-create-dialog-draft`,
+    form,
+    enabled: open,
+  });
 
   if (!isHydrated) {
     return null;
@@ -66,6 +72,7 @@ const NewSectionDialog = ({ boardId }: Props) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`New section: ${data.title}, created successfully`);
       }
     } catch (error: any) {

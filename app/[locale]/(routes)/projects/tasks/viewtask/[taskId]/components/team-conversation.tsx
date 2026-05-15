@@ -28,6 +28,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { addCommentToTask } from "@/actions/projects/add-comment-to-task";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 const FormSchema = z.object({
   comment: z.string().min(3).max(160),
@@ -48,6 +49,10 @@ export function TeamConversations({
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `project-task-${taskId}-comment-draft`,
+    form,
+  });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsLoading(true);
@@ -56,6 +61,7 @@ export function TeamConversations({
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success("Success");
       }
     } catch (error) {

@@ -39,6 +39,7 @@ import { HistoryTab } from "./components/HistoryTab";
 
 interface AccountDetailPageProps {
   params: Promise<{
+    locale: string;
     accountId: string;
   }>;
 }
@@ -82,7 +83,7 @@ const AccountDetailPage = async (props: AccountDetailPageProps) => {
           <div className="space-y-5">
             <BasicView data={account} />
             <ActivitiesSection accountId={account.id} />
-            <FindSimilarButton entityType="account" recordId={accountId} />
+            <FindSimilarButton entityType="account" recordId={accountId} locale={params.locale} />
             <AccountsTasksView data={tasks} account={account} />
             <OpportunitiesView
               data={opportunities}

@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { createConfigValue, type CrmConfigType } from "../_actions/crm-settings";
 import { toast } from "sonner";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 interface Props {
   configType: CrmConfigType;
@@ -17,12 +18,22 @@ export function ConfigAddDialog({ configType, label }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [loading, setLoading] = useState(false);
+  const { clearDraft } = useAutoSaveForm({
+    key: `crm-config-${configType}-add-draft`,
+    data: { name },
+    setData: (value) => {
+      const next = typeof value === "function" ? value({ name }) : value;
+      setName(next.name ?? "");
+    },
+    enabled: open,
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       await createConfigValue(configType, name);
+      clearDraft();
       toast.success(`${label} added`);
       setName("");
       setOpen(false);

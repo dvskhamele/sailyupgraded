@@ -1,6 +1,10 @@
 import { Prisma } from "@prisma/client";
 import { prismadb } from "@/lib/prisma";
 
+declare global {
+  var cachedPrismaDbColumnNames: Map<string, Promise<Set<string>>> | undefined;
+}
+
 function getModelFieldNames(modelName: string) {
   const model = Prisma.dmmf.datamodel.models.find((entry) => entry.name === modelName);
   return new Set(model?.fields.map((field) => field.name) ?? []);
@@ -10,9 +14,16 @@ function getModelMetadata(modelName: string) {
   return Prisma.dmmf.datamodel.models.find((entry) => entry.name === modelName);
 }
 
-const dbColumnCache = new Map<string, Promise<Set<string>>>();
+function getDbColumnCache() {
+  if (!global.cachedPrismaDbColumnNames) {
+    global.cachedPrismaDbColumnNames = new Map<string, Promise<Set<string>>>();
+  }
 
-async function getDbColumnNames(modelName: string) {
+  return global.cachedPrismaDbColumnNames;
+}
+
+export async function getExistingDbColumnNames(modelName: string) {
+  const dbColumnCache = getDbColumnCache();
   const cached = dbColumnCache.get(modelName);
   if (cached) return cached;
 
@@ -26,6 +37,7 @@ async function getDbColumnNames(modelName: string) {
       FROM INFORMATION_SCHEMA.COLUMNS
       WHERE TABLE_SCHEMA = DATABASE()
         AND TABLE_NAME = ${tableName}
+      ORDER BY ORDINAL_POSITION
     `;
 
     return new Set(rows.map((row) => row.COLUMN_NAME));
@@ -60,7 +72,7 @@ export async function pickExistingDbModelFields<T extends Record<string, unknown
   if (!model) return {} as Partial<T>;
 
   const supportedFields = getModelFieldNames(modelName);
-  const dbColumns = await getDbColumnNames(modelName);
+  const dbColumns = await getExistingDbColumnNames(modelName);
   const dbFieldNames = new Set(
     model.fields
       .filter((field) => field.kind === "scalar" || field.kind === "enum")

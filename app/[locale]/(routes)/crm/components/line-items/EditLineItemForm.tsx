@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/sheet";
 
 import type { LineItemData } from "./LineItemsTable";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 interface EditLineItemFormProps {
   item: LineItemData;
@@ -35,12 +36,19 @@ const EditLineItemForm = ({
   action,
 }: EditLineItemFormProps) => {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [discountType, setDiscountType] = useState<string>(
     item.discount_value === 0 ? "NONE" : item.discount_type
   );
+  const { clearDraft } = useAutoSaveDomForm({
+    key: `crm-line-item-update-${item.id}-draft`,
+    formRef,
+    enabled: open,
+  });
 
   const { execute, fieldErrors, isLoading } = useAction(action, {
     onSuccess: () => {
+      clearDraft();
       toast.success("Line item updated");
       onOpenChange(false);
       router.refresh();
@@ -80,7 +88,7 @@ const EditLineItemForm = ({
           <SheetDescription>Update the line item details</SheetDescription>
         </SheetHeader>
         <div className="mt-6 space-y-4">
-          <form action={onAction} className="space-y-4">
+          <form ref={formRef} action={onAction} className="space-y-4">
             <FormInput
               id="name"
               label="Name"

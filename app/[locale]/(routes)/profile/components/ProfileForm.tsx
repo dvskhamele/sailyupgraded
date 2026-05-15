@@ -27,6 +27,7 @@ import { Input } from "@/components/ui/input";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { updateProfile } from "@/actions/user/update-profile";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 interface ProfileFormProps {
   data: any;
@@ -62,6 +63,10 @@ export function ProfileForm({ data }: ProfileFormProps) {
           account_name: "",
         },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `profile-${data?.id ?? "current"}-draft`,
+    form,
+  });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     try {
@@ -78,6 +83,7 @@ export function ProfileForm({ data }: ProfileFormProps) {
         return;
       }
 
+      clearDraft();
       toast.success("Profile saved successfully");
       router.refresh();
     } catch (error) {

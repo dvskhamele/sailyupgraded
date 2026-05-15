@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 
@@ -21,6 +21,7 @@ import { FormSelect } from "@/components/form/from-select";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { getAccounts } from "@/actions/crm/accounts/get-accounts";
 import { getCurrencies } from "@/actions/crm/get-currencies";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 const UpdateContractForm = ({
   onOpen,
@@ -32,7 +33,13 @@ const UpdateContractForm = ({
   data: any;
 }) => {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [assignedTo, setAssignedTo] = useState<string>(data.assigned_to ?? "");
+  const { clearDraft } = useAutoSaveDomForm({
+    key: `crm-contract-update-${data?.id ?? "unknown"}-draft`,
+    formRef,
+    enabled: onOpen,
+  });
   const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
   const [currencies, setCurrencies] = useState<{ code: string; name: string; symbol: string }[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -60,6 +67,7 @@ const UpdateContractForm = ({
 
   const { execute, fieldErrors, isLoading } = useAction(updateContract, {
     onSuccess: () => {
+      clearDraft();
       toast.success("Contract updated successfully!");
       setOpen(false);
       router.refresh();
@@ -119,7 +127,7 @@ const UpdateContractForm = ({
           <Loader2 className="h-6 w-6 animate-spin" />
         </div>
       ) : (
-        <form action={onAction} className="space-y-4">
+        <form ref={formRef} action={onAction} className="space-y-4">
           <FormInput
             id="title"
             label="Title"

@@ -11,6 +11,7 @@ import { FormInput } from "@/components/form/form-input";
 import FormSheet from "@/components/sheets/form-sheet";
 import { FormSubmit } from "@/components/form/form-submit";
 import { FormTextarea } from "@/components/form/form-textarea";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 interface Product {
   id: string;
@@ -34,11 +35,17 @@ const AddLineItemForm = ({
 }: AddLineItemFormProps) => {
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [discountType, setDiscountType] = useState<string>("NONE");
   const [selectedProductId, setSelectedProductId] = useState<string>("");
+  const { clearDraft } = useAutoSaveDomForm({
+    key: `crm-${parentIdField}-${parentId}-line-item-create-draft`,
+    formRef,
+  });
 
   const { execute, fieldErrors, isLoading } = useAction(action, {
     onSuccess: () => {
+      clearDraft();
       toast.success("Line item added");
       closeRef.current?.click();
       router.refresh();
@@ -85,7 +92,7 @@ const AddLineItemForm = ({
       description="Add a product or custom line item"
       onClose={closeRef}
     >
-      <form action={onAction} className="space-y-4">
+      <form ref={formRef} action={onAction} className="space-y-4">
         <div className="space-y-2">
           <label className="text-xs font-semibold text-neutral-700">
             Product (optional)

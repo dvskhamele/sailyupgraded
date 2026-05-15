@@ -24,7 +24,7 @@ const DocumentsView = ({ data, accountId }: DocumentsViewProps) => {
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      {/* <CardHeader className="pb-3">
         <div className="flex justify-between">
           <div>
             <CardTitle
@@ -47,7 +47,7 @@ const DocumentsView = ({ data, accountId }: DocumentsViewProps) => {
         ) : (
           <DocumentsDataTable data={data} columns={columns} />
         )}
-      </CardContent>
+      </CardContent> */}
     </Card>
   );
 };

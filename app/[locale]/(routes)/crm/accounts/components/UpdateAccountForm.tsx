@@ -32,6 +32,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { updateAccount } from "@/actions/crm/accounts/update-account";
 import { getIndustries } from "@/actions/crm/get-industries";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 interface UpdateAccountFormProps {
   //TODO: fix this any
@@ -148,12 +149,18 @@ export function UpdateAccountForm({
     mode: "onBlur",
     defaultValues: normalizeAccountFormValues(initialData),
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `crm-account-update-${initialData?.id ?? "unknown"}-draft`,
+    form,
+    enabled: Boolean(initialData),
+  });
 
   const onSubmit = async (data: NewAccountFormValues) => {
     const result = await updateAccount(normalizeAccountPayload(data));
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {
+      clearDraft();
       toast.success(t("updateSuccess"));
       open(false);
     }

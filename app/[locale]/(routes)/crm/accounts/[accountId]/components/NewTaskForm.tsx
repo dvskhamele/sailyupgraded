@@ -42,6 +42,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { createTask } from "@/actions/crm/accounts/create-task";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 interface NewTaskFormProps {
   account: crm_Accounts | null;
@@ -72,6 +73,11 @@ const NewTaskForm = ({ account, onFinish }: NewTaskFormProps) => {
       account: account?.id || "",
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `crm-account-${account?.id ?? "unknown"}-task-create-draft`,
+    form,
+    enabled: Boolean(account),
+  });
 
   const onSubmit = async (data: NewAccountFormValues) => {
     setIsLoading(true);
@@ -80,6 +86,7 @@ const NewTaskForm = ({ account, onFinish }: NewTaskFormProps) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`New task: ${data.title}, created successfully`);
       }
     } catch (error: any) {

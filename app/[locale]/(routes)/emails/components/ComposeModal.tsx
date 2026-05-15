@@ -11,6 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { sendEmail } from "@/actions/emails/messages";
 import { useRouter } from "next/navigation";
 import type { Mail } from "@/app/[locale]/(routes)/emails/data";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 type Mode = "new" | "reply" | "forward";
 
@@ -49,6 +50,19 @@ export function ComposeModal({
   const [cc, setCc] = useState("");
   const [subject, setSubject] = useState(defaultSubject);
   const [body, setBody] = useState(defaultBody);
+  const draft = { to, cc, subject, body };
+  const { clearDraft } = useAutoSaveForm({
+    key: `email-compose-${accountId}-${mode}-${replyTo?.id ?? "new"}-draft`,
+    data: draft,
+    setData: (value) => {
+      const next = typeof value === "function" ? value(draft) : value;
+      setTo(next.to ?? defaultTo);
+      setCc(next.cc ?? "");
+      setSubject(next.subject ?? defaultSubject);
+      setBody(next.body ?? defaultBody);
+    },
+    enabled: open,
+  });
 
   async function handleSend() {
     setSending(true);
@@ -64,6 +78,7 @@ export function ComposeModal({
         references:
           mode === "reply" ? replyTo?.rfcMessageId : undefined,
       });
+      clearDraft();
       setOpen(false);
       router.refresh();
     } catch (err) {

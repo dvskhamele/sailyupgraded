@@ -46,6 +46,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createTaskInBoard } from "@/actions/projects/create-task-in-board";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type Props = {
   boardId: string;
@@ -75,6 +76,11 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
       dueDateAt: undefined,
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `project-board-${boardId}-task-create-draft`,
+    form,
+    enabled: open,
+  });
 
   //Actions
 
@@ -94,6 +100,7 @@ const NewTaskInProjectDialog = ({ boardId, sections }: Props) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`New task: ${data.title}, created successfully`);
       }
     } catch (error: any) {

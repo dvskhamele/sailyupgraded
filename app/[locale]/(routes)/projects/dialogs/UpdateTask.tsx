@@ -40,6 +40,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { updateTask } from "@/actions/projects/update-task";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type Props = {
   boards: any;
@@ -81,6 +82,11 @@ const UpdateTaskDialog = ({
       boardId: boardId,
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `project-task-update-${initialData?.id ?? "unknown"}-draft`,
+    form,
+    enabled: Boolean(initialData),
+  });
 
   if (!isHydrated) {
     return null;
@@ -99,6 +105,7 @@ const UpdateTaskDialog = ({
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`Task: ${data.title}, updated successfully`);
       }
     } catch (error: any) {

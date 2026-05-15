@@ -2,7 +2,7 @@
 
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import { crm_ProductCategories } from "@prisma/client";
@@ -19,6 +19,7 @@ import { FormSelect } from "@/components/form/from-select";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 interface UpdateProductFormProps {
   onOpen: boolean;
@@ -51,10 +52,17 @@ const UpdateProductForm = ({
   currencies = [],
 }: UpdateProductFormProps) => {
   const router = useRouter();
+  const formRef = useRef<HTMLFormElement>(null);
   const [isRecurring, setIsRecurring] = useState(product.is_recurring);
+  const { clearDraft } = useAutoSaveDomForm({
+    key: `crm-product-update-${product.id}-draft`,
+    formRef,
+    enabled: onOpen,
+  });
 
   const { execute, fieldErrors, isLoading } = useAction(updateProduct, {
     onSuccess: () => {
+      clearDraft();
       toast.success("Product updated successfully");
       setOpen(false);
       router.refresh();
@@ -116,7 +124,7 @@ const UpdateProductForm = ({
       open={onOpen}
       setOpen={setOpen}
     >
-      <form action={onAction} className="space-y-4">
+      <form ref={formRef} action={onAction} className="space-y-4">
         <FormInput
           id="name"
           label="Name"

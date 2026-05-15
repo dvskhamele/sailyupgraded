@@ -19,6 +19,7 @@ import { FormSubmit } from "@/components/form/form-submit";
 import { FormDatePicker } from "@/components/form/form-datepicker";
 import { FormTextarea } from "@/components/form/form-textarea";
 import { FormSelect } from "@/components/form/from-select";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 const CreateContractForm = ({
   accounts,
@@ -31,7 +32,12 @@ const CreateContractForm = ({
 }) => {
   const router = useRouter();
   const closeRef = useRef<ElementRef<"button">>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [assignedTo, setAssignedTo] = useState<string>("");
+  const { clearDraft } = useAutoSaveDomForm({
+    key: `crm-contract-create-${accountId || "general"}-draft`,
+    formRef,
+  });
   const t = useTranslations("CrmContractForm");
   const c = useTranslations("Common");
   const defaultCurrency =
@@ -43,6 +49,7 @@ const CreateContractForm = ({
 
   const { execute, fieldErrors, isLoading } = useAction(createNewContract, {
     onSuccess: (data) => {
+      clearDraft();
       toast.success(t("createSuccess"));
       closeRef.current?.click();
       router.refresh();
@@ -95,7 +102,7 @@ const CreateContractForm = ({
       description="Create a new contract with specified terms, dates, and assigned users"
       onClose={closeRef}
     >
-      <form action={onAction} className="space-y-4">
+      <form ref={formRef} action={onAction} className="space-y-4">
         <FormInput id="title" label={t("title")} type="text" errors={fieldErrors} />
         <FormInput id="value" label={t("value")} type="text" errors={fieldErrors} />
         <FormSelect

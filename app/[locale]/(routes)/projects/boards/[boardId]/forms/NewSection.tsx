@@ -21,6 +21,7 @@ import { toast } from "sonner";
 import { DialogClose } from "@radix-ui/react-dialog";
 import { createSection } from "@/actions/projects/create-section";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type NewSectionFormProps = {
   boardId: string;
@@ -42,6 +43,10 @@ const NewSectionForm = ({ boardId, onClose }: NewSectionFormProps) => {
   const form = useForm<NewAccountFormValues>({
     resolver: zodResolver(formSchema),
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `project-board-${boardId}-section-create-form-draft`,
+    form,
+  });
 
   if (!isHydrated) {
     return null;
@@ -55,6 +60,7 @@ const NewSectionForm = ({ boardId, onClose }: NewSectionFormProps) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`New section: ${data.title}, created successfully`);
       }
     } catch (error: any) {

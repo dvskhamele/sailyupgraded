@@ -62,7 +62,7 @@ export async function BasicView({ data }: OppsViewProps) {
             <div>
               <CardTitle>Basic Information</CardTitle>
               <CardDescription>
-                {[`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(), `ID: ${data.id}`, referenceId !== "-" ? `Reference ID: ${referenceId}` : null]
+                {[`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(), `ID: ${data.id}`, referenceId !== "-" ? ` ID: ${referenceId}` : null]
                   .filter(Boolean)
                   .join(" | ")}
               </CardDescription>
@@ -102,7 +102,7 @@ export async function BasicView({ data }: OppsViewProps) {
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Reference ID</p>
+                  <p className="text-sm font-medium leading-none"> ID</p>
                   <p className="text-sm text-muted-foreground">
                     {referenceId}
                   </p>
@@ -150,6 +150,15 @@ export async function BasicView({ data }: OppsViewProps) {
               </div>
             </div>
             <div>
+              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                <CoinsIcon className="mt-px h-5 w-5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Role</p>
+                  <p className="text-sm text-muted-foreground">
+                    {normalizeContactRole(data.role)}
+                  </p>
+                </div>
+              </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <User className="mt-px h-5 w-5" />
                 <div className="space-y-1">
@@ -201,15 +210,6 @@ export async function BasicView({ data }: OppsViewProps) {
                   <p className="text-sm font-medium leading-none">Status</p>
                   <p className="text-sm text-muted-foreground">
                     {data.status ? "Active" : "Inactive"}
-                  </p>
-                </div>
-              </div>
-              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
-                <CoinsIcon className="mt-px h-5 w-5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Role</p>
-                  <p className="text-sm text-muted-foreground">
-                    {normalizeContactRole(data.role)}
                   </p>
                 </div>
               </div>

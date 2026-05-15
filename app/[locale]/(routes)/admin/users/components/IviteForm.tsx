@@ -27,6 +27,7 @@ import { useRouter } from "next/navigation";
 import { Icons } from "@/components/ui/icons";
 import { useTranslations } from "next-intl";
 import { inviteUser } from "@/actions/admin/users/invite-user";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 const FormSchema = z.object({
   name: z.string().min(3).max(50),
@@ -53,6 +54,10 @@ export function InviteForm() {
       language: "en",
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: "admin-user-invite-draft",
+    form,
+  });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     setIsLoading(true);
@@ -62,6 +67,7 @@ export function InviteForm() {
       if (result.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(t("inviteForm.invited"));
       }
     } catch (error) {

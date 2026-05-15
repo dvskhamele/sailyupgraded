@@ -29,6 +29,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { updateProject } from "@/actions/projects/update-project";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type Props = {
   initialData: any;
@@ -55,6 +56,11 @@ const UpdateProjectForm = ({ initialData, openEdit }: Props) => {
     resolver: zodResolver(formSchema),
     defaultValues: initialData,
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `project-update-${initialData?.id ?? "unknown"}-draft`,
+    form,
+    enabled: Boolean(initialData),
+  });
 
   if (!isHydrated) {
     return null;
@@ -69,6 +75,7 @@ const UpdateProjectForm = ({ initialData, openEdit }: Props) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`Project: ${data.title}, update successfully`);
       }
     } catch (error: any) {

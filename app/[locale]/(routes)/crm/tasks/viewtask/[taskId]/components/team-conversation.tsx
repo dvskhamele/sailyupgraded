@@ -24,6 +24,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { addComment } from "@/actions/crm/tasks/add-comment";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 // Shape matches the `comments` relation select in actions/crm/account/get-task.ts.
 // Kept permissive on the nullable user fields because the relation returns
@@ -57,6 +58,10 @@ export function TeamConversations({
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `crm-task-${taskId}-comment-draft`,
+    form,
+  });
 
   async function onSubmit(data: z.infer<typeof FormSchema>) {
     try {
@@ -65,6 +70,7 @@ export function TeamConversations({
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success("Success");
       }
     } catch (error) {

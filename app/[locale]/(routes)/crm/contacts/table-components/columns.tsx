@@ -94,7 +94,7 @@ export const createColumns = (
     id: "referenceId",
     accessorFn: (row) => getReferenceId(row as any),
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Reference ID" />
+      <DataTableColumnHeader column={column} title=" ID" />
     ),
     cell: ({ row }) => (
       <div className="min-w-[120px]">{getReferenceId(row.original as any)}</div>

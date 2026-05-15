@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { useLocale } from "next-intl";
 import {
   Drawer,
   DrawerContent,
@@ -45,6 +44,7 @@ function similarityBadgeVariant(score: number): "default" | "secondary" | "outli
 interface SimilarRecordsDrawerProps {
   entityType: EntityType;
   recordId: string;
+  locale: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
@@ -52,11 +52,11 @@ interface SimilarRecordsDrawerProps {
 export function SimilarRecordsDrawer({
   entityType,
   recordId,
+  locale,
   open,
   onOpenChange,
 }: SimilarRecordsDrawerProps) {
   const router = useRouter();
-  const locale = useLocale();
   const [result, setResult] = useState<SimilarityResult | null>(null);
   const [isPending, startTransition] = useTransition();
 

@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { addPayment } from "@/actions/invoices/add-payment";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 const PAYMENT_METHODS = [
   "Bank Transfer",
@@ -50,6 +51,20 @@ export function AddPaymentDialog({
   const [method, setMethod] = useState("Bank Transfer");
   const [reference, setReference] = useState("");
   const [note, setNote] = useState("");
+  const draft = { amount, paidAt, method, reference, note };
+  const { clearDraft } = useAutoSaveForm({
+    key: `invoice-${invoiceId}-payment-draft`,
+    data: draft,
+    setData: (value) => {
+      const next = typeof value === "function" ? value(draft) : value;
+      setAmount(next.amount ?? balanceDue);
+      setPaidAt(next.paidAt ?? "");
+      setMethod(next.method ?? "Bank Transfer");
+      setReference(next.reference ?? "");
+      setNote(next.note ?? "");
+    },
+    enabled: open,
+  });
 
   useEffect(() => {
     setPaidAt(new Date().toISOString().split("T")[0]);
@@ -66,6 +81,7 @@ export function AddPaymentDialog({
         reference: reference || null,
         note: note || null,
       });
+      clearDraft();
       toast.success("Payment recorded");
       setOpen(false);
       router.refresh();

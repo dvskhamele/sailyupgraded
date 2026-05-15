@@ -2,6 +2,7 @@ import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prismadb, withPrismaRetry } from "@/lib/prisma";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
+import { getExistingDbColumnNames } from "@/lib/prisma-model-fields";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 
 function quoteIdentifier(identifier: string) {
@@ -31,15 +32,8 @@ function formatImportedColumnLabel(column: string) {
 
 async function getImportedContactColumnData(contactId: string) {
   const knownColumns = getContactModelColumnNames();
-  const columns = await prismadb.$queryRaw<Array<{ COLUMN_NAME: string }>>`
-    SELECT COLUMN_NAME
-    FROM INFORMATION_SCHEMA.COLUMNS
-    WHERE TABLE_SCHEMA = DATABASE()
-      AND TABLE_NAME = 'crm_Contacts'
-    ORDER BY ORDINAL_POSITION
-  `;
-  const importedColumns = columns
-    .map((column) => column.COLUMN_NAME)
+  const columns = await getExistingDbColumnNames("crm_Contacts");
+  const importedColumns = Array.from(columns)
     .filter((column) => !knownColumns.has(column));
 
   if (importedColumns.length === 0) {

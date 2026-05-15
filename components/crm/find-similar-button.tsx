@@ -9,9 +9,10 @@ type EntityType = "account" | "contact" | "lead" | "opportunity";
 interface FindSimilarButtonProps {
   entityType: EntityType;
   recordId: string;
+  locale: string;
 }
 
-export function FindSimilarButton({ entityType, recordId }: FindSimilarButtonProps) {
+export function FindSimilarButton({ entityType, recordId, locale }: FindSimilarButtonProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -22,6 +23,7 @@ export function FindSimilarButton({ entityType, recordId }: FindSimilarButtonPro
       <SimilarRecordsDrawer
         entityType={entityType}
         recordId={recordId}
+        locale={locale}
         open={open}
         onOpenChange={setOpen}
       />

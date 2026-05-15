@@ -31,6 +31,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type UpdateTargetFormProps = {
   initialData: any;
@@ -108,12 +109,18 @@ export function UpdateTargetForm({ initialData, setOpen }: UpdateTargetFormProps
       status: initialData.status ?? true,
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `campaign-target-update-${initialData?.id ?? "unknown"}-draft`,
+    form,
+    enabled: Boolean(initialData),
+  });
 
   const onSubmit = async (data: UpdateTargetFormValues) => {
     const result = await updateTarget({ id: initialData.id, ...data });
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {
+      clearDraft();
       toast.success("Target updated successfully");
       setOpen(false);
     }

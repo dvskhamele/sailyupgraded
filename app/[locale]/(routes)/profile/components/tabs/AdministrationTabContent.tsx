@@ -17,6 +17,7 @@ import { CONTACT_ROLE_OPTIONS } from "@/lib/contact-options";
 import { normalizeCustomField } from "@/lib/custom-fields";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 const adminPanels = [
   {
@@ -68,6 +69,12 @@ export function AdministrationTabContent() {
     contact_role: "",
   };
   const [form, setForm] = useState(initialFormState);
+  const { clearDraft } = useAutoSaveForm({
+    key: `profile-admin-custom-field-${editingFieldId ?? "create"}-draft`,
+    data: form,
+    setData: setForm,
+    enabled: isOpen,
+  });
 
   const resetFormState = () => {
     setForm(initialFormState);
@@ -171,6 +178,7 @@ export function AdministrationTabContent() {
             )
           : [savedField, ...current],
       );
+      clearDraft();
       resetFormState();
       toast.success(isEditing ? "Custom field updated" : "Custom field created");
     } catch (error) {

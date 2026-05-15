@@ -27,6 +27,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { createAccount } from "@/actions/crm/accounts/create-account";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type Props = {
   industries: any[];
@@ -96,12 +97,17 @@ export function NewAccountForm({ industries, onFinish }: Props) {
     mode: "onBlur",
     defaultValues: defaultAccountFormValues,
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: "crm-account-create-draft",
+    form,
+  });
 
   const onSubmit = async (data: NewAccountFormValues) => {
     const result = await createAccount(data);
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {
+      clearDraft();
       toast.success(t("createSuccess"));
       form.reset();
       onFinish();

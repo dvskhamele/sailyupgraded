@@ -73,7 +73,7 @@ const OpportunityView = async (
               products={activeProducts}
             />
             <ActivitiesSection opportunityId={opportunityId} />
-            <FindSimilarButton entityType="opportunity" recordId={opportunityId} />
+            <FindSimilarButton entityType="opportunity" recordId={opportunityId} locale={params.locale} />
             <AccountsView crmData={crmData} data={accounts} />
             <ContactsView crmData={crmData} data={contacts} />
             <DocumentsView data={documents} />

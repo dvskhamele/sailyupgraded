@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { addDays, nextSaturday } from "date-fns";
 import { format, addHours } from "date-fns";
@@ -44,6 +44,7 @@ import {
 import type { Mail } from "@/app/[locale]/(routes)/emails/data";
 import { getEmail, deleteEmail } from "@/actions/emails/messages";
 import { ComposeModal } from "@/app/[locale]/(routes)/emails/components/ComposeModal";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 interface MailDisplayProps {
   mail: Mail | null;
@@ -52,9 +53,15 @@ interface MailDisplayProps {
 
 export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
   const router = useRouter();
+  const replyFormRef = useRef<HTMLFormElement>(null);
 
   const [fullEmail, setFullEmail] = useState<Awaited<ReturnType<typeof getEmail>> | null>(null);
   const [today, setToday] = useState<Date | null>(null);
+  const { clearDraft: clearReplyDraft } = useAutoSaveDomForm({
+    key: `email-${mail?.id ?? "none"}-reply-draft`,
+    formRef: replyFormRef,
+    enabled: Boolean(mail?.id),
+  });
 
   useEffect(() => {
     setToday(new Date());
@@ -308,9 +315,10 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
           </div>
           <Separator className="mt-auto" />
           <div className="p-4">
-            <form>
+            <form ref={replyFormRef}>
               <div className="grid gap-4">
                 <Textarea
+                  name="reply"
                   className="p-4"
                   placeholder={`Reply to ${activeEmail?.fromName ?? activeEmail?.fromEmail ?? "..."}...`}
                 />
@@ -319,10 +327,10 @@ export function MailDisplay({ mail, activeAccountId }: MailDisplayProps) {
                     htmlFor="mute"
                     className="flex items-center gap-2 text-xs font-normal"
                   >
-                    <Switch id="mute" aria-label="Mute thread" /> Mute this
+                    <Switch id="mute" name="mute" aria-label="Mute thread" /> Mute this
                     thread
                   </Label>
-                  <Button size="sm" className="ml-auto">
+                  <Button size="sm" className="ml-auto" onClick={clearReplyDraft}>
                     Send
                   </Button>
                 </div>

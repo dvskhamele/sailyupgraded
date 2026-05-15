@@ -76,7 +76,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
     actions: {
       extension: {
         label: "Extension",
-        url: "https://chromewebstore.google.com/search/facebook",
+        url: "https://chromewebstore.google.com/detail/facebookdm-auto-dm-leads/dipgidedgklfkdhmhckbjggonkifipeo?authuser=0&hl=en-GB",
       },
       login: {
         label: "Start",
@@ -121,7 +121,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
     actions: {
       extension: {
         label: "Extension",
-        url: "https://chromewebstore.google.com/search/tiktok",
+        url: "https://chromewebstore.google.com/detail/tiktokdm-auto-dm-leads-co/cpbjlfdfedgbaagaioihmlimjljmkgbl?authuser=0&hl=en-GB",
       },
       login: {
         label: "Start",
@@ -159,21 +159,21 @@ const socialPlatforms: SocialPlatformConfig[] = [
       },
     },
   },
-  {
-    id: "youtube",
-    title: "YouTube",
-    icon: Youtube,
-    actions: {
-      extension: {
-        label: "Extension",
-        url: "https://chromewebstore.google.com/search/youtube",
-      },
-      login: {
-        label: "Studio",
-        url: "https://studio.youtube.com/",
-      },
-    },
-  },
+  // {
+  //   id: "youtube",
+  //   title: "YouTube",
+  //   icon: Youtube,
+  //   actions: {
+  //     extension: {
+  //       label: "Extension",
+  //       url: "https://chromewebstore.google.com/search/youtube",
+  //     },
+  //     login: {
+  //       label: "Studio",
+  //       url: "https://studio.youtube.com/",
+  //     },
+  //   },
+  // },
 ];
 
 const buildPlatformAction = (

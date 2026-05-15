@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import { useRouter } from "next/navigation";
 import { createTargetList } from "@/actions/crm/target-lists/create-target-list";
 import { toast } from "sonner";
@@ -17,6 +18,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 const CreateTargetListModal = () => {
   const router = useRouter();
@@ -24,6 +26,28 @@ const CreateTargetListModal = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+
+  const setDraft: Dispatch<
+    SetStateAction<{
+      name: string;
+      description: string;
+    }>
+  > = (value) => {
+    const next =
+      typeof value === "function"
+        ? value({ name, description })
+        : value;
+
+    setName(next.name ?? "");
+    setDescription(next.description ?? "");
+  };
+
+  const { clearDraft } = useAutoSaveForm({
+    key: "create-target-list-draft",
+    data: { name, description },
+    setData: setDraft,
+    enabled: true,
+  });
 
   const handleCreate = async () => {
     if (!name.trim()) {
@@ -38,6 +62,7 @@ const CreateTargetListModal = () => {
       toast.error(result.error);
       return;
     }
+    clearDraft();
     toast.success("Target list created successfully");
     setOpen(false);
     setName("");

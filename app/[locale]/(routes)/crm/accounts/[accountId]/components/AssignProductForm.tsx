@@ -15,6 +15,7 @@ import { FormSubmit } from "@/components/form/form-submit";
 import { FormTextarea } from "@/components/form/form-textarea";
 import { FormSelect } from "@/components/form/from-select";
 import { FormDatePicker } from "@/components/form/form-datepicker";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 interface AssignProductFormProps {
   accountId: string;
@@ -29,9 +30,15 @@ const AssignProductForm = ({
 }: AssignProductFormProps) => {
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const { clearDraft } = useAutoSaveDomForm({
+    key: `crm-account-${accountId}-assign-product-draft`,
+    formRef,
+  });
 
   const { execute, fieldErrors, isLoading } = useAction(assignProduct, {
     onSuccess: () => {
+      clearDraft();
       toast.success("Product assigned successfully");
       closeRef.current?.click();
       router.refresh();
@@ -78,7 +85,7 @@ const AssignProductForm = ({
       description="Assign a product or service to this account"
       onClose={closeRef}
     >
-      <form action={onAction} className="space-y-4">
+      <form ref={formRef} action={onAction} className="space-y-4">
         <FormSelect
           id="productId"
           label="Product"

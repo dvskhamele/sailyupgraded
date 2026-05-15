@@ -19,6 +19,7 @@ import { FormSelect } from "@/components/form/from-select";
 
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 const CreateProductForm = ({
   categories,
@@ -29,7 +30,12 @@ const CreateProductForm = ({
 }) => {
   const router = useRouter();
   const closeRef = useRef<HTMLButtonElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const [isRecurring, setIsRecurring] = useState(false);
+  const { clearDraft } = useAutoSaveDomForm({
+    key: "crm-product-create-draft",
+    formRef,
+  });
   const defaultCurrency =
     currencies.find((currency) => currency.code === "USD")?.code ??
     currencies[0]?.code ??
@@ -37,6 +43,7 @@ const CreateProductForm = ({
 
   const { execute, fieldErrors, isLoading } = useAction(createProduct, {
     onSuccess: () => {
+      clearDraft();
       toast.success("Product created successfully");
       closeRef.current?.click();
       router.refresh();
@@ -91,7 +98,7 @@ const CreateProductForm = ({
       description="Add a new product or service to your catalog"
       onClose={closeRef}
     >
-      <form action={onAction} className="space-y-4">
+      <form ref={formRef} action={onAction} className="space-y-4">
         <FormInput
           id="name"
           label="Name"

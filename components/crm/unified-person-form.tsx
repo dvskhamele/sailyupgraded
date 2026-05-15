@@ -1,11 +1,12 @@
 "use client";
 
 import { z } from "zod";
-import { type ReactNode, useEffect, useState } from "react";
+import { type Dispatch, type ReactNode, type SetStateAction, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { toast } from "sonner";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 import { Button } from "@/components/ui/button";
 import { CurrencyInput } from "@/components/ui/currency-input";
 import { Input } from "@/components/ui/input";
@@ -40,6 +41,7 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
 import type { CustomFieldEntity } from "@/lib/custom-fields";
+import { ContactAgentCombobox } from "@/components/ui/contact-agent-combobox";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { COUNTRY_OPTIONS, getStateOptions } from "@/lib/address-options";
 import { cn } from "@/lib/utils";
@@ -255,6 +257,8 @@ type UnifiedPersonFormProps = {
   saleStages?: Option[];
   products?: Option[];
   initialValues?: Partial<UnifiedPersonFormValues>;
+  autoSaveEnabled?: boolean;
+  autoSaveKey?: string;
   hideOpportunitySection?: boolean;
   quickOpportunitySection?: boolean;
   quickEmptyDefaults?: boolean;
@@ -281,6 +285,8 @@ export function UnifiedPersonForm({
   saleStages = [],
   products = [],
   initialValues,
+  autoSaveEnabled = true,
+  autoSaveKey,
   hideOpportunitySection = false,
   quickOpportunitySection = false,
   quickEmptyDefaults = false,
@@ -371,9 +377,30 @@ export function UnifiedPersonForm({
     },
   });
 
+  const watchedFormValues = form.watch();
+  const resolvedAutoSaveKey =
+    autoSaveKey ??
+    `crm-${entityType.toLowerCase()}-${mode}-${initialValues?.id ?? "new"}-draft`;
+  const restoreAutoSaveData: Dispatch<SetStateAction<UnifiedPersonFormValues>> = (value) => {
+    const nextValues =
+      typeof value === "function" ? value(form.getValues()) : value;
+
+    form.reset(nextValues, {
+      keepDefaultValues: true,
+    });
+  };
+  const { clearDraft } = useAutoSaveForm({
+    key: resolvedAutoSaveKey,
+    data: watchedFormValues,
+    setData: restoreAutoSaveData,
+    enabled: autoSaveEnabled,
+  });
+
   const selectedCountry = form.watch("country");
   const selectedState = form.watch("state");
   const selectedRole = form.watch("role");
+  const isAgentRole =
+    entityType === "Contact" && normalizeContactRole(selectedRole) === "Agent";
   const opportunityEnabled = form.watch("opportunity_enabled");
   const canShowOpportunitySection =
     !hideOpportunitySection &&
@@ -461,6 +488,7 @@ export function UnifiedPersonForm({
       return;
     }
 
+    clearDraft();
     toast.success(successMessage);
     if (mode === "create") {
       form.reset({
@@ -678,7 +706,35 @@ export function UnifiedPersonForm({
               disabled={form.formState.isSubmitting}
               contactRole={entityType === "Contact" ? selectedRole : undefined}
             />
-
+  <FormField
+                control={form.control}
+                name="refered_by"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>
+                      {isAgentRole ? "Assign Agent name" : leadT("referredBy")}
+                    </FormLabel>
+                    <FormControl>
+                      {isAgentRole ? (
+                        <ContactAgentCombobox
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          placeholder="Search or select agent"
+                          disabled={form.formState.isSubmitting}
+                        />
+                      ) : (
+                        <Input
+                          disabled={form.formState.isSubmitting}
+                          placeholder="John Walker"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      )}
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             <FormField
               control={form.control}
               name="notes"
@@ -1362,24 +1418,35 @@ export function UnifiedPersonForm({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <FormField
+              {/* <FormField
                 control={form.control}
                 name="refered_by"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{leadT("referredBy")}</FormLabel>
+                    <FormLabel>
+                      {isAgentRole ? "Assign Agent name" : leadT("referredBy")}
+                    </FormLabel>
                     <FormControl>
-                      <Input
-                        disabled={form.formState.isSubmitting}
-                        placeholder="John Walker"
-                        {...field}
-                        value={field.value ?? ""}
-                      />
+                      {isAgentRole ? (
+                        <ContactAgentCombobox
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          placeholder="Search or select agent"
+                          disabled={form.formState.isSubmitting}
+                        />
+                      ) : (
+                        <Input
+                          disabled={form.formState.isSubmitting}
+                          placeholder="John Walker"
+                          {...field}
+                          value={field.value ?? ""}
+                        />
+                      )}
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
-              />
+              /> */}
               <FormField
                 control={form.control}
                 name="campaign"

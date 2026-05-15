@@ -22,6 +22,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 interface TargetContact {
   id: string;
@@ -64,6 +65,13 @@ export function TargetContactsTable({
   });
   const [saving, setSaving] = useState(false);
 
+  const { clearDraft } = useAutoSaveForm({
+    key: `campaign-target-contact-draft:${targetId}`,
+    data: form,
+    setData: setForm,
+    enabled: true,
+  });
+
   async function handleAddContact(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
@@ -76,6 +84,7 @@ export function TargetContactsTable({
       if (!res.ok) throw new Error(await res.text());
       const created: TargetContact = await res.json();
       setContacts((prev) => [...prev, created]);
+      clearDraft();
       setOpen(false);
       setForm({ name: "", email: "", phone: "", linkedinUrl: "" });
       toast.success("Contact added");

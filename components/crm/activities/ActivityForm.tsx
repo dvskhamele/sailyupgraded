@@ -39,6 +39,7 @@ import { generateActivityTitle } from "@/lib/crm/activity-title";
 import { searchContacts, type ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
 import { createContact } from "@/actions/crm/contacts/create-contact";
 import useDebounce from "@/hooks/useDebounce";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 import { cn } from "@/lib/utils";
 
 type ActivityType = "call" | "meeting" | "note" | "email";
@@ -270,6 +271,34 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
   );
   const [selectedContact, setSelectedContact] = useState<ContactSearchItem | null>(null);
   const [saving, setSaving] = useState(false);
+  const activityDraft = {
+    type,
+    title,
+    description,
+    date,
+    selectedStatus,
+    duration,
+    outcome,
+    emailSubject,
+    selectedContact,
+  };
+  const { clearDraft } = useAutoSaveForm({
+    key: `crm-activity-${isEdit ? `update-${activity.id}` : `create-${entityType ?? "general"}-${entityId ?? "none"}`}-draft`,
+    data: activityDraft,
+    setData: (value) => {
+      const next = typeof value === "function" ? value(activityDraft) : value;
+      setType(next.type ?? "call");
+      setTitle(next.title ?? "");
+      setDescription(next.description ?? "");
+      setDate(next.date ?? toDateTimeLocalValue());
+      setSelectedStatus(next.selectedStatus ?? null);
+      setDuration(next.duration ?? "");
+      setOutcome(next.outcome ?? "");
+      setEmailSubject(next.emailSubject ?? "");
+      setSelectedContact(next.selectedContact ?? null);
+    },
+    enabled: open,
+  });
 
   const showDuration = type === "call" || type === "meeting";
   const showOutcome = type === "call" || type === "meeting";
@@ -347,6 +376,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
     if (result.error) {
       toast.error(result.error);
     } else if (result.data) {
+      clearDraft();
       toast.success(isEdit ? "Activity updated" : "Activity logged");
       onSaved(result.data as ActivityWithLinks);
       onOpenChange(false);

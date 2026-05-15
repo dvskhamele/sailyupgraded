@@ -21,13 +21,20 @@ import {
 } from "@/components/ui/sheet";
 
 import { useAction } from "@/hooks/use-action";
+import { useAutoSaveDomForm } from "@/hooks/use-auto-save-dom-form";
 
 const SendMailToAll = () => {
   const closeRef = useRef<ElementRef<"button">>(null);
+  const formRef = useRef<HTMLFormElement>(null);
   const t = useTranslations("AdminPage");
+  const { clearDraft } = useAutoSaveDomForm({
+    key: "admin-send-mail-to-all-draft",
+    formRef,
+  });
 
   const { execute, fieldErrors, isLoading } = useAction(sendMailToAll, {
     onSuccess: (data) => {
+      clearDraft();
       toast.success(t("sendMail.sent"));
       closeRef.current?.click();
     },
@@ -56,7 +63,7 @@ const SendMailToAll = () => {
           </SheetDescription>
         </SheetHeader>
         <div className="mt-6 space-y-4">
-          <form action={onSendMail} className="space-y-4">
+          <form ref={formRef} action={onSendMail} className="space-y-4">
             <FormInput
               id="title"
               label={t("sendMail.messageTitle")}

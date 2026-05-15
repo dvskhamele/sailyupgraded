@@ -36,6 +36,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { useState } from "react";
 import LoadingModal from "./modals/loading-modal";
 import { setLanguage } from "@/actions/user/set-language";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 const FormSchema = z.object({
   language: z.string({
@@ -64,6 +65,10 @@ export function SetLanguage({ userId }: Props) {
     resolver: zodResolver(FormSchema),
     defaultValues: { language: locale },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `language-${userId}-draft`,
+    form,
+  });
 
   const [isLoading, setIsLoading] = useState(false);
 
@@ -76,6 +81,7 @@ export function SetLanguage({ userId }: Props) {
         setIsLoading(false);
         return;
       }
+      clearDraft();
       toast.success(t("changedTo", { language: data.language }));
       router.replace(pathname, { locale: data.language });
     } catch (e) {

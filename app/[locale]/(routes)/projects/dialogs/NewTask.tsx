@@ -48,6 +48,7 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { createTask } from "@/actions/projects/create-task";
 import { useHydrated } from "@/hooks/use-hydrated";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type Props = {
   boards: any;
@@ -79,6 +80,11 @@ const NewTaskDialog = ({ boards }: Props) => {
       dueDateAt: new Date(),
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: "project-task-create-draft",
+    form,
+    enabled: open,
+  });
 
   if (!isHydrated) {
     return null;
@@ -94,6 +100,7 @@ const NewTaskDialog = ({ boards }: Props) => {
       if (result?.error) {
         toast.error(result.error);
       } else {
+        clearDraft();
         toast.success(`New task: ${data.title}, created successfully`);
       }
     } catch (error: any) {

@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateConfigValue, type CrmConfigType } from "../_actions/crm-settings";
 import { toast } from "sonner";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 interface Props {
   configType: CrmConfigType;
@@ -18,12 +19,22 @@ interface Props {
 export function ConfigEditDialog({ configType, id, currentName, open, onOpenChange }: Props) {
   const [name, setName] = useState(currentName);
   const [loading, setLoading] = useState(false);
+  const { clearDraft } = useAutoSaveForm({
+    key: `crm-config-${configType}-${id}-edit-draft`,
+    data: { name },
+    setData: (value) => {
+      const next = typeof value === "function" ? value({ name }) : value;
+      setName(next.name ?? currentName);
+    },
+    enabled: open,
+  });
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setLoading(true);
     try {
       await updateConfigValue(configType, id, name);
+      clearDraft();
       toast.success("Updated");
       onOpenChange(false);
     } catch (err: any) {

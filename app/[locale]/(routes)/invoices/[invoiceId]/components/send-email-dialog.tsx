@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import { Send } from "lucide-react";
 import { sendInvoiceEmail } from "@/actions/invoices/send-invoice-email";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 interface SendEmailDialogProps {
   invoiceId: string;
@@ -32,6 +33,18 @@ export function SendEmailDialog({
   const [to, setTo] = useState(defaultEmail ?? "");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
+  const draft = { to, subject, message };
+  const { clearDraft } = useAutoSaveForm({
+    key: `invoice-${invoiceId}-send-email-draft`,
+    data: draft,
+    setData: (value) => {
+      const next = typeof value === "function" ? value(draft) : value;
+      setTo(next.to ?? "");
+      setSubject(next.subject ?? "");
+      setMessage(next.message ?? "");
+    },
+    enabled: open,
+  });
 
   const handleSend = async () => {
     if (!to) {
@@ -46,6 +59,7 @@ export function SendEmailDialog({
         subject: subject || undefined,
         message: message || undefined,
       });
+      clearDraft();
       toast.success("Invoice sent by email");
       setOpen(false);
       router.refresh();

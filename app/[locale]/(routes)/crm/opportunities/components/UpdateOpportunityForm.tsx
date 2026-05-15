@@ -54,6 +54,8 @@ import {
 } from "@/components/ui/dialog";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { CustomFieldsSection } from "@/components/crm/custom-fields-section";
+import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 import { OpportunityClientSelect } from "./OpportunityClientSelect";
 
 type ConfigItem = { id: string; name: string };
@@ -166,6 +168,58 @@ export function UpdateOpportunityForm({
       custom_fields_data: initialData.custom_fields_data ?? {},
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: `crm-opportunity-update-${initialData?.id ?? "unknown"}-draft`,
+    form,
+    enabled: Boolean(initialData),
+  });
+  const { clearDraft: clearProductDraft } = useAutoSaveForm({
+    key: `crm-opportunity-update-${initialData?.id ?? "unknown"}-product-option-draft`,
+    data: { newProductName },
+    setData: (value) => {
+      const next = typeof value === "function" ? value({ newProductName }) : value;
+      setNewProductName(next.newProductName ?? "");
+    },
+    enabled: isProductDialogOpen,
+  });
+  const { clearDraft: clearSalesTypeDraft } = useAutoSaveForm({
+    key: `crm-opportunity-update-${initialData?.id ?? "unknown"}-sales-type-draft`,
+    data: { newSalesTypeName },
+    setData: (value) => {
+      const next = typeof value === "function" ? value({ newSalesTypeName }) : value;
+      setNewSalesTypeName(next.newSalesTypeName ?? "");
+    },
+    enabled: isSalesTypeDialogOpen,
+  });
+  const { clearDraft: clearEditSalesTypeDraft } = useAutoSaveForm({
+    key: `crm-opportunity-edit-sales-type-${editingSalesTypeId ?? "none"}-draft`,
+    data: { editingSalesTypeName },
+    setData: (value) => {
+      const next =
+        typeof value === "function" ? value({ editingSalesTypeName }) : value;
+      setEditingSalesTypeName(next.editingSalesTypeName ?? "");
+    },
+    enabled: editingSalesTypeId !== null,
+  });
+  const { clearDraft: clearSalesStageDraft } = useAutoSaveForm({
+    key: `crm-opportunity-update-${initialData?.id ?? "unknown"}-sales-stage-draft`,
+    data: { newSalesStageName },
+    setData: (value) => {
+      const next = typeof value === "function" ? value({ newSalesStageName }) : value;
+      setNewSalesStageName(next.newSalesStageName ?? "");
+    },
+    enabled: isSalesStageDialogOpen,
+  });
+  const { clearDraft: clearEditSalesStageDraft } = useAutoSaveForm({
+    key: `crm-opportunity-edit-sales-stage-${editingSalesStageId ?? "none"}-draft`,
+    data: { editingSalesStageName },
+    setData: (value) => {
+      const next =
+        typeof value === "function" ? value({ editingSalesStageName }) : value;
+      setEditingSalesStageName(next.editingSalesStageName ?? "");
+    },
+    enabled: editingSalesStageId !== null,
+  });
 
   const onSubmit = async (data: NewAccountFormValues) => {
     try {
@@ -180,6 +234,7 @@ export function UpdateOpportunityForm({
         return;
       }
 
+      clearDraft();
       toast.success(t("updateSuccess"));
       setOpen(false);
     } catch (error) {
@@ -203,6 +258,7 @@ export function UpdateOpportunityForm({
         form.setValue("type", created.id, { shouldDirty: true, shouldValidate: true });
       }
       toast.success("Sales type added");
+      clearSalesTypeDraft();
       setNewSalesTypeName("");
       setIsSalesTypeDialogOpen(false);
     } catch (err: any) {
@@ -222,6 +278,7 @@ export function UpdateOpportunityForm({
       const updatedTypes = await getConfigValues("opportunityType");
       setSaleTypeOptions(updatedTypes);
       toast.success("Sales type updated");
+      clearEditSalesTypeDraft();
       setEditingSalesTypeId(null);
       setEditingSalesTypeName("");
     } catch (err: any) {
@@ -247,6 +304,7 @@ export function UpdateOpportunityForm({
         });
       }
       toast.success("Sales stage added");
+      clearSalesStageDraft();
       setNewSalesStageName("");
       setIsSalesStageDialogOpen(false);
     } catch (err: any) {
@@ -266,6 +324,7 @@ export function UpdateOpportunityForm({
       const updatedStages = await getConfigValues("salesStage");
       setSaleStageOptions(updatedStages);
       toast.success("Sales stage updated");
+      clearEditSalesStageDraft();
       setEditingSalesStageId(null);
       setEditingSalesStageName("");
     } catch (err: any) {
@@ -296,6 +355,7 @@ export function UpdateOpportunityForm({
         { shouldDirty: true, shouldValidate: true }
       );
       toast.success("Product selected");
+      clearProductDraft();
       setNewProductName("");
       setIsProductDialogOpen(false);
       return;
@@ -308,6 +368,7 @@ export function UpdateOpportunityForm({
       { shouldDirty: true, shouldValidate: true }
     );
     toast.success("Product added");
+    clearProductDraft();
     setNewProductName("");
     setIsProductDialogOpen(false);
   };

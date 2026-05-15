@@ -17,6 +17,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Switch } from "@/components/ui/switch";
+import { useAutoSaveReactHookForm } from "@/hooks/use-auto-save-react-hook-form";
 
 type NewTargetFormProps = {
   onFinish: () => void;
@@ -65,6 +66,10 @@ export function NewTargetForm({ onFinish }: NewTargetFormProps) {
       description: "",
     },
   });
+  const { clearDraft } = useAutoSaveReactHookForm({
+    key: "campaign-target-create-draft",
+    form,
+  });
 
   const onSubmit = async (data: NewTargetFormValues) => {
     if (!data.last_name && !data.company) {
@@ -77,6 +82,7 @@ export function NewTargetForm({ onFinish }: NewTargetFormProps) {
     if (result?.error) {
       form.setError("root.serverError", { message: result.error });
     } else {
+      clearDraft();
       toast.success("Target created successfully");
       form.reset({ status: true, country: "United States" });
       onFinish();
