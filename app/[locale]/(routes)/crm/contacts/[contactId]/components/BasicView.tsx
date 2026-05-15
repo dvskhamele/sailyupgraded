@@ -41,12 +41,18 @@ export async function BasicView({ data }: OppsViewProps) {
   //console.log(data, "data");
   const users = await prismadb.users.findMany();
   const crmData = await getAllCrmData();
-  const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, saleStages, products } = crmData;
+  const {
+    accounts,
+    contactTypes,
+    leadSources,
+    leadStatuses,
+    leadTypes,
+    saleStages,
+    products,
+  } = crmData;
   const notes = normalizeContactNotes(data?.notes);
   const linkedOpportunities = Array.isArray(data?.opportunities)
-    ? data.opportunities
-        .map((item: any) => item.opportunity)
-        .filter(Boolean)
+    ? data.opportunities.map((item: any) => item.opportunity).filter(Boolean)
     : [];
   const referenceId = getReferenceId(data);
   const importedColumns = Array.isArray(data?.imported_columns_data)
@@ -60,11 +66,18 @@ export async function BasicView({ data }: OppsViewProps) {
         <CardHeader className="pb-3">
           <div className="flex w-full justify-between">
             <div>
-              <CardTitle>Basic Information</CardTitle>
+              {/* <CardTitle>Basic Information</CardTitle> */}
+
               <CardDescription>
-                {[`${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(), `ID: ${data.id}`, referenceId !== "-" ? ` ID: ${referenceId}` : null]
-                  .filter(Boolean)
-                  .join(" | ")}
+                <h1 className="text-lg font-bold ">
+                  {[
+                    `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
+                    `ID: ${data.id}`,
+                    referenceId !== "-" ? ` ID: ${referenceId}` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" | ")}
+                </h1>
               </CardDescription>
             </div>
             <div className="flex items-center gap-2">
@@ -91,7 +104,9 @@ export async function BasicView({ data }: OppsViewProps) {
                 leadStatuses={leadStatuses}
                 leadTypes={leadTypes}
                 saleStages={saleStages}
-                products={(products ?? []).filter((product: any) => product.status === "ACTIVE")}
+                products={(products ?? []).filter(
+                  (product: any) => product.status === "ACTIVE",
+                )}
               />
             </div>
           </div>
@@ -103,9 +118,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none"> ID</p>
-                  <p className="text-sm text-muted-foreground">
-                    {referenceId}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{referenceId}</p>
                 </div>
               </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
@@ -120,7 +133,9 @@ export async function BasicView({ data }: OppsViewProps) {
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Position in Company</p>
+                  <p className="text-sm font-medium leading-none">
+                    Position in Company
+                  </p>
                   <p className="text-sm text-muted-foreground">
                     {data.position ? data.position : "N/A"}
                   </p>
@@ -216,8 +231,12 @@ export async function BasicView({ data }: OppsViewProps) {
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Contact type</p>
-                  <p className="text-sm text-muted-foreground">{data.contact_type?.name ?? "—"}</p>
+                  <p className="text-sm font-medium leading-none">
+                    Contact type
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {data.contact_type?.name ?? "—"}
+                  </p>
                 </div>
               </div>
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
@@ -266,7 +285,9 @@ export async function BasicView({ data }: OppsViewProps) {
                       key={field.column}
                       className="rounded-md border bg-muted/20 px-3 py-2"
                     >
-                      <p className="text-sm font-medium leading-none">{field.label}</p>
+                      <p className="text-sm font-medium leading-none">
+                        {field.label}
+                      </p>
                       <p className="mt-1 break-words text-sm text-muted-foreground">
                         {field.value}
                       </p>
@@ -292,9 +313,14 @@ export async function BasicView({ data }: OppsViewProps) {
               ["Referred by", data.refered_by],
               ["Campaign", data.campaign],
             ].map(([label, value]) => (
-              <div key={label} className="rounded-md border bg-muted/20 px-3 py-2">
+              <div
+                key={label}
+                className="rounded-md border bg-muted/20 px-3 py-2"
+              >
                 <p className="text-sm font-medium leading-none">{label}</p>
-                <p className="mt-1 text-sm text-muted-foreground">{value || "N/A"}</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {value || "N/A"}
+                </p>
               </div>
             ))}
           </div>
@@ -328,7 +354,10 @@ export async function BasicView({ data }: OppsViewProps) {
                     <div className="flex flex-wrap gap-2">
                       {products.length > 0 ? (
                         products.map((product) => (
-                          <Badge key={`${opportunity.id}-${product}`} variant="secondary">
+                          <Badge
+                            key={`${opportunity.id}-${product}`}
+                            variant="secondary"
+                          >
                             {product}
                           </Badge>
                         ))
@@ -342,7 +371,7 @@ export async function BasicView({ data }: OppsViewProps) {
                     <p className="text-sm text-muted-foreground">
                       {formatCurrencyDisplay(
                         opportunity.budget,
-                        opportunity.currency || "USD"
+                        opportunity.currency || "USD",
                       )}
                     </p>
                   </div>
@@ -458,15 +487,15 @@ export async function BasicView({ data }: OppsViewProps) {
                 </p>
               </div>
             </div>
-              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
-                <LayoutGrid className="mt-px h-5 w-5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium leading-none">Thread</p>
-                  <p className="text-sm text-muted-foreground">
-                    {data.social_skype}
-                  </p>
-                </div>
+            <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+              <LayoutGrid className="mt-px h-5 w-5" />
+              <div className="space-y-1">
+                <p className="text-sm font-medium leading-none">Thread</p>
+                <p className="text-sm text-muted-foreground">
+                  {data.social_skype}
+                </p>
               </div>
+            </div>
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <Instagram className="mt-px h-5 w-5" />
               <div className="space-y-1">
@@ -508,11 +537,13 @@ export async function BasicView({ data }: OppsViewProps) {
           </CardHeader>
           <CardContent>
             <div className="space-y-1">
-              {notes.length > 0 ? notes.map((note) => (
-                <p className="text-sm text-muted-foreground" key={note.id}>
-                  {note.text}
-                </p>
-              )) : (
+              {notes.length > 0 ? (
+                notes.map((note) => (
+                  <p className="text-sm text-muted-foreground" key={note.id}>
+                    {note.text}
+                  </p>
+                ))
+              ) : (
                 <p className="text-sm text-muted-foreground">No notes</p>
               )}
             </div>

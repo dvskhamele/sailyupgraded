@@ -396,6 +396,24 @@ function getDetectedCustomFieldValues(
   return values;
 }
 
+function getRoleCustomFieldValues(
+  row: RawRow,
+  customFields: CustomFieldDefinition[],
+) {
+  const customLookup = getCustomFieldHeaderLookup(customFields);
+  const values: Record<string, string> = {};
+
+  Object.entries(row).forEach(([header, rawValue]) => {
+    const customField = customLookup.get(normalizeComparableHeader(header));
+    const value = String(rawValue ?? "").trim();
+    if (customField && value) {
+      values[customField.id] = value;
+    }
+  });
+
+  return values;
+}
+
 function mergeCustomFieldValues(existingValues: unknown, importedValues: Record<string, string>) {
   const existing =
     existingValues && typeof existingValues === "object" && !Array.isArray(existingValues)
@@ -738,8 +756,17 @@ export async function POST(request: NextRequest) {
   const uniqueContactTypeValues = Array.from(
     new Set(candidates.map((candidate) => candidate.data.contact_type_id?.trim()).filter(Boolean)),
   );
+  const uniqueLeadSourceValues = Array.from(
+    new Set(candidates.map((candidate) => candidate.data.lead_source_id?.trim()).filter(Boolean)),
+  );
+  const uniqueLeadStatusValues = Array.from(
+    new Set(candidates.map((candidate) => candidate.data.lead_status_id?.trim()).filter(Boolean)),
+  );
+  const uniqueLeadTypeValues = Array.from(
+    new Set(candidates.map((candidate) => candidate.data.lead_type_id?.trim()).filter(Boolean)),
+  );
 
-  const [users, accounts, contactTypes] = await Promise.all([
+  const [users, accounts, contactTypes, leadSources, leadStatuses, leadTypes] = await Promise.all([
     uniqueAssignedUserValues.length
       ? prismadb.users.findMany({
           where: {
@@ -769,11 +796,38 @@ export async function POST(request: NextRequest) {
           select: { id: true, name: true },
         })
       : Promise.resolve([]),
+    uniqueLeadSourceValues.length
+      ? prismadb.crm_Lead_Sources.findMany({
+          where: {
+            OR: [{ id: { in: uniqueLeadSourceValues } }, { name: { in: uniqueLeadSourceValues } }],
+          },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
+    uniqueLeadStatusValues.length
+      ? prismadb.crm_Lead_Statuses.findMany({
+          where: {
+            OR: [{ id: { in: uniqueLeadStatusValues } }, { name: { in: uniqueLeadStatusValues } }],
+          },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
+    uniqueLeadTypeValues.length
+      ? prismadb.crm_Lead_Types.findMany({
+          where: {
+            OR: [{ id: { in: uniqueLeadTypeValues } }, { name: { in: uniqueLeadTypeValues } }],
+          },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   const userLookup = new Map<string, string>();
   const accountLookup = new Map<string, string>();
   const contactTypeLookup = new Map<string, string>();
+  const leadSourceLookup = new Map<string, string>();
+  const leadStatusLookup = new Map<string, string>();
+  const leadTypeLookup = new Map<string, string>();
 
   users.forEach((user) => {
     userLookup.set(user.id, user.id);
@@ -788,6 +842,22 @@ export async function POST(request: NextRequest) {
   contactTypes.forEach((contactType) => {
     contactTypeLookup.set(contactType.id, contactType.id);
     contactTypeLookup.set(contactType.name, contactType.id);
+    contactTypeLookup.set(normalizeLookupKey(contactType.name), contactType.id);
+  });
+  leadSources.forEach((leadSource) => {
+    leadSourceLookup.set(leadSource.id, leadSource.id);
+    leadSourceLookup.set(leadSource.name, leadSource.id);
+    leadSourceLookup.set(normalizeLookupKey(leadSource.name), leadSource.id);
+  });
+  leadStatuses.forEach((leadStatus) => {
+    leadStatusLookup.set(leadStatus.id, leadStatus.id);
+    leadStatusLookup.set(leadStatus.name, leadStatus.id);
+    leadStatusLookup.set(normalizeLookupKey(leadStatus.name), leadStatus.id);
+  });
+  leadTypes.forEach((leadType) => {
+    leadTypeLookup.set(leadType.id, leadType.id);
+    leadTypeLookup.set(leadType.name, leadType.id);
+    leadTypeLookup.set(normalizeLookupKey(leadType.name), leadType.id);
   });
 
   existingContacts.forEach((contact) => {
@@ -896,12 +966,24 @@ export async function POST(request: NextRequest) {
     const assignedAccountRaw =
       candidate.data.assigned_account?.trim() || candidate.data.accountsIDs?.trim() || "";
     const contactTypeRaw = candidate.data.contact_type_id?.trim() || "";
+    const leadSourceRaw = candidate.data.lead_source_id?.trim() || "";
+    const leadStatusRaw = candidate.data.lead_status_id?.trim() || "";
+    const leadTypeRaw = candidate.data.lead_type_id?.trim() || "";
     const resolvedAssignedTo = assignedToRaw ? userLookup.get(assignedToRaw) : undefined;
     const resolvedAssignedAccount = assignedAccountRaw
       ? accountLookup.get(assignedAccountRaw) ?? accountLookup.get(normalizeLookupKey(assignedAccountRaw))
       : undefined;
     const resolvedContactType = contactTypeRaw
-      ? contactTypeLookup.get(contactTypeRaw)
+      ? contactTypeLookup.get(contactTypeRaw) ?? contactTypeLookup.get(normalizeLookupKey(contactTypeRaw))
+      : undefined;
+    const resolvedLeadSource = leadSourceRaw
+      ? leadSourceLookup.get(leadSourceRaw) ?? leadSourceLookup.get(normalizeLookupKey(leadSourceRaw))
+      : undefined;
+    const resolvedLeadStatus = leadStatusRaw
+      ? leadStatusLookup.get(leadStatusRaw) ?? leadStatusLookup.get(normalizeLookupKey(leadStatusRaw))
+      : undefined;
+    const resolvedLeadType = leadTypeRaw
+      ? leadTypeLookup.get(leadTypeRaw) ?? leadTypeLookup.get(normalizeLookupKey(leadTypeRaw))
       : undefined;
 
     const parsedStatus = parseStatus(candidate.data.status || "");
@@ -913,23 +995,19 @@ export async function POST(request: NextRequest) {
     const resolvedRole =
       importRole ??
       detectContactRole(candidate.data.role) ??
-      inferredRoleFromIdentifier;
-
-    if (!resolvedRole) {
-      failures.push({
-        row: candidate.row,
-        email: candidate.normalizedEmail || null,
-        reason: "Role could not be detected. Add a Role column or use a role-specific ID header like AgentNumber or CustomerID.",
-      });
-      continue;
-    }
+      inferredRoleFromIdentifier ??
+      "Customer";
 
     const normalizedRole = normalizeContactRole(resolvedRole);
     const customFieldsForRole = contactCustomFields.filter((field) =>
       fieldAppliesToEntity(field, "Contact", normalizedRole),
     );
+    const customFieldValues = {
+      ...getDetectedCustomFieldValues(candidate.rawRow, customFieldHeaders),
+      ...getRoleCustomFieldValues(candidate.rawRow, customFieldsForRole),
+    };
     const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
-      getDetectedCustomFieldValues(candidate.rawRow, customFieldHeaders),
+      customFieldValues,
       customFieldsForRole,
     );
     const mergedCustomFieldValues =
@@ -978,9 +1056,9 @@ export async function POST(request: NextRequest) {
       assigned_to: resolvedAssignedTo,
       accountsIDs: resolvedAssignedAccount,
       contact_type_id: resolvedContactType,
-      lead_source_id: normalizeOptionalText(candidate.data.lead_source_id),
-      lead_status_id: normalizeOptionalText(candidate.data.lead_status_id),
-      lead_type_id: normalizeOptionalText(candidate.data.lead_type_id),
+      lead_source_id: resolvedLeadSource,
+      lead_status_id: resolvedLeadStatus,
+      lead_type_id: resolvedLeadType,
       refered_by: normalizeOptionalText(candidate.data.refered_by),
       campaign: normalizeOptionalText(candidate.data.campaign),
       social_twitter: normalizeOptionalText(candidate.data.social_twitter),

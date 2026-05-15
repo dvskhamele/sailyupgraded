@@ -11,7 +11,7 @@ export const accountSchema = z.object({
   contacts: z
     .array(
       z.object({
-        first_name: z.string().optional(),
+        first_name: z.string().nullable().optional(),
         last_name: z.string(),
       })
     )
