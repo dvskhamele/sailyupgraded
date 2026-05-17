@@ -6,6 +6,10 @@ import {
   withPrismaRetry,
 } from "@/lib/prisma";
 import { getActivityAssignees, getActivityIdsAssignedTo } from "./activity-assignment";
+import {
+  type ActivityLinkWithContact,
+  withActivityContactLinks,
+} from "./activity-contact-links";
 
 const PAGE_SIZE = 25;
 const VALID_ENTITY_TYPES = new Set([
@@ -31,7 +35,7 @@ export type ActivityWithLinks = {
   assignedTo: string | null;
   created_by_user: { id: string; name: string | null; avatar: string | null } | null;
   assigned_to_user: { id: string; name: string | null; avatar: string | null } | null;
-  links: Array<{ id: string; entityType: string; entityId: string }>;
+  links: ActivityLinkWithContact[];
 };
 
 export type ActivityCursor = { date: string; id: string };
@@ -142,15 +146,20 @@ const loadActivities = cache(async (
       }),
     }));
 
+    const activitiesWithContactLinks = await withActivityContactLinks(
+      prisma,
+      activitiesWithAssignees
+    );
+
     const nextCursor =
-      activitiesWithAssignees.length < PAGE_SIZE
+      activitiesWithContactLinks.length < PAGE_SIZE
         ? null
         : {
-            date: activitiesWithAssignees[activitiesWithAssignees.length - 1].date.toISOString(),
-            id: activitiesWithAssignees[activitiesWithAssignees.length - 1].id,
+            date: activitiesWithContactLinks[activitiesWithContactLinks.length - 1].date.toISOString(),
+            id: activitiesWithContactLinks[activitiesWithContactLinks.length - 1].id,
           };
 
-    return { data: activitiesWithAssignees, nextCursor };
+    return { data: activitiesWithContactLinks, nextCursor };
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
       console.warn(

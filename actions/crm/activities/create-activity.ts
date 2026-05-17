@@ -4,6 +4,7 @@ import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { generateActivityTitle } from "@/lib/crm/activity-title";
 import { setActivityAssignment, withActivityAssignee } from "./activity-assignment";
+import { withActivityContactLink } from "./activity-contact-links";
 
 const ENTITY_SLUGS: Record<string, string> = {
   account: "accounts",
@@ -82,7 +83,8 @@ export const createActivity = async (data: {
     }
     revalidatePath("/[locale]/(routes)/activities", "page");
 
-    return { data: await withActivityAssignee(prismadb, fullActivity) };
+    const activityWithAssignee = await withActivityAssignee(prismadb, fullActivity);
+    return { data: await withActivityContactLink(prismadb, activityWithAssignee) };
   } catch (error) {
     console.error("createActivity error:", error);
     return { error: "Failed to create activity" };

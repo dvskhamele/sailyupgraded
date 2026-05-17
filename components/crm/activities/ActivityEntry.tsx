@@ -45,6 +45,14 @@ const STATUS_VARIANTS = {
   cancelled: "secondary",
 } as const;
 
+function getContactName(contact: NonNullable<ActivityWithLinks["links"][number]["contact"]>) {
+  return (
+    [contact.first_name, contact.last_name].filter(Boolean).join(" ") ||
+    contact.email ||
+    "Contact"
+  );
+}
+
 interface Props {
   activity: ActivityWithLinks;
   onDeleted: (id: string) => void;
@@ -61,6 +69,9 @@ export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, enti
   const [absoluteDate, setAbsoluteDate] = useState("");
 
   const Icon = TYPE_ICONS[activity.type];
+  const contactNames = activity.links
+    .filter((link) => link.entityType === "contact" && link.contact)
+    .map((link) => getContactName(link.contact!));
 
   useEffect(() => {
     const activityDate = new Date(activity.date);
@@ -157,6 +168,11 @@ export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, enti
           <p className="text-xs text-muted-foreground mt-1">
             <span className="font-medium">Assigned to:</span>{" "}
             {activity.assigned_to_user.name ?? "Unassigned"}
+          </p>
+        )}
+        {contactNames.length > 0 && (
+          <p className="text-xs text-muted-foreground mt-1">
+            <span className="font-medium">Contact:</span> {contactNames.join(", ")}
           </p>
         )}
       </div>
