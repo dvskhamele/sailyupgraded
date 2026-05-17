@@ -235,7 +235,7 @@ export async function BasicView({ data }: OppsViewProps) {
                     Contact type
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {data.contact_type?.name ?? "—"}
+                    {data.contact_type?.name}
                   </p>
                 </div>
               </div>

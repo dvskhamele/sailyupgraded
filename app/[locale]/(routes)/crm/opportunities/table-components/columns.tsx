@@ -33,7 +33,7 @@ export type OpportunityConfig = {
 };
 
 export const createColumns = (config: OpportunityConfig): ColumnDef<Opportunity>[] => [
-  /* {
+   {
     id: "select",
     header: ({ table }) => (
       <Checkbox
@@ -54,7 +54,7 @@ export const createColumns = (config: OpportunityConfig): ColumnDef<Opportunity>
     enableSorting: false,
     enableHiding: false,
   },
-  */
+
   {
     accessorKey: "close_date",
     header: ({ column }) => (

@@ -58,7 +58,6 @@ type ExistingContactMatch = {
   custom_fields_data?: unknown;
 };
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SKIP_VALUE = "__skip__";
 const STANDARD_FIELD_ALIASES: Record<string, string[]> = {
   serial: ["reference id", "reference number", "role id", "contact id"],
@@ -136,6 +135,12 @@ function normalizeEmail(email: string) {
   return email.trim().toLowerCase();
 }
 
+function isImportableEmail(email: string) {
+  const normalized = normalizeEmail(email);
+  const atIndex = normalized.indexOf("@");
+  return atIndex > 0 && normalized.slice(atIndex + 1).includes(".");
+}
+
 function normalizePhone(phone: string) {
   const trimmed = phone.trim();
   if (!trimmed) {
@@ -191,6 +196,12 @@ function normalizeOptionalText(value: string | undefined) {
 
 function normalizeLookupKey(value: string) {
   return value.trim().toLowerCase();
+}
+
+function isUuidLike(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+    value.trim(),
+  );
 }
 
 const ROLE_REFERENCE_ID_HEADERS = {
@@ -626,7 +637,7 @@ export async function POST(request: NextRequest) {
       return;
     }
 
-    if (normalizedEmail && !EMAIL_REGEX.test(normalizedEmail)) {
+    if (normalizedEmail && !isImportableEmail(normalizedEmail)) {
       failures.push({
         row: rowNumber,
         email: normalizedEmail,
@@ -859,6 +870,33 @@ export async function POST(request: NextRequest) {
     leadTypeLookup.set(leadType.name, leadType.id);
     leadTypeLookup.set(normalizeLookupKey(leadType.name), leadType.id);
   });
+
+  const missingLeadSourceNames = uniqueLeadSourceValues.filter((value) => {
+    const trimmed = value.trim();
+    return (
+      trimmed &&
+      !isUuidLike(trimmed) &&
+      !leadSourceLookup.get(trimmed) &&
+      !leadSourceLookup.get(normalizeLookupKey(trimmed))
+    );
+  });
+  const uniqueMissingLeadSourceNames = Array.from(
+    new Map(
+      missingLeadSourceNames.map((name) => [normalizeLookupKey(name), name.trim()]),
+    ).values(),
+  );
+
+  for (const leadSourceName of uniqueMissingLeadSourceNames) {
+    const leadSource = await prismadb.crm_Lead_Sources.upsert({
+      where: { name: leadSourceName },
+      update: {},
+      create: { name: leadSourceName },
+      select: { id: true, name: true },
+    });
+    leadSourceLookup.set(leadSource.id, leadSource.id);
+    leadSourceLookup.set(leadSource.name, leadSource.id);
+    leadSourceLookup.set(normalizeLookupKey(leadSource.name), leadSource.id);
+  }
 
   existingContacts.forEach((contact) => {
     const normalizedEmail = contact.email ? normalizeEmail(contact.email) : "";

@@ -6,8 +6,9 @@ import {
 describe("smart contact quick input parser", () => {
   it.each([
     ["john@@gmail..com", "john@gmail.com"],
-    ["john gmail com", "john@gmail.com"],
+    ["john@acmecrm.com", "john@acmecrm.com"],
     ["john(at)gmail(dot)com", "john@gmail.com"],
+    ["john at acme dot io", "john@acme.io"],
     ["JOHN@GMAIL.COM ", "john@gmail.com"],
     ["wealthpathway7@gmailcom", "wealthpathway7@gmail.com"],
     ["wealthpathway7 @ gmail . com", "wealthpathway7@gmail.com"],

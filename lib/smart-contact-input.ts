@@ -24,6 +24,8 @@ const GENERIC_EMAIL_DOMAINS = new Set([
   "aol.com",
 ]);
 
+const EMAIL_WITH_DOMAIN_PATTERN = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+
 const STATE_BY_ABBR: Record<string, string> = {
   AL: "Alabama",
   AK: "Alaska",
@@ -240,7 +242,7 @@ function normalizeEmailCandidate(value: string) {
     candidate = candidate.replace(/@(gmail|yahoo|outlook|hotmail|icloud|aol)com$/i, "@$1.com");
   }
 
-  return /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(candidate)
+  return EMAIL_WITH_DOMAIN_PATTERN.test(candidate)
     ? candidate
     : "";
 }
@@ -253,19 +255,26 @@ function extractEmail(text: string) {
     if (normalized) return normalized;
   }
 
-  const spaced = repaired.match(/\b([a-zA-Z0-9._%+-]+)\s+(gmail|yahoo|outlook|hotmail|icloud|aol)\s+(com|co|in)\b/i);
+  const hasExplicitEmailMarker = /@|\b(?:at|dot)\b/i.test(text);
+  const spaced = hasExplicitEmailMarker
+    ? repaired.match(/\b([a-zA-Z0-9._%+-]+)\s+([a-zA-Z0-9-]+)\s+([a-z]{2,})\b/i)
+    : null;
   if (spaced) {
     return normalizeEmailCandidate(`${spaced[1]}@${spaced[2]}.${spaced[3]}`);
   }
 
-  const reversed = repaired.match(/\b((?:gmail|yahoo|outlook|hotmail|icloud|aol)\.com)\s+([a-zA-Z0-9._%+-]+)\b/i);
+  const reversed = hasExplicitEmailMarker
+    ? repaired.match(/\b([a-zA-Z0-9-]+\.[a-z]{2,})\s+([a-zA-Z0-9._%+-]+)\b/i)
+    : null;
   if (reversed) {
     return normalizeEmailCandidate(`${reversed[2]}@${reversed[1]}`);
   }
 
-  const domainOnly = repaired.match(/\b([a-zA-Z0-9._%+-]+)\s*(gmail|yahoo|outlook|hotmail|icloud|aol)\.com\b/i);
+  const domainOnly = hasExplicitEmailMarker
+    ? repaired.match(/\b([a-zA-Z0-9._%+-]+)\s*([a-zA-Z0-9-]+\.[a-z]{2,})\b/i)
+    : null;
   if (domainOnly) {
-    return normalizeEmailCandidate(`${domainOnly[1]}@${domainOnly[2]}.com`);
+    return normalizeEmailCandidate(`${domainOnly[1]}@${domainOnly[2]}`);
   }
 
   return "";

@@ -31,6 +31,26 @@ export const createColumns = (
   products: ProductItem[] = [],
 ): ColumnDef<Lead>[] => [
 
+  {
+    id: "select",
+    header: ({ table }) => (
+      <Checkbox
+        checked={table.getIsAllPageRowsSelected()}
+        onCheckedChange={(value) => table.toggleAllPageRowsSelected(!!value)}
+        aria-label="Select all"
+      />
+    ),
+    cell: ({ row }) => (
+      <Checkbox
+        checked={row.getIsSelected()}
+        onCheckedChange={(value) => row.toggleSelected(!!value)}
+        aria-label="Select row"
+        onClick={(e) => e.stopPropagation()}
+      />
+    ),
+    enableSorting: false,
+    enableHiding: false,
+  },
 
     {
     accessorKey: "firstName",
@@ -47,7 +67,8 @@ export const createColumns = (
     ),
     enableSorting: false,
     enableHiding: true,
-  },
+  }, 
+  
    {
     accessorKey: "email",
     header: ({ column }) => (
@@ -212,7 +233,7 @@ export const createColumns = (
     cell: ({ row }) => (
       <div className="w-[80px]">
         {moment(row.getValue("createdAt")).format("YY-MM-DD")}
-      </div>
+      </div>   
     ),
     enableSorting: false,
     enableHiding: false,

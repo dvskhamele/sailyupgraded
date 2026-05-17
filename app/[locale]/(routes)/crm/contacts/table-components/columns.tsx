@@ -50,12 +50,7 @@ export const createColumns = (
     enableHiding: false,
   },
 
-
-
-
-
- 
-  {
+ {
     accessorKey: "first_name",
     header: ({ column }) => (
       <DataTableColumnHeader column={column} title="Name" />
@@ -67,7 +62,7 @@ export const createColumns = (
   {
     accessorKey: "last_name",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Sure name" />
+      <DataTableColumnHeader column={column} title="Surname" />
     ),
     cell: ({ row }) => (
       <Link href={`/crm/contacts/${row.original.id}`} prefetch={false} data-testid="contact-row-name">
