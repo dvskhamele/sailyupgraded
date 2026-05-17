@@ -5,7 +5,7 @@ import {
   prisma,
   withPrismaRetry,
 } from "@/lib/prisma";
-import { getActivityAssignees } from "./activity-assignment";
+import { getActivityAssignees, getActivityIdsAssignedTo } from "./activity-assignment";
 
 const PAGE_SIZE = 25;
 const VALID_ENTITY_TYPES = new Set([
@@ -36,12 +36,21 @@ export type ActivityWithLinks = {
 
 export type ActivityCursor = { date: string; id: string };
 
+export type ActivityFilters = {
+  type?: ActivityWithLinks["type"] | "all";
+  status?: ActivityWithLinks["status"] | "all";
+  contactId?: string;
+  assignedTo?: string;
+};
+
 const loadActivities = cache(async (
   entityType: string | null,
   entityId: string | null,
-  cursorKey: string | null
+  cursorKey: string | null,
+  filtersKey: string | null
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
   const cursor = cursorKey ? (JSON.parse(cursorKey) as ActivityCursor) : undefined;
+  const filters = filtersKey ? (JSON.parse(filtersKey) as ActivityFilters) : {};
   const cursorDate = cursor ? new Date(cursor.date) : null;
 
   if (entityType && (!VALID_ENTITY_TYPES.has(entityType) || !entityId)) {
@@ -54,6 +63,16 @@ const loadActivities = cache(async (
 
   try {
     const andClauses: Record<string, unknown>[] = [{ deletedAt: null }];
+    const type = filters.type && filters.type !== "all" ? filters.type : null;
+    const status = filters.status && filters.status !== "all" ? filters.status : null;
+
+    if (type) {
+      andClauses.push({ type });
+    }
+
+    if (status) {
+      andClauses.push({ status });
+    }
 
     if (entityType && entityId) {
       andClauses.push({
@@ -61,6 +80,22 @@ const loadActivities = cache(async (
           some: { entityType, entityId },
         },
       });
+    }
+
+    if (!entityType && filters.contactId) {
+      andClauses.push({
+        links: {
+          some: { entityType: "contact", entityId: filters.contactId },
+        },
+      });
+    }
+
+    if (filters.assignedTo) {
+      const assignedActivityIds = await getActivityIdsAssignedTo(prisma, filters.assignedTo);
+      if (assignedActivityIds.length === 0) {
+        return { data: [], nextCursor: null };
+      }
+      andClauses.push({ id: { in: assignedActivityIds } });
     }
 
     if (cursor && cursorDate) {
@@ -135,15 +170,19 @@ const loadActivities = cache(async (
 export const getActivitiesByEntity = async (
   entityType: string,
   entityId: string,
-  cursor?: ActivityCursor
+  cursor?: ActivityCursor,
+  filters?: ActivityFilters
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
   const cursorKey = cursor ? JSON.stringify(cursor) : null;
-  return loadActivities(entityType, entityId, cursorKey);
+  const filtersKey = filters ? JSON.stringify(filters) : null;
+  return loadActivities(entityType, entityId, cursorKey, filtersKey);
 };
 
 export const getActivities = async (
-  cursor?: ActivityCursor
+  cursor?: ActivityCursor,
+  filters?: ActivityFilters
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
   const cursorKey = cursor ? JSON.stringify(cursor) : null;
-  return loadActivities(null, null, cursorKey);
+  const filtersKey = filters ? JSON.stringify(filters) : null;
+  return loadActivities(null, null, cursorKey, filtersKey);
 };

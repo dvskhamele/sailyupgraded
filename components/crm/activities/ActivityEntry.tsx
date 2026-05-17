@@ -1,7 +1,7 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { Phone, Users, FileText, Mail, Pencil, Trash2 } from "lucide-react";
+import { CalendarClock, Phone, Users, FileText, Mail, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -57,11 +57,16 @@ interface Props {
 export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, entityId, editLinks }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [relativeDate, setRelativeDate] = useState("");
+  const [absoluteDate, setAbsoluteDate] = useState("");
 
   const Icon = TYPE_ICONS[activity.type];
-  const activityDate = new Date(activity.date);
-  const relativeDate = formatDistanceToNow(activityDate, { addSuffix: true });
-  const absoluteDate = activityDate.toLocaleString();
+
+  useEffect(() => {
+    const activityDate = new Date(activity.date);
+    setRelativeDate(formatDistanceToNow(activityDate, { addSuffix: true }));
+    setAbsoluteDate(activityDate.toLocaleString());
+  }, [activity.date]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -139,6 +144,10 @@ export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, enti
             {activity.description}
           </p>
         )}
+        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
+          <CalendarClock className="h-3.5 w-3.5" />
+          {absoluteDate}
+        </p>
         {activity.outcome && (
           <p className="text-xs text-muted-foreground mt-1">
             <span className="font-medium">Outcome:</span> {activity.outcome}

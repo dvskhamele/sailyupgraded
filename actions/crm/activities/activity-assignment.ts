@@ -62,6 +62,20 @@ export async function getActivityAssignees(
   );
 }
 
+export async function getActivityIdsAssignedTo(
+  prismaClient: any,
+  assignedTo: string
+): Promise<string[]> {
+  const rows = await prismaClient.$queryRaw<Array<{ id: string }>>`
+    SELECT id
+    FROM crm_Activities
+    WHERE assignedTo = ${assignedTo}
+      AND deletedAt IS NULL
+  `;
+
+  return rows.map((row: { id: string }) => row.id);
+}
+
 export async function withActivityAssignee<T extends { id: string }>(
   prismaClient: any,
   activity: T | null

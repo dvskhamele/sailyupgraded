@@ -5,7 +5,7 @@ import { SidebarTrigger } from "@/components/ui/sidebar";
 import { SetLanguage } from "@/components/SetLanguage";
 import { CurrencySwitcher } from "@/components/CurrencySwitcher";
 // import Feedback from "./Feedback";
-// import { ThemeToggle } from "@/components/ThemeToggle";
+import { ThemeToggle } from "@/components/ThemeToggle";
 // import { CommandComponent } from "@/components/CommandComponent";
 // import SupportComponent from "@/components/support";
 
@@ -46,7 +46,7 @@ const Header = ({ id, lang }: Props) => {
           {/* <CurrencySwitcher /> */}
           {/* <CommandComponent /> */}
           {/* <Feedback /> */}
-          {/* <ThemeToggle /> */}
+          <ThemeToggle />
           {/* <SupportComponent /> */}
         </div>
       </div>

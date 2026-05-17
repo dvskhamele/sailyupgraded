@@ -184,7 +184,7 @@ function ContactActivitySelector({
               <>
                 <CommandEmpty>
                   <span className="text-muted-foreground">
-                    {trimmedSearch.length < 2 ? "Type at least 2 characters." : "No contacts found."}
+                    {trimmedSearch.length < 1 ? "Type at least 1 characters." : "No contacts found."}
                   </span>
                 </CommandEmpty>
                 <CommandGroup>
