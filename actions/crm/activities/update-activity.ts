@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { generateActivityTitle } from "@/lib/crm/activity-title";
+import { setActivityAssignment, withActivityAssignee } from "./activity-assignment";
 
 const ENTITY_SLUGS: Record<string, string> = {
   account: "accounts",
@@ -21,6 +22,7 @@ export const updateActivity = async (data: {
   outcome?: string;
   status?: "scheduled" | "completed" | "cancelled";
   metadata?: Record<string, unknown>;
+  assignedTo?: string | null;
   links?: Array<{ entityType: string; entityId: string }>;
 }) => {
   try {
@@ -62,6 +64,10 @@ export const updateActivity = async (data: {
           updatedBy: session.user.id,
         },
       });
+
+      if (data.assignedTo !== undefined) {
+        await setActivityAssignment(tx, data.id, data.assignedTo);
+      }
 
       if (data.links !== undefined) {
         await (tx as any).crm_ActivityLinks.deleteMany({
@@ -109,7 +115,7 @@ export const updateActivity = async (data: {
       },
     });
 
-    return { data: fullActivity };
+    return { data: await withActivityAssignee(prismadb, fullActivity) };
   } catch (error) {
     console.error("updateActivity error:", error);
     return { error: "Failed to update activity" };

@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { generateActivityTitle } from "@/lib/crm/activity-title";
+import { setActivityAssignment, withActivityAssignee } from "./activity-assignment";
 
 const ENTITY_SLUGS: Record<string, string> = {
   account: "accounts",
@@ -21,6 +22,7 @@ export const createActivity = async (data: {
   outcome?: string;
   status: "scheduled" | "completed" | "cancelled";
   metadata?: Record<string, unknown>;
+  assignedTo?: string | null;
   links: Array<{ entityType: string; entityId: string }>;
 }) => {
   try {
@@ -48,6 +50,8 @@ export const createActivity = async (data: {
           createdBy: session.user.id,
         },
       });
+
+      await setActivityAssignment(tx, created.id, data.assignedTo);
 
       if (data.links.length > 0) {
         await (tx as any).crm_ActivityLinks.createMany({
@@ -78,7 +82,7 @@ export const createActivity = async (data: {
     }
     revalidatePath("/[locale]/(routes)/activities", "page");
 
-    return { data: fullActivity };
+    return { data: await withActivityAssignee(prismadb, fullActivity) };
   } catch (error) {
     console.error("createActivity error:", error);
     return { error: "Failed to create activity" };

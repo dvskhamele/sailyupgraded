@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import {
   Popover,
   PopoverContent,
@@ -266,6 +267,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
   );
   const [duration, setDuration] = useState(activity?.duration?.toString() ?? "");
   const [outcome, setOutcome] = useState(activity?.outcome ?? "");
+  const [assignedTo, setAssignedTo] = useState(activity?.assignedTo ?? "");
   const [emailSubject, setEmailSubject] = useState(
     (activity?.metadata as Record<string, string> | null)?.subject ?? ""
   );
@@ -279,6 +281,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
     selectedStatus,
     duration,
     outcome,
+    assignedTo,
     emailSubject,
     selectedContact,
   };
@@ -294,6 +297,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
       setSelectedStatus(next.selectedStatus ?? null);
       setDuration(next.duration ?? "");
       setOutcome(next.outcome ?? "");
+      setAssignedTo(next.assignedTo ?? "");
       setEmailSubject(next.emailSubject ?? "");
       setSelectedContact(next.selectedContact ?? null);
     },
@@ -350,6 +354,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
       outcome: showOutcome && outcome.trim() ? outcome.trim() : undefined,
       status,
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
+      assignedTo: assignedTo || null,
       links: activityLinks,
     };
 
@@ -416,6 +421,16 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
           )}
 
           <div className="space-y-1">
+            <Label>Assigned member</Label>
+            <UserSearchCombobox
+              value={assignedTo}
+              onChange={setAssignedTo}
+              placeholder="Select member"
+              disabled={saving}
+            />
+          </div>
+
+          <div className="space-y-1">
             <Label htmlFor="activity-title">Title</Label>
             <Input
               id="activity-title"
@@ -448,6 +463,7 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
               </SelectContent>
             </Select>
           </div>
+
 
           {showDuration && (
             <div className="space-y-1">

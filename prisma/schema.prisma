@@ -596,28 +596,31 @@ model crm_SystemSettings {
 }
 
 model crm_Activities {
-  id              String              @id @default(uuid())
-  type            crm_Activity_Type
-  title           String
-  description     String?
-  date            DateTime
-  duration        Int?
-  outcome         String?
-  status          crm_Activity_Status @default(scheduled)
-  metadata        Json?
-  createdBy       String?
-  updatedBy       String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime?           @updatedAt
-  deletedAt       DateTime?
-  deletedBy       String?
-  created_by_user Users?              @relation("activity_created_by", fields: [createdBy], references: [id])
-  updated_by_user Users?              @relation("activity_updated_by", fields: [updatedBy], references: [id])
-  links           crm_ActivityLinks[]
+  id               String              @id @default(uuid())
+  type             crm_Activity_Type
+  title            String
+  description      String?
+  date             DateTime
+  duration         Int?
+  outcome          String?
+  status           crm_Activity_Status @default(scheduled)
+  metadata         Json?
+  createdBy        String?
+  updatedBy        String?
+  assignedTo       String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime?           @updatedAt
+  deletedAt        DateTime?
+  deletedBy        String?
+  created_by_user  Users?              @relation("activity_created_by", fields: [createdBy], references: [id])
+  updated_by_user  Users?              @relation("activity_updated_by", fields: [updatedBy], references: [id])
+  assigned_to_user Users?              @relation("activity_assigned_to", fields: [assignedTo], references: [id])
+  links            crm_ActivityLinks[]
 
   @@index([date])
   @@index([type])
   @@index([status])
+  @@index([assignedTo])
   @@index([createdBy])
   @@index([createdAt])
   @@index([deletedAt])
@@ -902,6 +905,7 @@ model Users {
   authAccounts                 Account[]
   accounts                     crm_Accounts[]           @relation("AccountAssignedTo")
   crm_accounts_tasks           crm_Accounts_Tasks[]
+  activities_assigned          crm_Activities[]         @relation("activity_assigned_to")
   activities_created           crm_Activities[]         @relation("activity_created_by")
   activities_updated           crm_Activities[]         @relation("activity_updated_by")
   auditLogs                    crm_AuditLog[]

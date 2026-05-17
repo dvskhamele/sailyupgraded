@@ -5,6 +5,7 @@ import {
   prisma,
   withPrismaRetry,
 } from "@/lib/prisma";
+import { getActivityAssignees } from "./activity-assignment";
 
 const PAGE_SIZE = 25;
 const VALID_ENTITY_TYPES = new Set([
@@ -27,7 +28,9 @@ export type ActivityWithLinks = {
   metadata: unknown;
   createdAt: Date;
   createdBy: string | null;
+  assignedTo: string | null;
   created_by_user: { id: string; name: string | null; avatar: string | null } | null;
+  assigned_to_user: { id: string; name: string | null; avatar: string | null } | null;
   links: Array<{ id: string; entityType: string; entityId: string }>;
 };
 
@@ -69,7 +72,7 @@ const loadActivities = cache(async (
       });
     }
 
-    const activities = await withPrismaRetry(() =>
+    const activities = (await withPrismaRetry(() =>
       (prisma as any).crm_Activities.findMany({
         where: { AND: andClauses },
         orderBy: [{ date: "desc" }, { id: "desc" }],
@@ -90,17 +93,29 @@ const loadActivities = cache(async (
           links: { select: { id: true, entityType: true, entityId: true } },
         },
       })
-    ) as ActivityWithLinks[];
+    )) as Omit<ActivityWithLinks, "assignedTo" | "assigned_to_user">[];
+
+    const assignees = await getActivityAssignees(
+      prisma,
+      activities.map((activity) => activity.id)
+    );
+    const activitiesWithAssignees = activities.map((activity) => ({
+      ...activity,
+      ...(assignees.get(activity.id) ?? {
+        assignedTo: null,
+        assigned_to_user: null,
+      }),
+    }));
 
     const nextCursor =
-      activities.length < PAGE_SIZE
+      activitiesWithAssignees.length < PAGE_SIZE
         ? null
         : {
-            date: activities[activities.length - 1].date.toISOString(),
-            id: activities[activities.length - 1].id,
+            date: activitiesWithAssignees[activitiesWithAssignees.length - 1].date.toISOString(),
+            id: activitiesWithAssignees[activitiesWithAssignees.length - 1].id,
           };
 
-    return { data: activities as ActivityWithLinks[], nextCursor };
+    return { data: activitiesWithAssignees, nextCursor };
   } catch (error) {
     if (isTransientPrismaConnectionError(error)) {
       console.warn(

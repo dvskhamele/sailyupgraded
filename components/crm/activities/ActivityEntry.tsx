@@ -144,6 +144,12 @@ export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, enti
             <span className="font-medium">Outcome:</span> {activity.outcome}
           </p>
         )}
+        {activity.assigned_to_user && (
+          <p className="text-xs text-muted-foreground mt-1">
+            <span className="font-medium">Assigned to:</span>{" "}
+            {activity.assigned_to_user.name ?? "Unassigned"}
+          </p>
+        )}
       </div>
 
       {editOpen && (
