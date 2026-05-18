@@ -34,14 +34,14 @@ type SocialPlatformConfig = {
   id: SocialPlatformId;
   title: string;
   icon: LucideIcon;
-  actions: Record<SocialPlatformAction, SocialPlatformActionConfig>;
+  actions: Partial<Record<SocialPlatformAction, SocialPlatformActionConfig>>;
 };
 
 const externalTarget = "_blank";
 
 export const ADS_MANAGER_URLS: Partial<Record<SocialPlatformId, string>> = {
   "google-ads": "https://ads.google.com/",
-  facebook: "https://adsmanager.facebook.com/",
+  facebook: "https://www.facebook.com/business/",
   linkedin: "https://business.linkedin.com/advertise/ads",
   instagram: "https://www.facebook.com/business/tools/instagram-ads",
   tiktok: "https://ads.tiktok.com/",
@@ -104,10 +104,6 @@ const socialPlatforms: SocialPlatformConfig[] = [
     title: "Threads",
     icon: AtSign,
     actions: {
-      extension: {
-        label: "Extension",
-        url: "https://chromewebstore.google.com/search/threads",
-      },
       login: {
         label: "Start",
         url: "https://www.threads.net/login",
@@ -131,7 +127,7 @@ const socialPlatforms: SocialPlatformConfig[] = [
   },
   {
     id: "google-ads",
-    title: "Google Ads",
+    title: "Google",
     icon: Chrome,
     actions: {
       extension: {
@@ -146,47 +142,38 @@ const socialPlatforms: SocialPlatformConfig[] = [
   },
   {
     id: "twitter-x",
-    title: "Twitter / X",
+    title: "Twitter",
     icon: Twitter,
     actions: {
-      extension: {
-        label: "Extension",
-        url: "https://chromewebstore.google.com/search/twitter%20x",
-      },
       login: {
         label: "Start",
         url: "https://x.com/i/flow/login",
       },
     },
   },
-  // {
-  //   id: "youtube",
-  //   title: "YouTube",
-  //   icon: Youtube,
-  //   actions: {
-  //     extension: {
-  //       label: "Extension",
-  //       url: "https://chromewebstore.google.com/search/youtube",
-  //     },
-  //     login: {
-  //       label: "Studio",
-  //       url: "https://studio.youtube.com/",
-  //     },
-  //   },
-  // },
 ];
 
 const buildPlatformAction = (
   platform: SocialPlatformConfig,
   action: SocialPlatformAction,
-): NavSubItem => ({
-  title: `${platform.title} ${platform.actions[action].label}`,
-  url: platform.actions[action].url,
-  external: true,
-  target: externalTarget,
-});
+): NavSubItem | null => {
+  const actionConfig = platform.actions[action];
 
-const buildPlatformAdsAction = (platform: SocialPlatformConfig): NavSubItem | null => {
+  if (!actionConfig) {
+    return null;
+  }
+
+  return {
+    title: `${platform.title} ${actionConfig.label}`,
+    url: actionConfig.url,
+    external: true,
+    target: externalTarget,
+  };
+};
+
+const buildPlatformAdsAction = (
+  platform: SocialPlatformConfig,
+): NavSubItem | null => {
   const adsUrl = getPlatformAdsUrl(platform.id);
 
   if (!adsUrl) {
