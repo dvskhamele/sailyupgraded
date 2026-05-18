@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
+import { CalendarClock, Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -28,13 +28,19 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
 import { ActivityEntry } from "./ActivityEntry";
 import { ActivityForm } from "./ActivityForm";
-import { getActivities, getActivitiesByEntity } from "@/actions/crm/activities/get-activities-by-entity";
+import {
+  getActivities,
+  getActivitiesByEntity,
+} from "@/actions/crm/activities/get-activities-by-entity";
 import type {
   ActivityWithLinks,
   ActivityCursor,
   ActivityFilters,
 } from "@/actions/crm/activities/get-activities-by-entity";
-import { searchContacts, type ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
+import {
+  searchContacts,
+  type ContactSearchItem,
+} from "@/actions/crm/contacts/search-contacts";
 import useDebounce from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
 
@@ -60,7 +66,11 @@ const STATUS_FILTERS = [
 ] as const;
 
 function getContactName(contact: ContactSearchItem) {
-  return [contact.first_name, contact.last_name].filter(Boolean).join(" ") || contact.email || "Contact";
+  return (
+    [contact.first_name, contact.last_name].filter(Boolean).join(" ") ||
+    contact.email ||
+    "Contact"
+  );
 }
 
 function ContactFilter({
@@ -91,7 +101,9 @@ function ContactFilter({
     let active = true;
     setLoading(true);
     startTransition(async () => {
-      const result = await searchContacts({ search: query, take: 8 }).catch(() => []);
+      const result = await searchContacts({ search: query, take: 8 }).catch(
+        () => [],
+      );
       if (!active) return;
       setContacts(result);
       setLoading(false);
@@ -113,12 +125,19 @@ function ContactFilter({
           type="button"
         >
           <span className="truncate text-sm">
-            {value ? getContactName(value) : <span className="text-muted-foreground">All contacts</span>}
+            {value ? (
+              getContactName(value)
+            ) : (
+              <span className="text-muted-foreground">All contacts</span>
+            )}
           </span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-[var(--radix-popover-trigger-width)] p-0" align="start">
+      <PopoverContent
+        className="w-[var(--radix-popover-trigger-width)] p-0"
+        align="start"
+      >
         <Command shouldFilter={false}>
           <CommandInput
             placeholder="Search contacts..."
@@ -127,12 +146,16 @@ function ContactFilter({
           />
           <CommandList>
             {loading ? (
-              <div className="py-6 text-center text-sm text-muted-foreground">Loading...</div>
+              <div className="py-6 text-center text-sm text-muted-foreground">
+                Loading...
+              </div>
             ) : (
               <>
                 <CommandEmpty>
                   <span className="text-muted-foreground">
-                    {trimmedSearch.length < 2 ? "Type at least 2 characters." : "No contacts found."}
+                    {trimmedSearch.length < 2
+                      ? "Type at least 2 characters."
+                      : "No contacts found."}
                   </span>
                 </CommandEmpty>
                 <CommandGroup>
@@ -148,13 +171,17 @@ function ContactFilter({
                       <Check
                         className={cn(
                           "mr-2 h-4 w-4",
-                          value?.id === contact.id ? "opacity-100" : "opacity-0"
+                          value?.id === contact.id
+                            ? "opacity-100"
+                            : "opacity-0",
                         )}
                       />
                       <div className="min-w-0">
                         <p className="truncate">{getContactName(contact)}</p>
                         {contact.email && (
-                          <p className="truncate text-xs text-muted-foreground">{contact.email}</p>
+                          <p className="truncate text-xs text-muted-foreground">
+                            {contact.email}
+                          </p>
                         )}
                       </div>
                     </CommandItem>
@@ -170,13 +197,19 @@ function ContactFilter({
 }
 
 export function ActivitiesView({ entityType, entityId, initialData }: Props) {
-  const [activities, setActivities] = useState<ActivityWithLinks[]>(initialData.data);
-  const [cursor, setCursor] = useState<ActivityCursor | null>(initialData.nextCursor);
+  const [activities, setActivities] = useState<ActivityWithLinks[]>(
+    initialData.data,
+  );
+  const [cursor, setCursor] = useState<ActivityCursor | null>(
+    initialData.nextCursor,
+  );
   const [createOpen, setCreateOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [typeFilter, setTypeFilter] = useState<ActivityFilters["type"]>("all");
-  const [statusFilter, setStatusFilter] = useState<ActivityFilters["status"]>("all");
-  const [selectedContact, setSelectedContact] = useState<ContactSearchItem | null>(null);
+  const [statusFilter, setStatusFilter] =
+    useState<ActivityFilters["status"]>("all");
+  const [selectedContact, setSelectedContact] =
+    useState<ContactSearchItem | null>(null);
   const [assignedTo, setAssignedTo] = useState("");
   const didMountRef = useRef(false);
   const hasEntityContext = !!entityType && !!entityId;
@@ -224,7 +257,9 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
   };
 
   const handleUpdated = (updated: ActivityWithLinks) => {
-    setActivities((prev) => prev.map((a) => (a.id === updated.id ? updated : a)));
+    setActivities((prev) =>
+      prev.map((a) => (a.id === updated.id ? updated : a)),
+    );
   };
 
   const handleDeleted = (id: string) => {
@@ -240,109 +275,190 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
 
   return (
     <TooltipProvider>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between py-3">
-          <CardTitle className="text-base">Activities</CardTitle>
-          <Button size="sm" variant="outline" onClick={() => setCreateOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            Log activity
+      <Card className="overflow-hidden rounded-3xl border bg-background/80 shadow-sm backdrop-blur">
+        {/* Header */}
+        <CardHeader className="flex flex-col gap-4 border-b bg-muted/30 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
+          {/* Title */}
+          <div>
+            <CardTitle className="text-xl font-semibold tracking-tight">
+              Activities
+            </CardTitle>
+
+            <p className="mt-1 text-sm text-muted-foreground">
+              Track meetings, calls, follow-ups, and updates.
+            </p>
+          </div>
+
+          {/* Action Button */}
+          <Button
+            size="sm"
+            onClick={() => setCreateOpen(true)}
+            className="rounded-xl px-4 shadow-sm"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Log Activity
           </Button>
         </CardHeader>
-        <CardContent className="space-y-4 pt-0">
+
+        {/* Content */}
+        <CardContent className="space-y-5 p-6">
+          {/* Filters */}
           {showFilters && (
-            <div className="grid gap-3 border-b pb-4 md:grid-cols-4">
-              <div className="space-y-1">
-                <Label>Type</Label>
-                <Select value={typeFilter} onValueChange={(value) => setTypeFilter(value as ActivityFilters["type"])}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {TYPE_FILTERS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1">
-                <Label>Status</Label>
-                <Select
-                  value={statusFilter}
-                  onValueChange={(value) => setStatusFilter(value as ActivityFilters["status"])}
+            <div className="rounded-2xl border bg-muted/20 p-4">
+              {/* Filter Header */}
+              <div className="mb-4 flex items-center justify-between">
+                <div>
+                  <h4 className="text-sm font-semibold">Filters</h4>
+
+                  <p className="text-xs text-muted-foreground">
+                    Narrow down activity results
+                  </p>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 rounded-lg px-3 text-xs"
+                  onClick={clearFilters}
+                  disabled={
+                    typeFilter === "all" &&
+                    statusFilter === "all" &&
+                    !selectedContact &&
+                    !assignedTo
+                  }
                 >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {STATUS_FILTERS.map((item) => (
-                      <SelectItem key={item.value} value={item.value}>
-                        {item.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Clear
+                </Button>
               </div>
-              <div className="space-y-1">
-                <Label>Contact</Label>
-                <ContactFilter value={selectedContact} onChange={setSelectedContact} />
-              </div>
-              <div className="space-y-1">
-                <div className="flex items-center justify-between gap-2">
-                  <Label>Assigned member</Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    className="h-6 px-2 text-xs"
-                    onClick={clearFilters}
-                    disabled={
-                      typeFilter === "all" &&
-                      statusFilter === "all" &&
-                      !selectedContact &&
-                      !assignedTo
+
+              {/* Filter Grid */}
+              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                {/* Type */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Type
+                  </Label>
+
+                  <Select
+                    value={typeFilter}
+                    onValueChange={(value) =>
+                      setTypeFilter(value as ActivityFilters["type"])
                     }
                   >
-                    <X className="mr-1 h-3 w-3" />
-                    Clear
-                  </Button>
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {TYPE_FILTERS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
-                <UserSearchCombobox
-                  value={assignedTo}
-                  onChange={setAssignedTo}
-                  placeholder="All members"
-                  disabled={isPending}
-                />
+
+                {/* Status */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Status
+                  </Label>
+
+                  <Select
+                    value={statusFilter}
+                    onValueChange={(value) =>
+                      setStatusFilter(value as ActivityFilters["status"])
+                    }
+                  >
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {STATUS_FILTERS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Contact */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Contact
+                  </Label>
+
+                  <ContactFilter
+                    value={selectedContact}
+                    onChange={setSelectedContact}
+                  />
+                </div>
+
+                {/* Assigned Member */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    Assigned Member
+                  </Label>
+
+                  <UserSearchCombobox
+                    value={assignedTo}
+                    onChange={setAssignedTo}
+                    placeholder="All members"
+                    disabled={isPending}
+                  />
+                </div>
               </div>
             </div>
           )}
+
+          {/* Activities */}
           {activities.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-4 text-center">
-              {isPending ? "Loading activities..." : "No activities found."}
-            </p>
+            <div className="flex flex-col items-center justify-center rounded-2xl border border-dashed py-12 text-center">
+              <div className="rounded-full bg-muted p-4">
+                <CalendarClock className="h-6 w-6 text-muted-foreground" />
+              </div>
+
+              <h3 className="mt-4 text-sm font-semibold">
+                {isPending ? "Loading activities..." : "No activities found"}
+              </h3>
+
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try changing filters or create a new activity.
+              </p>
+            </div>
           ) : (
             <>
-              {activities.map((activity) => (
-                <ActivityEntry
-                  key={activity.id}
-                  activity={activity}
-                  entityType={entityType}
-                  entityId={entityId}
-                  editLinks={hasEntityContext ? undefined : activity.links}
-                  onDeleted={handleDeleted}
-                  onUpdated={handleUpdated}
-                />
-              ))}
+              {/* Activity List */}
+              <div className="space-y-4">
+                {activities.map((activity) => (
+                  <ActivityEntry
+                    key={activity.id}
+                    activity={activity}
+                    entityType={entityType}
+                    entityId={entityId}
+                    editLinks={hasEntityContext ? undefined : activity.links}
+                    onDeleted={handleDeleted}
+                    onUpdated={handleUpdated}
+                  />
+                ))}
+              </div>
+
+              {/* Load More */}
               {cursor && (
-                <div className="flex justify-center pt-3">
+                <div className="flex justify-center pt-2">
                   <Button
-                    variant="ghost"
+                    variant="outline"
                     size="sm"
                     onClick={loadMore}
                     disabled={isPending}
+                    className="rounded-xl px-5"
                   >
-                    {isPending ? "Loading..." : "Load more"}
+                    {isPending ? "Loading..." : "Load More Activities"}
                   </Button>
                 </div>
               )}
@@ -350,6 +466,7 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
           )}
         </CardContent>
 
+        {/* Create Modal */}
         {createOpen && (
           <ActivityForm
             open={createOpen}

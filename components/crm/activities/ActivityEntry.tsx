@@ -1,7 +1,15 @@
 "use client";
 import { useEffect, useState } from "react";
 import { formatDistanceToNow } from "date-fns";
-import { CalendarClock, Phone, Users, FileText, Mail, Pencil, Trash2 } from "lucide-react";
+import {
+  CalendarClock,
+  Phone,
+  Users,
+  FileText,
+  Mail,
+  Pencil,
+  Trash2,
+} from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -45,7 +53,9 @@ const STATUS_VARIANTS = {
   cancelled: "secondary",
 } as const;
 
-function getContactName(contact: NonNullable<ActivityWithLinks["links"][number]["contact"]>) {
+function getContactName(
+  contact: NonNullable<ActivityWithLinks["links"][number]["contact"]>,
+) {
   return (
     [contact.first_name, contact.last_name].filter(Boolean).join(" ") ||
     contact.email ||
@@ -62,7 +72,14 @@ interface Props {
   editLinks?: Array<{ entityType: string; entityId: string }>;
 }
 
-export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, entityId, editLinks }: Props) {
+export function ActivityEntry({
+  activity,
+  onDeleted,
+  onUpdated,
+  entityType,
+  entityId,
+  editLinks,
+}: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [relativeDate, setRelativeDate] = useState("");
@@ -92,91 +109,146 @@ export function ActivityEntry({ activity, onDeleted, onUpdated, entityType, enti
   };
 
   return (
-    <div className="flex gap-3 py-3 border-b last:border-0">
-      <div className="mt-1 flex-shrink-0 text-muted-foreground">
-        <Icon className="h-4 w-4" />
+    <div className="group relative flex gap-4 rounded-2xl border bg-background/80 p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/20">
+      {/* Left Icon */}
+      <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
+        <Icon className="h-5 w-5" />
       </div>
+
+      {/* Main Content */}
       <div className="flex-1 min-w-0">
-        <div className="flex items-start justify-between gap-2">
+        {/* Header */}
+        <div className="flex items-start justify-between gap-3">
+          {/* Title + Badges */}
           <div className="flex-1 min-w-0">
-            <p className="font-medium text-sm truncate">{activity.title}</p>
-            <div className="flex items-center gap-2 mt-1 flex-wrap">
-              <Badge variant="outline" className="text-xs">
+            <h4 className="truncate text-sm font-semibold text-foreground">
+              {activity.title}
+            </h4>
+
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <Badge
+                variant="outline"
+                className="rounded-md px-2 py-0.5 text-[11px]"
+              >
                 {TYPE_LABELS[activity.type]}
               </Badge>
-              <Badge variant={STATUS_VARIANTS[activity.status]} className="text-xs">
+
+              <Badge
+                variant={STATUS_VARIANTS[activity.status]}
+                className="rounded-md px-2 py-0.5 text-[11px]"
+              >
                 {activity.status}
               </Badge>
             </div>
           </div>
-          <div className="flex items-center gap-1 flex-shrink-0">
+
+          {/* Right Actions */}
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+            {/* Date */}
             <Tooltip>
               <TooltipTrigger asChild>
-                <span className="text-xs text-muted-foreground cursor-default">
+                <span className="mr-1 text-xs text-muted-foreground">
                   {relativeDate}
                 </span>
               </TooltipTrigger>
-              <TooltipContent>
-                {absoluteDate}
-              </TooltipContent>
+
+              <TooltipContent>{absoluteDate}</TooltipContent>
             </Tooltip>
+
+            {/* Edit */}
             <Button
               variant="ghost"
               size="icon"
-              className="h-7 w-7"
+              className="h-8 w-8 rounded-lg"
               onClick={() => setEditOpen(true)}
             >
-              <Pencil className="h-3.5 w-3.5" />
+              <Pencil className="h-4 w-4" />
             </Button>
+
+            {/* Delete */}
             <AlertDialog>
               <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-7 w-7" disabled={deleting}>
-                  <Trash2 className="h-3.5 w-3.5" />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 rounded-lg text-destructive hover:text-destructive"
+                  disabled={deleting}
+                >
+                  <Trash2 className="h-4 w-4" />
                 </Button>
               </AlertDialogTrigger>
+
               <AlertDialogContent>
                 <AlertDialogHeader>
                   <AlertDialogTitle>Delete activity?</AlertDialogTitle>
+
                   <AlertDialogDescription>
-                    This will permanently delete &ldquo;{activity.title}&rdquo;. This action cannot
-                    be undone.
+                    This will permanently delete &ldquo;
+                    {activity.title}
+                    &rdquo;. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
+
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+
+                  <AlertDialogAction onClick={handleDelete}>
+                    Delete
+                  </AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
           </div>
         </div>
+
+        {/* Description */}
         {activity.description && (
-          <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+          <p className="mt-3 line-clamp-2 text-sm leading-relaxed text-muted-foreground">
             {activity.description}
           </p>
         )}
-        <p className="mt-1 flex items-center gap-1 text-xs text-muted-foreground">
-          <CalendarClock className="h-3.5 w-3.5" />
-          {absoluteDate}
-        </p>
+
+        {/* Info Grid */}
+        <div className="mt-4 grid gap-2 text-xs text-muted-foreground sm:grid-cols-2">
+          {/* Contacts */}
+          {contactNames.length > 0 && (
+            <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2">
+              <span className="font-medium text-foreground">Contact:</span>
+
+              <span className="truncate">{contactNames.join(", ")}</span>
+            </div>
+          )}
+
+          {/* Date */}
+          <div className="flex items-center gap-2 rounded-lg bg-muted/40 px-3 py-2">
+            <CalendarClock className="h-3.5 w-3.5" />
+
+            <span>{absoluteDate}</span>
+          </div>
+
+          {/* Assigned By */}
+          <div className="rounded-lg bg-muted/40 px-3 py-2">
+            <span className="font-medium text-foreground">Assigned by:</span>{" "}
+            {activity.created_by_user?.name ?? "Unknown"}
+          </div>
+
+          {/* Assigned To */}
+          <div className="rounded-lg bg-muted/40 px-3 py-2">
+            <span className="font-medium text-foreground">Assigned to:</span>{" "}
+            {activity.assigned_to_user?.name ?? "Unassigned"}
+          </div>
+        </div>
+
+        {/* Outcome */}
         {activity.outcome && (
-          <p className="text-xs text-muted-foreground mt-1">
-            <span className="font-medium">Outcome:</span> {activity.outcome}
-          </p>
-        )}
-        {activity.assigned_to_user && (
-          <p className="text-xs text-muted-foreground mt-1">
-            <span className="font-medium">Assigned to:</span>{" "}
-            {activity.assigned_to_user.name ?? "Unassigned"}
-          </p>
-        )}
-        {contactNames.length > 0 && (
-          <p className="text-xs text-muted-foreground mt-1">
-            <span className="font-medium">Contact:</span> {contactNames.join(", ")}
-          </p>
+          <div className="mt-3 rounded-xl border border-dashed bg-muted/30 p-3 text-xs text-muted-foreground">
+            <span className="font-medium text-foreground">Outcome:</span>{" "}
+            {activity.outcome}
+          </div>
         )}
       </div>
 
+      {/* Edit Modal */}
       {editOpen && (
         <ActivityForm
           open={editOpen}
