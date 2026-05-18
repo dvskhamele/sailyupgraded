@@ -26,6 +26,7 @@ const contactScalarListFieldValues = {
   phone: true,
   first_name: true,
   last_name: true,
+  visible_to_name: true,
   office_phone: true,
   mobile_phone: true,
   website: true,

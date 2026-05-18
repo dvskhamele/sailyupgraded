@@ -8,6 +8,7 @@ import {
 } from "@/lib/prisma";
 import { getCrmContactListSelect } from "@/lib/prisma-contact-select";
 import { buildContactRoleFilter } from "@/lib/contact-options";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
@@ -24,6 +25,7 @@ export async function GET(request: NextRequest) {
         where: {
           deletedAt: null,
           ...buildContactRoleFilter(role),
+          ...(await buildExistingDbContactVisibilityFilter(session.user)),
         },
         select,
       });

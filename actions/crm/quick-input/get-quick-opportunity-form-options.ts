@@ -3,8 +3,23 @@
 import { prismadb } from "@/lib/prisma";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
+import { getSession } from "@/lib/auth-server";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 export async function getQuickOpportunityFormOptions() {
+  const session = await getSession();
+  if (!session) {
+    return serializeDecimals({
+      accounts: [],
+      contacts: [],
+      salesType: [],
+      saleStages: [],
+      campaigns: [],
+      currencies: [],
+      categoryOptions: [],
+    });
+  }
+
   const [accounts, contacts, salesType, campaigns, currencies, products] = await prismadb.$transaction([
     prismadb.crm_Accounts.findMany({
       where: { deletedAt: null },
@@ -21,7 +36,10 @@ export async function getQuickOpportunityFormOptions() {
       orderBy: { name: "asc" },
     }),
     prismadb.crm_Contacts.findMany({
-      where: { deletedAt: null },
+      where: {
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+      },
       select: {
         id: true,
         serial: true,

@@ -13,6 +13,8 @@ import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decima
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 import { appendSocialLeadSourceOptions, ensureDefaultContactTypes } from "@/lib/crm/contact-form-options";
 import { getAccountIndustries } from "@/lib/crm/industries";
+import { getSession } from "@/lib/auth-server";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 const bypassLogin =
   process.env.BYPASS_LOGIN === "true" ||
@@ -117,7 +119,7 @@ const crmDashboardLeadSelectValues = {
   social_tiktok: true,
 } as const;
 
-const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
+const crmDashboardContactSelectValues = pickSupportedModelFields("crm_Contacts", {
   id: true,
   account: true,
   assigned_to: true,
@@ -137,6 +139,7 @@ const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
   phone: true,
   first_name: true,
   last_name: true,
+  visible_to_name: true,
   office_phone: true,
   mobile_phone: true,
   website: true,
@@ -153,6 +156,8 @@ const crmDashboardContactSelect = pickSupportedModelFields("crm_Contacts", {
 } as const);
 
 async function loadAllCrmData() {
+  const session = await getSession();
+
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { deletedAt: null },
     include: {
@@ -178,6 +183,10 @@ async function loadAllCrmData() {
     "crm_Leads",
     crmDashboardLeadSelectValues
   );
+  const crmDashboardContactSelect = await pickExistingDbModelFields(
+    "crm_Contacts",
+    crmDashboardContactSelectValues
+  );
 
   const leads = await prismadb.crm_Leads.findMany({
     where: { deletedAt: null },
@@ -185,7 +194,10 @@ async function loadAllCrmData() {
   });
 
   const contacts = await prismadb.crm_Contacts.findMany({
-    where: { deletedAt: null },
+    where: {
+      deletedAt: null,
+      ...(await buildExistingDbContactVisibilityFilter(session?.user)),
+    },
     select: crmDashboardContactSelect,
   });
 

@@ -2,6 +2,7 @@
 
 import { prismadb } from "@/lib/prisma";
 import { getSession } from "@/lib/auth-server";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 import type { Prisma } from "@prisma/client";
 
 export type ContactSearchItem = {
@@ -88,6 +89,7 @@ export const searchContacts = async ({
   const contacts = await prismadb.crm_Contacts.findMany({
     where: {
       deletedAt: null,
+      ...(await buildExistingDbContactVisibilityFilter(session.user)),
       OR: orConditions,
     },
     select: {

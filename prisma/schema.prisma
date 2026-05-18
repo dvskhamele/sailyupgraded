@@ -454,6 +454,7 @@ model crm_Contacts {
   phone                String?
   first_name           String?
   last_name            String
+  visible_to_name      String?                   @default("all_members")
   office_phone         String?
   mobile_phone         String?
   website              String?

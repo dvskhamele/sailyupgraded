@@ -1,6 +1,7 @@
 "use server";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 export interface SearchResult {
   id: string;
@@ -103,6 +104,7 @@ export async function unifiedSearch(
       prismadb.crm_Contacts.findMany({
         where: {
           deletedAt: null,
+          ...(await buildExistingDbContactVisibilityFilter(session.user)),
           OR: [
             { first_name: { contains: query } },
             { last_name: { contains: query } },

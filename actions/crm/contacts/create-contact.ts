@@ -15,6 +15,7 @@ import { currencyInputToDecimalString } from "@/lib/currency-input";
 import { normalizeContactNotes } from "@/lib/crm/notes";
 import { parseOpportunityProducts, serializeOpportunityProducts } from "@/lib/opportunity-products";
 import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
+import { normalizeContactVisibility } from "@/lib/crm/contact-visibility";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -74,6 +75,7 @@ export const createContact = async (data: {
   phone?: string;
   first_name?: string;
   last_name: string;
+  visible_to_name?: string;
   office_phone?: string;
   mobile_phone?: string;
   website?: string;
@@ -187,6 +189,7 @@ export const createContact = async (data: {
       Object.keys(sanitizedCustomFieldValues).length > 0
         ? sanitizedCustomFieldValues
         : null,
+    visible_to_name: normalizeContactVisibility(data.visible_to_name),
     ...supportedRoleFields,
     ...supportedAddressFields,
     ...rest,

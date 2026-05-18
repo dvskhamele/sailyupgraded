@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 const FIELD_MAP: Record<string, string> = {
   position:        "position",
@@ -37,6 +38,19 @@ export async function PATCH(
 
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
+  }
+
+  const existing = await prismadb.crm_Contacts.findFirst({
+    where: {
+      id,
+      deletedAt: null,
+      ...(await buildExistingDbContactVisibilityFilter(session.user)),
+    },
+    select: { id: true },
+  });
+
+  if (!existing) {
+    return NextResponse.json({ error: "Contact not found" }, { status: 404 });
   }
 
   const contact = await prismadb.crm_Contacts.update({

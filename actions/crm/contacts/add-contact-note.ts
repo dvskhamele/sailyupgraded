@@ -6,6 +6,7 @@ import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { normalizeContactNotes, type CrmNote } from "@/lib/crm/notes";
 import { writeAuditLog } from "@/lib/audit-log";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 function makeNote(text: string): CrmNote {
   return {
@@ -25,7 +26,11 @@ export async function addContactNote(contactId: string, text: string) {
 
   try {
     const contact = await prismadb.crm_Contacts.findFirst({
-      where: { id: contactId, deletedAt: null },
+      where: {
+        id: contactId,
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+      },
       select: { id: true, notes: true, created_on: true },
     });
 

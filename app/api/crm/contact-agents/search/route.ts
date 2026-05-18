@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 const DEFAULT_TAKE = 50;
 
@@ -31,6 +32,7 @@ export async function GET(request: NextRequest) {
   const where = {
     deletedAt: null,
     role: "Agent",
+    ...(await buildExistingDbContactVisibilityFilter(session.user)),
     ...(search
       ? {
           OR: [

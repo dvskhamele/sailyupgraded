@@ -6,6 +6,8 @@ import {
   isTransientPrismaConnectionError,
   prismadb,
 } from "@/lib/prisma";
+import { getSession } from "@/lib/auth-server";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 import type { QuickDbMemory, QuickMemoryField } from "@/lib/crm/quick-input-engine";
 
 const bypassLogin =
@@ -63,9 +65,15 @@ export async function getQuickInputMemory(): Promise<QuickDbMemory> {
   let defaultCurrency;
 
   try {
+    const session = await getSession();
+    if (!session) return fallbackQuickInputMemory;
+
     [contacts, opportunities, leadSources, stages, types] = await prismadb.$transaction([
       prismadb.crm_Contacts.findMany({
-        where: { deletedAt: null },
+        where: {
+          deletedAt: null,
+          ...(await buildExistingDbContactVisibilityFilter(session.user)),
+        },
         select: {
           first_name: true,
           last_name: true,

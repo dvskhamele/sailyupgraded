@@ -14,6 +14,8 @@ import { currencyInputToDecimalString } from "@/lib/currency-input";
 import { normalizeContactNotes } from "@/lib/crm/notes";
 import { parseOpportunityProducts, serializeOpportunityProducts } from "@/lib/opportunity-products";
 import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
+import { normalizeContactVisibility } from "@/lib/crm/contact-visibility";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
@@ -62,6 +64,7 @@ export const updateContact = async (data: {
   phone?: string | null;
   first_name?: string | null;
   last_name?: string;
+  visible_to_name?: string | null;
   office_phone?: string | null;
   mobile_phone?: string | null;
   website?: string | null;
@@ -175,6 +178,7 @@ export const updateContact = async (data: {
       Object.keys(sanitizedCustomFieldValues).length > 0
         ? sanitizedCustomFieldValues
         : null,
+    visible_to_name: normalizeContactVisibility(data.visible_to_name),
     ...(notes !== undefined && { notes: normalizeContactNotes(notes) }),
     ...supportedRoleFields,
     ...supportedAddressFields,
@@ -183,10 +187,17 @@ export const updateContact = async (data: {
 
   try {
     const contactSelect = await getCrmContactDetailSelect();
-    const before = await prismadb.crm_Contacts.findUnique({
-      where: { id, deletedAt: null },
+    const before = await prismadb.crm_Contacts.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+      },
       select: contactSelect,
     });
+    if (!before) {
+      return { error: "Contact not found" };
+    }
     let contact;
 
     try {

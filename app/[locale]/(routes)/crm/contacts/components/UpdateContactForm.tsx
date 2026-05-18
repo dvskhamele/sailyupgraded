@@ -6,6 +6,7 @@ import { getAddressLine1 } from "@/lib/crm-address";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { notesToPlainText } from "@/lib/crm/notes";
 import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
+import { normalizeContactVisibility } from "@/lib/crm/contact-visibility";
 
 type Option = { id: string; name: string };
 type AccountOption = {
@@ -52,6 +53,7 @@ export function UpdateContactForm({
     serial: initialData.serial != null ? String(initialData.serial) : "",
     first_name: initialData.first_name ?? "",
     last_name: initialData.last_name ?? "",
+    visible_to_name: normalizeContactVisibility(initialData.visible_to_name),
     company: initialData.company ?? "",
     jobTitle: initialData.jobTitle ?? "",
     description: initialData.description ?? "",

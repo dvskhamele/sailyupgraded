@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit-log";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 export const deleteContact = async (contactId: string) => {
   const session = await getSession();
@@ -11,6 +12,17 @@ export const deleteContact = async (contactId: string) => {
   if (!contactId) return { error: "contactId is required" };
 
   try {
+    const existing = await prismadb.crm_Contacts.findFirst({
+      where: {
+        id: contactId,
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+      },
+      select: { id: true },
+    });
+
+    if (!existing) return { error: "Contact not found" };
+
     await prismadb.crm_Contacts.update({
       where: { id: contactId },
       data: { deletedAt: new Date(), deletedBy: session.user.id },
@@ -39,7 +51,11 @@ export const bulkDeleteContacts = async (contactIds: string[]) => {
 
   try {
     const contacts = await prismadb.crm_Contacts.findMany({
-      where: { id: { in: ids }, deletedAt: null },
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+      },
       select: { id: true },
     });
 

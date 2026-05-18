@@ -1,8 +1,9 @@
-import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prismadb, withPrismaRetry } from "@/lib/prisma";
+import { getSession } from "@/lib/auth-server";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { getExistingDbColumnNames } from "@/lib/prisma-model-fields";
+import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 
 function quoteIdentifier(identifier: string) {
@@ -62,13 +63,17 @@ async function getImportedContactColumnData(contactId: string) {
   });
 }
 
-export const getContact = cache(async (contactId: string) => {
+export const getContact = async (contactId: string) => {
   return withPrismaRetry(async () => {
+    const session = await getSession();
+    if (!session) return null;
+
     const select = await getCrmContactDetailSelect();
     const data = await prismadb.crm_Contacts.findFirst({
       where: {
         id: contactId,
         deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session?.user)),
       },
       select,
     });
@@ -84,4 +89,4 @@ export const getContact = cache(async (contactId: string) => {
       imported_columns_data: importedColumns,
     });
   });
-});
+};
