@@ -43,8 +43,14 @@ export function LoginComponent({
   const [isLoading, setIsLoading] = useState(false);
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
   const [otp, setOtp] = useState("");
   const [devOtp, setDevOtp] = useState("");
+
+  const validateEmail = (value: string) => {
+    const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+    return regex.test(value);
+  };
 
   const sendOtp = async () => {
     if (bypassLogin) {
@@ -54,6 +60,10 @@ export function LoginComponent({
 
     if (!email) {
       toast.error("Please enter your email address.");
+      return;
+    }
+    if (!validateEmail(email)) {
+      setEmailError("Please enter a valid email address.");
       return;
     }
     setIsLoading(true);
@@ -226,11 +236,22 @@ export function LoginComponent({
                 type="email"
                 placeholder="you@company.com"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  setEmailError("");
+                }}
+                onBlur={() => {
+                  if (email && !validateEmail(email)) {
+                    setEmailError("Please enter a valid email address.");
+                  }
+                }}
                 disabled={isLoading}
                 onKeyDown={(e) => e.key === "Enter" && sendOtp()}
                 className="h-11 rounded-lg"
               />
+              {emailError && (
+                <p className="text-sm text-red-500">{emailError}</p>
+              )}
             </div>
 
             <Button
