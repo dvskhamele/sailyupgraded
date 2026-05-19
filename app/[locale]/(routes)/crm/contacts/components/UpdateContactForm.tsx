@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { updateContact } from "@/actions/crm/contacts/update-contact";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
@@ -39,6 +40,7 @@ export function UpdateContactForm({
   products = [],
 }: UpdateContactFormProps) {
   const t = useTranslations("CrmContactForm");
+  const router = useRouter();
 
   if (!initialData) {
     return null;
@@ -126,7 +128,10 @@ export function UpdateContactForm({
       products={products}
       initialValues={initialValues}
       onSubmitAction={(data) => updateContact(data as any)}
-      onSuccess={() => setOpen(false)}
+      onSuccess={() => {
+        setOpen(false);
+        router.refresh();
+      }}
     />
   );
 }

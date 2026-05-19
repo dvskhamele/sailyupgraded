@@ -191,7 +191,12 @@ export function NewOpportunityForm({
     contact: z.string(),
     campaign: z.string(),
     custom_fields_data: z
-      .record(z.string(), z.union([z.string(), z.null(), z.undefined()]))
+      .record(z.string(), z.union([z.string(), z.object({
+        url: z.string(),
+        name: z.string(),
+        size: z.number(),
+        type: z.string(),
+      }), z.null(), z.undefined()]))
       .optional(),
   });
 

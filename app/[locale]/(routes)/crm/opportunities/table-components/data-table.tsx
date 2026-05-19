@@ -27,9 +27,13 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { PanelTopClose, PanelTopOpen } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
+import { Button } from "@/components/ui/button";
+import AlertModal from "@/components/modals/alert-modal";
+import { bulkDeleteOpportunities } from "@/actions/crm/opportunities/delete-opportunity";
+import { toast } from "sonner";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -49,7 +53,8 @@ export function OpportunitiesDataTable<TData, TValue>({
   );
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
-  const [hide, setHide] = React.useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -73,98 +78,123 @@ export function OpportunitiesDataTable<TData, TValue>({
     getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
+  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedOpportunityIds = selectedRows.map(
+    (row) => (row.original as { id: string }).id
+  );
+  const selectedCount = selectedOpportunityIds.length;
+
+  const onBulkDelete = async () => {
+    setBulkDeleteLoading(true);
+    try {
+      const result = await bulkDeleteOpportunities(selectedOpportunityIds);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      table.toggleAllRowsSelected(false);
+      toast.success(`${result.count ?? selectedCount} opportunity(s) deleted`);
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong while deleting opportunities. Please try again.");
+    } finally {
+      setBulkDeleteLoading(false);
+      setBulkDeleteOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
-      {/* <div className="flex justify-between items-start gap-3">
-        <div></div>
-        <div className="flex justify-end space-x-2">
-          {hide ? (
-            <PanelTopOpen
-              onClick={() => setHide(!hide)}
-              className="text-muted-foreground"
-            />
-          ) : (
-            <PanelTopClose
-              onClick={() => setHide(!hide)}
-              className="text-muted-foreground"
-            />
+      <AlertModal
+        isOpen={bulkDeleteOpen}
+        onClose={() => setBulkDeleteOpen(false)}
+        onConfirm={onBulkDelete}
+        loading={bulkDeleteLoading}
+        title={`Delete ${selectedCount} opportunity(s)?`}
+        description="Selected opportunities will be moved to deleted records."
+      />
+      <div className="flex justify-between items-start gap-3">
+        <div />
+        <div className="flex justify-end items-center gap-2">
+          {selectedCount > 0 && (
+            <Button
+              size="sm"
+              variant="destructive"
+              onClick={() => setBulkDeleteOpen(true)}
+              disabled={bulkDeleteLoading}
+            >
+              <Trash2 className="h-4 w-4 mr-1" />
+              Delete selected
+            </Button>
           )}
         </div>
-      </div> */}
-
-      {/* {hide ? (
-        <div className="flex gap-2">
-          This content is hidden now. Click on <PanelTopOpen /> to show content
-        </div>
-      ) : (
-        <> */}
-          <DataTableToolbar table={table} />
-          <div className="rounded-md border overflow-x-auto">
-            <Table data-testid="opportunities-table">
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                      role="link"
-                      tabIndex={0}
-                      className="cursor-pointer"
-                      onClick={(event) =>
-                        handleRowClick(event, () =>
-                          router.push(`/crm/opportunities/${(row.original as { id: string }).id}`)
-                        )
-                      }
-                      onKeyDown={(event) =>
-                        handleRowKeyDown(event, () =>
-                          router.push(`/crm/opportunities/${(row.original as { id: string }).id}`)
-                        )
-                      }
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
+      </div>
+      <DataTableToolbar table={table} />
+      <div className="rounded-md border overflow-x-auto">
+        <Table data-testid="opportunities-table">
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
                           )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No results.
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  role="link"
+                  tabIndex={0}
+                  className="cursor-pointer"
+                  onClick={(event) =>
+                    handleRowClick(event, () =>
+                      router.push(`/crm/opportunities/${(row.original as { id: string }).id}`)
+                    )
+                  }
+                  onKeyDown={(event) =>
+                    handleRowKeyDown(event, () =>
+                      router.push(`/crm/opportunities/${(row.original as { id: string }).id}`)
+                    )
+                  }
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          <DataTablePagination table={table} />
-        {/* </>
-      )} */}
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <DataTablePagination table={table} />
     </div>
   );
 }

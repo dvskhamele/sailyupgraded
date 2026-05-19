@@ -19,7 +19,15 @@ export type NormalizedCustomFieldDefinition = {
   contact_role?: CustomFieldContactRole;
 };
 
-export type CustomFieldValues = Record<string, string>;
+export type CustomFieldFileValue = {
+  url: string;
+  name: string;
+  size: number;
+  type: string;
+};
+
+export type CustomFieldValue = string | CustomFieldFileValue;
+export type CustomFieldValues = Record<string, CustomFieldValue>;
 
 function normalizeStringArray(value: unknown) {
   if (!Array.isArray(value)) {
@@ -141,17 +149,47 @@ export function sanitizeCustomFieldValues(
   }
 
   const rawValues = values as Record<string, unknown>;
-  const sanitizedEntries = fields.flatMap((field) => {
+  const sanitizedEntries: [string, CustomFieldValue][] = [];
+
+  fields.forEach((field) => {
     const normalizedField = normalizeCustomField(field);
     const rawValue = rawValues[normalizedField.id];
 
     if (rawValue == null) {
-      return [];
+      return;
+    }
+
+    if (normalizedField.type === "file") {
+      if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
+        return;
+      }
+
+      const metadata = rawValue as Record<string, unknown>;
+      if (
+        typeof metadata.url !== "string" ||
+        typeof metadata.name !== "string" ||
+        typeof metadata.size !== "number" ||
+        !Number.isFinite(metadata.size) ||
+        typeof metadata.type !== "string"
+      ) {
+        return;
+      }
+
+      sanitizedEntries.push([
+        normalizedField.id,
+        {
+          url: metadata.url,
+          name: metadata.name,
+          size: metadata.size,
+          type: metadata.type,
+        },
+      ]);
+      return;
     }
 
     const value = String(rawValue).trim();
     if (!value) {
-      return [];
+      return;
     }
 
     if (
@@ -159,14 +197,14 @@ export function sanitizeCustomFieldValues(
       normalizedField.options.length > 0 &&
       !normalizedField.options.includes(value)
     ) {
-      return [];
+      return;
     }
 
     if (normalizedField.type === "number" && Number.isNaN(Number(value))) {
-      return [];
+      return;
     }
 
-    return [[normalizedField.id, value] as const];
+    sanitizedEntries.push([normalizedField.id, value]);
   });
 
   return Object.fromEntries(sanitizedEntries) as CustomFieldValues;

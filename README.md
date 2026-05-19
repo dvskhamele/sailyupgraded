@@ -378,7 +378,7 @@ The `.env.docker` file lists every supported variable with comments. Beyond the 
 ```bash
 # Example .env
 OPENAI_API_KEY=sk-your-real-key       # enables AI features
-VITE_GOOGLE_CLIENT_ID=...apps.googleusercontent.com # enables GIS login button
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...apps.googleusercontent.com # enables GIS login button
 GOOGLE_ID=...apps.googleusercontent.com  # enables Google OAuth
 GOOGLE_SECRET=GOCSPX-...
 RESEND_API_KEY=re_...                 # enables transactional email

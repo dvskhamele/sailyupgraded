@@ -6,6 +6,7 @@ import { inngest } from "@/inngest/client";
 import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getSnapshotRate, getDefaultCurrency } from "@/lib/currency";
 import {
+  type CustomFieldValue,
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
@@ -33,7 +34,7 @@ export const updateOpportunity = async (data: {
   sales_stage?: string;
   type?: string;
   category?: string[] | string;
-  custom_fields_data?: Record<string, string | null | undefined>;
+  custom_fields_data?: Record<string, CustomFieldValue | null | undefined>;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };

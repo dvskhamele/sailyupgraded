@@ -49,6 +49,7 @@ export const createColumns = (config: OpportunityConfig): ColumnDef<Opportunity>
         onCheckedChange={(value) => row.toggleSelected(!!value)}
         aria-label="Select row"
         className="translate-y-[2px]"
+        onClick={(e) => e.stopPropagation()}
       />
     ),
     enableSorting: false,

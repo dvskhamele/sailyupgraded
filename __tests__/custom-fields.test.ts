@@ -2,6 +2,7 @@ import {
   fieldAppliesToEntity,
   filterCustomFieldsForEntity,
   normalizeCustomField,
+  sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
 
 const fields = [
@@ -44,5 +45,28 @@ describe("custom field role scoping", () => {
   it("matches role values case-insensitively", () => {
     expect(fieldAppliesToEntity(fields[0], "Contact", "customer")).toBe(true);
     expect(fieldAppliesToEntity(fields[0], "Contact", "Agent")).toBe(false);
+  });
+
+  it("preserves file metadata for file custom fields", () => {
+    const metadata = {
+      url: "https://files.example.com/custom-fields/example.pdf",
+      name: "example.pdf",
+      size: 512,
+      type: "application/pdf",
+    };
+
+    expect(
+      sanitizeCustomFieldValues(
+        { attachment: metadata },
+        [
+          {
+            id: "attachment",
+            name: "Attachment",
+            type: "file",
+            applies_to: ["Contact"],
+          },
+        ],
+      ),
+    ).toEqual({ attachment: metadata });
   });
 });

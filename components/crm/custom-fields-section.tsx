@@ -4,13 +4,16 @@ import { useEffect, useMemo, useState } from "react";
 import type { UseFormReturn } from "react-hook-form";
 
 import type {
+  CustomFieldFileValue,
   CustomFieldDefinition,
   CustomFieldEntity,
   NormalizedCustomFieldDefinition,
 } from "@/lib/custom-fields";
 import { filterCustomFieldsForEntity } from "@/lib/custom-fields";
+import { validateCustomFieldFile } from "@/lib/storage-validation";
 
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   FormControl,
   FormField,
@@ -26,6 +29,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 
+function isFileMetadata(value: unknown): value is CustomFieldFileValue {
+  return (
+    Boolean(value) &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    typeof (value as CustomFieldFileValue).url === "string" &&
+    typeof (value as CustomFieldFileValue).name === "string" &&
+    typeof (value as CustomFieldFileValue).size === "number" &&
+    typeof (value as CustomFieldFileValue).type === "string"
+  );
+}
+
 type CustomFieldsSectionProps = {
   entityType: CustomFieldEntity;
   form: UseFormReturn<any>;
@@ -40,6 +55,8 @@ export function CustomFieldsSection({
   contactRole,
 }: CustomFieldsSectionProps) {
   const [allFields, setAllFields] = useState<CustomFieldDefinition[]>([]);
+  const [uploadingFieldId, setUploadingFieldId] = useState<string | null>(null);
+  const [fileErrors, setFileErrors] = useState<Record<string, string>>({});
   const fields = useMemo(
     () => filterCustomFieldsForEntity(allFields, entityType, contactRole),
     [allFields, contactRole, entityType],
@@ -98,6 +115,88 @@ export function CustomFieldsSection({
     return null;
   }
 
+  const uploadCustomFieldFile = async (
+    customField: NormalizedCustomFieldDefinition,
+    file: File,
+    onChange: (value: CustomFieldFileValue | undefined) => void,
+  ) => {
+    const validationError = validateCustomFieldFile(file);
+    if (validationError) {
+      setFileErrors((current) => ({
+        ...current,
+        [customField.id]: validationError,
+      }));
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    setUploadingFieldId(customField.id);
+    setFileErrors((current) => {
+      const { [customField.id]: _removed, ...next } = current;
+      return next;
+    });
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "POST",
+        body: formData,
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to upload file");
+      }
+
+      onChange(payload as CustomFieldFileValue);
+    } catch (error) {
+      setFileErrors((current) => ({
+        ...current,
+        [customField.id]:
+          error instanceof Error ? error.message : "Failed to upload file",
+      }));
+      onChange(undefined);
+    } finally {
+      setUploadingFieldId(null);
+    }
+  };
+
+  const deleteCustomFieldFile = async (
+    customField: NormalizedCustomFieldDefinition,
+    value: CustomFieldFileValue,
+    onChange: (value: undefined) => void,
+  ) => {
+    setUploadingFieldId(customField.id);
+    setFileErrors((current) => {
+      const { [customField.id]: _removed, ...next } = current;
+      return next;
+    });
+
+    try {
+      const response = await fetch("/api/upload", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(value),
+      });
+      const payload = await response.json().catch(() => null);
+
+      if (!response.ok) {
+        throw new Error(payload?.error || "Failed to delete file");
+      }
+
+      onChange(undefined);
+    } catch (error) {
+      setFileErrors((current) => ({
+        ...current,
+        [customField.id]:
+          error instanceof Error ? error.message : "Failed to delete file",
+      }));
+    } finally {
+      setUploadingFieldId(null);
+    }
+  };
+
   return (
     <div className="">
       {/* <div>
@@ -138,6 +237,64 @@ export function CustomFieldsSection({
                       ))}
                     </SelectContent>
                   </Select>
+                ) : customField.type === "file" ? (
+                  <FormControl>
+                    <div className="space-y-2">
+                      <Input
+                        type="file"
+                        accept=".pdf,.png,.jpg,.jpeg,.docx"
+                        disabled={disabled || uploadingFieldId === customField.id}
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = "";
+                          if (file) {
+                            void uploadCustomFieldFile(
+                              customField,
+                              file,
+                              field.onChange,
+                            );
+                          }
+                        }}
+                      />
+                      {isFileMetadata(field.value) ? (
+                        <div className="flex items-center justify-between gap-3 rounded-md border px-3 py-2 text-sm">
+                          <a
+                            href={field.value.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="min-w-0 truncate text-blue-600 hover:underline"
+                          >
+                            {field.value.name}
+                          </a>
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={disabled || uploadingFieldId === customField.id}
+                            onClick={() =>
+                              void deleteCustomFieldFile(
+                                customField,
+                                field.value,
+                                field.onChange,
+                              )
+                            }
+                          >
+                            Remove
+                          </Button>
+                        </div>
+                      ) : null}
+                      {uploadingFieldId === customField.id ? (
+                        <p className="text-sm text-muted-foreground">
+                          Uploading...
+                        </p>
+                      ) : null}
+                      {fileErrors[customField.id] ? (
+                        <p className="text-sm font-medium text-destructive">
+                          {fileErrors[customField.id]}
+                        </p>
+                      ) : null}
+                    </div>
+                  </FormControl>
                 ) : (
                   <FormControl>
                     <Input

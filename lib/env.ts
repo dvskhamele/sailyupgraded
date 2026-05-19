@@ -60,8 +60,24 @@ export function getStorageBucket() {
   return getEnv("MINIO_BUCKET", "CLOUDFLARE_R2_BUCKET", "R2_BUCKET");
 }
 
+function normalizeGoogleClientId(value?: string) {
+  const clientId = value?.replace(/^["']|["']$/g, "").trim();
+  if (!clientId?.endsWith(".apps.googleusercontent.com")) return undefined;
+  return clientId;
+}
+
 export function getGoogleClientId() {
-  return getEnv("VITE_GOOGLE_CLIENT_ID", "GOOGLE_ID", "GOOGLE_CLIENT_ID");
+  for (const name of [
+    "NEXT_PUBLIC_GOOGLE_CLIENT_ID",
+    "VITE_GOOGLE_CLIENT_ID",
+    "GOOGLE_ID",
+    "GOOGLE_CLIENT_ID",
+  ]) {
+    const clientId = normalizeGoogleClientId(getEnv(name));
+    if (clientId) return clientId;
+  }
+
+  return undefined;
 }
 
 export function getGoogleClientSecret() {

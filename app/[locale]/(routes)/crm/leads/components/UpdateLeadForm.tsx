@@ -1,6 +1,7 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { updateLead } from "@/actions/crm/leads/update-lead";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
@@ -36,6 +37,7 @@ export function UpdateLeadForm({
   products = [],
 }: UpdateLeadFormProps) {
   const t = useTranslations("CrmLeadForm");
+  const router = useRouter();
 
   if (!initialData) {
     return null;
@@ -104,7 +106,10 @@ export function UpdateLeadForm({
       products={products}
       initialValues={initialValues}
       onSubmitAction={(data) => updateLead(data as any)}
-      onSuccess={() => setOpen(false)}
+      onSuccess={() => {
+        setOpen(false);
+        router.refresh();
+      }}
     />
   );
 }

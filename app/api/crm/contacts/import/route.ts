@@ -11,6 +11,7 @@ import {
   normalizeContactRole,
 } from "@/lib/contact-options";
 import {
+  type CustomFieldValue,
   fieldAppliesToEntity,
   normalizeCustomField,
   sanitizeCustomFieldValues,
@@ -425,7 +426,10 @@ function getRoleCustomFieldValues(
   return values;
 }
 
-function mergeCustomFieldValues(existingValues: unknown, importedValues: Record<string, string>) {
+function mergeCustomFieldValues(
+  existingValues: unknown,
+  importedValues: Record<string, CustomFieldValue>,
+) {
   const existing =
     existingValues && typeof existingValues === "object" && !Array.isArray(existingValues)
       ? (existingValues as Record<string, unknown>)

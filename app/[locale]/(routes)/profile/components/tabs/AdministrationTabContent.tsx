@@ -376,6 +376,7 @@ export function AdministrationTabContent() {
                   <option value="number">number</option>
                   <option value="date">date</option>
                   <option value="select">select</option>
+                  <option value="file">file</option>
                 </select>
               </div>
 

@@ -17,6 +17,7 @@ import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
 import { normalizeContactVisibility } from "@/lib/crm/contact-visibility";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 import {
+  type CustomFieldValue,
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
@@ -99,7 +100,7 @@ export const updateContact = async (data: {
   opportunity_premium?: string | null;
   opportunity_stage_id?: string | null;
   opportunity_description?: string | null;
-  custom_fields_data?: Record<string, string | null | undefined>;
+  custom_fields_data?: Record<string, CustomFieldValue | null | undefined>;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CalendarIcon, Pencil } from "lucide-react";
@@ -89,6 +90,7 @@ export function UpdateOpportunityForm({
 }: UpdateOpportunityFormProps) {
   const t = useTranslations("CrmOpportunityForm");
   const c = useTranslations("Common");
+  const router = useRouter();
   const [saleTypeOptions, setSaleTypeOptions] = useState(saleTypes);
   const [saleStageOptions, setSaleStageOptions] = useState(saleStages);
   const [isSalesTypeDialogOpen, setIsSalesTypeDialogOpen] = useState(false);
@@ -140,7 +142,12 @@ export function UpdateOpportunityForm({
     contact: z.string().nullable().optional(),
     campaign: z.string().nullable().optional(),
     custom_fields_data: z
-      .record(z.string(), z.union([z.string(), z.null(), z.undefined()]))
+      .record(z.string(), z.union([z.string(), z.object({
+        url: z.string(),
+        name: z.string(),
+        size: z.number(),
+        type: z.string(),
+      }), z.null(), z.undefined()]))
       .optional(),
   });
 
@@ -237,6 +244,7 @@ export function UpdateOpportunityForm({
       clearDraft();
       toast.success(t("updateSuccess"));
       setOpen(false);
+      router.refresh();
     } catch (error) {
       console.log(error);
       const message = error instanceof Error ? error.message : "Failed to update opportunity";

@@ -9,6 +9,7 @@ import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import {
+  type CustomFieldValue,
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
@@ -56,7 +57,7 @@ export const createLead = async (data: {
   social_youtube?: string;
   social_tiktok?: string;
   productId?: string;
-  custom_fields_data?: Record<string, string | null | undefined>;
+  custom_fields_data?: Record<string, CustomFieldValue | null | undefined>;
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
