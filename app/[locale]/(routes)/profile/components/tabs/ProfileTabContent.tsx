@@ -3,6 +3,7 @@ import { Users } from "@prisma/client";
 import { getTranslations } from "next-intl/server";
 // import { ProfilePhotoForm } from "../ProfilePhotoForm";
 import { ProfileForm } from "../ProfileForm";
+import { StorageCard } from "../StorageCard";
 
 type Props = { data: Users };
 
@@ -22,6 +23,7 @@ export async function ProfileTabContent({ data }: Props) {
         </h3>
         <ProfileForm data={data} />
       </div>
+      <StorageCard />
     </div>
   );
 }

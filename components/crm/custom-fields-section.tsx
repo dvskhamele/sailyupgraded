@@ -165,7 +165,6 @@ export function CustomFieldsSection({
   const deleteCustomFieldFile = async (
     customField: NormalizedCustomFieldDefinition,
     value: CustomFieldFileValue,
-    onChange: (value: undefined) => void,
   ) => {
     setUploadingFieldId(customField.id);
     setFileErrors((current) => {
@@ -185,7 +184,19 @@ export function CustomFieldsSection({
         throw new Error(payload?.error || "Failed to delete file");
       }
 
-      onChange(undefined);
+      const currentValues = form.getValues("custom_fields_data");
+      const nextValues =
+        currentValues && typeof currentValues === "object" && !Array.isArray(currentValues)
+          ? { ...currentValues }
+          : {};
+      delete nextValues[customField.id];
+
+      form.setValue("custom_fields_data", nextValues, {
+        shouldDirty: true,
+        shouldTouch: true,
+        shouldValidate: true,
+      });
+      form.clearErrors(`custom_fields_data.${customField.id}`);
     } catch (error) {
       setFileErrors((current) => ({
         ...current,
@@ -275,7 +286,6 @@ export function CustomFieldsSection({
                               void deleteCustomFieldFile(
                                 customField,
                                 field.value,
-                                field.onChange,
                               )
                             }
                           >

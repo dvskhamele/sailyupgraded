@@ -49,11 +49,24 @@ export function getR2ObjectUrl(key: string) {
 
 export function getR2KeyFromPublicUrl(url: string) {
   const publicUrl = `${getR2PublicUrl()}/`;
-  if (!url.startsWith(publicUrl)) {
-    return null;
+  let key: string | null = null;
+
+  if (url.startsWith(publicUrl)) {
+    key = decodeURIComponent(url.slice(publicUrl.length));
+  } else {
+    try {
+      const parsedUrl = new URL(url);
+      const pathKey = decodeURIComponent(parsedUrl.pathname.replace(/^\/+/, ""));
+      const customFieldsIndex = pathKey.split("/").indexOf("custom-fields");
+
+      if (customFieldsIndex >= 0) {
+        key = pathKey.split("/").slice(customFieldsIndex).join("/");
+      }
+    } catch {
+      return null;
+    }
   }
 
-  const key = decodeURIComponent(url.slice(publicUrl.length));
   return key && !key.includes("..") ? key : null;
 }
 

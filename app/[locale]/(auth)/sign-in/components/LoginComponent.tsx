@@ -19,10 +19,6 @@ import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 
 type Step = "email" | "otp";
 const DASHBOARD_PATH = "/crm/dashboard";
-const allowDevOtpPreview =
-  process.env.NODE_ENV !== "production" ||
-  process.env.NEXT_PUBLIC_VERCEL_ENV === "preview" ||
-  process.env.NEXT_PUBLIC_ENABLE_OTP_PREVIEW === "true";
 const bypassLogin = process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";
 
 function getLocalizedPath(path: string, locale: string) {
@@ -45,7 +41,6 @@ export function LoginComponent({
   const [email, setEmail] = useState("");
   const [emailError, setEmailError] = useState("");
   const [otp, setOtp] = useState("");
-  const [devOtp, setDevOtp] = useState("");
 
   const validateEmail = (value: string) => {
     const regex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -70,74 +65,11 @@ export function LoginComponent({
     try {
       const normalizedEmail = email.trim().toLowerCase();
       setOtp("");
-      setDevOtp("");
 
       const { error } = await authClient.emailOtp.sendVerificationOtp({
         email: normalizedEmail,
         type: "sign-in",
       });
-
-      let usedDevFallback = false;
-
-      if (!error && allowDevOtpPreview) {
-        try {
-          const response = await fetch(
-            `/api/auth/test-otp?email=${encodeURIComponent(normalizedEmail)}`,
-          );
-          if (response.ok) {
-            const data = await response.json();
-            if (data?.otp) {
-              setEmail(normalizedEmail);
-              setStep("otp");
-              setDevOtp(data.otp);
-              toast.success(
-                data.source === "fallback"
-                  ? `Email unavailable. Use code: ${data.otp}`
-                  : `Development OTP: ${data.otp}`,
-              );
-              return;
-            }
-          }
-        } catch {
-          // Ignore OTP preview failures and fall back to the generic message.
-        }
-      }
-
-      if (error) {
-        if (allowDevOtpPreview) {
-          const fallbackResponse = await fetch("/api/auth/dev-send-otp", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ email: normalizedEmail }),
-          });
-
-          if (fallbackResponse.ok) {
-            const fallbackData = await fallbackResponse.json();
-            setEmail(normalizedEmail);
-            setStep("otp");
-            setDevOtp(fallbackData.otp);
-            usedDevFallback = true;
-            toast.success(`Development OTP: ${fallbackData.otp}`);
-          } else {
-            const fallbackData = await fallbackResponse.json().catch(() => null);
-            toast.error(
-              fallbackData?.error ||
-                error.message ||
-                "Failed to send verification code.",
-            );
-            return;
-          }
-        } else {
-          toast.error(error.message || "Failed to send verification code.");
-          return;
-        }
-      }
-
-      if (usedDevFallback) {
-        return;
-      }
 
       if (error) {
         toast.error(error.message || "Failed to send verification code.");
@@ -272,12 +204,6 @@ export function LoginComponent({
               Enter the code sent to <br />
               <strong className="text-foreground">{email}</strong>
             </p>
-
-            {devOtp && (
-              <p className="text-xs text-center text-amber-600">
-                Dev Code: <strong>{devOtp}</strong>
-              </p>
-            )}
 
             <div className="flex justify-center">
               <Input

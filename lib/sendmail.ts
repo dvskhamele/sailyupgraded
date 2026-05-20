@@ -10,7 +10,8 @@ interface EmailOptions {
 }
 
 export default async function sendEmail(
-  emailOptions: EmailOptions
+  emailOptions: EmailOptions,
+  options?: { throwOnError?: boolean }
 ): Promise<void> {
   const host = getEnv("EMAIL_HOST", "SMTP_HOST");
   const user = getEnv("EMAIL_USERNAME", "SMTP_USER");
@@ -32,8 +33,12 @@ export default async function sendEmail(
       from: emailOptions.from ?? getEmailFromAddress(),
     });
     console.log(`Email sent to ${emailOptions.to}`);
-    return Promise.resolve(console.log(`Email sent to ${emailOptions.to}`));
-  } catch (error: any | Error) {
-    console.error(`Error occurred while sending email: ${error.message}`);
+    return;
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`Error occurred while sending email: ${message}`);
+    if (options?.throwOnError) {
+      throw error;
+    }
   }
 }

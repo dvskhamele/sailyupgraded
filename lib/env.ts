@@ -1,6 +1,16 @@
 const trimEnvValue = (value?: string | null) => {
   const trimmed = value?.trim();
-  return trimmed ? trimmed : undefined;
+  if (!trimmed) return undefined;
+
+  if (
+    (trimmed.startsWith('"') && trimmed.endsWith('"')) ||
+    (trimmed.startsWith("'") && trimmed.endsWith("'"))
+  ) {
+    const unquoted = trimmed.slice(1, -1).trim();
+    return unquoted ? unquoted : undefined;
+  }
+
+  return trimmed;
 };
 
 export function getEnv(...names: string[]) {

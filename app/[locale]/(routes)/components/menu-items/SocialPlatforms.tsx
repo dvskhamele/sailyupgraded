@@ -114,31 +114,13 @@ const socialPlatforms: SocialPlatformConfig[] = [
     id: "tiktok",
     title: "TikTok",
     icon: Music2,
-    actions: {
-      extension: {
-        label: "Extension",
-        url: "https://chromewebstore.google.com/detail/tiktokdm-auto-dm-leads-co/cpbjlfdfedgbaagaioihmlimjljmkgbl?authuser=0&hl=en-GB",
-      },
-      login: {
-        label: "Start",
-        url: "https://www.tiktok.com/login",
-      },
-    },
+    actions: {},
   },
   {
     id: "google-ads",
     title: "Google",
     icon: Chrome,
-    actions: {
-      extension: {
-        label: "Extension",
-        url: "https://chromewebstore.google.com/search/google%20ads",
-      },
-      login: {
-        label: "Start",
-        url: "https://accounts.google.com/",
-      },
-    },
+    actions: { },
   },
   {
     id: "twitter-x",

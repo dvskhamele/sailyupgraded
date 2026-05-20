@@ -42,11 +42,11 @@ const AdminUsersPage = async () => {
         </h4>
         <InviteForm />
       </div>
-      <Separator />
-      <div>
+      {/* <Separator /> */}
+      {/* <div>
         <SendMailToAll />
-      </div>
-      <Separator />
+      </div> */}
+      {/* <Separator /> */}
 
       <AdminUserDataTable columns={columns} data={users} />
     </Container>

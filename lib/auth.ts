@@ -5,8 +5,8 @@ import { admin as adminPlugin } from "better-auth/plugins";
 import { prismadb } from "@/lib/prisma";
 import { ac, admin, member, viewer } from "@/lib/auth-permissions";
 import { newUserNotify } from "@/lib/new-user-notify";
-import resendHelper from "@/lib/resend";
-import { getEmailFromAddress, getGoogleClientId, getGoogleClientSecret } from "@/lib/env";
+import { sendOtpEmail } from "@/lib/email/sendOtpEmail";
+import { getGoogleClientId, getGoogleClientSecret } from "@/lib/env";
 
 function getCanonicalAppUrl() {
   if (process.env.BETTER_AUTH_URL) return process.env.BETTER_AUTH_URL;
@@ -39,13 +39,8 @@ function getTrustedAuthOrigins() {
 
 const appUrl = getCanonicalAppUrl();
 const isDemo = process.env.NEXT_PUBLIC_APP_URL === "https://demo.nextcrm.io";
-const emailFromAddress = getEmailFromAddress();
 const googleClientId = getGoogleClientId();
 const googleClientSecret = getGoogleClientSecret();
-const allowOtpPreview =
-  process.env.NODE_ENV !== "production" ||
-  process.env.VERCEL_ENV === "preview" ||
-  process.env.ENABLE_OTP_PREVIEW === "true";
 const configuredAdminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
 const configuredAdminEmails = [
   configuredAdminEmail,
@@ -59,7 +54,6 @@ const bootstrapAdminEmails = new Set(configuredAdminEmails);
 const seededTestUserEmail = (
   process.env.TEST_USER_EMAIL || "test@nextcrm.app"
 ).trim().toLowerCase();
-const otpFallbackIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
 const databaseUrl = process.env.DATABASE_URL ?? "";
 const databaseProvider =
   databaseUrl.startsWith("postgres") || databaseUrl.startsWith("postgresql")
@@ -164,56 +158,20 @@ export const auth = betterAuth({
   plugins: [
     emailOTP({
       async sendVerificationOTP({ email, otp, type }) {
-        console.log(`[Auth] Generating OTP for ${email}: ${otp} (${type})`);
-        
         try {
-          // 1. Clean up old fallbacks for this email
-          await prismadb.verification.deleteMany({
-            where: { identifier: otpFallbackIdentifier(email) },
+          console.info("[OTP EMAIL] Auth callback sending OTP", {
+            email,
+            type,
           });
-        } catch (dbError) {
-          console.error("[Auth] Failed to clean up old fallback OTPs", dbError);
-          // Continue anyway
-        }
 
-        try {
-          const resend = await resendHelper();
-          if (resend && emailFromAddress) {
-            await resend.emails.send({
-              from: `${process.env.NEXT_PUBLIC_APP_NAME || "NextCRM"} <${emailFromAddress}>`,
-              to: email,
-              subject: `Your verification code: ${otp}`,
-              text: `Your one-time verification code is: ${otp}\n\nThis code expires in 5 minutes.\n\nIf you did not request this, please ignore this email.`,
-            });
-            console.log(`[Auth] OTP email sent via Resend to ${email}`);
-          } else {
-            throw new Error("Email service not configured or EMAIL_FROM missing");
-          }
-        } catch (e) {
-          if (!allowOtpPreview) {
-            console.error(
-              `[Auth] OTP email send failed for ${email} and preview fallback is disabled`,
-              e
-            );
-            throw e instanceof Error
-              ? e
-              : new Error("Failed to send verification code");
-          }
-
-          // Preserve sign-in flow when email delivery is unavailable by storing
-          // a short-lived fallback OTP the UI can display directly.
-          try {
-            await prismadb.verification.create({
-              data: {
-                identifier: otpFallbackIdentifier(email),
-                value: otp,
-                expiresAt: new Date(Date.now() + 5 * 60 * 1000),
-              },
-            });
-            console.warn(`[Auth] OTP email send failed for ${email}; stored fallback code in DB`, e instanceof Error ? e.message : e);
-          } catch (dbCreateError) {
-            console.error("[Auth] CRITICAL: Failed to store fallback OTP in DB", dbCreateError);
-          }
+          await sendOtpEmail({ email, otp });
+        } catch (error) {
+          console.error("[OTP EMAIL] Auth callback failed", {
+            email,
+            type,
+            error,
+          });
+          throw new Error("Unable to send OTP right now.");
         }
       },
     }),
