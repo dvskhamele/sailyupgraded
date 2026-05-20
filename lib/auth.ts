@@ -112,7 +112,9 @@ export const auth = betterAuth({
   },
 
   user: {
-    modelName: "Users",
+    // Better Auth's Prisma adapter expects the Prisma client delegate name.
+    // The Prisma schema model is `Users`, but the generated delegate is `users`.
+    modelName: "users",
     fields: {
       createdAt: "created_on",
       updatedAt: "updated_at",

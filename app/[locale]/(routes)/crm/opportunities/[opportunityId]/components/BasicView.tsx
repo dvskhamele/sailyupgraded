@@ -234,6 +234,7 @@ export async function BasicView({ data }: OppsViewProps) {
           </div>
           <CustomFieldsDisplay
             entityType="Opportunity"
+            entityId={data.id}
             values={data.custom_fields_data}
           />
         </div>

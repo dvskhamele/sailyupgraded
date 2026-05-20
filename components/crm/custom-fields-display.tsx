@@ -7,9 +7,11 @@ import {
   type CustomFieldEntity,
 } from "@/lib/custom-fields";
 import { cn } from "@/lib/utils";
+import { CustomFieldFileCard } from "@/components/crm/custom-field-file-card";
 
 type CustomFieldsDisplayProps = {
   entityType: CustomFieldEntity;
+  entityId: string;
   values: unknown;
   contactRole?: string | null;
   className?: string;
@@ -27,7 +29,10 @@ function getCustomFieldValue(values: unknown, fieldId: string) {
     typeof value === "object" &&
     !Array.isArray(value) &&
     typeof (value as CustomFieldFileValue).url === "string" &&
-    typeof (value as CustomFieldFileValue).name === "string"
+    typeof (value as CustomFieldFileValue).name === "string" &&
+    typeof (value as CustomFieldFileValue).size === "number" &&
+    Number.isFinite((value as CustomFieldFileValue).size) &&
+    typeof (value as CustomFieldFileValue).type === "string"
   ) {
     return value as CustomFieldFileValue;
   }
@@ -38,6 +43,7 @@ function getCustomFieldValue(values: unknown, fieldId: string) {
 
 export async function CustomFieldsDisplay({
   entityType,
+  entityId,
   values,
   contactRole,
   className,
@@ -72,14 +78,18 @@ export async function CustomFieldsDisplay({
           >
             <p className="text-sm font-medium leading-none">{field.name}</p>
             {value && typeof value === "object" ? (
-              <a
-                href={value.url}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-1 block break-words text-sm text-blue-600 hover:underline"
-              >
-                {value.name}
-              </a>
+              field.type === "file" ? (
+                <CustomFieldFileCard
+                  entityType={entityType}
+                  entityId={entityId}
+                  fieldId={field.id}
+                  value={value}
+                />
+              ) : (
+                <p className="mt-1 break-words text-sm text-muted-foreground">
+                  {value.name}
+                </p>
+              )
             ) : (
               <p className="mt-1 break-words text-sm text-muted-foreground">
                 {value ?? "Not set"}
