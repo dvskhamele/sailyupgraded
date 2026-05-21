@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { Bot, Calendar, DollarSign, Loader2, Mic, PhoneOff } from "lucide-react";
+import {
+  Bot,
+  Calendar,
+  DollarSign,
+  Loader2,
+  Mic,
+  PhoneOff,
+} from "lucide-react";
 import { ThumbsDown } from "lucide-react";
 import { RetellWebClient } from "retell-client-js-sdk";
 import {
@@ -219,7 +226,9 @@ function RetellAssistantDialog({
       });
       client.on("error", (error: unknown) => {
         console.error("[RETELL_WEB_CLIENT]", error);
-        setError("Voice call failed. Please check microphone access and try again.");
+        setError(
+          "Voice call failed. Please check microphone access and try again.",
+        );
         stopCall();
       });
 
@@ -264,12 +273,16 @@ function RetellAssistantDialog({
                   : "Ready to call"}
               </p>
               <p className="mt-1 text-xs text-muted-foreground">
-                {callId ? `Call ID: ${callId}` : "Microphone permission is required."}
+                {callId
+                  ? `Call ID: ${callId}`
+                  : "Microphone permission is required."}
               </p>
             </div>
             <div
               className={`flex h-12 w-12 items-center justify-center rounded-full ${
-                isCallActive ? "bg-emerald-100 text-emerald-700" : "bg-primary/10 text-primary"
+                isCallActive
+                  ? "bg-emerald-100 text-emerald-700"
+                  : "bg-primary/10 text-primary"
               }`}
             >
               {isLoading ? (
@@ -433,10 +446,12 @@ function OpportunityCard({
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" onClick={stopRowNavigation}>
-              <DropdownMenuItem onClick={(event) => {
-                event.stopPropagation();
-                onOpenEdit(opportunity);
-              }}>
+              <DropdownMenuItem
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenEdit(opportunity);
+                }}
+              >
                 ✏️ Update
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -451,15 +466,26 @@ function OpportunityCard({
 
         {/* AMOUNT */}
         <div className="flex items-center justify-between">
-           <DollarSign className="w-4 h-4 text-green-600" />
+          <div className="flex items-center gap-2">
+            <DollarSign className="w-4 h-4 text-green-600" />
+            <span>AMOUNT</span>
+          </div>
+
           <span className="font-semibold text-gray-900 text-sm">
-            {formatCurrencyDisplay(opportunity.budget, (opportunity as any).currency || "USD")}
+            {formatCurrencyDisplay(
+              opportunity.budget,
+              (opportunity as any).currency || "USD",
+            )}
           </span>
         </div>
 
         {/* CLOSE DATE */}
         <div className="flex items-center justify-between">
-        <Calendar className="w-4 h-4 text-blue-600" />
+          <div className="flex items-center gap-2">
+            <Calendar className="w-4 h-4 text-blue-600" />
+            <span >CLOSE DATE</span>
+          </div>
+
           <span
             className={`text-xs font-semibold px-2 py-1 rounded-full ${
               opportunity.close_date &&
@@ -476,17 +502,13 @@ function OpportunityCard({
         </div>
       </CardContent>
 
-
       {/* FOOTER */}
       <CardFooter className="relative z-10 flex justify-between items-center bg-gray-50/60 px-4 py-3 rounded-b-2xl">
         {/* USER */}
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="w-8 h-8 ring-2 ring-white shadow-sm">
             <AvatarImage
-              src={
-                opportunity.assigned_to_user?.avatar ||
-                "/images/nouser.png"
-              }
+              src={opportunity.assigned_to_user?.avatar || "/images/nouser.png"}
             />
           </Avatar>
 
@@ -553,7 +575,10 @@ function OpportunityCardStatic({
           <div className="space-x-1">
             <span className="font-medium text-amber-800">Amount:</span>
             <span className="font-semibold text-emerald-700">
-              {formatCurrencyDisplay(opportunity.budget, (opportunity as any).currency || "USD")}
+              {formatCurrencyDisplay(
+                opportunity.budget,
+                (opportunity as any).currency || "USD",
+              )}
             </span>
           </div>
           <div className="space-x-1">

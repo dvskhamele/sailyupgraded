@@ -970,6 +970,56 @@ export function UnifiedPersonForm({
                 {showExtraFields ? "Hide Extra Fields" : "Show More Fields"}
               </Button>
             </div>
+            
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <FormField
+                  control={form.control}
+                  name="assigned_to"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{contactT("assignedUser")}</FormLabel>
+                      <FormControl>
+                        <UserSearchCombobox
+                          value={field.value ?? ""}
+                          onChange={field.onChange}
+                          placeholder={contactT("assignedUserPlaceholder")}
+                          disabled={form.formState.isSubmitting}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+
+                <FormField
+                  control={form.control}
+                  name="visible_to_name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Visible to</FormLabel>
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value ?? CONTACT_VISIBILITY_ALL_MEMBERS}
+                        disabled={form.formState.isSubmitting}
+                      >
+                        <FormControl>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select visibility" />
+                          </SelectTrigger>
+                        </FormControl>
+                        <SelectContent>
+                          {CONTACT_VISIBILITY_OPTIONS.map((option) => (
+                            <SelectItem key={option.value} value={option.value}>
+                              {option.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
 
             <ExtraFieldsCollapsible open={showExtraFields}>
               <div>
@@ -1214,6 +1264,7 @@ export function UnifiedPersonForm({
                   )}
                 />
               </div>
+
               <FormField
                 control={form.control}
                 name="description"
@@ -1233,55 +1284,6 @@ export function UnifiedPersonForm({
                 )}
               />
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="assigned_to"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>{contactT("assignedUser")}</FormLabel>
-                      <FormControl>
-                        <UserSearchCombobox
-                          value={field.value ?? ""}
-                          onChange={field.onChange}
-                          placeholder={contactT("assignedUserPlaceholder")}
-                          disabled={form.formState.isSubmitting}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="visible_to_name"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Visible to</FormLabel>
-                      <Select
-                        onValueChange={field.onChange}
-                        value={field.value ?? CONTACT_VISIBILITY_ALL_MEMBERS}
-                        disabled={form.formState.isSubmitting}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select visibility" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {CONTACT_VISIBILITY_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <FormField
