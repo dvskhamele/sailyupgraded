@@ -82,66 +82,66 @@ model crm_Accounts {
 }
 
 model crm_Leads {
-  id                String             @id @default(uuid())
-  v                 Int                @default(0) @map("__v")
-  createdAt         DateTime?          @default(now())
-  createdBy         String?
-  updatedAt         DateTime?          @updatedAt
-  updatedBy         String?
-  serial            String?
-  firstName         String
-  lastName          String?
-  company           String?
-  jobTitle          String?
-  email             String?
-  personal_email    String?
-  phone             String?
-  office_phone      String?
-  mobile_phone      String?
-  description       String?
-  lead_source_id    String?
-  lead_status_id    String?
-  lead_type_id      String?
-  refered_by        String?
-  campaign          String?
-  assigned_to       String?
-  accountsIDs       String?
-  deletedAt         DateTime?
-  deletedBy         String?
-  address           String?
-  address_line1     String?
-  address_line2     String?
-  city              String?
-  country           String?
-  postal_code       String?
-  state             String?
-  order             Int                @default(0)
-  headline          String?            @db.VarChar(255)
-  website           String?            @db.VarChar(255)
-  social_twitter    String?            @map("twitter") @db.VarChar(255)
-  social_linkedin   String?            @map("linkedin_url") @db.VarChar(255)
-  birthday          DateTime?          @db.Date
-  username          String?
-  message_snippet   String?            @db.Text
-  message_date      DateTime?          @db.DateTime(0)
-  source_platform   String?            @db.VarChar(50)
-  position          String?
-  status            Boolean            @default(true)
-  role              String?            @default("Customer")
-  social_facebook   String?
-  social_skype      String?
-  social_instagram  String?
-  social_youtube    String?
-  social_tiktok     String?
-  contact_type_id   String?
+  id                 String             @id @default(uuid())
+  v                  Int                @default(0) @map("__v")
+  createdAt          DateTime?          @default(now())
+  createdBy          String?
+  updatedAt          DateTime?          @updatedAt
+  updatedBy          String?
+  serial             String?
+  firstName          String
+  lastName           String?
+  company            String?
+  jobTitle           String?
+  email              String?
+  personal_email     String?
+  phone              String?
+  office_phone       String?
+  mobile_phone       String?
+  description        String?
+  lead_source_id     String?
+  lead_status_id     String?
+  lead_type_id       String?
+  refered_by         String?
+  campaign           String?
+  assigned_to        String?
+  accountsIDs        String?
+  deletedAt          DateTime?
+  deletedBy          String?
+  address            String?
+  address_line1      String?
+  address_line2      String?
+  city               String?
+  country            String?
+  postal_code        String?
+  state              String?
+  order              Int                @default(0)
+  headline           String?            @db.VarChar(255)
+  website            String?            @db.VarChar(255)
+  social_twitter     String?            @map("twitter") @db.VarChar(255)
+  social_linkedin    String?            @map("linkedin_url") @db.VarChar(255)
+  birthday           DateTime?          @db.Date
+  username           String?
+  message_snippet    String?            @db.Text
+  message_date       DateTime?          @db.DateTime(0)
+  source_platform    String?            @db.VarChar(50)
+  position           String?
+  status             Boolean            @default(true)
+  role               String?            @default("Customer")
+  social_facebook    String?
+  social_skype       String?
+  social_instagram   String?
+  social_youtube     String?
+  social_tiktok      String?
+  contact_type_id    String?
   custom_fields_data Json?
-  documents         DocumentsToLeads[]
-  assigned_accounts crm_Accounts?      @relation(fields: [accountsIDs], references: [id])
-  assigned_to_user  Users?             @relation("LeadAssignedTo", fields: [assigned_to], references: [id])
-  contact_type      crm_Contact_Types? @relation(fields: [contact_type_id], references: [id])
-  lead_source       crm_Lead_Sources?  @relation("lead_source_relation", fields: [lead_source_id], references: [id])
-  lead_status       crm_Lead_Statuses? @relation("lead_status_relation", fields: [lead_status_id], references: [id])
-  lead_type         crm_Lead_Types?    @relation("lead_type_relation", fields: [lead_type_id], references: [id])
+  documents          DocumentsToLeads[]
+  assigned_accounts  crm_Accounts?      @relation(fields: [accountsIDs], references: [id])
+  assigned_to_user   Users?             @relation("LeadAssignedTo", fields: [assigned_to], references: [id])
+  contact_type       crm_Contact_Types? @relation(fields: [contact_type_id], references: [id])
+  lead_source        crm_Lead_Sources?  @relation("lead_source_relation", fields: [lead_source_id], references: [id])
+  lead_status        crm_Lead_Statuses? @relation("lead_status_relation", fields: [lead_status_id], references: [id])
+  lead_type          crm_Lead_Types?    @relation("lead_type_relation", fields: [lead_type_id], references: [id])
 
   @@index([assigned_to])
   @@index([accountsIDs])
@@ -273,6 +273,54 @@ model crm_Opportunities {
   @@index([status, sales_stage])
   @@index([deletedAt])
   @@index([currency], map: "crm_Opportunities_currency_fkey")
+}
+
+model crm_LeadCallTracking {
+  id                   String    @id @default(uuid())
+  callId               String    @unique
+  opportunityId        String
+  memberId             String?
+  phone                String    @db.VarChar(32)
+  email                String?
+  agentId              String?
+  agentVersion         Int?
+  callStatus           String    @default("calling") @db.VarChar(64)
+  callDisposition      String?   @db.VarChar(128)
+  transcript           String?   @db.LongText
+  summary              String?   @db.Text
+  appointmentStatus    String    @default("none") @db.VarChar(64)
+  appointmentSlot      Json?
+  assignedHumanAgentId String?
+  qualificationStatus  String    @default("unknown") @db.VarChar(64)
+  duration             Int?
+  recordingUrl         String?   @db.Text
+  startedAt            DateTime?
+  endedAt              DateTime?
+  metadata             Json?
+  analysis             Json?
+  lastWebhookEvent     String?   @db.VarChar(64)
+  createdBy            String?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  @@index([opportunityId])
+  @@index([memberId])
+  @@index([callStatus])
+  @@index([qualificationStatus])
+  @@index([appointmentStatus])
+  @@index([createdAt])
+}
+
+model crm_LeadCallWebhookEvent {
+  id        String   @id @default(uuid())
+  callId    String
+  event     String   @db.VarChar(64)
+  payload   Json
+  createdAt DateTime @default(now())
+
+  @@index([callId])
+  @@index([event])
+  @@index([createdAt])
 }
 
 model crm_campaigns {

@@ -1,57 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/auth-server";
+import {
+  RETELL_API_BASE_URL,
+  getConfiguredAgentId,
+  getConfiguredAgentVersion,
+  getFirstRetellVoiceAgent,
+  getRetellApiKey,
+} from "@/lib/retell";
 
-const RETELL_API_BASE_URL = "https://api.retellai.com";
-
-type RetellAgent = {
-  agent_id?: string;
-  version?: number;
-  agent_name?: string | null;
-  is_published?: boolean;
+type CreateWebCallRequest = {
+  agentId?: string;
+  agentVersion?: number;
 };
 
-function getRetellApiKey() {
-  return process.env.RETELL_API_KEY ?? process.env.RETAIL_API_KEY;
-}
-
-function getConfiguredAgentId() {
-  return process.env.RETELL_AGENT_ID ?? process.env.RETAIL_AGENT_ID;
-}
-
-function getConfiguredAgentVersion() {
-  const value = process.env.RETELL_AGENT_VERSION ?? process.env.RETAIL_AGENT_VERSION;
-  if (!value) {
-    return undefined;
-  }
-
-  const version = Number(value);
-  return Number.isInteger(version) ? version : undefined;
-}
-
-async function getFirstVoiceAgent(apiKey: string) {
-  const response = await fetch(
-    `${RETELL_API_BASE_URL}/list-agents?is_latest=true&limit=100`,
-    {
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-      },
-      next: { revalidate: 300 },
-    },
-  );
-
-  if (!response.ok) {
-    throw new Error("Unable to load Retell voice agents");
-  }
-
-  const agents = (await response.json()) as RetellAgent[];
-  return (
-    agents.find((agent) => agent.is_published && agent.agent_id) ??
-    agents.find((agent) => agent.agent_id)
-  );
-}
-
-export async function POST() {
+export async function POST(request: Request) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -65,13 +28,15 @@ export async function POST() {
     );
   }
 
-  let agentId = getConfiguredAgentId();
-  let agentVersion = getConfiguredAgentVersion();
+  const requestBody = (await request.json().catch(() => ({}))) as CreateWebCallRequest;
+
+  let agentId = requestBody.agentId ?? getConfiguredAgentId();
+  let agentVersion = requestBody.agentVersion ?? getConfiguredAgentVersion();
   let agentName: string | undefined;
 
   try {
     if (!agentId) {
-      const agent = await getFirstVoiceAgent(apiKey);
+      const agent = await getFirstRetellVoiceAgent(apiKey);
       agentId = agent?.agent_id;
       agentVersion = agentVersion ?? agent?.version;
       agentName = agent?.agent_name ?? undefined;

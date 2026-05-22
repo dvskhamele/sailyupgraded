@@ -3,7 +3,15 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
-import { Bot, Calendar, DollarSign, Loader2, Mic, PhoneOff } from "lucide-react";
+import {
+  Bot,
+  Calendar,
+  DollarSign,
+  Loader2,
+  Mic,
+  PhoneCall,
+  PhoneOff,
+} from "lucide-react";
 import { ThumbsDown } from "lucide-react";
 import { RetellWebClient } from "retell-client-js-sdk";
 import {
@@ -58,6 +66,13 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { NewOpportunityForm } from "../../opportunities/components/NewOpportunityForm";
 import { UpdateOpportunityForm } from "../../opportunities/components/UpdateOpportunityForm";
@@ -99,6 +114,8 @@ const LOST_DROP_ID = "lost-column";
 type RetellCallResponse = {
   accessToken: string;
   callId: string;
+  agentId?: string;
+  agentVersion?: number;
   agentName?: string;
 };
 
@@ -106,10 +123,59 @@ type RetellCallErrorResponse = {
   error?: string;
 };
 
+type RetellAgentOption = {
+  id: string;
+  version?: number;
+  name: string;
+  isPublished: boolean;
+};
+
+type RetellAgentsResponse =
+  | {
+      agents: RetellAgentOption[];
+    }
+  | RetellCallErrorResponse;
+
+type RetellAgentScriptResponse =
+  | {
+      script: string;
+    }
+  | RetellCallErrorResponse;
+
 type RetellTranscriptLine = {
   role?: string;
   content?: string;
 };
+
+type RetellCardCallState = {
+  isLoading: boolean;
+  isCallActive: boolean;
+  speaker: "agent" | "user" | null;
+  callId: string | null;
+};
+
+type OpportunityPhoneCallStatus =
+  | "idle"
+  | "calling"
+  | "active"
+  | "ended"
+  | "failed"
+  | "booked";
+
+type OpportunityPhoneCallState = {
+  status: OpportunityPhoneCallStatus;
+  callId?: string;
+  error?: string;
+};
+
+type RetellPhoneCallResponse =
+  | {
+      success: true;
+      callId: string;
+      agentId?: string;
+      status?: string;
+    }
+  | RetellCallErrorResponse;
 
 function getOpportunityAmount(opportunity: crm_Opportunities) {
   const amount = (opportunity as any).amount ?? opportunity.budget ?? 0;
@@ -144,9 +210,11 @@ function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
 function RetellAssistantDialog({
   open,
   onOpenChange,
+  onCallStateChange,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onCallStateChange: (callState: RetellCardCallState) => void;
 }) {
   const [isLoading, setIsLoading] = useState(false);
   const [isCallActive, setIsCallActive] = useState(false);
@@ -154,8 +222,24 @@ function RetellAssistantDialog({
   const [error, setError] = useState<string | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
   const [agentName, setAgentName] = useState("Voice AI Retail");
+  const [agents, setAgents] = useState<RetellAgentOption[]>([]);
+  const [selectedAgentId, setSelectedAgentId] = useState("");
+  const [isLoadingAgents, setIsLoadingAgents] = useState(false);
+  const [isLoadingScript, setIsLoadingScript] = useState(false);
+  const [selectedAgentScript, setSelectedAgentScript] = useState("");
   const [transcript, setTranscript] = useState<RetellTranscriptLine[]>([]);
   const retellClientRef = useRef<RetellWebClient | null>(null);
+
+  const selectedAgent = agents.find((agent) => agent.id === selectedAgentId);
+
+  useEffect(() => {
+    onCallStateChange({
+      isLoading,
+      isCallActive,
+      speaker,
+      callId,
+    });
+  }, [callId, isCallActive, isLoading, onCallStateChange, speaker]);
 
   const resetCallState = () => {
     setIsCallActive(false);
@@ -174,6 +258,106 @@ function RetellAssistantDialog({
     };
   }, []);
 
+  useEffect(() => {
+    if (!open || agents.length > 0) {
+      return;
+    }
+
+    let isCurrent = true;
+
+    async function loadAgents() {
+      setIsLoadingAgents(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/retell/agents", {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as RetellAgentsResponse;
+
+        if (!response.ok || !("agents" in payload)) {
+          const message =
+            "error" in payload
+              ? payload.error
+              : "Retell agents are not available";
+          throw new Error(message ?? "Retell agents are not available");
+        }
+
+        if (!isCurrent) {
+          return;
+        }
+
+        setAgents(payload.agents);
+        const firstAgent =
+          payload.agents.find((agent) => agent.isPublished) ??
+          payload.agents[0];
+        if (firstAgent) {
+          setSelectedAgentId(firstAgent.id);
+          setAgentName(firstAgent.name);
+        }
+      } catch (error) {
+        if (isCurrent) {
+          setError(
+            error instanceof Error
+              ? error.message
+              : "Retell agents are not available",
+          );
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoadingAgents(false);
+        }
+      }
+    }
+
+    loadAgents();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [agents.length, open]);
+
+  useEffect(() => {
+    if (!open || !selectedAgentId) {
+      return;
+    }
+
+    let isCurrent = true;
+
+    async function loadAgentScript() {
+      setIsLoadingScript(true);
+
+      try {
+        const response = await fetch(
+          `/api/retell/agents/${encodeURIComponent(selectedAgentId)}/script`,
+          { cache: "no-store" },
+        );
+        const payload = (await response.json()) as RetellAgentScriptResponse;
+
+        if (!response.ok || !("script" in payload)) {
+          if (isCurrent) {
+            setSelectedAgentScript("");
+          }
+          return;
+        }
+
+        if (isCurrent) {
+          setSelectedAgentScript(payload.script);
+        }
+      } finally {
+        if (isCurrent) {
+          setIsLoadingScript(false);
+        }
+      }
+    }
+
+    loadAgentScript();
+
+    return () => {
+      isCurrent = false;
+    };
+  }, [open, selectedAgentId]);
+
   const handleOpenChange = (nextOpen: boolean) => {
     if (!nextOpen) {
       stopCall();
@@ -183,6 +367,11 @@ function RetellAssistantDialog({
   };
 
   const startCall = async () => {
+    if (!selectedAgent) {
+      setError("Please select a Retell agent first.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     setTranscript([]);
@@ -190,6 +379,13 @@ function RetellAssistantDialog({
     try {
       const response = await fetch("/api/retell/create-web-call", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          agentId: selectedAgent.id,
+          agentVersion: selectedAgent.version,
+        }),
       });
       const payload = (await response.json()) as
         | RetellCallResponse
@@ -207,7 +403,7 @@ function RetellAssistantDialog({
       client.on("call_started", () => {
         setIsCallActive(true);
         setCallId(payload.callId);
-        setAgentName(payload.agentName ?? "Voice AI Retail");
+        setAgentName(payload.agentName ?? selectedAgent.name);
       });
       client.on("call_ended", resetCallState);
       client.on("agent_start_talking", () => setSpeaker("agent"));
@@ -219,7 +415,9 @@ function RetellAssistantDialog({
       });
       client.on("error", (error: unknown) => {
         console.error("[RETELL_WEB_CLIENT]", error);
-        setError("Voice call failed. Please check microphone access and try again.");
+        setError(
+          "Voice call failed. Please check microphone access and try again.",
+        );
         stopCall();
       });
 
@@ -240,7 +438,7 @@ function RetellAssistantDialog({
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[460px]">
+      <DialogContent className="max-h-[90vh] overflow-y-auto sm:max-w-[460px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Bot className="h-5 w-5 text-primary" />
@@ -253,33 +451,57 @@ function RetellAssistantDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="rounded-md border bg-muted/30 p-4">
-          <div className="flex items-center justify-between gap-3">
-            <div>
-              <p className="text-sm font-medium">
-                {isCallActive
-                  ? speaker === "agent"
-                    ? "Assistant speaking"
-                    : "Call connected"
-                  : "Ready to call"}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {callId ? `Call ID: ${callId}` : "Microphone permission is required."}
-              </p>
-            </div>
-            <div
-              className={`flex h-12 w-12 items-center justify-center rounded-full ${
-                isCallActive ? "bg-emerald-100 text-emerald-700" : "bg-primary/10 text-primary"
-              }`}
-            >
-              {isLoading ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : isCallActive ? (
-                <Mic className="h-5 w-5" />
-              ) : (
-                <Bot className="h-5 w-5" />
-              )}
-            </div>
+        <div className="space-y-2">
+          <div className="flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">Retell agent</p>
+            {selectedAgent ? <Badge>Active</Badge> : null}
+          </div>
+          <Select
+            value={selectedAgentId}
+            onValueChange={(agentId) => {
+              const nextAgent = agents.find((agent) => agent.id === agentId);
+              setSelectedAgentId(agentId);
+              setAgentName(nextAgent?.name ?? "Voice AI Retail");
+              setTranscript([]);
+              setError(null);
+            }}
+            disabled={isLoadingAgents || isCallActive}
+          >
+            <SelectTrigger>
+              <SelectValue
+                placeholder={
+                  isLoadingAgents ? "Loading agents..." : "Select Retell agent"
+                }
+              />
+            </SelectTrigger>
+            <SelectContent className="max-h-64">
+              {agents.map((agent) => (
+                <SelectItem key={agent.id} value={agent.id}>
+                  {agent.name}
+                  {agent.isPublished ? " (published)" : ""}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="rounded-md border bg-background p-3">
+          <div className="mb-2 flex items-center justify-between gap-2">
+            <p className="text-sm font-medium">Script</p>
+            {selectedAgent?.version !== undefined ? (
+              <Badge variant="secondary">v{selectedAgent.version}</Badge>
+            ) : null}
+          </div>
+          <div className="max-h-44 overflow-y-auto whitespace-pre-wrap rounded-sm bg-muted/40 p-3 text-xs leading-relaxed text-muted-foreground">
+            {isLoadingAgents || isLoadingScript ? (
+              <span>Loading script...</span>
+            ) : selectedAgentScript ? (
+              selectedAgentScript
+            ) : selectedAgent ? (
+              <span>No script found for this agent.</span>
+            ) : (
+              <span>Select an agent to view its script.</span>
+            )}
           </div>
         </div>
 
@@ -318,7 +540,11 @@ function RetellAssistantDialog({
               End call
             </Button>
           ) : (
-            <Button type="button" onClick={startCall} disabled={isLoading}>
+            <Button
+              type="button"
+              onClick={startCall}
+              disabled={isLoading || isLoadingAgents || !selectedAgent}
+            >
               {isLoading ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
@@ -375,6 +601,48 @@ function getOpportunityClientName(opportunity: crm_Opportunities) {
   return (opportunity as any).clientName?.trim() || "";
 }
 
+function getOpportunityPrimaryContact(opportunity: crm_Opportunities) {
+  const contacts = (opportunity as any).contacts;
+  if (!Array.isArray(contacts)) {
+    return null;
+  }
+
+  return contacts[0]?.contact ?? null;
+}
+
+function getOpportunityMemberName(opportunity: crm_Opportunities) {
+  const contact = getOpportunityPrimaryContact(opportunity);
+  const contactName = [contact?.first_name, contact?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return (
+    contactName ||
+    getOpportunityClientName(opportunity) ||
+    getOpportunityDisplayName(opportunity) ||
+    opportunity.name ||
+    "Customer"
+  );
+}
+
+function getOpportunityCallTarget(opportunity: crm_Opportunities) {
+  const contact = getOpportunityPrimaryContact(opportunity);
+  const phone =
+    contact?.phone?.trim() ||
+    contact?.mobile_phone?.trim() ||
+    contact?.office_phone?.trim() ||
+    "";
+
+  return {
+    memberId: contact?.id ?? "",
+    memberName: getOpportunityMemberName(opportunity),
+    phone,
+    email: contact?.email?.trim() || contact?.personal_email?.trim() || "",
+    state: contact?.state?.trim() || "",
+  };
+}
+
 function getOpportunityProduct(opportunity: crm_Opportunities) {
   return parseOpportunityProducts((opportunity as any).category);
 }
@@ -388,8 +656,34 @@ function OpportunityCard({
   stage,
   salesStages,
   nowMs,
+  phoneCallState,
+  onStartPhoneCall,
 }: any) {
   const opportunityProducts = getOpportunityProduct(opportunity);
+  const callState = (phoneCallState ?? {
+    status: "idle",
+  }) as OpportunityPhoneCallState;
+  const isCalling = callState.status === "calling";
+  const isCallActive = callState.status === "active";
+  const isCallFailed = callState.status === "failed";
+  const isCallBooked = callState.status === "booked";
+  const callTarget = getOpportunityCallTarget(opportunity);
+  const canStartCall = !isCalling && !isCallActive;
+  const callStatusLabel =
+    callState.error ??
+    (isCalling
+      ? "Calling lead..."
+      : isCallActive
+        ? "Call active"
+        : isCallBooked
+          ? "Booked"
+          : isCallFailed
+            ? "Call failed"
+            : callState.status === "ended"
+              ? "Call ended"
+              : callTarget.phone
+                ? "Call lead"
+                : "No phone");
   const {
     attributes,
     listeners,
@@ -411,7 +705,7 @@ function OpportunityCard({
       style={style}
       {...attributes}
       {...listeners}
-      onClick={() => onOpenEdit(opportunity)}
+      // onClick={() => onOpenEdit(opportunity)}
       className="group relative my-3 w-full cursor-grab rounded-2xl border border-gray-200 bg-white/80 backdrop-blur-md shadow-sm transition-all duration-300 hover:shadow-xl hover:-translate-y-1 active:cursor-grabbing"
     >
       {/* Gradient Border Effect */}
@@ -433,10 +727,12 @@ function OpportunityCard({
             </DropdownMenuTrigger>
 
             <DropdownMenuContent align="end" onClick={stopRowNavigation}>
-              <DropdownMenuItem onClick={(event) => {
-                event.stopPropagation();
-                onOpenEdit(opportunity);
-              }}>
+              <DropdownMenuItem
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenEdit(opportunity);
+                }}
+              >
                 ✏️ Update
               </DropdownMenuItem>
             </DropdownMenuContent>
@@ -450,32 +746,47 @@ function OpportunityCard({
         <p className="line-clamp-2 text-gray-500">{opportunity.description}</p>
 
         {/* AMOUNT */}
-        <div className="flex items-center justify-between">
-           <DollarSign className="w-4 h-4 text-green-600" />
-          <span className="font-semibold text-gray-900 text-sm">
-            {formatCurrencyDisplay(opportunity.budget, (opportunity as any).currency || "USD")}
-          </span>
-        </div>
+      {/* AMOUNT */}
+<div className="flex items-center justify-between">
+  <div className="flex items-center gap-2">
+    <DollarSign className="w-4 h-4 text-green-600" />
+    <span className="text-sm font-medium text-gray-600">
+      AMOUNT
+    </span>
+  </div>
 
-        {/* CLOSE DATE */}
-        <div className="flex items-center justify-between">
-        <Calendar className="w-4 h-4 text-blue-600" />
-          <span
-            className={`text-xs font-semibold px-2 py-1 rounded-full ${
-              opportunity.close_date &&
-              nowMs !== null &&
-              new Date(opportunity.close_date).getTime() < nowMs
-                ? "bg-red-100 text-red-600"
-                : "bg-indigo-100 text-indigo-600"
-            }`}
-          >
-            {opportunity.close_date
-              ? format(new Date(opportunity.close_date), "dd MMM yyyy")
-              : "No close date"}
-          </span>
-        </div>
+  <span className="font-semibold text-gray-900 text-sm">
+    {formatCurrencyDisplay(
+      opportunity.budget,
+      (opportunity as any).currency || "USD"
+    )}
+  </span>
+</div>
+
+{/* CLOSE DATE */}
+<div className="flex items-center justify-between">
+  <div className="flex items-center gap-2">
+    <Calendar className="w-4 h-4 text-blue-600" />
+    <span className="text-sm font-medium text-gray-600">
+      CLOSE DATE
+    </span>
+  </div>
+
+  <span
+    className={`text-xs font-semibold px-2 py-1 rounded-full ${
+      opportunity.close_date &&
+      nowMs !== null &&
+      new Date(opportunity.close_date).getTime() < nowMs
+        ? "bg-red-100 text-red-600"
+        : "bg-indigo-100 text-indigo-600"
+    }`}
+  >
+    {opportunity.close_date
+      ? format(new Date(opportunity.close_date), "dd MMM yyyy")
+      : "No close date"}
+  </span>
+</div>
       </CardContent>
-
 
       {/* FOOTER */}
       <CardFooter className="relative z-10 flex justify-between items-center bg-gray-50/60 px-4 py-3 rounded-b-2xl">
@@ -483,10 +794,7 @@ function OpportunityCard({
         <div className="flex items-center gap-2 min-w-0">
           <Avatar className="w-8 h-8 ring-2 ring-white shadow-sm">
             <AvatarImage
-              src={
-                opportunity.assigned_to_user?.avatar ||
-                "/images/nouser.png"
-              }
+              src={opportunity.assigned_to_user?.avatar || "/images/nouser.png"}
             />
           </Avatar>
 
@@ -494,6 +802,37 @@ function OpportunityCard({
             {getOpportunityClientName(opportunity) ||
               getOpportunityDisplayName(opportunity)}
           </span>
+
+          <button
+            type="button"
+            aria-label={`Start outbound AI call for ${callTarget.memberName}`}
+            title={callStatusLabel}
+            disabled={!canStartCall}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onStartPhoneCall(opportunity);
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-60 ${
+              isCallActive || isCallBooked
+                ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
+                : isCallFailed
+                  ? "bg-destructive/10 text-destructive hover:bg-destructive/20"
+                  : "bg-primary/10 text-primary hover:bg-primary/20"
+            }`}
+          >
+            {isCalling ? (
+              <Loader2 className="h-5 w-5 animate-spin" />
+            ) : isCallActive || isCallBooked ? (
+              <Mic className="h-5 w-5" />
+            ) : isCallFailed ? (
+              <PhoneOff className="h-5 w-5" />
+            ) : (
+              <PhoneCall className="h-5 w-5" />
+            )}
+          </button>
+          <span className="sr-only">{callStatusLabel}</span>
         </div>
 
         {/* PRODUCTS */}
@@ -553,7 +892,10 @@ function OpportunityCardStatic({
           <div className="space-x-1">
             <span className="font-medium text-amber-800">Amount:</span>
             <span className="font-semibold text-emerald-700">
-              {formatCurrencyDisplay(opportunity.budget, (opportunity as any).currency || "USD")}
+              {formatCurrencyDisplay(
+                opportunity.budget,
+                (opportunity as any).currency || "USD",
+              )}
             </span>
           </div>
           <div className="space-x-1">
@@ -658,6 +1000,18 @@ const CRMKanban = ({
   );
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isRetellDialogOpen, setIsRetellDialogOpen] = useState(false);
+  const [, setRetellCallState] = useState<RetellCardCallState>({
+    isLoading: false,
+    isCallActive: false,
+    speaker: null,
+    callId: null,
+  });
+  const [outboundAgent, setOutboundAgent] = useState<RetellAgentOption | null>(
+    null,
+  );
+  const [opportunityCallStates, setOpportunityCallStates] = useState<
+    Record<string, OpportunityPhoneCallState>
+  >({});
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingOpportunity, setEditingOpportunity] =
     useState<crm_Opportunities | null>(null);
@@ -665,7 +1019,39 @@ const CRMKanban = ({
   const [nowMs, setNowMs] = useState<number | null>(null);
 
   useEffect(() => {
-    setNowMs(Date.now());
+    const timeoutId = window.setTimeout(() => setNowMs(Date.now()), 0);
+    return () => window.clearTimeout(timeoutId);
+  }, []);
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    async function loadOutboundAgent() {
+      try {
+        const response = await fetch("/api/retell/agents", {
+          cache: "no-store",
+        });
+        const payload = (await response.json()) as RetellAgentsResponse;
+
+        if (!response.ok || !("agents" in payload)) {
+          return;
+        }
+
+        const agent =
+          payload.agents.find((item) => item.isPublished) ?? payload.agents[0];
+        if (isCurrent && agent) {
+          setOutboundAgent(agent);
+        }
+      } catch (error) {
+        console.error("[RETELL_OUTBOUND_AGENT_LOAD]", error);
+      }
+    }
+
+    loadOutboundAgent();
+
+    return () => {
+      isCurrent = false;
+    };
   }, []);
 
   const serverDataRef = useRef(data);
@@ -759,6 +1145,78 @@ const CRMKanban = ({
   };
 
   // Sync from server (e.g. after onThumbsDown router.refresh()) — only when not dragging
+  const handleStartPhoneCall = async (opportunity: crm_Opportunities) => {
+    const target = getOpportunityCallTarget(opportunity);
+
+    if (!target.phone) {
+      setOpportunityCallStates((current) => ({
+        ...current,
+        [opportunity.id]: {
+          status: "failed",
+          error: "No phone number on linked member",
+        },
+      }));
+      toast.error("No phone number found for this opportunity member");
+      return;
+    }
+
+    const currentStatus = opportunityCallStates[opportunity.id]?.status;
+    if (currentStatus === "calling" || currentStatus === "active") {
+      return;
+    }
+
+    setOpportunityCallStates((current) => ({
+      ...current,
+      [opportunity.id]: { status: "calling" },
+    }));
+
+    try {
+      const response = await fetch("/api/retell/create-phone-call", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          opportunityId: opportunity.id,
+          memberId: target.memberId,
+          memberName: target.memberName,
+          phone: target.phone,
+          email: target.email,
+          state: target.state,
+          agentId: outboundAgent?.id,
+          agentVersion: outboundAgent?.version,
+        }),
+      });
+      const payload = (await response.json()) as RetellPhoneCallResponse;
+
+      if (!response.ok || !("success" in payload)) {
+        const message =
+          "error" in payload ? payload.error : "Outbound call failed";
+        throw new Error(message ?? "Outbound call failed");
+      }
+
+      setOpportunityCallStates((current) => ({
+        ...current,
+        [opportunity.id]: {
+          status: "active",
+          callId: payload.callId,
+        },
+      }));
+      toast.success(`Outbound AI call started for ${target.memberName}`);
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "Outbound call failed";
+      setOpportunityCallStates((current) => ({
+        ...current,
+        [opportunity.id]: {
+          status: "failed",
+          error: message,
+        },
+      }));
+      toast.error(message);
+    }
+  };
+
   useEffect(() => {
     columnsRef.current = columns;
   }, [columns]);
@@ -997,6 +1455,7 @@ const CRMKanban = ({
       <RetellAssistantDialog
         open={isRetellDialogOpen}
         onOpenChange={setIsRetellDialogOpen}
+        onCallStateChange={setRetellCallState}
       />
 
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -1151,6 +1610,8 @@ const CRMKanban = ({
                           stage={col}
                           salesStages={salesStages}
                           nowMs={nowMs}
+                          phoneCallState={opportunityCallStates[opportunity.id]}
+                          onStartPhoneCall={handleStartPhoneCall}
                         />
                       ))}
                     </DroppableStage>
@@ -1183,6 +1644,8 @@ const CRMKanban = ({
                         stage={{ probability: null }}
                         salesStages={salesStages}
                         nowMs={nowMs}
+                        phoneCallState={opportunityCallStates[opportunity.id]}
+                        onStartPhoneCall={handleStartPhoneCall}
                       />
                     ))}
                   </SortableContext>

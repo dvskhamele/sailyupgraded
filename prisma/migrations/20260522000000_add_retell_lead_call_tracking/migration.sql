@@ -1,0 +1,50 @@
+CREATE TABLE `crm_LeadCallTracking` (
+  `id` VARCHAR(191) NOT NULL,
+  `callId` VARCHAR(191) NOT NULL,
+  `opportunityId` VARCHAR(191) NOT NULL,
+  `memberId` VARCHAR(191) NULL,
+  `phone` VARCHAR(32) NOT NULL,
+  `email` VARCHAR(191) NULL,
+  `agentId` VARCHAR(191) NULL,
+  `agentVersion` INTEGER NULL,
+  `callStatus` VARCHAR(64) NOT NULL DEFAULT 'calling',
+  `callDisposition` VARCHAR(128) NULL,
+  `transcript` LONGTEXT NULL,
+  `summary` TEXT NULL,
+  `appointmentStatus` VARCHAR(64) NOT NULL DEFAULT 'none',
+  `appointmentSlot` JSON NULL,
+  `assignedHumanAgentId` VARCHAR(191) NULL,
+  `qualificationStatus` VARCHAR(64) NOT NULL DEFAULT 'unknown',
+  `duration` INTEGER NULL,
+  `recordingUrl` TEXT NULL,
+  `startedAt` DATETIME(3) NULL,
+  `endedAt` DATETIME(3) NULL,
+  `metadata` JSON NULL,
+  `analysis` JSON NULL,
+  `lastWebhookEvent` VARCHAR(64) NULL,
+  `createdBy` VARCHAR(191) NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  `updatedAt` DATETIME(3) NOT NULL,
+
+  UNIQUE INDEX `crm_LeadCallTracking_callId_key`(`callId`),
+  INDEX `crm_LeadCallTracking_opportunityId_idx`(`opportunityId`),
+  INDEX `crm_LeadCallTracking_memberId_idx`(`memberId`),
+  INDEX `crm_LeadCallTracking_callStatus_idx`(`callStatus`),
+  INDEX `crm_LeadCallTracking_qualificationStatus_idx`(`qualificationStatus`),
+  INDEX `crm_LeadCallTracking_appointmentStatus_idx`(`appointmentStatus`),
+  INDEX `crm_LeadCallTracking_createdAt_idx`(`createdAt`),
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE `crm_LeadCallWebhookEvent` (
+  `id` VARCHAR(191) NOT NULL,
+  `callId` VARCHAR(191) NOT NULL,
+  `event` VARCHAR(64) NOT NULL,
+  `payload` JSON NOT NULL,
+  `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+  INDEX `crm_LeadCallWebhookEvent_callId_idx`(`callId`),
+  INDEX `crm_LeadCallWebhookEvent_event_idx`(`event`),
+  INDEX `crm_LeadCallWebhookEvent_createdAt_idx`(`createdAt`),
+  PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
