@@ -24,6 +24,7 @@ import getReportsMenuItem from "./menu-items/Reports";
 import getAdministrationMenuItem from "./menu-items/Administration";
 import getTemplatesMenuItem from "./menu-items/Campaigns";
 import getSocialPlatformMenuItems from "./menu-items/SocialPlatforms";
+import getMailerSendMenuItem from "./menu-items/MailerSend";
 import getZenithMenuItem from "./menu-items/Zenith";
 
 /**
@@ -112,6 +113,7 @@ export function AppSidebar({
 
   navItems.push(
     ...getSocialPlatformMenuItems(),
+    getMailerSendMenuItem(),
     getZenithMenuItem(),
    
   );
