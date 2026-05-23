@@ -58,8 +58,8 @@ export async function BasicView({ data }: OppsViewProps) {
   const importedColumns = Array.isArray(data?.imported_columns_data)
     ? data.imported_columns_data
     : [];
-  const tags = Array.from(
-    new Set(
+  const tags: string[] = Array.from(
+    new Set<string>(
       (Array.isArray(data?.tags) ? data.tags : [])
         .filter((tag: unknown): tag is string => typeof tag === "string")
         .map((tag: string) => tag.trim())
