@@ -1,4 +1,5 @@
 "use server";
+import { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -7,7 +8,7 @@ import { writeAuditLog, diffObjects } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
-import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+import { getExistingDbColumnNames, pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { currencyInputToDecimalString } from "@/lib/currency-input";
@@ -22,9 +23,60 @@ import {
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
 
+type ImportedColumnValue = {
+  column: string;
+  value?: string | null;
+};
+
 function isMissingContactSerialColumnError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
   return message.toLowerCase().includes("crm_contacts.serial") || message.toLowerCase().includes("crm_contacts`.`serial");
+}
+
+function quoteIdentifier(identifier: string) {
+  if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier)) {
+    throw new Error(`Invalid contact column name: ${identifier}`);
+  }
+
+  return `\`${identifier}\``;
+}
+
+function getContactModelColumnNames() {
+  const model = Prisma.dmmf.datamodel.models.find((entry) => entry.name === "crm_Contacts");
+  return new Set(
+    model?.fields
+      .filter((field) => field.kind === "scalar" || field.kind === "enum")
+      .map((field) => field.dbName ?? field.name) ?? [],
+  );
+}
+
+async function updateImportedContactColumns(contactId: string, values?: ImportedColumnValue[]) {
+  if (!Array.isArray(values) || values.length === 0) return;
+
+  const modelColumns = getContactModelColumnNames();
+  const dbColumns = await getExistingDbColumnNames("crm_Contacts");
+  const updates = new Map<string, string | null>();
+
+  values.forEach((field) => {
+    if (!field?.column || modelColumns.has(field.column) || !dbColumns.has(field.column)) {
+      return;
+    }
+
+    const value = field.value?.trim();
+    updates.set(field.column, value || null);
+  });
+
+  if (updates.size === 0) return;
+
+  const assignments = Array.from(updates.keys())
+    .map((column) => `${quoteIdentifier(column)} = ?`)
+    .join(", ");
+  const params = [...updates.values(), contactId];
+
+  await prismadb.$executeRawUnsafe(
+    `UPDATE ${quoteIdentifier("crm_Contacts")} SET ${assignments} WHERE ${quoteIdentifier("id")} = ?`,
+    ...params,
+  );
 }
 
 const DEFAULT_ONBOARDING_STAGE_NAME = "New Lead Intake";
@@ -101,6 +153,7 @@ export const updateContact = async (data: {
   opportunity_stage_id?: string | null;
   opportunity_description?: string | null;
   custom_fields_data?: Record<string, CustomFieldValue | null | undefined>;
+  imported_columns_data?: ImportedColumnValue[];
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
@@ -134,59 +187,60 @@ export const updateContact = async (data: {
     state,
     postal_code,
     custom_fields_data,
+    imported_columns_data,
     ...rest
   } = data;
 
   if (!id) return { error: "id is required" };
 
-  const resolvedAddressLine1 = getAddressLine1(address, address_line1);
-  const resolvedContactTypeId = await resolveContactTypeId(contact_type_id);
-  const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
-  const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
-    country: country || null,
-    address: resolvedAddressLine1 || null,
-    address_line1: resolvedAddressLine1 || null,
-    address_line2: address_line2 || null,
-    city: city || null,
-    state: state || null,
-    postal_code: postal_code || null,
-  });
-  const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {
-    role: normalizeContactRole(data.role),
-  });
-  const contactCustomFields = await prismadb.custom_fields.findMany({
-    orderBy: { createdAt: "asc" },
-  });
-  const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
-    custom_fields_data,
-    contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact", data.role)),
-  );
-  const supportedUpdateFields = await pickExistingDbModelFields("crm_Contacts", {
-    v: 0,
-    serial: serial?.trim() || null,
-    updatedBy: userId,
-    accountsIDs: assigned_account || undefined,
-    assigned_to: assigned_to || undefined,
-    contact_type_id: resolvedContactTypeId,
-    lead_source_id: resolvedLeadSourceId,
-    lead_status_id: lead_status_id || null,
-    lead_type_id: lead_type_id || null,
-    birthday:
-      birthday_day && birthday_month && birthday_year
-        ? `${birthday_day}/${birthday_month}/${birthday_year}`
-        : null,
-    custom_fields_data:
-      Object.keys(sanitizedCustomFieldValues).length > 0
-        ? sanitizedCustomFieldValues
-        : null,
-    visible_to_name: normalizeContactVisibility(data.visible_to_name),
-    ...(notes !== undefined && { notes: normalizeContactNotes(notes) }),
-    ...supportedRoleFields,
-    ...supportedAddressFields,
-    ...rest,
-  });
-
   try {
+    const resolvedAddressLine1 = getAddressLine1(address, address_line1);
+    const resolvedContactTypeId = await resolveContactTypeId(contact_type_id);
+    const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
+    const supportedAddressFields = await pickExistingDbModelFields("crm_Contacts", {
+      country: country || null,
+      address: resolvedAddressLine1 || null,
+      address_line1: resolvedAddressLine1 || null,
+      address_line2: address_line2 || null,
+      city: city || null,
+      state: state || null,
+      postal_code: postal_code || null,
+    });
+    const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {
+      role: normalizeContactRole(data.role),
+    });
+    const contactCustomFields = await prismadb.custom_fields.findMany({
+      orderBy: { createdAt: "asc" },
+    });
+    const sanitizedCustomFieldValues = sanitizeCustomFieldValues(
+      custom_fields_data,
+      contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact", data.role)),
+    );
+    const supportedUpdateFields = await pickExistingDbModelFields("crm_Contacts", {
+      v: 0,
+      serial: serial?.trim() || null,
+      updatedBy: userId,
+      accountsIDs: assigned_account || undefined,
+      assigned_to: assigned_to || undefined,
+      contact_type_id: resolvedContactTypeId,
+      lead_source_id: resolvedLeadSourceId,
+      lead_status_id: lead_status_id || null,
+      lead_type_id: lead_type_id || null,
+      birthday:
+        birthday_day && birthday_month && birthday_year
+          ? `${birthday_day}/${birthday_month}/${birthday_year}`
+          : null,
+      custom_fields_data:
+        Object.keys(sanitizedCustomFieldValues).length > 0
+          ? sanitizedCustomFieldValues
+          : null,
+      visible_to_name: normalizeContactVisibility(data.visible_to_name),
+      ...(notes !== undefined && { notes: normalizeContactNotes(notes) }),
+      ...supportedRoleFields,
+      ...supportedAddressFields,
+      ...rest,
+    });
+
     const contactSelect = await getCrmContactDetailSelect();
     const before = await prismadb.crm_Contacts.findFirst({
       where: {
@@ -219,6 +273,8 @@ export const updateContact = async (data: {
         select: contactSelect,
       });
     }
+
+    await updateImportedContactColumns(id, imported_columns_data);
 
     const existingOpportunity = (before as any)?.opportunities
       ?.map((item: any) => item?.opportunity)

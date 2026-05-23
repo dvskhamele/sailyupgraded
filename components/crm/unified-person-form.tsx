@@ -259,6 +259,15 @@ export const unifiedPersonFormSchema = z.object({
       type: z.string(),
     }), z.null(), z.undefined()]))
     .optional(),
+  imported_columns_data: z
+    .array(
+      z.object({
+        column: z.string(),
+        label: z.string().optional(),
+        value: z.string().optional().nullable(),
+      }),
+    )
+    .optional(),
 });
 
 export type UnifiedPersonFormValues = z.infer<typeof unifiedPersonFormSchema>;
@@ -392,6 +401,7 @@ export function UnifiedPersonForm({
       opportunity_stage_id: defaultOpportunityStage,
       opportunity_description: "",
       custom_fields_data: {},
+      imported_columns_data: [],
       ...initialValues,
       status: initialValues?.status ?? (quickEmptyDefaults ? null : true),
       role:
@@ -437,6 +447,7 @@ export function UnifiedPersonForm({
     canShowOpportunitySection && !quickOpportunitySection;
   const selectedOpportunityProducts = form.watch("opportunity_products") ?? [];
   const firstSelectedOpportunityProduct = selectedOpportunityProducts[0] ?? "";
+  const importedColumns = form.watch("imported_columns_data") ?? [];
   const stateOptions = getStateOptions(selectedCountry, selectedState);
   const serialLabel = getContactIdentifierLabel(selectedRole);
   const countryOptions =
@@ -736,6 +747,33 @@ export function UnifiedPersonForm({
               disabled={form.formState.isSubmitting}
               contactRole={entityType === "Contact" ? selectedRole : undefined}
             />
+            {mode === "update" && entityType === "Contact" && importedColumns.length > 0 ? (
+              <div className="space-y-4 rounded-md border bg-muted/20 p-4">
+                <h3 className="text-sm font-semibold">Imported Fields</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {importedColumns.map((field, index) => (
+                    <FormField
+                      key={field.column || index}
+                      control={form.control}
+                      name={`imported_columns_data.${index}.value`}
+                      render={({ field: inputField }) => (
+                        <FormItem>
+                          <FormLabel>{field.label || field.column}</FormLabel>
+                          <FormControl>
+                            <Input
+                              disabled={form.formState.isSubmitting}
+                              {...inputField}
+                              value={inputField.value ?? ""}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <FormField
               control={form.control}
               name="refered_by"

@@ -143,6 +143,8 @@ export function isTransientPrismaConnectionError(error: unknown) {
   }
 
   return (
+    message.includes("P2028") ||
+    message.includes("Unable to start a transaction in the given time") ||
     message.includes("pool timeout: failed to retrieve a connection from pool") ||
     message.includes("read ECONNRESET") ||
     message.includes("pool is ending")

@@ -58,6 +58,14 @@ export async function BasicView({ data }: OppsViewProps) {
   const importedColumns = Array.isArray(data?.imported_columns_data)
     ? data.imported_columns_data
     : [];
+  const tags = Array.from(
+    new Set(
+      (Array.isArray(data?.tags) ? data.tags : [])
+        .filter((tag: unknown): tag is string => typeof tag === "string")
+        .map((tag: string) => tag.trim())
+        .filter(Boolean),
+    ),
+  );
   if (!data) return <div>Opportunity not found</div>;
   return (
     <div className="pb-3 space-y-5">
@@ -261,7 +269,7 @@ export async function BasicView({ data }: OppsViewProps) {
             <div className="flex flex-col gap-2">
               <div> Tags:</div>
               <div className="flex flex-wrap gap-2">
-                {data.tags.map((tag: string) => (
+                {tags.map((tag) => (
                   <Badge key={tag} variant={"outline"}>
                     {tag}
                   </Badge>
