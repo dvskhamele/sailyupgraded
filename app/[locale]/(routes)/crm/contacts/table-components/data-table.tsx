@@ -158,14 +158,14 @@ export function ContactsDataTable<TData, TValue>({
                 <span className="text-sm text-muted-foreground">
                   {selectedCount} selected
                 </span>
-                <Button
+                {/* <Button
                   size="sm"
                   variant="outline"
                   onClick={() => setBulkEnrichOpen(true)}
                 >
                   <Sparkles className="h-4 w-4 mr-1 text-orange-500" />
                   Enrich {selectedCount} contacts
-                </Button>
+                </Button> */}
               </div>
               <BulkEnrichModal
                 contactIds={selectedContactIds}
