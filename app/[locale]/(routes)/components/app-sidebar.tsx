@@ -23,6 +23,7 @@ import getReportsMenuItem from "./menu-items/Reports";
 // import getInvoicesMenuItem from "./menu-items/Invoices";
 import getAdministrationMenuItem from "./menu-items/Administration";
 import getTemplatesMenuItem from "./menu-items/Campaigns";
+import getRetailAIActivitiesMenuItem from "./menu-items/RetailAIActivities";
 import getSocialPlatformMenuItems from "./menu-items/SocialPlatforms";
 import getMailerSendMenuItem from "./menu-items/MailerSend";
 import getZenithMenuItem from "./menu-items/Zenith";
@@ -99,6 +100,7 @@ export function AppSidebar({
     getContactsMenuItem(),
     getReportsMenuItem({ title: dict?.reports || "Reports" }),
     getActivitiesMenuItem(),
+    getRetailAIActivitiesMenuItem(),
     getTemplatesMenuItem({
       localizations: dict.campaigns,
     }),

@@ -6,7 +6,11 @@ const withNextIntl = require("next-intl/plugin")(
 const nextConfig = {
   output: "standalone",
   serverExternalPackages: ["pdf-parse", "pdfjs-dist"],
-  allowedDevOrigins: ["127.0.0.1"],
+  allowedDevOrigins: [
+    "127.0.0.1",
+    "warming-regional-horn-ins.trycloudflare.com",
+    "*.trycloudflare.com",
+  ],
   images: {
     remotePatterns: [
       { protocol: "https", hostname: "localhost" },

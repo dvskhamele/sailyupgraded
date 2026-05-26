@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
@@ -26,18 +26,53 @@ import { LeadDataTable } from "../leads/table-components/data-table";
 import { createColumns } from "../leads/table-components/columns";
 
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
+import { localLeadRepository, type LocalLeadEntity } from "@/lib/offline-first/storage";
 
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 interface LeadsViewProps {
   data: any[];
   crmData: CrmData;
   products?: { id: string; name: string; status?: string | null }[];
+  sourceFilter?: string;
 }
 
-const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
+const LeadsView = ({ data, crmData, products = [], sourceFilter }: LeadsViewProps) => {
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, saleStages } = crmData;
   const [open, setOpen] = useState(false);
+  const [localLeads, setLocalLeads] = useState<LocalLeadEntity[]>(data);
   const t = useTranslations("CrmPage");
+
+  const loadLocalLeads = useCallback(async () => {
+    try {
+      const leads = await localLeadRepository.getAll();
+      setLocalLeads(
+        leads.sort((a, b) =>
+          String(b.createdAt ?? b.created_at).localeCompare(String(a.createdAt ?? a.created_at)),
+        ),
+      );
+    } catch {
+      setLocalLeads([]);
+    }
+  }, []);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void loadLocalLeads();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [loadLocalLeads]);
+
+  const visibleLeads = useMemo(() => {
+    if (!sourceFilter) {
+      return localLeads;
+    }
+
+    return localLeads.filter((lead) => {
+      const sourceName = (lead.lead_source as { name?: string } | undefined)?.name;
+      return sourceName?.toLowerCase() === sourceFilter.toLowerCase();
+    });
+  }, [localLeads, sourceFilter]);
 
   const activeProducts = products.filter((product) => product.status === "ACTIVE");
   const columns = createColumns(contactTypes, leadSources, leadStatuses, leadTypes, accounts, activeProducts);
@@ -72,7 +107,10 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
                     leadTypes={leadTypes}
                     saleStages={saleStages}
                     products={activeProducts}
-                    onFinish={() => setOpen(false)}
+                    onFinish={() => {
+                      setOpen(false);
+                      void loadLocalLeads();
+                    }}
                   />
                 </div>
               </SheetContent>
@@ -82,12 +120,12 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
         <Separator />
       </CardHeader>
       <CardContent>
-        {!data ||
-          (data.length === 0 ? (
+        {!visibleLeads ||
+          (visibleLeads.length === 0 ? (
             t("leads.empty")
           ) : (
             <LeadDataTable
-              data={data}
+              data={visibleLeads}
               columns={columns}
               accounts={accounts}
               contactTypes={contactTypes}
@@ -99,6 +137,7 @@ const LeadsView = ({ data, crmData, products = [] }: LeadsViewProps) => {
                 label: product.name,
                 value: product.id,
               }))}
+              onDataChange={loadLocalLeads}
             />
           ))}
       </CardContent>

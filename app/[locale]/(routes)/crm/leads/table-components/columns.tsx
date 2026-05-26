@@ -29,6 +29,7 @@ export const createColumns = (
   leadTypes: ConfigItem[],
   accounts: AccountItem[] = [],
   products: ProductItem[] = [],
+  onDataChange?: () => void | Promise<void>,
 ): ColumnDef<Lead>[] => [
 
   {
@@ -263,6 +264,7 @@ export const createColumns = (
         leadStatuses={leadStatuses}
         leadTypes={leadTypes}
         products={products}
+        onDataChange={onDataChange}
       />
     ),
   },

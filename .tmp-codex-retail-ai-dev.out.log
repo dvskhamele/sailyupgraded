@@ -1,0 +1,18 @@
+
+> nextcrm-app@0.10.1 dev
+> next dev --webpack -p 3000
+
+▲ Next.js 16.2.4 (webpack)
+- Local:         http://localhost:3000
+- Network:       http://192.168.31.200:3000
+- Environments: .env.local, .env
+✓ Ready in 2.3s
+
+○ Compiling proxy ...
+ GET /api/retail-ai-activities 200 in 39.8s (next.js: 32.6s, application-code: 7.2s)
+ GET /api/retail-ai-activities 200 in 43s (next.js: 35.3s, application-code: 7.8s)
+○ Compiling /_not-found ...
+ GET /_next/webpack-hmr 404 in 12.7s (next.js: 11.8s, application-code: 939ms)
+○ Compiling /[locale]/sign-in ...
+ GET /en/sign-in 200 in 23.8s (next.js: 22.7s, proxy.ts: 31ms, application-code: 1111ms)
+ GET /manifest.webmanifest 200 in 1649ms (next.js: 1536ms, application-code: 112ms)

@@ -1,10 +1,9 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { useRouter } from "next/navigation";
-import { updateLead } from "@/actions/crm/leads/update-lead";
 import { getAddressLine1 } from "@/lib/crm-address";
-import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
+import { UnifiedPersonForm, type UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
+import { localLeadRepository } from "@/lib/offline-first/storage";
 
 type Option = { id: string; name: string };
 type AccountItem = {
@@ -23,7 +22,12 @@ type UpdateLeadFormProps = {
   leadTypes: Option[];
   saleStages?: Option[];
   products?: Option[];
+  onDataChange?: () => void | Promise<void>;
 };
+
+function findName(options: Option[], id?: string | null) {
+  return options.find((option) => option.id === id)?.name;
+}
 
 export function UpdateLeadForm({
   initialData,
@@ -35,9 +39,9 @@ export function UpdateLeadForm({
   leadTypes,
   saleStages = [],
   products = [],
+  onDataChange,
 }: UpdateLeadFormProps) {
   const t = useTranslations("CrmLeadForm");
-  const router = useRouter();
 
   if (!initialData) {
     return null;
@@ -91,6 +95,29 @@ export function UpdateLeadForm({
     birthday_day: initialData.birthday ? new Date(initialData.birthday).getDate().toString() : "",
   };
 
+  const updateLocalLead = async (data: UnifiedPersonFormValues) => {
+    const lead = await localLeadRepository.update(initialData.id, {
+      ...data,
+      firstName: data.first_name ?? "",
+      lastName: data.last_name ?? "",
+      updatedAt: new Date().toISOString(),
+      lead_source: data.lead_source_id
+        ? { name: findName(leadSources, data.lead_source_id) }
+        : null,
+      lead_status: data.lead_status_id
+        ? { name: findName(leadStatuses, data.lead_status_id) }
+        : null,
+      lead_type: data.lead_type_id
+        ? { name: findName(leadTypes, data.lead_type_id) }
+        : null,
+      contact_type: data.contact_type_id
+        ? { name: findName(contactTypes, data.contact_type_id) }
+        : null,
+    });
+
+    return { data: lead };
+  };
+
   return (
     <UnifiedPersonForm
       mode="update"
@@ -105,10 +132,10 @@ export function UpdateLeadForm({
       saleStages={saleStages}
       products={products}
       initialValues={initialValues}
-      onSubmitAction={(data) => updateLead(data as any)}
-      onSuccess={() => {
+      onSubmitAction={updateLocalLead}
+      onSuccess={async () => {
         setOpen(false);
-        router.refresh();
+        await onDataChange?.();
       }}
     />
   );

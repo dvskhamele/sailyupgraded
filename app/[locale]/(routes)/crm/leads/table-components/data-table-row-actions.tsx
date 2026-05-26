@@ -31,8 +31,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
-import { deleteLead } from "@/actions/crm/leads/delete-lead";
 import { stopRowNavigation } from "../../components/table-row-navigation";
+import { localLeadRepository } from "@/lib/offline-first/storage";
 
 type ConfigItem = { id: string; name: string };
 type AccountItem = {
@@ -50,6 +50,7 @@ interface DataTableRowActionsProps<TData> {
   leadStatuses: ConfigItem[];
   leadTypes: ConfigItem[];
   products?: ProductItem[];
+  onDataChange?: () => void | Promise<void>;
 }
 
 export function DataTableRowActions<TData>({
@@ -60,6 +61,7 @@ export function DataTableRowActions<TData>({
   leadStatuses,
   leadTypes,
   products = [],
+  onDataChange,
 }: DataTableRowActionsProps<TData>) {
   const router = useRouter();
   const lead = leadSchema.parse(row.original);
@@ -72,18 +74,14 @@ export function DataTableRowActions<TData>({
   const onDelete = async () => {
     setLoading(true);
     try {
-      const result = await deleteLead(lead?.id);
-      if (result.error) {
-        toast.error(result.error);
-      } else {
-        toast.success("Lead has been deleted");
-      }
+      await localLeadRepository.delete(lead.id);
+      toast.success("Lead has been deleted");
+      await onDataChange?.();
     } catch (error) {
       toast.error("Something went wrong while deleting lead. Please try again.");
     } finally {
       setLoading(false);
       setOpen(false);
-      router.refresh();
     }
   };
 
@@ -115,6 +113,7 @@ export function DataTableRowActions<TData>({
               leadStatuses={leadStatuses}
               leadTypes={leadTypes}
               products={products}
+              onDataChange={onDataChange}
             />
           </div>
         </SheetContent>

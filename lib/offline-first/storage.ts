@@ -1,5 +1,7 @@
 "use client";
 
+import Dexie, { type Table } from "dexie";
+
 import { emitOfflineFirstChanged } from "@/lib/offline-first/events";
 import type {
   IdMapEntry,
@@ -249,3 +251,200 @@ export class OfflineFirstStorage {
 }
 
 export const offlineFirstStorage = new OfflineFirstStorage();
+
+const LOCAL_DB_NAME = "saily-local-foundation";
+const LOCAL_DB_VERSION = 2;
+
+export type LocalSyncStatus = "pending" | "synced" | "failed";
+export type LocalTableName = "customers" | "leads" | "tasks";
+export type OfflineQueueOperationType = "create" | "update" | "delete";
+export type OfflineQueueSyncStatus = "pending" | "synced" | "failed";
+export type OfflineQueuePayload = Record<string, unknown> | null;
+
+export type OfflineQueueEntry<
+  TPayload extends OfflineQueuePayload = OfflineQueuePayload,
+> = {
+  id: string;
+  operation_type: OfflineQueueOperationType;
+  table_name: string;
+  entity_id: string;
+  payload: TPayload;
+  created_at: string;
+  retry_count: number;
+  sync_status: OfflineQueueSyncStatus;
+};
+
+export type LocalDatabaseEntity = {
+  id: string;
+  created_at: string;
+  updated_at: string;
+  sync_status: LocalSyncStatus;
+};
+
+export type LocalCustomerEntity = LocalDatabaseEntity & Record<string, unknown>;
+export type LocalLeadEntity = LocalDatabaseEntity & Record<string, unknown>;
+export type LocalTaskEntity = LocalDatabaseEntity & Record<string, unknown>;
+
+export type CreateLocalEntityInput<TEntity extends LocalDatabaseEntity> =
+  Omit<TEntity, keyof LocalDatabaseEntity> &
+    Partial<Pick<TEntity, "id" | "created_at" | "updated_at" | "sync_status">>;
+
+export type UpdateLocalEntityInput<TEntity extends LocalDatabaseEntity> =
+  Partial<Omit<TEntity, "id" | "created_at">>;
+
+export type LocalRepository<TEntity extends LocalDatabaseEntity> = {
+  create: (input: CreateLocalEntityInput<TEntity>) => Promise<TEntity>;
+  update: (
+    id: string,
+    changes: UpdateLocalEntityInput<TEntity>,
+  ) => Promise<TEntity>;
+  delete: (id: string) => Promise<void>;
+  getById: (id: string) => Promise<TEntity | undefined>;
+  getAll: () => Promise<TEntity[]>;
+};
+
+class LocalDexieDatabase extends Dexie {
+  customers!: Table<LocalCustomerEntity, string>;
+  leads!: Table<LocalLeadEntity, string>;
+  tasks!: Table<LocalTaskEntity, string>;
+  offline_queue!: Table<OfflineQueueEntry, string>;
+
+  constructor() {
+    super(LOCAL_DB_NAME);
+
+    this.version(LOCAL_DB_VERSION).stores({
+      customers: "id, created_at, updated_at, sync_status",
+      leads: "id, created_at, updated_at, sync_status",
+      tasks: "id, created_at, updated_at, sync_status",
+      offline_queue:
+        "id, operation_type, table_name, entity_id, created_at, retry_count, sync_status",
+    });
+  }
+}
+
+let localDatabase: LocalDexieDatabase | null = null;
+
+export function getLocalDatabase() {
+  if (typeof indexedDB === "undefined") {
+    throw new Error("Local database is only available in the browser.");
+  }
+
+  if (!localDatabase) {
+    localDatabase = new LocalDexieDatabase();
+  }
+
+  return localDatabase;
+}
+
+function createLocalId() {
+  if (!crypto.randomUUID) {
+    throw new Error("crypto.randomUUID is required for local database IDs.");
+  }
+
+  return crypto.randomUUID();
+}
+
+function nowIso() {
+  return new Date().toISOString();
+}
+
+function createOfflineQueueEntry(
+  operationType: OfflineQueueOperationType,
+  tableName: string,
+  entityId: string,
+  payload: OfflineQueuePayload,
+): OfflineQueueEntry {
+  return {
+    id: createLocalId(),
+    operation_type: operationType,
+    table_name: tableName,
+    entity_id: entityId,
+    payload,
+    created_at: nowIso(),
+    retry_count: 0,
+    sync_status: "pending",
+  };
+}
+
+export function createLocalRepository<TEntity extends LocalDatabaseEntity>(
+  tableName: LocalTableName,
+): LocalRepository<TEntity> {
+  const getTable = (db = getLocalDatabase()) =>
+    db.table(tableName) as Table<TEntity, string>;
+
+  return {
+    async create(input) {
+      const db = getLocalDatabase();
+      const table = getTable(db);
+      const now = nowIso();
+      const entity = {
+        ...input,
+        id: input.id ?? createLocalId(),
+        created_at: input.created_at ?? now,
+        updated_at: input.updated_at ?? now,
+        sync_status: input.sync_status ?? "pending",
+      } as TEntity;
+
+      await db.transaction("rw", table, db.offline_queue, async () => {
+        await table.put(entity);
+        await db.offline_queue.add(
+          createOfflineQueueEntry("create", tableName, entity.id, entity),
+        );
+      });
+
+      return entity;
+    },
+
+    async update(id, changes) {
+      const db = getLocalDatabase();
+      const table = getTable(db);
+
+      return db.transaction("rw", table, db.offline_queue, async () => {
+        const existing = await table.get(id);
+
+        if (!existing) {
+          throw new Error(`Local record not found: ${tableName}:${id}`);
+        }
+
+        const nextEntity = {
+          ...existing,
+          ...changes,
+          id,
+          created_at: existing.created_at,
+          updated_at: nowIso(),
+        } as TEntity;
+
+        await table.put(nextEntity);
+        await db.offline_queue.add(
+          createOfflineQueueEntry("update", tableName, id, nextEntity),
+        );
+
+        return nextEntity;
+      });
+    },
+
+    async delete(id) {
+      const db = getLocalDatabase();
+      const table = getTable(db);
+
+      await db.transaction("rw", table, db.offline_queue, async () => {
+        const existing = await table.get(id);
+        await table.delete(id);
+        await db.offline_queue.add(
+          createOfflineQueueEntry("delete", tableName, id, existing ?? null),
+        );
+      });
+    },
+
+    getById(id) {
+      return getTable().get(id);
+    },
+
+    getAll() {
+      return getTable().toArray();
+    },
+  };
+}
+
+export const localLeadRepository =
+  createLocalRepository<LocalLeadEntity>("leads");

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prismadb } from "@/lib/prisma";
+import { createRetailAIActivityFromWebhook } from "@/lib/retail-ai/service";
 
 type RetellWebhookPayload = {
   event?: string;
@@ -224,6 +225,10 @@ export async function POST(request: Request) {
         },
       }),
     ]);
+
+    if (event === "call_analyzed") {
+      await createRetailAIActivityFromWebhook(payload, { receivedAt: new Date() });
+    }
 
     return new NextResponse(null, { status: 204 });
   } catch (error) {

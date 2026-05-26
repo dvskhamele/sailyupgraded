@@ -22,6 +22,7 @@ import { reportSendScheduled } from "@/inngest/functions/reports/send-scheduled"
 import { enrichDocument } from "@/inngest/functions/documents/enrich-document";
 import { generateDocumentThumbnail } from "@/inngest/functions/documents/generate-thumbnail";
 import { syncExchangeRates } from "@/inngest/functions/ecb/sync-exchange-rates";
+import { retailAIWebhookHandler } from "@/inngest/functions/retail-ai/webhook-handler";
 
 export const { GET, POST, PUT } = serve({
   client: inngest,
@@ -48,5 +49,6 @@ export const { GET, POST, PUT } = serve({
     enrichDocument,
     generateDocumentThumbnail,
     syncExchangeRates,
+    retailAIWebhookHandler,
   ],
 });

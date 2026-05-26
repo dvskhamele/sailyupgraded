@@ -15,6 +15,10 @@ const ADMIN_ONLY_PATHS = [
   "/api/admin",
 ];
 
+const PUBLIC_API_PATHS = ["/api/retail-ai-activities"];
+const NEXT_INTERNAL_PATHS = ["/_next", "/__nextjs"];
+const STATIC_FILE_PATTERN = /\.(?:avif|css|gif|ico|jpg|jpeg|js|json|map|png|svg|txt|webmanifest|webp|woff|woff2)$/i;
+
 function getLocalePrefix(pathname: string) {
   const segment = pathname.split("/")[1];
   return routing.locales.includes(segment as (typeof routing.locales)[number])
@@ -38,8 +42,42 @@ function hasSessionCookie(req: NextRequest) {
   return cookieNames.some((name) => Boolean(req.cookies.get(name)));
 }
 
+function isPublicApiPath(pathname: string) {
+  return PUBLIC_API_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
+}
+
+function isNextInternalPath(pathname: string) {
+  return NEXT_INTERNAL_PATHS.some(
+    (path) => pathname === path || pathname.startsWith(`${path}/`)
+  );
+}
+
+function isStaticAsset(pathname: string) {
+  return (
+    pathname === "/favicon.ico" ||
+    pathname === "/robots.txt" ||
+    pathname === "/sitemap.xml" ||
+    STATIC_FILE_PATTERN.test(pathname)
+  );
+}
+
+function isWebSocketUpgrade(req: NextRequest) {
+  return req.headers.get("upgrade")?.toLowerCase() === "websocket";
+}
+
 export async function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
+
+  if (
+    isPublicApiPath(path) ||
+    isNextInternalPath(path) ||
+    isStaticAsset(path) ||
+    isWebSocketUpgrade(req)
+  ) {
+    return NextResponse.next();
+  }
 
   if (bypassLogin && !path.startsWith("/api/auth")) {
     return NextResponse.next();
@@ -104,6 +142,6 @@ export const config = {
     // better-auth API
     "/api/auth/:path*",
     // All non-API routes (existing intl matcher)
-    "/((?!api|trpc|_next|_vercel|.*\\..*).*)",
+    "/((?!api|trpc|_next|__nextjs|_vercel|favicon.ico|robots.txt|sitemap.xml|.*\\..*).*)",
   ],
 };

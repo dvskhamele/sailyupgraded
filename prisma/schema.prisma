@@ -668,9 +668,9 @@ model crm_Activities {
   updatedAt        DateTime?           @updatedAt
   deletedAt        DateTime?
   deletedBy        String?
-  created_by_user  Users?              @relation("activity_created_by", fields: [createdBy], references: [id])
-  updated_by_user  Users?              @relation("activity_updated_by", fields: [updatedBy], references: [id])
-  assigned_to_user Users?              @relation("activity_assigned_to", fields: [assignedTo], references: [id])
+  created_by_user  Users?              @relation("activity_created_by", fields: [createdBy], references: [id], onDelete: SetNull)
+  updated_by_user  Users?              @relation("activity_updated_by", fields: [updatedBy], references: [id], onDelete: SetNull)
+  assigned_to_user Users?              @relation("activity_assigned_to", fields: [assignedTo], references: [id], onDelete: SetNull)
   links            crm_ActivityLinks[]
 
   @@index([date])
@@ -690,6 +690,91 @@ model crm_ActivityLinks {
   entityType String
   entityId   String
   activity   crm_Activities @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  @@index([activityId])
+  @@index([entityId])
+  @@index([entityType, entityId])
+  @@index([entityType, entityId, activityId])
+}
+
+model crm_RetailAIActivities {
+  id                 String                      @id @default(uuid())
+  type               crm_Activity_Type
+  title              String
+  description        String?                     @db.Text
+  date               DateTime
+  duration           Int?
+  outcome            String?                     @db.Text
+  status             crm_Activity_Status         @default(scheduled)
+  metadata           Json?
+  aiSource           String?
+  aiInsights         String?                     @db.Text
+  aiConfidenceScore  Decimal?                    @db.Decimal(5, 2)
+  aiMetadata         Json?
+  retailAIPayload    Json?
+  aiStatus           String?
+  aiGeneratedSummary String?                     @db.Text
+  transcript         Json?
+  recordingUrl       String?                     @db.Text
+  publicLogUrl       String?                     @db.Text
+  conversationId     String?
+  webhookReceivedAt  DateTime?
+  sentiment          String?
+  callSuccessful     Boolean?
+  
+  // New Fields
+  call_id            String?                     @unique
+  customer_name      String?
+  phone_number       String?
+  email              String?
+  appointment_time   DateTime?
+  call_summary       String?                     @db.Text
+  call_successful    String?                     // pending, reviewed, accepted
+  user_sentiment     String?
+  combined_cost      Decimal?                    @db.Decimal(10, 4)
+  call_duration      Int?
+  
+  // Additional Extraction Fields
+  state              String?
+  location           String?
+  timezone           String?
+  insurance_interest String?
+  smoker_status      String?
+  call_outcome       String?                     @db.Text
+  consultation_type  String?
+  
+  createdBy          String?
+  updatedBy          String?
+  assignedTo         String?
+  createdAt          DateTime                    @default(now())
+  updatedAt          DateTime?                   @updatedAt
+  deletedAt          DateTime?
+  deletedBy          String?
+  created_by_user    Users?                      @relation("retail_ai_activity_created_by", fields: [createdBy], references: [id], onDelete: SetNull)
+  updated_by_user    Users?                      @relation("retail_ai_activity_updated_by", fields: [updatedBy], references: [id], onDelete: SetNull)
+  assigned_to_user   Users?                      @relation("retail_ai_activity_assigned_to", fields: [assignedTo], references: [id], onDelete: SetNull)
+  links              crm_RetailAIActivityLinks[]
+
+
+  @@index([date])
+  @@index([type])
+  @@index([status])
+  @@index([aiStatus])
+  @@index([conversationId])
+  @@index([assignedTo])
+  @@index([createdBy])
+  @@index([createdAt])
+  @@index([deletedAt])
+  @@index([deletedAt, date, id])
+  @@index([updatedBy], map: "crm_RetailAIActivities_updatedBy_fkey")
+}
+
+model crm_RetailAIActivityLinks {
+  id         String                 @id @default(uuid())
+  activityId String
+  entityType String
+  entityId   String
+  activity   crm_RetailAIActivities @relation(fields: [activityId], references: [id], onDelete: Cascade)
 
   @@index([activityId])
   @@index([entityId])
@@ -923,65 +1008,68 @@ model TodoList {
 }
 
 model Users {
-  id                           String                   @id @default(uuid())
-  v                            Int                      @default(0) @map("__v")
-  account_name                 String?
-  avatar                       String?
-  email                        String                   @unique
-  emailVerified                Boolean                  @default(false)
-  image                        String?
-  is_account_admin             Boolean                  @default(false)
-  role                         String                   @default("member")
-  is_admin                     Boolean                  @default(false)
-  created_on                   DateTime                 @default(now())
-  updated_at                   DateTime?                @updatedAt
-  lastLoginAt                  DateTime?
-  name                         String?
-  password                     String?
-  username                     String?
-  userStatus                   ActiveStatus             @default(PENDING)
-  userLanguage                 Language                 @default(en)
-  banned                       Boolean                  @default(false)
-  banReason                    String?
-  banExpires                   DateTime?
-  watching_accounts            AccountWatchers[]
-  apiKeys                      ApiKeys[]
-  apiTokens                    ApiToken[]
-  watching_boards              BoardWatchers[]
-  boards                       Boards[]                 @relation("assigned_user")
-  assigned_documents           Documents[]              @relation("assigned_to_user")
-  created_by_documents         Documents[]              @relation("created_by_user")
-  emails                       Email[]
-  emailAccounts                EmailAccount[]
-  invoiceActivity              Invoice_Activity[]       @relation("InvoiceActivityActor")
-  invoiceAttachments           Invoice_Attachments[]    @relation("InvoiceAttachmentUploadedBy")
-  invoicePayments              Invoice_Payments[]       @relation("InvoicePaymentCreatedBy")
-  createdInvoices              Invoices[]               @relation("InvoiceCreatedBy")
-  tasks                        Tasks[]
-  authAccounts                 Account[]
-  accounts                     crm_Accounts[]           @relation("AccountAssignedTo")
-  crm_accounts_tasks           crm_Accounts_Tasks[]
-  activities_assigned          crm_Activities[]         @relation("activity_assigned_to")
-  activities_created           crm_Activities[]         @relation("activity_created_by")
-  activities_updated           crm_Activities[]         @relation("activity_updated_by")
-  auditLogs                    crm_AuditLog[]
-  enrichments_triggered        crm_Contact_Enrichment[] @relation("enrichment_triggered_by")
-  assigned_contacts            crm_Contacts[]           @relation("assigned_contacts")
-  crated_contacts              crm_Contacts[]           @relation("created_contacts")
-  assigned_contracts           crm_Contracts[]
-  leads                        crm_Leads[]              @relation("LeadAssignedTo")
-  assigned_opportunity         crm_Opportunities[]      @relation("assigned_to_user_relation")
-  created_by_user              crm_Opportunities[]      @relation("created_by_user_relation")
-  created_products             crm_Products[]           @relation("ProductCreatedBy")
-  report_configs               crm_Report_Config[]      @relation("report_configs")
-  report_schedules             crm_Report_Schedule[]    @relation("report_schedules")
-  created_target_lists         crm_TargetLists[]        @relation("created_target_lists")
-  target_enrichments_triggered crm_Target_Enrichment[]  @relation("target_enrichment_triggered_by")
-  created_targets              crm_Targets[]            @relation("created_targets")
-  created_campaign_templates   crm_campaign_templates[] @relation("created_campaign_templates")
-  created_campaigns            crm_campaigns[]          @relation("created_campaigns")
-  sessions                     Session[]
-  tasksComment                 tasksComments[]
+  id                            String                   @id @default(uuid())
+  v                             Int                      @default(0) @map("__v")
+  account_name                  String?
+  avatar                        String?
+  email                         String                   @unique
+  emailVerified                 Boolean                  @default(false)
+  image                         String?
+  is_account_admin              Boolean                  @default(false)
+  role                          String                   @default("member")
+  is_admin                      Boolean                  @default(false)
+  created_on                    DateTime                 @default(now())
+  updated_at                    DateTime?                @updatedAt
+  lastLoginAt                   DateTime?
+  name                          String?
+  password                      String?
+  username                      String?
+  userStatus                    ActiveStatus             @default(PENDING)
+  userLanguage                  Language                 @default(en)
+  banned                        Boolean                  @default(false)
+  banReason                     String?
+  banExpires                    DateTime?
+  watching_accounts             AccountWatchers[]
+  apiKeys                       ApiKeys[]
+  apiTokens                     ApiToken[]
+  watching_boards               BoardWatchers[]
+  boards                        Boards[]                 @relation("assigned_user")
+  assigned_documents            Documents[]              @relation("assigned_to_user")
+  created_by_documents          Documents[]              @relation("created_by_user")
+  emails                        Email[]
+  emailAccounts                 EmailAccount[]
+  invoiceActivity               Invoice_Activity[]       @relation("InvoiceActivityActor")
+  invoiceAttachments            Invoice_Attachments[]    @relation("InvoiceAttachmentUploadedBy")
+  invoicePayments               Invoice_Payments[]       @relation("InvoicePaymentCreatedBy")
+  createdInvoices               Invoices[]               @relation("InvoiceCreatedBy")
+  tasks                         Tasks[]
+  authAccounts                  Account[]
+  accounts                      crm_Accounts[]           @relation("AccountAssignedTo")
+  crm_accounts_tasks            crm_Accounts_Tasks[]
+  activities_assigned           crm_Activities[]         @relation("activity_assigned_to")
+  activities_created            crm_Activities[]         @relation("activity_created_by")
+  activities_updated            crm_Activities[]         @relation("activity_updated_by")
+  retail_ai_activities_assigned crm_RetailAIActivities[] @relation("retail_ai_activity_assigned_to")
+  retail_ai_activities_created  crm_RetailAIActivities[] @relation("retail_ai_activity_created_by")
+  retail_ai_activities_updated  crm_RetailAIActivities[] @relation("retail_ai_activity_updated_by")
+  auditLogs                     crm_AuditLog[]
+  enrichments_triggered         crm_Contact_Enrichment[] @relation("enrichment_triggered_by")
+  assigned_contacts             crm_Contacts[]           @relation("assigned_contacts")
+  crated_contacts               crm_Contacts[]           @relation("created_contacts")
+  assigned_contracts            crm_Contracts[]
+  leads                         crm_Leads[]              @relation("LeadAssignedTo")
+  assigned_opportunity          crm_Opportunities[]      @relation("assigned_to_user_relation")
+  created_by_user               crm_Opportunities[]      @relation("created_by_user_relation")
+  created_products              crm_Products[]           @relation("ProductCreatedBy")
+  report_configs                crm_Report_Config[]      @relation("report_configs")
+  report_schedules              crm_Report_Schedule[]    @relation("report_schedules")
+  created_target_lists          crm_TargetLists[]        @relation("created_target_lists")
+  target_enrichments_triggered  crm_Target_Enrichment[]  @relation("target_enrichment_triggered_by")
+  created_targets               crm_Targets[]            @relation("created_targets")
+  created_campaign_templates    crm_campaign_templates[] @relation("created_campaign_templates")
+  created_campaigns             crm_campaigns[]          @relation("created_campaigns")
+  sessions                      Session[]
+  tasksComment                  tasksComments[]
 
   @@index([email])
   @@index([userStatus])

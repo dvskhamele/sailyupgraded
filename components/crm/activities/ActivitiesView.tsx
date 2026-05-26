@@ -32,6 +32,10 @@ import {
   getActivities,
   getActivitiesByEntity,
 } from "@/actions/crm/activities/get-activities-by-entity";
+import {
+  getRetailAIActivities,
+  getRetailAIActivitiesByEntity,
+} from "@/actions/crm/retail-ai-activities/get-retail-ai-activities";
 import type {
   ActivityWithLinks,
   ActivityCursor,
@@ -48,6 +52,10 @@ interface Props {
   entityType?: string;
   entityId?: string;
   initialData: { data: ActivityWithLinks[]; nextCursor: ActivityCursor | null };
+  activityModule?: "crm" | "retail-ai";
+  title?: string;
+  description?: string;
+  createLabel?: string;
 }
 
 const TYPE_FILTERS = [
@@ -63,6 +71,12 @@ const STATUS_FILTERS = [
   { value: "scheduled", label: "Scheduled" },
   { value: "completed", label: "Completed" },
   { value: "cancelled", label: "Cancelled" },
+] as const;
+
+const AI_STATUS_FILTERS = [
+  { value: "all", label: "All AI statuses" },
+  { value: "accepted", label: "Accepted" },
+  { value: "reviewed", label: "Reviewed" },
 ] as const;
 
 function getContactName(contact: ContactSearchItem) {
@@ -196,7 +210,15 @@ function ContactFilter({
   );
 }
 
-export function ActivitiesView({ entityType, entityId, initialData }: Props) {
+export function ActivitiesView({
+  entityType,
+  entityId,
+  initialData,
+  activityModule = "crm",
+  title = "Activities",
+  description = "Track meetings, calls, follow-ups, and updates.",
+  createLabel = "Log Activity",
+}: Props) {
   const [activities, setActivities] = useState<ActivityWithLinks[]>(
     initialData.data,
   );
@@ -211,6 +233,11 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
   const [selectedContact, setSelectedContact] =
     useState<ContactSearchItem | null>(null);
   const [assignedTo, setAssignedTo] = useState("");
+  const [retailAIOnly, setRetailAIOnly] = useState(false);
+  const [aiStatus, setAIStatus] = useState("all");
+  const [minAIConfidence, setMinAIConfidence] = useState("");
+  const [maxAIConfidence, setMaxAIConfidence] = useState("");
+  const [error, setError] = useState("");
   const didMountRef = useRef(false);
   const hasEntityContext = !!entityType && !!entityId;
   const showFilters = !hasEntityContext;
@@ -220,15 +247,29 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
     status: statusFilter,
     contactId: selectedContact?.id,
     assignedTo,
+    retailAIOnly,
+    aiStatus: aiStatus === "all" ? undefined : aiStatus,
+    minAIConfidence: minAIConfidence ? Number(minAIConfidence) : undefined,
+    maxAIConfidence: maxAIConfidence ? Number(maxAIConfidence) : undefined,
   };
 
   const loadFirstPage = () => {
     startTransition(async () => {
-      const result = hasEntityContext
-        ? await getActivitiesByEntity(entityType, entityId, undefined, filters)
-        : await getActivities(undefined, filters);
-      setActivities(result.data);
-      setCursor(result.nextCursor);
+      try {
+        setError("");
+        const result =
+          activityModule === "retail-ai"
+            ? hasEntityContext
+              ? await getRetailAIActivitiesByEntity(entityType, entityId, undefined, filters)
+              : await getRetailAIActivities(undefined, filters)
+            : hasEntityContext
+              ? await getActivitiesByEntity(entityType, entityId, undefined, filters)
+              : await getActivities(undefined, filters);
+        setActivities(result.data);
+        setCursor(result.nextCursor);
+      } catch {
+        setError("Failed to load activities. Please try again.");
+      }
     });
   };
 
@@ -239,16 +280,35 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
       return;
     }
     loadFirstPage();
-  }, [typeFilter, statusFilter, selectedContact?.id, assignedTo]);
+  }, [
+    typeFilter,
+    statusFilter,
+    selectedContact?.id,
+    assignedTo,
+    retailAIOnly,
+    aiStatus,
+    minAIConfidence,
+    maxAIConfidence,
+  ]);
 
   const loadMore = () => {
     if (!cursor || isPending) return;
     startTransition(async () => {
-      const result = hasEntityContext
-        ? await getActivitiesByEntity(entityType, entityId, cursor, filters)
-        : await getActivities(cursor, filters);
-      setActivities((prev) => [...prev, ...result.data]);
-      setCursor(result.nextCursor);
+      try {
+        setError("");
+        const result =
+          activityModule === "retail-ai"
+            ? hasEntityContext
+              ? await getRetailAIActivitiesByEntity(entityType, entityId, cursor, filters)
+              : await getRetailAIActivities(cursor, filters)
+            : hasEntityContext
+              ? await getActivitiesByEntity(entityType, entityId, cursor, filters)
+              : await getActivities(cursor, filters);
+        setActivities((prev) => [...prev, ...result.data]);
+        setCursor(result.nextCursor);
+      } catch {
+        setError("Failed to load more activities. Please try again.");
+      }
     });
   };
 
@@ -271,6 +331,10 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
     setStatusFilter("all");
     setSelectedContact(null);
     setAssignedTo("");
+    setRetailAIOnly(false);
+    setAIStatus("all");
+    setMinAIConfidence("");
+    setMaxAIConfidence("");
   };
 
   return (
@@ -281,11 +345,11 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
           {/* Title */}
           <div>
             <CardTitle className="text-xl font-semibold tracking-tight">
-              Activities
+              {title}
             </CardTitle>
 
             <p className="mt-1 text-sm text-muted-foreground">
-              Track meetings, calls, follow-ups, and updates.
+              {description}
             </p>
           </div>
 
@@ -296,7 +360,7 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
             className="rounded-xl px-4 shadow-sm"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Log Activity
+            {createLabel}
           </Button>
         </CardHeader>
 
@@ -325,7 +389,11 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
                     typeFilter === "all" &&
                     statusFilter === "all" &&
                     !selectedContact &&
-                    !assignedTo
+                    !assignedTo &&
+                    !retailAIOnly &&
+                    aiStatus === "all" &&
+                    !minAIConfidence &&
+                    !maxAIConfidence
                   }
                 >
                   <X className="mr-1 h-3.5 w-3.5" />
@@ -412,7 +480,76 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
                     disabled={isPending}
                   />
                 </div>
+
+                {/* Retail AI Only */}
+                <div className="flex items-center space-x-2 pt-8">
+                  <input
+                    type="checkbox"
+                    id="retail-ai-only"
+                    checked={retailAIOnly}
+                    onChange={(e) => setRetailAIOnly(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <Label htmlFor="retail-ai-only" className="text-sm font-medium cursor-pointer">
+                    Retail AI Only
+                  </Label>
+                </div>
+
+                {/* AI Status */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    AI Status
+                  </Label>
+
+                  <Select value={aiStatus} onValueChange={setAIStatus}>
+                    <SelectTrigger className="rounded-xl">
+                      <SelectValue />
+                    </SelectTrigger>
+
+                    <SelectContent>
+                      {AI_STATUS_FILTERS.map((item) => (
+                        <SelectItem key={item.value} value={item.value}>
+                          {item.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* AI Confidence */}
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">
+                    AI Confidence Score
+                  </Label>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={minAIConfidence}
+                      onChange={(event) => setMinAIConfidence(event.target.value)}
+                      placeholder="Min"
+                      className="h-10 rounded-xl border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                    <input
+                      type="number"
+                      min="0"
+                      max="100"
+                      value={maxAIConfidence}
+                      onChange={(event) => setMaxAIConfidence(event.target.value)}
+                      placeholder="Max"
+                      className="h-10 rounded-xl border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                    />
+                  </div>
+                </div>
               </div>
+            </div>
+          )}
+
+          {error && (
+            <div className="rounded-xl border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+              {error}
             </div>
           )}
 
@@ -442,6 +579,7 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
                     entityType={entityType}
                     entityId={entityId}
                     editLinks={hasEntityContext ? undefined : activity.links}
+                    activityModule={activityModule}
                     onDeleted={handleDeleted}
                     onUpdated={handleUpdated}
                   />
@@ -473,6 +611,7 @@ export function ActivitiesView({ entityType, entityId, initialData }: Props) {
             onOpenChange={setCreateOpen}
             entityType={entityType}
             entityId={entityId}
+            activityModule={activityModule}
             onSaved={handleCreated}
           />
         )}

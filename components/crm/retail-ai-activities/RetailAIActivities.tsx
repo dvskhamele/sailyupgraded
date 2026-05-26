@@ -1,0 +1,16 @@
+import { getRetailAIActivities } from "@/actions/crm/retail-ai-activities/get-retail-ai-activities";
+import { ActivitiesView } from "@/components/crm/activities/ActivitiesView";
+
+export async function RetailAIActivities() {
+  const activities = await getRetailAIActivities();
+
+  return (
+    <ActivitiesView
+      initialData={activities}
+      activityModule="retail-ai"
+      title="Retail AI Activities"
+      description="Track Retail AI activity workflows, reviews, and outcomes."
+      createLabel="Log Retail AI Activity"
+    />
+  );
+}

@@ -33,8 +33,8 @@ import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
 import { Button } from "@/components/ui/button";
 import AlertModal from "@/components/modals/alert-modal";
-import { bulkDeleteLeads } from "@/actions/crm/leads/delete-lead";
 import { toast } from "sonner";
+import { localLeadRepository } from "@/lib/offline-first/storage";
 
 type ConfigItem = { id: string; name: string };
 type FilterOption = { label: string; value: string };
@@ -55,6 +55,7 @@ interface DataTableProps<TData, TValue> {
   leadTypes?: ConfigItem[];
   products?: ProductItem[];
   productOptions?: FilterOption[];
+  onDataChange?: () => void | Promise<void>;
 }
 
 export function LeadDataTable<TData, TValue>({
@@ -66,9 +67,18 @@ export function LeadDataTable<TData, TValue>({
   leadTypes = [],
   products = [],
   productOptions = [],
+  onDataChange,
 }: DataTableProps<TData, TValue>) {
   const router = useRouter();
-  const columns = createColumns(contactTypes, leadSources, leadStatuses, leadTypes, accounts, products) as ColumnDef<TData, TValue>[];
+  const columns = createColumns(
+    contactTypes,
+    leadSources,
+    leadStatuses,
+    leadTypes,
+    accounts,
+    products,
+    onDataChange,
+  ) as ColumnDef<TData, TValue>[];
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] =
     React.useState<VisibilityState>({ products: false });
@@ -111,15 +121,10 @@ export function LeadDataTable<TData, TValue>({
   const onBulkDelete = async () => {
     setBulkDeleteLoading(true);
     try {
-      const result = await bulkDeleteLeads(selectedLeadIds);
-      if (result.error) {
-        toast.error(result.error);
-        return;
-      }
-
+      await Promise.all(selectedLeadIds.map((id) => localLeadRepository.delete(id)));
       table.toggleAllRowsSelected(false);
-      toast.success(`${result.count ?? selectedCount} lead(s) deleted`);
-      router.refresh();
+      toast.success(`${selectedCount} lead(s) deleted`);
+      await onDataChange?.();
     } catch {
       toast.error("Something went wrong while deleting leads. Please try again.");
     } finally {

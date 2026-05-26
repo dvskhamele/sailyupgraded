@@ -36,6 +36,9 @@ import {
 import { createActivity } from "@/actions/crm/activities/create-activity";
 import { updateActivity } from "@/actions/crm/activities/update-activity";
 import type { ActivityWithLinks } from "@/actions/crm/activities/get-activities-by-entity";
+import { createRetailAIActivity } from "@/actions/crm/retail-ai-activities/create-retail-ai-activity";
+import { updateRetailAIActivity } from "@/actions/crm/retail-ai-activities/update-retail-ai-activity";
+import type { RetailAIActivityAIFields } from "@/actions/crm/retail-ai-activities/types";
 import { generateActivityTitle } from "@/lib/crm/activity-title";
 import { searchContacts, type ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
 import { createContact } from "@/actions/crm/contacts/create-contact";
@@ -241,20 +244,47 @@ function toDateTimeLocalValue(value = new Date()) {
   return new Date(value.getTime() - offsetMs).toISOString().slice(0, 16);
 }
 
+function stringifyJsonField(value: unknown) {
+  if (value === null || value === undefined) return "";
+  return JSON.stringify(value, null, 2);
+}
+
+function parseJsonField(label: string, value: string) {
+  const trimmed = value.trim();
+  if (!trimmed) return { value: undefined };
+
+  try {
+    return { value: JSON.parse(trimmed) };
+  } catch {
+    return { error: `${label} must be valid JSON` };
+  }
+}
+
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   entityType?: string;
   entityId?: string;
   links?: Array<{ entityType: string; entityId: string }>;
-  activity?: ActivityWithLinks; // if provided: edit mode
+  activity?: ActivityWithLinks & Partial<RetailAIActivityAIFields>; // if provided: edit mode
+  activityModule?: "crm" | "retail-ai";
   onSaved: (activity: ActivityWithLinks) => void;
 }
 
-export function ActivityForm({ open, onOpenChange, entityType, entityId, links, activity, onSaved }: Props) {
+export function ActivityForm({
+  open,
+  onOpenChange,
+  entityType,
+  entityId,
+  links,
+  activity,
+  activityModule = "crm",
+  onSaved,
+}: Props) {
   const isEdit = !!activity;
   const hasEntityContext = !!entityType && !!entityId;
   const showContactField = !hasEntityContext && !isEdit;
+  const isRetailAI = activityModule === "retail-ai";
 
   const [type, setType] = useState<ActivityType>(activity?.type ?? "call");
   const [title, setTitle] = useState(activity?.title ?? "");
@@ -271,6 +301,55 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
   const [emailSubject, setEmailSubject] = useState(
     (activity?.metadata as Record<string, string> | null)?.subject ?? ""
   );
+  const [aiSource, setAiSource] = useState(activity?.aiSource ?? "");
+  const [aiInsights, setAiInsights] = useState(activity?.aiInsights ?? "");
+  const [aiConfidenceScore, setAiConfidenceScore] = useState(
+    activity?.aiConfidenceScore?.toString() ?? "",
+  );
+  const [aiMetadata, setAiMetadata] = useState(
+    stringifyJsonField(activity?.aiMetadata),
+  );
+  const [retailAIPayload, setRetailAIPayload] = useState(
+    stringifyJsonField(activity?.retailAIPayload),
+  );
+  const [aiStatus, setAiStatus] = useState(activity?.aiStatus ?? "");
+  const [aiGeneratedSummary, setAiGeneratedSummary] = useState(
+    activity?.aiGeneratedSummary ?? "",
+  );
+  const [transcript, setTranscript] = useState(
+    stringifyJsonField(activity?.transcript),
+  );
+  const [recordingUrl, setRecordingUrl] = useState(activity?.recordingUrl ?? "");
+  const [publicLogUrl, setPublicLogUrl] = useState(activity?.publicLogUrl ?? "");
+  const [conversationId, setConversationId] = useState(activity?.conversationId ?? "");
+  const [sentiment, setSentiment] = useState(activity?.sentiment ?? "");
+  const [callSuccessful, setCallSuccessful] = useState<boolean | 'none'>(
+    activity?.callSuccessful ?? 'none'
+  );
+
+  // New Fields
+  const [call_id, setCall_id] = useState(activity?.call_id ?? "");
+  const [customer_name, setCustomer_name] = useState(activity?.customer_name ?? "");
+  const [phone_number, setPhone_number] = useState(activity?.phone_number ?? "");
+  const [email, setEmail] = useState(activity?.email ?? "");
+  const [appointment_time, setAppointment_time] = useState(
+    activity?.appointment_time ? toDateTimeLocalValue(new Date(activity.appointment_time)) : ""
+  );
+  const [call_summary, setCall_summary] = useState(activity?.call_summary ?? "");
+  const [call_successful_str, setCall_successful_str] = useState(activity?.call_successful ?? "");
+  const [user_sentiment, setUser_sentiment] = useState(activity?.user_sentiment ?? "");
+  const [combined_cost, setCombined_cost] = useState(activity?.combined_cost?.toString() ?? "");
+  const [call_duration, setCall_duration] = useState(activity?.call_duration?.toString() ?? "");
+  
+  // Additional Extraction Fields
+  const [state, setState] = useState(activity?.state ?? "");
+  const [location, setLocation] = useState(activity?.location ?? "");
+  const [timezone, setTimezone] = useState(activity?.timezone ?? "");
+  const [insurance_interest, setInsurance_interest] = useState(activity?.insurance_interest ?? "");
+  const [smoker_status, setSmoker_status] = useState(activity?.smoker_status ?? "");
+  const [call_outcome_field, setCall_outcome_field] = useState(activity?.call_outcome ?? "");
+  const [consultation_type, setConsultation_type] = useState(activity?.consultation_type ?? "");
+
   const [selectedContact, setSelectedContact] = useState<ContactSearchItem | null>(null);
   const [saving, setSaving] = useState(false);
   const activityDraft = {
@@ -283,6 +362,36 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
     outcome,
     assignedTo,
     emailSubject,
+    aiSource,
+    aiInsights,
+    aiConfidenceScore,
+    aiMetadata,
+    retailAIPayload,
+    aiStatus,
+    aiGeneratedSummary,
+    transcript,
+    recordingUrl,
+    publicLogUrl,
+    conversationId,
+    sentiment,
+    callSuccessful,
+    call_id,
+    customer_name,
+    phone_number,
+    email,
+    appointment_time,
+    call_summary,
+    call_successful_str,
+    user_sentiment,
+    combined_cost,
+    call_duration,
+    state,
+    location,
+    timezone,
+    insurance_interest,
+    smoker_status,
+    call_outcome: call_outcome_field,
+    consultation_type,
     selectedContact,
   };
   const { clearDraft } = useAutoSaveForm({
@@ -299,6 +408,36 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
       setOutcome(next.outcome ?? "");
       setAssignedTo(next.assignedTo ?? "");
       setEmailSubject(next.emailSubject ?? "");
+      setAiSource(next.aiSource ?? "");
+      setAiInsights(next.aiInsights ?? "");
+      setAiConfidenceScore(next.aiConfidenceScore ?? "");
+      setAiMetadata(next.aiMetadata ?? "");
+      setRetailAIPayload(next.retailAIPayload ?? "");
+      setAiStatus(next.aiStatus ?? "");
+      setAiGeneratedSummary(next.aiGeneratedSummary ?? "");
+      setTranscript(next.transcript ?? "");
+      setRecordingUrl(next.recordingUrl ?? "");
+      setPublicLogUrl(next.publicLogUrl ?? "");
+      setConversationId(next.conversationId ?? "");
+      setSentiment(next.sentiment ?? "");
+      setCallSuccessful(next.callSuccessful ?? 'none');
+      setCall_id(next.call_id ?? "");
+      setCustomer_name(next.customer_name ?? "");
+      setPhone_number(next.phone_number ?? "");
+      setEmail(next.email ?? "");
+      setAppointment_time(next.appointment_time ?? "");
+      setCall_summary(next.call_summary ?? "");
+      setCall_successful_str(next.call_successful_str ?? "");
+      setUser_sentiment(next.user_sentiment ?? "");
+      setCombined_cost(next.combined_cost ?? "");
+      setCall_duration(next.call_duration ?? "");
+      setState(next.state ?? "");
+      setLocation(next.location ?? "");
+      setTimezone(next.timezone ?? "");
+      setInsurance_interest(next.insurance_interest ?? "");
+      setSmoker_status(next.smoker_status ?? "");
+      setCall_outcome_field(next.call_outcome ?? "");
+      setConsultation_type(next.consultation_type ?? "");
       setSelectedContact(next.selectedContact ?? null);
     },
     enabled: open,
@@ -345,6 +484,40 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
       return;
     }
 
+    const confidence =
+      aiConfidenceScore.trim() === "" ? undefined : Number(aiConfidenceScore);
+    if (isRetailAI && confidence !== undefined) {
+      if (!Number.isFinite(confidence) || confidence < 0 || confidence > 100) {
+        setSaving(false);
+        toast.error("AI confidence score must be between 0 and 100");
+        return;
+      }
+    }
+
+    const parsedAiMetadata = parseJsonField("AI metadata", aiMetadata);
+    if (isRetailAI && parsedAiMetadata.error) {
+      setSaving(false);
+      toast.error(parsedAiMetadata.error);
+      return;
+    }
+
+    const parsedRetailAIPayload = parseJsonField(
+      "Retail AI payload",
+      retailAIPayload,
+    );
+    if (isRetailAI && parsedRetailAIPayload.error) {
+      setSaving(false);
+      toast.error(parsedRetailAIPayload.error);
+      return;
+    }
+
+    const parsedTranscript = parseJsonField("Transcript", transcript);
+    if (isRetailAI && parsedTranscript.error) {
+      setSaving(false);
+      toast.error(parsedTranscript.error);
+      return;
+    }
+
     const payload = {
       type,
       title: fallbackTitle,
@@ -356,15 +529,57 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
       metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       assignedTo: assignedTo || null,
       links: activityLinks,
+      ...(isRetailAI && {
+        aiSource: aiSource.trim() || null,
+        aiInsights: aiInsights.trim() || null,
+        aiConfidenceScore: confidence ?? null,
+        aiMetadata: parsedAiMetadata.value,
+        retailAIPayload: parsedRetailAIPayload.value,
+        aiStatus: aiStatus.trim() || null,
+        aiGeneratedSummary: aiGeneratedSummary.trim() || null,
+        transcript: parsedTranscript.value,
+        recordingUrl: recordingUrl.trim() || null,
+        publicLogUrl: publicLogUrl.trim() || null,
+        conversationId: conversationId.trim() || null,
+        sentiment: sentiment.trim() || null,
+        callSuccessful: callSuccessful === 'none' ? null : callSuccessful,
+        
+        // New Fields
+        call_id: call_id.trim() || null,
+        customer_name: customer_name.trim() || null,
+        phone_number: phone_number.trim() || null,
+        email: email.trim() || null,
+        appointment_time: appointment_time ? new Date(appointment_time) : null,
+        call_summary: call_summary.trim() || null,
+        call_successful: call_successful_str.trim() || null,
+        user_sentiment: user_sentiment.trim() || null,
+        combined_cost: combined_cost.trim() === "" ? null : Number(combined_cost),
+        call_duration: call_duration.trim() === "" ? null : parseInt(call_duration, 10),
+        
+        // Additional Extraction Fields
+        state: state.trim() || null,
+        location: location.trim() || null,
+        timezone: timezone.trim() || null,
+        insurance_interest: insurance_interest.trim() || null,
+        smoker_status: smoker_status.trim() || null,
+        call_outcome: call_outcome_field.trim() || null,
+        consultation_type: consultation_type.trim() || null,
+      }),
     };
 
     let result: { data?: ActivityWithLinks; error?: string };
 
     try {
       if (isEdit) {
-        result = await updateActivity({ id: activity.id, ...payload });
+        result =
+          activityModule === "retail-ai"
+            ? await updateRetailAIActivity({ id: activity.id, ...payload })
+            : await updateActivity({ id: activity.id, ...payload });
       } else {
-        result = await createActivity(payload);
+        result =
+          activityModule === "retail-ai"
+            ? await createRetailAIActivity(payload)
+            : await createActivity(payload);
       }
     } catch (error) {
       const message =
@@ -513,6 +728,261 @@ export function ActivityForm({ open, onOpenChange, entityType, entityId, links, 
               rows={4}
             />
           </div>
+
+          {isRetailAI && (
+            <div className="space-y-4 rounded-xl border bg-muted/20 p-4">
+              <div>
+                <h4 className="text-sm font-semibold">Retail AI</h4>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="activity-call-id">Call ID</Label>
+                  <Input
+                    id="activity-call-id"
+                    value={call_id}
+                    onChange={(e) => setCall_id(e.target.value)}
+                    placeholder="e.g. call_123"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="activity-customer-name">Customer Name</Label>
+                  <Input
+                    id="activity-customer-name"
+                    value={customer_name}
+                    onChange={(e) => setCustomer_name(e.target.value)}
+                    placeholder="Customer name"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="activity-phone-number">Phone Number</Label>
+                  <Input
+                    id="activity-phone-number"
+                    value={phone_number}
+                    onChange={(e) => setPhone_number(e.target.value)}
+                    placeholder="Phone number"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="activity-email">Email</Label>
+                  <Input
+                    id="activity-email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email address"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="activity-appointment-time">Appointment Time</Label>
+                <Input
+                  id="activity-appointment-time"
+                  type="datetime-local"
+                  value={appointment_time}
+                  onChange={(e) => setAppointment_time(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="activity-call-summary">Call Summary</Label>
+                <Textarea
+                  id="activity-call-summary"
+                  value={call_summary}
+                  onChange={(e) => setCall_summary(e.target.value)}
+                  placeholder="Summary of the call"
+                  rows={3}
+                />
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="activity-call-successful-str">Call Successful</Label>
+                  <Input
+                    id="activity-call-successful-str"
+                    value={call_successful_str}
+                    onChange={(e) => setCall_successful_str(e.target.value)}
+                    placeholder="pending, reviewed, accepted"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="activity-user-sentiment">User Sentiment</Label>
+                  <Input
+                    id="activity-user-sentiment"
+                    value={user_sentiment}
+                    onChange={(e) => setUser_sentiment(e.target.value)}
+                    placeholder="Positive, Negative, Neutral"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="activity-combined-cost">Combined Cost</Label>
+                  <Input
+                    id="activity-combined-cost"
+                    type="number"
+                    step="0.0001"
+                    value={combined_cost}
+                    onChange={(e) => setCombined_cost(e.target.value)}
+                    placeholder="0.0000"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="activity-call-duration">Call Duration (sec)</Label>
+                  <Input
+                    id="activity-call-duration"
+                    type="number"
+                    value={call_duration}
+                    onChange={(e) => setCall_duration(e.target.value)}
+                    placeholder="Duration in seconds"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2 border-t pt-4">
+                <div className="space-y-1">
+                  <Label htmlFor="activity-state">State</Label>
+                  <Input
+                    id="activity-state"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                    placeholder="e.g. California"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="activity-timezone">Timezone</Label>
+                  <Input
+                    id="activity-timezone"
+                    value={timezone}
+                    onChange={(e) => setTimezone(e.target.value)}
+                    placeholder="e.g. PST"
+                  />
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1">
+                  <Label htmlFor="activity-insurance">Insurance Interest</Label>
+                  <Input
+                    id="activity-insurance"
+                    value={insurance_interest}
+                    onChange={(e) => setInsurance_interest(e.target.value)}
+                    placeholder="e.g. Whole Life"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="activity-smoker">Smoker Status</Label>
+                  <Input
+                    id="activity-smoker"
+                    value={smoker_status}
+                    onChange={(e) => setSmoker_status(e.target.value)}
+                    placeholder="Smoker / Non-Smoker"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="activity-consultation">Consultation Type</Label>
+                <Input
+                  id="activity-consultation"
+                  value={consultation_type}
+                  onChange={(e) => setConsultation_type(e.target.value)}
+                  placeholder="e.g. Online Consultation"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="activity-call-outcome-field">Call Outcome</Label>
+                <Textarea
+                  id="activity-call-outcome-field"
+                  value={call_outcome_field}
+                  onChange={(e) => setCall_outcome_field(e.target.value)}
+                  placeholder="Detailed outcome..."
+                  rows={2}
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="activity-recording-url">Recording URL</Label>
+                <Input
+                  id="activity-recording-url"
+                  value={recordingUrl}
+                  onChange={(e) => setRecordingUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className="space-y-1">
+                <Label htmlFor="activity-transcript">Transcript JSON</Label>
+                <Textarea
+                  id="activity-transcript"
+                  value={transcript}
+                  onChange={(e) => setTranscript(e.target.value)}
+                  placeholder='[{"role":"agent", "content":"..."}]'
+                  rows={4}
+                  className="font-mono text-xs"
+                />
+              </div>
+
+              <div className="pt-2 border-t">
+                <h5 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Advanced AI Data</h5>
+                
+                <div className="grid gap-4 sm:grid-cols-2">
+                  <div className="space-y-1">
+                    <Label htmlFor="activity-ai-source">AI Source</Label>
+                    <Input
+                      id="activity-ai-source"
+                      value={aiSource}
+                      onChange={(e) => setAiSource(e.target.value)}
+                      placeholder="Retell AI, etc."
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="activity-ai-confidence">AI Confidence Score</Label>
+                    <Input
+                      id="activity-ai-confidence"
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="0.01"
+                      value={aiConfidenceScore}
+                      onChange={(e) => setAiConfidenceScore(e.target.value)}
+                      placeholder="0-100"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-1 mt-3">
+                  <Label htmlFor="activity-ai-metadata">AI Metadata JSON</Label>
+                  <Textarea
+                    id="activity-ai-metadata"
+                    value={aiMetadata}
+                    onChange={(e) => setAiMetadata(e.target.value)}
+                    placeholder='{"key":"value"}'
+                    rows={3}
+                    className="font-mono text-xs"
+                  />
+                </div>
+
+                <div className="space-y-1 mt-3">
+                  <Label htmlFor="activity-retail-ai-payload">Retail AI Payload JSON</Label>
+                  <Textarea
+                    id="activity-retail-ai-payload"
+                    value={retailAIPayload}
+                    onChange={(e) => setRetailAIPayload(e.target.value)}
+                    placeholder='{"rawResponse":{}}'
+                    rows={3}
+                    className="font-mono text-xs"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

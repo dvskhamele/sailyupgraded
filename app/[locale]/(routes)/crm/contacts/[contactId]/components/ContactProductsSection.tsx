@@ -58,7 +58,7 @@ export function ContactProductsSection({ products }: { products: ContactProduct[
       <CardContent>
         {products.length === 0 ? (
           <p className="py-4 text-center text-sm text-muted-foreground">
-            No products are linked through this contact's client accounts.
+            No products are linked through this contact&apos;s client accounts.
           </p>
         ) : (
           <div className="overflow-x-auto">
