@@ -62,6 +62,40 @@ function normalizeEmail(email: string | null | undefined): string | null {
 }
 
 /**
+ * Attempts to parse a relative date string like "Monday at 7 PM" into a Date object
+ */
+function parseRelativeDate(text: string): Date | null {
+  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const dayMatch = text.match(/(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/i);
+  const timeMatch = text.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)/i);
+
+  if (!dayMatch || !timeMatch) return null;
+
+  const targetDay = days.indexOf(dayMatch[1].toLowerCase());
+  let hours = parseInt(timeMatch[1]);
+  const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+  const ampm = timeMatch[3].toLowerCase();
+
+  if (ampm === "pm" && hours < 12) hours += 12;
+  if (ampm === "am" && hours === 12) hours = 0;
+
+  const now = new Date();
+  const result = new Date(now);
+  result.setHours(hours, minutes, 0, 0);
+
+  // Find the next occurrence of that day
+  let daysUntil = (targetDay - now.getDay() + 7) % 7;
+  
+  // If today is the target day but the time has already passed, go to next week
+  if (daysUntil === 0 && result < now) {
+    daysUntil = 7;
+  }
+  
+  result.setDate(now.getDate() + daysUntil);
+  return result;
+}
+
+/**
  * Fallback regex extraction from transcript or summary
  */
 function extractFromText(text: string, currentData: any) {
@@ -107,10 +141,20 @@ function extractFromText(text: string, currentData: any) {
     }
   }
 
-  // 7. Appointment Time (Textual fallback)
+  // 7. Appointment Time (Textual fallback & parsing)
   if (!currentData.appointment_time) {
-    const timeMatch = text.match(/(?:appointment|consultation|scheduled for|at|on)\s+([A-Z][a-z]+\s+\d{1,2}(?:st|nd|rd|th)?(?:\s+at\s+\d{1,2}(?::\d{2})?\s*[ap]m)?)/i);
-    if (timeMatch) extracted.call_outcome = `Scheduled for ${timeMatch[1]}`;
+    // Look for patterns like "Monday at 7 PM" or "Monday 7 PM"
+    const appointmentMatch = text.match(/(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday)\s+(?:at\s+)?\d{1,2}(?::\d{2})?\s*[ap]m/i);
+    if (appointmentMatch) {
+      const parsedDate = parseRelativeDate(appointmentMatch[0]);
+      if (parsedDate) {
+        extracted.appointment_time = parsedDate;
+      }
+      // Also save the textual representation in outcome if not already set
+      if (!currentData.call_outcome) {
+        extracted.call_outcome = `Scheduled for ${appointmentMatch[0]}`;
+      }
+    }
   }
 
   return extracted;
@@ -168,9 +212,16 @@ export async function POST(request: NextRequest) {
   // Safer Date extraction
   const rawAppointmentTime = body.appointment_time || customer.appointment_time || customer.scheduled_time || customer.appointment_date;
   let appointmentTime: Date | undefined = undefined;
+  
   if (rawAppointmentTime) {
     const d = new Date(rawAppointmentTime);
-    if (!isNaN(d.getTime())) appointmentTime = d;
+    if (!isNaN(d.getTime())) {
+      appointmentTime = d;
+    } else if (typeof rawAppointmentTime === 'string') {
+      // Try parsing relative string like "Monday at 7 PM"
+      const parsed = parseRelativeDate(rawAppointmentTime);
+      if (parsed) appointmentTime = parsed;
+    }
   }
 
   const mappedData: any = {

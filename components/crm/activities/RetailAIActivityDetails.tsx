@@ -1,4 +1,5 @@
 "use client";
+import { useState, useEffect } from "react";
 import { 
   Bot, 
   Phone, 
@@ -34,6 +35,12 @@ interface Props {
 }
 
 export function RetailAIActivityDetails({ activity }: Props) {
+  const [mounted, setMounted] = useState(false);
+  
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const metadata = (activity.aiMetadata as any) || {};
   const payload = (activity.retailAIPayload as any) || {};
   const customer = payload?.call?.call_analysis?.custom_analysis_data || {};
@@ -74,7 +81,7 @@ export function RetailAIActivityDetails({ activity }: Props) {
             <h2 className="text-xl font-bold">{activity.title}</h2>
             <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
               <Calendar className="h-3.5 w-3.5" />
-              {new Date(activity.date).toLocaleString()}
+              {mounted ? new Date(activity.date).toLocaleString() : ''}
               <span className="mx-1">•</span>
               <Clock className="h-3.5 w-3.5" />
               {duration} mins
@@ -137,7 +144,7 @@ export function RetailAIActivityDetails({ activity }: Props) {
                   <div>
                     <div className="text-[10px] uppercase font-bold text-blue-600 tracking-wider">Scheduled Appointment</div>
                     <div className="text-sm font-semibold text-slate-800">
-                      {new Date(activity.appointment_time).toLocaleString()}
+                      {mounted ? new Date(activity.appointment_time).toLocaleString() : ''}
                     </div>
                   </div>
                 </div>

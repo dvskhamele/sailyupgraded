@@ -105,6 +105,7 @@ export function ActivityEntry({
   const [deleting, setDeleting] = useState(false);
   const [relativeDate, setRelativeDate] = useState("");
   const [absoluteDate, setAbsoluteDate] = useState("");
+  const [appointmentDate, setAppointmentDate] = useState("");
 
   const isRetailAI = activity.isRetailAI || activityModule === "retail-ai";
   const Icon = isRetailAI ? Bot : TYPE_ICONS[activity.type];
@@ -130,7 +131,13 @@ export function ActivityEntry({
     const activityDate = new Date(activity.date);
     setRelativeDate(formatDistanceToNow(activityDate, { addSuffix: true }));
     setAbsoluteDate(activityDate.toLocaleString());
-  }, [activity.date]);
+    
+    if (activity.appointment_time) {
+      setAppointmentDate(new Date(activity.appointment_time).toLocaleString(undefined, { 
+        weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
+      }));
+    }
+  }, [activity.date, activity.appointment_time]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -207,6 +214,16 @@ export function ActivityEntry({
                   {(activity.call_successful || activity.callSuccessful !== undefined) && (
                     <Badge variant={isSuccessful ? "default" : "destructive"} className="rounded-md px-2 py-0.5 text-[11px] bg-green-600">
                       {isSuccessful ? "✓ Completed" : "✕ Failed"}
+                    </Badge>
+                  )}
+                  {duration && (
+                    <Badge variant="outline" className="rounded-md px-2 py-0.5 text-[11px] text-muted-foreground border-dashed">
+                      {duration >= 60 ? `${Math.floor(duration / 60)}m ${duration % 60}s` : `${duration}s`}
+                    </Badge>
+                  )}
+                  {activity.combined_cost && (
+                    <Badge variant="outline" className="rounded-md px-2 py-0.5 text-[11px] text-green-600 bg-green-50 border-green-200">
+                      ${Number(activity.combined_cost).toFixed(2)}
                     </Badge>
                   )}
                 </>
@@ -302,13 +319,11 @@ export function ActivityEntry({
                   <span className="text-slate-700">{locationInfo}</span>
                 </div>
               )}
-              {activity.appointment_time && (
+              {appointmentDate && (
                 <div className="flex items-center gap-2 rounded-lg bg-amber-50 px-3 py-2 border border-amber-100">
                   <Clock className="h-3.5 w-3.5 text-amber-500" />
                   <span className="text-amber-700 font-semibold">
-                    {new Date(activity.appointment_time).toLocaleString(undefined, { 
-                      weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
-                    })}
+                    {appointmentDate}
                   </span>
                 </div>
               )}
