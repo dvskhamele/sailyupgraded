@@ -40,6 +40,15 @@ export type RetailAIActivityCreateInput = {
   combined_cost?: number | null;
   call_duration?: number | null;
 
+  // Additional Extraction Fields
+  state?: string | null;
+  location?: string | null;
+  timezone?: string | null;
+  insurance_interest?: string | null;
+  smoker_status?: string | null;
+  call_outcome?: string | null;
+  consultation_type?: string | null;
+
   assignedTo?: string | null;
   links: Array<{ entityType: string; entityId: string }>;
 };

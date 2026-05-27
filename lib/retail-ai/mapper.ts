@@ -4,20 +4,14 @@ import type { RetailAIActivityCreateInput } from "./types";
 function truncate(value: string, maxLength: number) {
   const trimmed = value.replace(/\s+/g, " ").trim();
   if (trimmed.length <= maxLength) return trimmed;
-  return `${trimmed.slice(0, maxLength - 1).trimEnd()}...`;
+  return ${trimmed.slice(0, maxLength - 1).trimEnd()}...;
 }
 
 function titleFromSummary(parsed: ParsedRetailAICall) {
-  if (parsed.appointment.booked) {
-    return truncate(
-      parsed.appointment.type
-        ? `${parsed.appointment.type} appointment booked`
-        : "Retail AI appointment booked",
-      120,
-    );
+  if (parsed.customer.name) {
+    return truncate(parsed.customer.name, 120);
   }
-
-  return truncate(parsed.summary || "Retail AI conversation completed", 120);
+  return truncate(`Retail AI Call - ${parsed.conversationId.slice(-6)}`, 120);
 }
 
 export function mapParsedRetailAICallToActivity(
@@ -33,13 +27,13 @@ export function mapParsedRetailAICallToActivity(
     : [];
 
   return {
-    type: "meeting",
+    type: "call",
     title: titleFromSummary(parsed),
     description: parsed.detailedSummary,
     date: parsed.eventTimestamp,
     duration: parsed.durationMinutes,
     outcome: parsed.summary,
-    status: parsed.appointment.booked ? "scheduled" : "completed",
+    status: "completed",
     metadata: {
       recordingUrl: parsed.recordingUrl,
       publicLogUrl: parsed.publicLogUrl,
@@ -74,5 +68,28 @@ export function mapParsedRetailAICallToActivity(
     callSuccessful: parsed.callSuccessful,
     assignedTo: options.assignedTo ?? null,
     links,
+
+    // New Fields mapping
+    call_id: parsed.conversationId,
+    customer_name: parsed.customer.name,
+    phone_number: parsed.customer.phone,
+    email: parsed.customer.email,
+    appointment_time: parsed.appointment.date && parsed.appointment.time 
+      ? new Date(${parsed.appointment.date} ) 
+      : parsed.appointment.date ? new Date(parsed.appointment.date) : null,
+    call_summary: parsed.summary,
+    call_successful: parsed.callSuccessful ? "Successful" : "Failed",
+    user_sentiment: parsed.sentiment,
+    combined_cost: parsed.metrics.cost,
+    call_duration: parsed.metrics.durationSeconds,
+
+    // Additional Extraction Fields
+    state: parsed.customer.state,
+    location: parsed.customer.location,
+    timezone: parsed.customer.timezone,
+    insurance_interest: parsed.insights.insuranceInterest,
+    smoker_status: parsed.insights.smokerStatus,
+    call_outcome: parsed.appointment.outcome,
+    consultation_type: parsed.appointment.consultationType,
   };
 }

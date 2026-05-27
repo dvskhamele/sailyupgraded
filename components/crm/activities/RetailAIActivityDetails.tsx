@@ -46,7 +46,7 @@ export function RetailAIActivityDetails({ activity }: Props) {
   const customer = payload?.call?.call_analysis?.custom_analysis_data || {};
   
   // Prioritize new fields over payload extraction
-  const customerName = activity.customer_name || customer.customer_name || 'Anonymous';
+  const customerName = activity.customer_name || customer.customer_name || 'Unknown Customer';
   const customerEmail = activity.email || customer.customer_email || 'No email provided';
   const customerPhone = activity.phone_number || customer.customer_phone || 'No phone';
   const callSummary = activity.call_summary || activity.aiGeneratedSummary || activity.outcome || "No summary available.";

@@ -33,7 +33,7 @@ const LeadsPage = async ({ searchParams }: Props) => {
       <Suspense fallback={<CrmTableSkeleton />}>
         <LeadsView
           crmData={crmData}
-          data={[]}
+          data={crmData.leads || []}
           products={products}
           sourceFilter={sourceParam}
         />

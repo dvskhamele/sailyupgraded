@@ -1943,3 +1943,21 @@ enum Invoice_Type {
   CREDIT_NOTE
   PROFORMA
 }
+
+model crm_SMSLog {
+  id             String   @id @default(uuid())
+  twilioSid      String?  @unique
+  from           String
+  to             String
+  message        String   @db.Text
+  status         String   @default("pending")
+  errorMessage   String?  @db.Text
+  opportunityId  String?
+  contactId      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([opportunityId])
+  @@index([contactId])
+  @@index([twilioSid])
+}

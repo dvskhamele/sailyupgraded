@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prismadb } from "@/lib/prisma";
-import { createRetailAIActivityFromWebhook } from "@/lib/retail-ai/service";
+import { createRetailAIActivityFromWebhook } from "@\/lib\/retail-ai\/service";`nimport { sendSMS } from "@/actions/crm/sms/send-sms";
 
 type RetellWebhookPayload = {
   event?: string;
@@ -228,6 +228,33 @@ export async function POST(request: Request) {
 
     if (event === "call_analyzed") {
       await createRetailAIActivityFromWebhook(payload, { receivedAt: new Date() });
+
+      // Automated SMS triggers
+      const phone = call.to_number;
+      if (phone) {
+        if (appointmentStatus === "scheduled" || appointmentStatus === "booked") {
+          await sendSMS({
+            to: phone,
+            message: `Hi! Your appointment with BlueTide Financial has been booked. We look forward to speaking with you!`,
+            opportunityId,
+          });
+        } else if (qualificationStatus === "qualified") {
+           await sendSMS({
+            to: phone,
+            message: `Thank you for speaking with us! We've marked you as a qualified lead and will be in touch soon.`,
+            opportunityId,
+          });
+        }
+      }
+    } else if (event === "dial_no_answer" || event === "voicemail_reached") {
+       const phone = call.to_number;
+       if (phone) {
+         await sendSMS({
+           to: phone,
+           message: `Hi! We tried to reach you from BlueTide Financial but missed you. We'll try again later, or feel free to call us back!`,
+           opportunityId,
+         });
+       }
     }
 
     return new NextResponse(null, { status: 204 });

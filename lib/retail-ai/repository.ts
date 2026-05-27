@@ -1,4 +1,4 @@
-import { prismadb } from "@/lib/prisma";
+﻿import { prismadb } from "@/lib/prisma";
 import type { RetailAIActivityCreateInput } from "./types";
 
 export async function findRetailAIActivityByConversationId(conversationId: string) {
@@ -52,6 +52,15 @@ export async function createRetailAIActivityRecord(data: RetailAIActivityCreateI
       user_sentiment: data.user_sentiment,
       combined_cost: data.combined_cost,
       call_duration: data.call_duration,
+
+      // Additional Extraction Fields
+      state: data.state,
+      location: data.location,
+      timezone: data.timezone,
+      insurance_interest: data.insurance_interest,
+      smoker_status: data.smoker_status,
+      call_outcome: data.call_outcome,
+      consultation_type: data.consultation_type,
 
       links: data.links.length
         ? {

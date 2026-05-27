@@ -122,6 +122,7 @@ export function ActivityEntry({
   const locationInfo = [activity.state, activity.location].filter(Boolean).join(", ");
   const contactPhone = activity.phone_number;
   const contactEmail = activity.email;
+  const callId = activity.call_id || activity.conversationId;
 
   const contactNames = activity.links
     .filter((link) => link.entityType === "contact" && link.contact)

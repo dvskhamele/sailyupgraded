@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -44,16 +44,26 @@ const LeadsView = ({ data, crmData, products = [], sourceFilter }: LeadsViewProp
 
   const loadLocalLeads = useCallback(async () => {
     try {
-      const leads = await localLeadRepository.getAll();
+      const dbLeads = await localLeadRepository.getAll();
+      
+      // Merge server-provided leads with local leads
+      // Local leads (which might have unsynced changes) take precedence
+      const localIds = new Set(dbLeads.map(l => l.id));
+      const serverLeads = (data || []).filter(l => !localIds.has(l.id));
+      
+      const merged = [...dbLeads, ...serverLeads];
+
       setLocalLeads(
-        leads.sort((a, b) =>
-          String(b.createdAt ?? b.created_at).localeCompare(String(a.createdAt ?? a.created_at)),
-        ),
+        merged.sort((a, b) => {
+          const dateB = b.createdAt ?? b.created_at ?? b.updatedAt ?? b.updated_at ?? "";
+          const dateA = a.createdAt ?? a.created_at ?? a.updatedAt ?? a.updated_at ?? "";
+          return String(dateB).localeCompare(String(dateA));
+        }),
       );
     } catch {
-      setLocalLeads([]);
+      setLocalLeads(data || []);
     }
-  }, []);
+  }, [data]);
 
   useEffect(() => {
     const timeoutId = window.setTimeout(() => {

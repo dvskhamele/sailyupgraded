@@ -102,6 +102,25 @@ export async function listRetellAgents(apiKey: string) {
   return (await response.json()) as RetellAgent[];
 }
 
+export async function listRetellChatAgents(apiKey: string) {
+  const response = await fetch(
+    `${RETELL_API_BASE_URL}/list-chat-agents?is_latest=true&limit=100`,
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+      },
+      next: { revalidate: 300 },
+      signal: AbortSignal.timeout(RETELL_FETCH_TIMEOUT_MS),
+    },
+  );
+
+  if (!response.ok) {
+    throw new Error("Unable to load Retell chat agents");
+  }
+
+  return (await response.json()) as RetellAgent[];
+}
+
 export async function getRetellLlmScript(
   apiKey: string,
   responseEngine: RetellResponseEngine | undefined,
@@ -199,6 +218,14 @@ export async function getRetellAgentScript(
 
 export async function getFirstRetellVoiceAgent(apiKey: string) {
   const agents = await listRetellAgents(apiKey);
+  return (
+    agents.find((agent) => agent.is_published && agent.agent_id) ??
+    agents.find((agent) => agent.agent_id)
+  );
+}
+
+export async function getFirstRetellChatAgent(apiKey: string) {
+  const agents = await listRetellChatAgents(apiKey);
   return (
     agents.find((agent) => agent.is_published && agent.agent_id) ??
     agents.find((agent) => agent.agent_id)

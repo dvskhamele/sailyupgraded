@@ -1,3 +1,4 @@
+$content = @'
 export type RetailAITranscriptMessage = {
   role?: "agent" | "user" | "assistant" | string;
   content?: string;
@@ -55,9 +56,6 @@ export interface RetailAICallAnalysis {
   user_sentiment?: string;
   call_successful?: boolean;
   custom_analysis_data?: Record<string, unknown>;
-  customer_name?: string;
-  user_name?: string;
-  userName?: string;
   [key: string]: unknown;
 }
 
@@ -255,50 +253,45 @@ function extractPhone(transcript: string): string | undefined {
 }
 
 function extractName(detailedSummary: string, summary: string, transcript: string): string | undefined {
-  const invalidNames = new Set([
-    "ontario", "covering", "final", "um", "life", "insurance", "retail", "assistant", 
-    "financial", "insurance interests", "province", "state", "keywords", "generated", 
-    "titles", "topics", "ontario life", "covering final", "wanted", "consultation",
-    "long term", "whole life", "gmail", "sunday", "california", "bluetide financial"
-  ]);
+  const invalidNames = new Set(["ontario", "covering", "final", "um", "life", "insurance", "retail", "assistant", "financial"]);
 
   const isValid = (name: string) => {
     if (!name) return false;
-    const trimmed = name.trim();
-    const lower = trimmed.toLowerCase();
-    
-    // Validation Rules:
-    // 1. Alphabets/spaces only
-    if (!/^[a-zA-Z\s]+$/.test(trimmed)) return false;
-    
-    // 2. Max 3 words
-    if (trimmed.split(/\s+/).length > 3) return false;
-    
-    // 3. Reject filler/invalid words
+    const lower = name.toLowerCase();
     if (invalidNames.has(lower)) return false;
     if (lower.length < 2) return false;
-    
-    const invalidPhrases = ["insurance", "ontario", "covering", "life", "final", "policy", "financial", "bluetide"];
-    if (invalidPhrases.some(phrase => lower.includes(phrase))) return false;
-    
+    if (lower.includes("insurance") || lower.includes("ontario") || lower.includes("covering")) return false;
     return true;
   };
 
-  // Transcript parsing fallback patterns
-  const transcriptPatterns = [
-    /your name is ([A-Z][a-z]+)/i,
-    /name as ([A-Z][a-z]+)/i,
-    /this is ([A-Z][a-z]+)/i,
-    /Perfect, ([A-Z][a-z]+)/i,
-    /Thanks, ([A-Z][a-z]+)/i,
-    /Hello ([A-Z][a-z]+)/i,
-    /Hi ([A-Z][a-z]+)/i,
-    /My name is ([A-Z][a-z]+)/i
+  const detailedPatterns = [
+    /Customer ([A-Z][a-z]+)/,
+    /user, ([A-Z][a-z]+),/,
+    /The customer, ([A-Z][a-z]+)/,
+    /client, ([A-Z][a-z]+)/
   ];
-  
+  for (const pattern of detailedPatterns) {
+    const match = detailedSummary.match(pattern);
+    if (match && match[1] && isValid(match[1])) return match[1];
+  }
+
+  for (const pattern of detailedPatterns) {
+    const match = summary.match(pattern);
+    if (match && match[1] && isValid(match[1])) return match[1];
+  }
+
+  const transcriptPatterns = [
+    /Perfect, ([A-Z][a-z]+)/,
+    /Thanks, ([A-Z][a-z]+)/,
+    /Hello ([A-Z][a-z]+)/,
+    /Hi ([A-Z][a-z]+)/,
+    /My name is ([A-Z][a-z]+)/,
+    /This is ([A-Z][a-z]+)/,
+    /I am ([A-Z][a-z]+)/
+  ];
   for (const pattern of transcriptPatterns) {
     const match = transcript.match(pattern);
-    if (match && match[1] && isValid(match[1])) return match[1].trim();
+    if (match && match[1] && isValid(match[1])) return match[1];
   }
 
   return undefined;
@@ -385,9 +378,17 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
     new Date();
   const appointmentBooked = isAppointmentBooked(customData);
 
-  // Issue 2: Fixed Summary Mapping
-  const summary = analysis.call_summary || analysis.summary || "";
-  const detailedSummary = customData.detailed_call_summary || customData.detailedCallSummary || "";
+  const summary = firstString(analysis.call_summary, analysis.summary, customData.call_summary) ??
+      firstString(customData.detailed_call_summary, customData.detailedCallSummary) ??
+      "No call summary available";
+
+  const detailedSummary = firstString(
+    customData.detailed_call_summary,
+    customData.detailedCallSummary,
+    customData.full_summary,
+    analysis.call_summary,
+    analysis.summary,
+  ) ?? "No detailed summary available.";
   
   const extractedName = extractName(detailedSummary, summary, transcript);
   const extractedEmail = extractEmail(transcript);
@@ -422,17 +423,7 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
     callSuccessful,
     confidenceScore: confidenceFrom(sentiment, callSuccessful, transcript),
     customer: {
-      // Issue 1: Fixed Name Priority
-      name: firstString(
-        analysis.customer_name, 
-        analysis.userName, 
-        analysis.user_name,
-        customData.customer_name, 
-        customData.customerName, 
-        metadata.customer_name, 
-        metadata.customerName, 
-        extractedName
-      ),
+      name: firstString(customData.customer_name, customData.customerName, metadata.customer_name, metadata.customerName, extractedName),
       phone: firstString(
         customData.customer_phone,
         customData.customerPhone,
@@ -481,3 +472,5 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
 export function formatTranscript(transcriptObj: RetailAITranscriptMessage[]): string {
   return transcriptText(undefined, transcriptObj);
 }
+'@
+$content | Set-Content -LiteralPath "c:\Users\hp\sailyupgraded\lib\retail-ai\parser.ts.ps1" -Encoding utf8
