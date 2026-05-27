@@ -100,11 +100,40 @@ function parseRelativeDate(text: string): Date | null {
  */
 function extractFromText(text: string, currentData: any) {
   const extracted: any = {};
+  
+  // Known AI Agent names and keywords to exclude from customer name
+  const EXCLUDE_NAMES = [
+    "Rita", "Retell", "AI Assistant", "AI Agent", "Long term", 
+    "Whole Life", "Universal Life", "Insurance", "Term Life", 
+    "Insurance Agent", "Licensed Expert", "Online Appointment",
+    "California", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+    "Pacific", "Standard Time", "Appointment", "Consultation", "Expert", "Agent", "Assistant",
+    "Call Summary", "Transcript", "Recording", "Duration", "Cost", "Outcome"
+  ];
+
+  const isValid = (name: string) => {
+    if (!name || name.length < 2 || name.length > 50) return false;
+    if (!/^[a-zA-Z\s-]+$/.test(name.trim())) return false;
+    return !EXCLUDE_NAMES.some(ex => name.toLowerCase() === ex.toLowerCase() || name.toLowerCase().includes(ex.toLowerCase()));
+  };
 
   // 1. Extract Name (e.g. "My name is Sachin" or "Customer: Sachin")
-  if (!currentData.customer_name) {
-    const nameMatch = text.match(/(?:my name is|this is|customer:?|speaking with)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
-    if (nameMatch) extracted.customer_name = nameMatch[1].trim();
+  if (!currentData.customer_name || !isValid(currentData.customer_name)) {
+    // Try to find names explicitly mentioned as customer/user
+    const explicitMatch = text.match(/(?:customer|user|client)(?::|'s name is)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+    
+    if (explicitMatch && isValid(explicitMatch[1].trim())) {
+      extracted.customer_name = explicitMatch[1].trim();
+    } else {
+      // General match but check against agent names and insurance terms
+      const nameMatch = text.match(/(?:my name is|this is|speaking with)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i);
+      if (nameMatch) {
+        const foundName = nameMatch[1].trim();
+        if (isValid(foundName)) {
+          extracted.customer_name = foundName;
+        }
+      }
+    }
   }
 
   // 2. Extract Phone
@@ -224,16 +253,112 @@ export async function POST(request: NextRequest) {
     }
   }
 
+  // Known AI Agent names and keywords to exclude from customer name
+  const EXCLUDE_NAMES = [
+    "Rita", "Retell", "AI Assistant", "AI Agent", "Long term", 
+    "Whole Life", "Universal Life", "Insurance", "Term Life", 
+    "Insurance Agent", "Licensed Expert", "Online Appointment",
+    "California", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday",
+    "Pacific", "Standard Time", "Appointment", "Consultation", "Expert", "Agent", "Assistant",
+    "Call Summary", "Transcript", "Recording", "Duration", "Cost", "Outcome", "Policy",
+    "Financial", "Licensed Expert", "Online", "Appointment", "Expert"
+  ];
+
+  /**
+   * Helper to validate if a string is a valid human name and not a keyword
+   */
+  const isValidName = (name: any): boolean => {
+    if (!name || typeof name !== 'string') return false;
+    const trimmed = name.trim();
+    
+    // Strict alphabetic check: letters, spaces, hyphens, apostrophes (2-50 chars)
+    if (!/^[A-Za-z\s'-]{2,50}$/.test(trimmed)) return false;
+    
+    // Reject if name is in exclusion list or contains insurance keywords
+    return !EXCLUDE_NAMES.some(ex => {
+      const lowerEx = ex.toLowerCase();
+      const lowerName = trimmed.toLowerCase();
+      return lowerName === lowerEx || lowerName.includes(lowerEx);
+    });
+  };
+
+  /**
+   * Enhanced transcript/summary extraction based on specific agent phrases and patterns
+   */
+  const extractNameFromText = (text: string): string | null => {
+    if (!text) return null;
+    
+    const patterns = [
+      // User's specific pattern from summary: "The user, Dave, called..."
+      /the user,?\s+([A-Z][a-z]+(?: [A-Z][a-z]+)?),?\s+(?:called|is|was|expressed)/i,
+      /user named\s+([A-Z][a-z]+(?: [A-Z][a-z]+)?)/i,
+      /your name is\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i,
+      /you(?:'|’)re all set then,\s*([A-Za-z]+(?:\s+[A-Za-z]+)?)/i,
+      /speaking with\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i,
+      /my name is\s+([A-Za-z]+(?:\s+[A-Za-z]+)?)/i
+    ];
+
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match && isValidName(match[1])) {
+        return match[1].trim();
+      }
+    }
+    return null;
+  };
+
+  // 1. Priority-based Name Extraction
+  let extractedCustomerName = null;
+
+  // Pre-calculate summary and transcript for extraction
+  const callSummary = body.call_summary || analysis.call_summary || analysis.summary || body.aiGeneratedSummary || analysis.description || "";
+  const transcriptText = typeof body.transcript === 'string' 
+    ? body.transcript 
+    : (Array.isArray(body.transcript) 
+        ? body.transcript.map((m: any) => m.content).join(" ") 
+        : (callData.transcript || ""));
+
+  // Priority 1: AI Summary Pattern (e.g. "The user, Dave, called...") - Usually most accurate for Retail AI
+  const summaryName = extractNameFromText(callSummary);
+  if (summaryName) {
+    extractedCustomerName = summaryName;
+  }
+  // Priority 2: Structured custom_analysis_data
+  else if (isValidName(customer.customer_name)) {
+    extractedCustomerName = customer.customer_name;
+  } 
+  // Priority 3: Structured user_name
+  else if (isValidName(analysis.user_name)) {
+    extractedCustomerName = analysis.user_name;
+  }
+  // Priority 4: Transcript phrases
+  else {
+    const transcriptName = extractNameFromText(transcriptText);
+    if (transcriptName) {
+      extractedCustomerName = transcriptName;
+    }
+    // Priority 5: Generic fallbacks
+    else if (isValidName(body.customer_name)) {
+      extractedCustomerName = body.customer_name;
+    } else if (isValidName(customer.name)) {
+      extractedCustomerName = customer.name;
+    } else if (isValidName(body.customer?.name)) {
+      extractedCustomerName = body.customer?.name;
+    }
+  }
+
   const mappedData: any = {
     call_id: callId,
     conversationId: callId,
     transcript: body.transcript ?? callData.transcript ?? body.transcript_object ?? callData.transcript_object,
     recordingUrl: body.recordingUrl ?? callData.recording_url,
     call_duration: body.call_duration ?? (callData.duration_ms ? Math.round(callData.duration_ms / 1000) : undefined) ?? callData.duration,
-    customer_name: body.customer_name ?? customer.customer_name ?? body.customer?.name,
+    
+    customer_name: extractedCustomerName,
+    
     phone_number: normalizePhone(body.phone_number ?? customer.customer_phone ?? callData.to_number ?? body.customer?.phone ?? callData.from_number),
     email: normalizeEmail(body.email ?? customer.customer_email ?? body.customer?.email),
-    call_summary: body.call_summary ?? analysis.call_summary ?? analysis.summary ?? body.aiGeneratedSummary ?? analysis.description,
+    call_summary: callSummary,
     call_successful: body.call_successful ?? (analysis.call_successful ? 'accepted' : 'reviewed'),
     user_sentiment: body.user_sentiment ?? analysis.user_sentiment ?? body.sentiment ?? analysis.sentiment,
     combined_cost: body.combined_cost ?? metadata.cost ?? callData.combined_cost ?? metadata.total_cost,
@@ -257,14 +382,14 @@ export async function POST(request: NextRequest) {
   };
 
   // 4. Fallback Regex Extraction from Transcript & Summary
-  const transcriptText = typeof mappedData.transcript === 'string' 
+  const fallbackTranscriptText = typeof mappedData.transcript === 'string' 
     ? mappedData.transcript 
     : (Array.isArray(mappedData.transcript) 
         ? mappedData.transcript.map((m: any) => m.content).join(" ") 
-        : "");
+        : (callData.transcript || ""));
   
   const fallbackData = extractFromText(
-    `${mappedData.call_summary} ${transcriptText}`, 
+    `${mappedData.call_summary} ${fallbackTranscriptText}`, 
     mappedData
   );
 

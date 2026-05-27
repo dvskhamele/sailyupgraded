@@ -277,7 +277,7 @@ const loadActivities = cache(async (
 
     const combined = [
       ...standardActivities.map(a => ({ ...a, isRetailAI: false })),
-      ...retailActivities.map(a => ({ ...a, isRetailAI: true }))
+      ...retailActivities.map(a => ({ ...a, isRetailAI: true, type: 'meeting' as const }))
     ].sort((a, b) => {
       const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dateDiff !== 0) return dateDiff;

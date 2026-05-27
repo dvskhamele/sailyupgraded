@@ -8,9 +8,10 @@ export async function RetailAIActivities() {
     <ActivitiesView
       initialData={activities}
       activityModule="retail-ai"
-      title="Retail AI Activities"
+      title="AI Activities"
       description="Track Retail AI activity workflows, reviews, and outcomes."
       createLabel="Log Retail AI Activity"
     />
+    
   );
 }

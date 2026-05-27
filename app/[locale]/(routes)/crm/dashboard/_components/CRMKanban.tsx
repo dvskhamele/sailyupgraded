@@ -533,7 +533,7 @@ function RetellAssistantDialog({
           )}
         </div>
 
-        <div className="flex justify-end gap-2">
+        {/* <div className="flex justify-end gap-2">
           {isCallActive ? (
             <Button type="button" variant="destructive" onClick={stopCall}>
               <PhoneOff className="h-4 w-4" />
@@ -553,7 +553,7 @@ function RetellAssistantDialog({
               Start voice call
             </Button>
           )}
-        </div>
+        </div> */}
       </DialogContent>
     </Dialog>
   );

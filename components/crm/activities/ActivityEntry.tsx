@@ -183,14 +183,12 @@ export function ActivityEntry({
             </h4>
 
             <div className="mt-2 flex flex-wrap items-center gap-2">
-              {!isRetailAI && (
-                <Badge
-                  variant="outline"
-                  className="rounded-md px-2 py-0.5 text-[11px]"
-                >
-                  {TYPE_LABELS[activity.type]}
-                </Badge>
-              )}
+              <Badge
+                variant="outline"
+                className="rounded-md px-2 py-0.5 text-[11px]"
+              >
+                {TYPE_LABELS[activity.type] || 'Meeting'}
+              </Badge>
 
               <Badge
                 variant={STATUS_VARIANTS[activity.status]}
