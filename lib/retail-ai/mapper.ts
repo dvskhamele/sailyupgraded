@@ -29,7 +29,7 @@ export function mapParsedRetailAICallToActivity(
   return {
     type: "call",
     title: titleFromSummary(parsed),
-    description: parsed.detailedSummary,
+    description: parsed.detailedSummary || parsed.summary,
     date: parsed.eventTimestamp,
     duration: parsed.durationMinutes,
     outcome: parsed.summary,
@@ -38,6 +38,9 @@ export function mapParsedRetailAICallToActivity(
       recordingUrl: parsed.recordingUrl,
       publicLogUrl: parsed.publicLogUrl,
       userSentiment: parsed.sentiment,
+      callDirection: parsed.metadata.call_direction,
+      callType: parsed.metadata.call_type,
+      callStatus: parsed.metadata.call_status,
       callCost: parsed.metrics.cost,
       transcript: parsed.transcriptJson.length > 0 ? parsed.transcriptJson : parsed.transcript,
       customer: parsed.customer,
@@ -55,6 +58,9 @@ export function mapParsedRetailAICallToActivity(
       callCost: parsed.metrics.cost,
       tokenUsage: parsed.metrics.tokenUsage,
       insights: parsed.insights,
+      callDirection: parsed.metadata.call_direction,
+      callType: parsed.metadata.call_type,
+      callStatus: parsed.metadata.call_status,
       startedAt: parsed.startedAt?.toISOString(),
       endedAt: parsed.endedAt?.toISOString(),
     },
@@ -76,7 +82,7 @@ export function mapParsedRetailAICallToActivity(
     email: parsed.customer.email,
     appointment_time: parsed.appointment.date && parsed.appointment.time 
       ? new Date(`${parsed.appointment.date} ${parsed.appointment.time}`)
-      : parsed.appointment.date ? new Date(parsed.appointment.date) : null,
+      : parsed.appointment.date && !isNaN(Date.parse(parsed.appointment.date)) ? new Date(parsed.appointment.date) : null,
     call_summary: parsed.summary,
     call_successful: parsed.callSuccessful ? "Successful" : "Failed",
     user_sentiment: parsed.sentiment,

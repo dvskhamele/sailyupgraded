@@ -13,7 +13,11 @@ type RetellWebhookCall = {
   call_id?: string;
   agent_id?: string;
   agent_version?: number;
+  type?: string;
+  call_type?: string;
+  direction?: string;
   call_status?: string;
+  from_number?: string;
   to_number?: string;
   metadata?: Record<string, unknown>;
   start_timestamp?: number;
@@ -36,6 +40,8 @@ const handledEvents = new Set([
   "call_ended",
   "call_analyzed",
   "post_call_analysis_completed",
+  "conversation_completed",
+  "conversation_analyzed",
   "voicemail_reached",
   "dial_no_answer",
   "user_hangup",
@@ -43,8 +49,11 @@ const handledEvents = new Set([
 ]);
 
 const COMPLETED_EVENTS = new Set([
+  "call_ended",
   "call_analyzed",
   "post_call_analysis_completed",
+  "conversation_completed",
+  "conversation_analyzed",
 ]);
 
 function dateFromRetellTimestamp(value?: number) {
@@ -55,6 +64,10 @@ function dateFromRetellTimestamp(value?: number) {
 
 function stringValue(value: unknown) {
   return typeof value === "string" && value.trim() ? value.trim() : undefined;
+}
+
+function getCallType(call: RetellWebhookCall) {
+  return stringValue(call.type) ?? stringValue(call.call_type);
 }
 
 function statusForEvent(event: string, call: RetellWebhookCall) {
@@ -122,27 +135,53 @@ function getCustomAnalysisValue(
 }
 
 export async function POST(request: Request) {
-  let payload: RetellWebhookPayload;
+  const rawBody = await request.text();
+  let payload: any;
 
   try {
-    payload = JSON.parse(await request.text()) as RetellWebhookPayload;
+    payload = JSON.parse(rawBody);
   } catch {
+    console.error("[RETELL WEBHOOK] Invalid JSON payload received:", rawBody);
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
   }
 
   const event = stringValue(payload.event);
-  const call = payload.call;
-  const callId = stringValue(call?.call_id);
+  const call = payload.call || {};
+  const callId = stringValue(call.call_id) || 
+                 stringValue(call.id) || 
+                 stringValue(payload.call_id) || 
+                 stringValue(payload.conversation_id) || 
+                 stringValue(payload.conversationId);
 
-  console.log(`[RETELL WEBHOOK] Received event: ${event} for callId: ${callId}`);
+  console.log(`[RETELL WEBHOOK] Incoming Payload [${event}] for [${callId}]`);
+  console.log(`[RETELL WEBHOOK] Raw Payload Snapshot:`, JSON.stringify(payload, null, 2));
 
-  if (!event || !call || !callId) {
-    console.error("[RETELL WEBHOOK] Missing required fields", { event, callId });
+  if (!event || !callId) {
+    console.error("[RETELL WEBHOOK] Missing required fields (event or callId)", { event, callId });
     return NextResponse.json(
-      { error: "Retell webhook event and call.call_id are required" },
+      { error: "Retell webhook event and callId are required" },
       { status: 400 },
     );
   }
+
+  const metadata = call.metadata ?? {};
+  const callType = getCallType(call);
+  const direction = stringValue(call.direction);
+  const callStatus = stringValue(call.call_status);
+
+  console.log("[RETELL WEBHOOK] Received call event", {
+    call_id: callId,
+    direction,
+    call_type: callType,
+    call_status: callStatus,
+    event_type: event,
+  });
+  console.log("[RETELL WEBHOOK] Call routing", {
+    call_id: callId,
+    from_number: call.from_number,
+    to_number: call.to_number,
+  });
+  console.log("[RETELL WEBHOOK] Metadata", { call_id: callId, metadata });
 
   if (!handledEvents.has(event)) {
     console.log(`[RETELL WEBHOOK] Ignoring unhandled event: ${event}`);
@@ -157,7 +196,6 @@ export async function POST(request: Request) {
     return new NextResponse(null, { status: 204 });
   }
 
-  const metadata = call.metadata ?? {};
   const customAnalysisData = call.call_analysis?.custom_analysis_data;
   const opportunityId = stringValue(metadata.opportunity_id);
   const memberId = stringValue(metadata.member_id);
@@ -183,6 +221,9 @@ export async function POST(request: Request) {
 
   console.log(`[RETELL WEBHOOK] Processing data for callId: ${callId}`, {
     event,
+    direction,
+    callType,
+    callStatus,
     opportunityId,
     memberId,
     phone: call.to_number,

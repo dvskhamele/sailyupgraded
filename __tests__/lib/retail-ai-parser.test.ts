@@ -98,4 +98,42 @@ describe("Retail AI Parser", () => {
     expect(parsed.appointment.booked).toBe(true);
     expect(parsed.sentiment).toBe("Positive");
   });
+
+  it("should parse successful outbound PSTN phone_call payloads", () => {
+    const parsed = parseRetailAICall({
+      event: "call_ended",
+      call: {
+        call_id: "outbound-phone-call-id",
+        type: "phone_call",
+        direction: "outbound",
+        call_status: "ended",
+        to_number: "+15551234567",
+        from_number: "+15557654321",
+        transcript: "Agent: Hello Dave. User: I would like an appointment.",
+        recording_url: "https://recording.example/outbound.wav",
+        duration_ms: 90000,
+        call_analysis: {
+          call_summary: "Dave requested an appointment.",
+          user_sentiment: "positive",
+          call_successful: true,
+          custom_analysis_data: {
+            customer_name: "Dave",
+            appointment_status: "booked",
+            appointment_date: "2026-05-29",
+            appointment_time: "10:00",
+          },
+        },
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.conversationId).toBe("outbound-phone-call-id");
+    expect(parsed.customer.name).toBe("Dave");
+    expect(parsed.customer.phone).toBe("+15551234567");
+    expect(parsed.metadata.call_direction).toBe("outbound");
+    expect(parsed.metadata.call_type).toBe("phone_call");
+    expect(parsed.metadata.call_status).toBe("ended");
+    expect(parsed.callSuccessful).toBe(true);
+    expect(parsed.appointment.booked).toBe(true);
+    expect(parsed.recordingUrl).toBe("https://recording.example/outbound.wav");
+  });
 });

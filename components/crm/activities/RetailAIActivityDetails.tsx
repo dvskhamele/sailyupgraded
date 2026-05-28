@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { 
   Bot, 
   Phone, 
+  PhoneOutgoing,
   Calendar, 
   Clock, 
   FileText,
@@ -54,6 +55,16 @@ export function RetailAIActivityDetails({ activity }: Props) {
   const isSuccessful = activity.call_successful === 'accepted' || activity.call_successful === 'yes' || activity.callSuccessful;
   const callCost = activity.combined_cost ? Number(activity.combined_cost) : (metadata.cost || 0);
   const duration = activity.call_duration || activity.duration;
+  const callDirection =
+    metadata.callDirection ||
+    payload?.call?.direction ||
+    payload?.direction;
+  const callType =
+    metadata.callType ||
+    payload?.call?.type ||
+    payload?.call?.call_type ||
+    payload?.type ||
+    payload?.call_type;
   
   // Additional extracted info
   const insuranceInterest = activity.insurance_interest || customer.insurance_interest;
@@ -105,6 +116,12 @@ export function RetailAIActivityDetails({ activity }: Props) {
             <Badge variant="outline" className={cn("gap-1.5", sentimentColor)}>
               <SentimentIcon className="h-3.5 w-3.5" />
               {sentiment}
+            </Badge>
+          )}
+          {callDirection && (
+            <Badge variant="outline" className="gap-1.5 capitalize">
+              <PhoneOutgoing className="h-3.5 w-3.5" />
+              {callDirection}
             </Badge>
           )}
         </div>
@@ -175,6 +192,18 @@ export function RetailAIActivityDetails({ activity }: Props) {
                   <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Confidence</div>
                   <div className="text-sm font-semibold">{Number(activity.aiConfidenceScore || 0).toFixed(0)}%</div>
                 </div>
+                {callDirection && (
+                  <div className="p-3 rounded-xl bg-slate-50 border">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Direction</div>
+                    <div className="text-sm font-semibold capitalize">{callDirection}</div>
+                  </div>
+                )}
+                {callType && (
+                  <div className="p-3 rounded-xl bg-slate-50 border">
+                    <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Call Type</div>
+                    <div className="text-sm font-semibold">{String(callType).replace(/_/g, " ")}</div>
+                  </div>
+                )}
                 {smokerStatus && (
                   <div className="p-3 rounded-xl bg-slate-50 border">
                     <div className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Smoker</div>

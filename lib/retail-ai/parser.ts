@@ -30,6 +30,10 @@ export interface RetailAIPayload {
 export interface RetailAICallPayload {
   call_id?: string;
   id?: string;
+  type?: string;
+  call_type?: string;
+  direction?: string;
+  call_status?: string;
   transcript?: string;
   transcript_object?: RetailAITranscriptMessage[];
   call_analysis?: RetailAICallAnalysis;
@@ -352,9 +356,15 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
     ...asObject(call.call_analysis),
   } as RetailAICallAnalysis;
   const customData = asObject(analysis.custom_analysis_data);
+  const direction = firstString(call.direction, root.direction);
+  const callType = firstString(call.type, call.call_type, root.type, root.call_type);
+  const callStatus = firstString(call.call_status, root.call_status);
   const metadata = {
     ...asObject(call.metadata),
     ...asObject(root.metadata),
+    ...(direction ? { call_direction: direction } : {}),
+    ...(callType ? { call_type: callType } : {}),
+    ...(callStatus ? { call_status: callStatus } : {}),
   };
   const transcriptJson = normalizeTranscript(call.transcript_object ?? payload.transcript_object ?? payload.transcript);
   const transcript = transcriptText(call.transcript ?? payload.transcript, transcriptJson);
