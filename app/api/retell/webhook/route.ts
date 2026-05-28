@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 
 import { prismadb } from "@/lib/prisma";
-import { createRetailAIActivityFromWebhook } from "@\/lib\/retail-ai\/service";`nimport { sendSMS } from "@/actions/crm/sms/send-sms";
+import { sendSMS } from "@/actions/crm/sms/send-sms";
+import { createRetailAIActivityFromWebhook } from "@/lib/retail-ai/service";
 
 type RetellWebhookPayload = {
   event?: string;
@@ -34,10 +35,16 @@ const handledEvents = new Set([
   "call_started",
   "call_ended",
   "call_analyzed",
+  "post_call_analysis_completed",
   "voicemail_reached",
   "dial_no_answer",
   "user_hangup",
   "agent_hangup",
+]);
+
+const COMPLETED_EVENTS = new Set([
+  "call_analyzed",
+  "post_call_analysis_completed",
 ]);
 
 function dateFromRetellTimestamp(value?: number) {
@@ -127,7 +134,10 @@ export async function POST(request: Request) {
   const call = payload.call;
   const callId = stringValue(call?.call_id);
 
+  console.log(`[RETELL WEBHOOK] Received event: ${event} for callId: ${callId}`);
+
   if (!event || !call || !callId) {
+    console.error("[RETELL WEBHOOK] Missing required fields", { event, callId });
     return NextResponse.json(
       { error: "Retell webhook event and call.call_id are required" },
       { status: 400 },
@@ -135,6 +145,7 @@ export async function POST(request: Request) {
   }
 
   if (!handledEvents.has(event)) {
+    console.log(`[RETELL WEBHOOK] Ignoring unhandled event: ${event}`);
     await prismadb.crm_LeadCallWebhookEvent.create({
       data: {
         callId,
@@ -169,6 +180,15 @@ export async function POST(request: Request) {
       "qualified",
       "lead_status",
     ]) ?? "unknown";
+
+  console.log(`[RETELL WEBHOOK] Processing data for callId: ${callId}`, {
+    event,
+    opportunityId,
+    memberId,
+    phone: call.to_number,
+    appointmentStatus,
+    qualificationStatus
+  });
 
   try {
     await prismadb.$transaction([
@@ -226,9 +246,15 @@ export async function POST(request: Request) {
       }),
     ]);
 
-    if (event === "call_analyzed") {
-      await createRetailAIActivityFromWebhook(payload, { receivedAt: new Date() });
-
+    if (COMPLETED_EVENTS.has(event)) {
+      console.log(`[RETELL WEBHOOK] Triggering Retail AI Activity creation for callId: ${callId} (event: ${event})`);
+      try {
+        const result = await createRetailAIActivityFromWebhook(payload, { receivedAt: new Date() });
+        console.log(`[RETELL WEBHOOK] Retail AI Activity result for callId: ${callId}:`, result);
+      } catch (activityError) {
+        console.error(`[RETELL WEBHOOK] Failed to create Retail AI Activity for callId: ${callId}:`, activityError);
+      }
+      
       // Automated SMS triggers
       const phone = call.to_number;
       if (phone) {

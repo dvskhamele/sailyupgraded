@@ -4,7 +4,7 @@ import type { RetailAIActivityCreateInput } from "./types";
 function truncate(value: string, maxLength: number) {
   const trimmed = value.replace(/\s+/g, " ").trim();
   if (trimmed.length <= maxLength) return trimmed;
-  return ${trimmed.slice(0, maxLength - 1).trimEnd()}...;
+  return `${trimmed.slice(0, maxLength - 1).trimEnd()}...`;
 }
 
 function titleFromSummary(parsed: ParsedRetailAICall) {
@@ -75,7 +75,7 @@ export function mapParsedRetailAICallToActivity(
     phone_number: parsed.customer.phone,
     email: parsed.customer.email,
     appointment_time: parsed.appointment.date && parsed.appointment.time 
-      ? new Date(${parsed.appointment.date} ) 
+      ? new Date(`${parsed.appointment.date} ${parsed.appointment.time}`)
       : parsed.appointment.date ? new Date(parsed.appointment.date) : null,
     call_summary: parsed.summary,
     call_successful: parsed.callSuccessful ? "Successful" : "Failed",

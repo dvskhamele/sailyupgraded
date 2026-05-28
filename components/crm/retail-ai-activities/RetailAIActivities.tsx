@@ -9,8 +9,8 @@ export async function RetailAIActivities() {
       initialData={activities}
       activityModule="retail-ai"
       title="AI Activities"
-      description="Track Retail AI activity workflows, reviews, and outcomes."
-      createLabel="Log Retail AI Activity"
+      description="Track AI activity workflows, reviews, and outcomes."
+      createLabel="Log AI Activity"
     />
     
   );

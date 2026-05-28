@@ -491,7 +491,7 @@ export function ActivitiesView({
                     className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
                   <Label htmlFor="retail-ai-only" className="text-sm font-medium cursor-pointer">
-                    Retail AI Only
+                     AI Only
                   </Label>
                 </div>
 

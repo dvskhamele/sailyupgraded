@@ -386,8 +386,9 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
   const appointmentBooked = isAppointmentBooked(customData);
 
   // Issue 2: Fixed Summary Mapping
-  const summary = analysis.call_summary || analysis.summary || "";
-  const detailedSummary = customData.detailed_call_summary || customData.detailedCallSummary || "";
+  const summary = firstString(analysis.call_summary, analysis.summary) ?? "";
+  const detailedSummary =
+    firstString(customData.detailed_call_summary, customData.detailedCallSummary) ?? "";
   
   const extractedName = extractName(detailedSummary, summary, transcript);
   const extractedEmail = extractEmail(transcript);
@@ -403,6 +404,33 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       return numberValue((rawCost as any).combined_cost);
     }
     return undefined;
+  };
+
+  const getCustomerPhone = () => {
+    // 1. Check custom data/metadata first (explicitly set)
+    const explicitPhone = firstString(
+      customData.customer_phone,
+      customData.customerPhone,
+      metadata.customer_phone,
+      metadata.customerPhone
+    );
+    if (explicitPhone) return explicitPhone;
+
+    // 2. For phone calls, determine based on direction
+    const direction = firstString(call.direction, payload.direction)?.toLowerCase();
+    const fromNum = call.from_number;
+    const toNum = call.to_number;
+
+    if (fromNum && toNum) {
+      if (direction === "inbound") {
+        return fromNum; // Inbound: From customer to AI
+      } else if (direction === "outbound") {
+        return toNum; // Outbound: From AI to customer
+      }
+    }
+
+    // 3. Fallback to any available number or extracted
+    return firstString(fromNum, toNum, extractedPhone);
   };
 
   return {
@@ -433,15 +461,7 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
         metadata.customerName, 
         extractedName
       ),
-      phone: firstString(
-        customData.customer_phone,
-        customData.customerPhone,
-        metadata.customer_phone,
-        metadata.customerPhone,
-        call.from_number,
-        call.to_number,
-        extractedPhone
-      ),
+      phone: getCustomerPhone(),
       email: firstString(customData.customer_email, customData.customerEmail, metadata.customer_email, metadata.customerEmail, extractedEmail),
       timezone: firstString(customData.customer_timezone, customData.customerTimezone, metadata.customer_timezone, metadata.customerTimezone, extractedTimezone),
       state: firstString(customData.state, metadata.state, customData.location, metadata.location),

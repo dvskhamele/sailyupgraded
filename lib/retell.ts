@@ -72,15 +72,21 @@ export function normalizeE164PhoneNumber(phone: string) {
     return "";
   }
 
+  let result = "";
   if (trimmed.startsWith("+")) {
-    return `+${trimmed.slice(1).replace(/\D/g, "")}`;
+    result = `+${trimmed.slice(1).replace(/\D/g, "")}`;
+  } else if (trimmed.startsWith("00")) {
+    result = `+${trimmed.slice(2).replace(/\D/g, "")}`;
+  } else {
+    result = trimmed.replace(/\D/g, "");
+    // If it doesn't have a plus, we assume it's a full number without prefix or needs one.
+    // Retell strictly requires + for E.164.
+    if (result.length >= 10) {
+      result = `+${result}`;
+    }
   }
 
-  if (trimmed.startsWith("00")) {
-    return `+${trimmed.slice(2).replace(/\D/g, "")}`;
-  }
-
-  return trimmed.replace(/[^\d+]/g, "");
+  return result;
 }
 
 export async function listRetellAgents(apiKey: string) {
