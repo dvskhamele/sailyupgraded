@@ -27,7 +27,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Trash2 } from "lucide-react";
+import { Trash2, UserCheck } from "lucide-react";
 import { createColumns } from "./columns";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
@@ -35,6 +35,7 @@ import { Button } from "@/components/ui/button";
 import AlertModal from "@/components/modals/alert-modal";
 import { toast } from "sonner";
 import { localLeadRepository } from "@/lib/offline-first/storage";
+import { convertLeadsToContacts } from "@/actions/crm/leads/convert-leads";
 
 type ConfigItem = { id: string; name: string };
 type FilterOption = { label: string; value: string };
@@ -89,6 +90,7 @@ export function LeadDataTable<TData, TValue>({
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
+  const [bulkConvertLoading, setBulkConvertLoading] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -133,6 +135,30 @@ export function LeadDataTable<TData, TValue>({
     }
   };
 
+  const onBulkConvert = async () => {
+    console.log("[LeadDataTable] onBulkConvert called with:", JSON.stringify(selectedLeadIds));
+    setBulkConvertLoading(true);
+    try {
+      const result = await convertLeadsToContacts(selectedLeadIds);
+      console.log("[LeadDataTable] result:", JSON.stringify(result));
+      if ("error" in result) {
+        toast.error(result.error as string);
+      } else {
+        // Also remove from local repository to update UI immediately
+        await Promise.all(selectedLeadIds.map((id) => localLeadRepository.delete(id)));
+        table.toggleAllRowsSelected(false);
+        toast.success(
+          `${result.count} lead(s) converted to contacts. ${result.skipped} lead(s) skipped (already exist).`
+        );
+        await onDataChange?.();
+      }
+    } catch {
+      toast.error("Something went wrong while converting leads. Please try again.");
+    } finally {
+      setBulkConvertLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <AlertModal
@@ -147,15 +173,26 @@ export function LeadDataTable<TData, TValue>({
         <div />
         <div className="flex justify-end items-center gap-2">
           {selectedCount > 0 && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => setBulkDeleteOpen(true)}
-              disabled={bulkDeleteLoading}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete selected
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onBulkConvert}
+                disabled={bulkConvertLoading || bulkDeleteLoading}
+              >
+                <UserCheck className="h-4 w-4 mr-1" />
+                Convert to Contact
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={bulkDeleteLoading || bulkConvertLoading}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete selected
+              </Button>
+            </>
           )}
         </div>
       </div>

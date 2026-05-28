@@ -1,0 +1,183 @@
+"use server";
+
+import { getSession } from "@/lib/auth-server";
+import { prismadb } from "@/lib/prisma";
+import { revalidatePath } from "next/cache";
+import { writeAuditLog } from "@/lib/audit-log";
+import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
+import { normalizeContactRole } from "@/lib/contact-options";
+
+export const convertLeadsToContacts = async (leadIds: string[]) => {
+  console.log("[CONVERT_LEADS] Received leadIds:", JSON.stringify(leadIds));
+  const session = await getSession();
+  if (!session) {
+    console.log("[CONVERT_LEADS] Unauthorized");
+    return { error: "Unauthorized" };
+  }
+
+  // Handle both string[] and nested [string[]] (Next.js server action arg wrapping)
+  const flatIds = Array.isArray(leadIds) ? leadIds.flat() : [];
+  const ids = Array.from(new Set(flatIds.filter((id): id is string => typeof id === "string" && !!id)));
+  
+  console.log("[CONVERT_LEADS] Normalized ids:", JSON.stringify(ids));
+  if (ids.length === 0) return { error: "At least one lead is required" };
+
+  try {
+    const leads = await prismadb.crm_Leads.findMany({
+      where: {
+        id: { in: ids },
+        deletedAt: null,
+      },
+    });
+
+    console.log("[CONVERT_LEADS] Found leads count:", leads.length);
+    if (leads.length === 0) {
+      console.log("[CONVERT_LEADS] No active leads found for ids:", JSON.stringify(ids));
+      return { error: "No leads found" };
+    }
+
+    // Find or create "Converted" status
+    let convertedStatus = await prismadb.crm_Lead_Statuses.findFirst({
+      where: { name: "Converted" },
+    });
+
+    if (!convertedStatus) {
+      try {
+        convertedStatus = await prismadb.crm_Lead_Statuses.create({
+          data: {
+            v: 0,
+            name: "Converted",
+            order: 99,
+          },
+        });
+      } catch (e) {
+        // Fallback in case of race condition
+        convertedStatus = await prismadb.crm_Lead_Statuses.findFirst({
+          where: { name: "Converted" },
+        });
+      }
+    }
+
+    const contactsCreated = [];
+    const skippedLeads = [];
+
+    for (const lead of leads) {
+      console.log("[CONVERT_LEADS] Processing lead:", lead.id, lead.email);
+      
+      // We do each lead in its own transaction or separate calls to avoid long-running transaction timeouts
+      try {
+        const result = await prismadb.$transaction(async (tx) => {
+          // Check for duplicates by email or phone
+          const existingContact = await tx.crm_Contacts.findFirst({
+            where: {
+              OR: [
+                lead.email ? { email: lead.email } : null,
+                lead.phone ? { phone: lead.phone } : null,
+              ].filter((obj): obj is { email: string } | { phone: string } => obj !== null),
+              deletedAt: null,
+            },
+          });
+
+          if (existingContact) {
+            console.log("[CONVERT_LEADS] Lead already exists as contact:", lead.id, existingContact.id);
+            return { skipped: true };
+          }
+
+          // Map lead to contact
+          const contactData = {
+            v: 0,
+            first_name: lead.firstName,
+            last_name: lead.lastName || lead.firstName || "Unknown",
+            company: lead.company,
+            jobTitle: lead.jobTitle,
+            email: lead.email,
+            personal_email: lead.personal_email,
+            phone: lead.phone,
+            office_phone: lead.office_phone,
+            mobile_phone: lead.mobile_phone,
+            description: lead.description,
+            lead_source_id: lead.lead_source_id,
+            lead_status_id: lead.lead_status_id,
+            lead_type_id: lead.lead_type_id,
+            refered_by: lead.refered_by,
+            campaign: lead.campaign,
+            assigned_to: lead.assigned_to,
+            accountsIDs: lead.accountsIDs,
+            address: lead.address,
+            address_line1: lead.address_line1,
+            address_line2: lead.address_line2,
+            city: lead.city,
+            country: lead.country,
+            postal_code: lead.postal_code,
+            state: lead.state,
+            website: lead.website,
+            social_twitter: lead.social_twitter,
+            social_facebook: lead.social_facebook,
+            social_linkedin: lead.social_linkedin,
+            social_skype: lead.social_skype,
+            social_instagram: lead.social_instagram,
+            social_youtube: lead.social_youtube,
+            social_tiktok: lead.social_tiktok,
+            contact_type_id: lead.contact_type_id,
+            role: lead.role || normalizeContactRole("Customer"),
+            status: true,
+            createdBy: session.user.id,
+            created_by: session.user.id,
+          };
+
+          const cleanedContactData = pickSupportedModelFields("crm_Contacts", contactData);
+          
+          const contact = await tx.crm_Contacts.create({
+            data: cleanedContactData as any,
+          });
+
+          // Update lead status and soft delete
+          await tx.crm_Leads.update({
+            where: { id: lead.id },
+            data: {
+              lead_status_id: convertedStatus?.id,
+              deletedAt: new Date(),
+              deletedBy: session.user.id,
+            },
+          });
+
+          return { success: true, contactId: contact.id };
+        });
+
+        if (result.skipped) {
+          skippedLeads.push(lead.id);
+        } else if (result.success) {
+          console.log("[CONVERT_LEADS] Created contact:", result.contactId);
+          
+          await writeAuditLog({
+            entityType: "lead",
+            entityId: lead.id,
+            action: "updated",
+            changes: [{ field: "status", old: lead.lead_status_id, new: "Converted" }],
+            userId: session.user.id,
+          });
+
+          contactsCreated.push(result.contactId);
+        }
+      } catch (itemError) {
+        console.error(`[CONVERT_LEADS] Error processing lead ${lead.id}:`, itemError);
+        // Continue with other leads even if one fails
+      }
+    }
+
+    const results = { contactsCreated, skippedLeads };
+    console.log("[CONVERT_LEADS] Finished results:", JSON.stringify(results));
+
+    revalidatePath("/[locale]/(routes)/crm/leads", "page");
+    revalidatePath("/[locale]/(routes)/crm/contacts", "page");
+
+    return {
+      success: true,
+      count: results.contactsCreated.length,
+      skipped: results.skippedLeads.length,
+    };
+  } catch (error: any) {
+    console.error("[CONVERT_LEADS] Error:", error);
+    return { error: `Failed to convert leads: ${error.message || "Unknown error"}` };
+  }
+};
