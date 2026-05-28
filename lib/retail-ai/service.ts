@@ -30,8 +30,16 @@ function payloadObject(payload: unknown) {
 function getWebhookDiagnostics(payload: unknown) {
   const root = payloadObject(payload);
   const call = payloadObject(root.call);
+  const analysis = call.call_analysis ?? root.call_analysis;
+  const metadata = call.metadata ?? root.metadata;
+  const retellDynamicVariables =
+    call.retell_llm_dynamic_variables ?? root.retell_llm_dynamic_variables;
   return {
     call_id: call.call_id ?? call.id ?? root.call_id ?? root.conversation_id ?? root.conversationId,
+    transcript: call.transcript ?? root.transcript ?? call.transcript_object ?? root.transcript_object,
+    analysis,
+    metadata,
+    retell_llm_dynamic_variables: retellDynamicVariables,
     direction: call.direction ?? root.direction,
     call_type: call.type ?? call.call_type ?? root.type ?? root.call_type,
     call_status: call.call_status ?? root.call_status,
@@ -55,7 +63,19 @@ export async function createRetailAIActivityFromWebhook(
 ): Promise<RetailAIWebhookResult> {
   const diagnostics = getWebhookDiagnostics(payload);
 
-  console.log("[RETAIL AI SERVICE] Webhook received", diagnostics);
+  console.log("[INCOMING_RETAIL_AI_WEBHOOK]", diagnostics);
+  console.log("[RETAIL AI SERVICE] Webhook received", {
+    call_id: diagnostics.call_id,
+    direction: diagnostics.direction,
+    call_type: diagnostics.call_type,
+    call_status: diagnostics.call_status,
+    event_type: diagnostics.event_type,
+    has_call: diagnostics.has_call,
+    has_transcript: diagnostics.has_transcript,
+    has_transcript_object: diagnostics.has_transcript_object,
+    has_call_analysis: diagnostics.has_call_analysis,
+    has_customer_metadata: diagnostics.has_customer_metadata,
+  });
   console.log("[RETAIL AI SERVICE] Payload snapshot:", JSON.stringify(payload, null, 2));
 
   if (!validateRetailAIPayload(payload)) {
@@ -76,6 +96,11 @@ export async function createRetailAIActivityFromWebhook(
 
   const parsed = parseRetailAICall(typedPayload);
   console.log(`[RETAIL AI SERVICE] Parsed conversationId: ${parsed.conversationId}`);
+  
+  if (parsed.appointment.booked) {
+    console.log(`[RETELL WEBHOOK] Appointment detected: ${parsed.appointment.date} at ${parsed.appointment.time}`);
+  }
+  console.log(`[RETELL WEBHOOK] Generated call_summary: ${parsed.summary.slice(0, 100)}...`);
 
   let contactId: string | undefined;
   if (parsed.customer.phone || parsed.customer.email || parsed.customer.name) {

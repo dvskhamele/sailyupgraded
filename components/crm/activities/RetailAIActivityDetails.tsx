@@ -30,9 +30,22 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import type { ActivityWithLinks } from "@/actions/crm/activities/get-activities-by-entity";
+import type { RetailAIActivityAIFields } from "@/actions/crm/retail-ai-activities/types";
 
 interface Props {
-  activity: ActivityWithLinks;
+  activity: ActivityWithLinks & Partial<RetailAIActivityAIFields>;
+}
+
+function normalizeSentiment(value?: string | null) {
+  const normalized = value?.toLowerCase();
+  if (normalized === "positive" || normalized === "negative" || normalized === "neutral") {
+    return normalized;
+  }
+  return null;
+}
+
+function sentimentLabel(value: "positive" | "neutral" | "negative") {
+  return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
 export function RetailAIActivityDetails({ activity }: Props) {
@@ -51,7 +64,7 @@ export function RetailAIActivityDetails({ activity }: Props) {
   const customerEmail = activity.email || customer.customer_email || 'No email provided';
   const customerPhone = activity.phone_number || customer.customer_phone || 'No phone';
   const callSummary = activity.call_summary || activity.aiGeneratedSummary || activity.outcome || "No summary available.";
-  const sentiment = activity.user_sentiment || activity.sentiment;
+  const sentiment = normalizeSentiment(activity.user_sentiment || activity.sentiment);
   const isSuccessful = activity.call_successful === 'accepted' || activity.call_successful === 'yes' || activity.callSuccessful;
   const callCost = activity.combined_cost ? Number(activity.combined_cost) : (metadata.cost || 0);
   const duration = activity.call_duration || activity.duration;
@@ -74,11 +87,11 @@ export function RetailAIActivityDetails({ activity }: Props) {
   const callOutcome = activity.call_outcome || customer.outcome;
   const timezone = activity.timezone || customer.timezone;
 
-  const SentimentIcon = sentiment === 'Positive' ? Smile : 
-                        sentiment === 'Negative' ? Frown : Meh;
+  const SentimentIcon = sentiment === 'positive' ? Smile : 
+                        sentiment === 'negative' ? Frown : Meh;
   
-  const sentimentColor = sentiment === 'Positive' ? 'text-green-500' : 
-                         sentiment === 'Negative' ? 'text-red-500' : 'text-blue-500';
+  const sentimentColor = sentiment === 'positive' ? 'text-green-500' : 
+                         sentiment === 'negative' ? 'text-red-500' : 'text-blue-500';
 
   return (
     <div className="space-y-6">
@@ -115,7 +128,7 @@ export function RetailAIActivityDetails({ activity }: Props) {
           {sentiment && (
             <Badge variant="outline" className={cn("gap-1.5", sentimentColor)}>
               <SentimentIcon className="h-3.5 w-3.5" />
-              {sentiment}
+              {sentimentLabel(sentiment)}
             </Badge>
           )}
           {callDirection && (

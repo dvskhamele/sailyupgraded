@@ -80,9 +80,9 @@ export function mapParsedRetailAICallToActivity(
     customer_name: parsed.customer.name,
     phone_number: parsed.customer.phone,
     email: parsed.customer.email,
-    appointment_time: parsed.appointment.date && parsed.appointment.time 
+    appointment_time: parsed.appointment.appointmentTime ?? (parsed.appointment.date && parsed.appointment.time 
       ? new Date(`${parsed.appointment.date} ${parsed.appointment.time}`)
-      : parsed.appointment.date && !isNaN(Date.parse(parsed.appointment.date)) ? new Date(parsed.appointment.date) : null,
+      : parsed.appointment.date && !isNaN(Date.parse(parsed.appointment.date)) ? new Date(parsed.appointment.date) : null),
     call_summary: parsed.summary,
     call_successful: parsed.callSuccessful ? "Successful" : "Failed",
     user_sentiment: parsed.sentiment,

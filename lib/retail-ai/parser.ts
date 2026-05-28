@@ -24,6 +24,7 @@ export interface RetailAIPayload {
   public_log_url?: string;
   total_duration_seconds?: number;
   duration_ms?: number;
+  retell_llm_dynamic_variables?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -50,6 +51,7 @@ export interface RetailAICallPayload {
   metadata?: Record<string, unknown>;
   from_number?: string;
   to_number?: string;
+  retell_llm_dynamic_variables?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -92,6 +94,7 @@ export interface ParsedRetailAICall {
     booked: boolean;
     date?: string;
     time?: string;
+    appointmentTime?: Date;
     type?: string;
     consultationType?: string;
     outcome?: string;
@@ -201,7 +204,11 @@ function transcriptText(rawTranscript: unknown, transcriptObject: RetailAITransc
 function normalizeSentiment(value: unknown): string | undefined {
   const sentiment = stringValue(value);
   if (!sentiment) return undefined;
-  return sentiment.charAt(0).toUpperCase() + sentiment.slice(1).toLowerCase();
+  const normalized = sentiment.toLowerCase();
+  if (normalized.includes("positive")) return "positive";
+  if (normalized.includes("negative")) return "negative";
+  if (normalized.includes("neutral")) return "neutral";
+  return undefined;
 }
 
 function arrayOfStrings(value: unknown): string[] {
@@ -246,6 +253,39 @@ function confidenceFrom(sentiment: string | undefined, successful: boolean, tran
   return Math.min(Math.max(confidence, 0), 100);
 }
 
+function inferSentimentFromTranscript(transcript: string): "positive" | "neutral" | "negative" {
+  const lower = transcript.toLowerCase();
+  const positiveMatches = [
+    "thank you",
+    "thanks",
+    "perfect",
+    "great",
+    "sounds good",
+    "appreciate",
+    "interested",
+    "book",
+    "schedule",
+    "appointment",
+    "yes",
+  ].filter((phrase) => lower.includes(phrase)).length;
+  const negativeMatches = [
+    "not interested",
+    "don't call",
+    "do not call",
+    "stop calling",
+    "angry",
+    "frustrated",
+    "annoyed",
+    "cancel",
+    "no thanks",
+    "no thank you",
+  ].filter((phrase) => lower.includes(phrase)).length;
+
+  if (negativeMatches > positiveMatches) return "negative";
+  if (positiveMatches > 0) return "positive";
+  return "neutral";
+}
+
 function extractEmail(transcript: string): string | undefined {
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const matches = transcript.match(emailRegex);
@@ -288,8 +328,12 @@ function extractName(detailedSummary: string, summary: string, transcript: strin
     return true;
   };
 
-  // Transcript parsing fallback patterns
+  const text = `${detailedSummary}\n${summary}\n${transcript}`;
   const transcriptPatterns = [
+    /the user,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?),?\s+(?:called|asked|is|was|expressed|scheduled)/i,
+    /user named\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    /customer(?:'s)? name is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
+    /client(?:'s)? name is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
     /your name is ([A-Z][a-z]+)/i,
     /name as ([A-Z][a-z]+)/i,
     /this is ([A-Z][a-z]+)/i,
@@ -301,7 +345,7 @@ function extractName(detailedSummary: string, summary: string, transcript: strin
   ];
   
   for (const pattern of transcriptPatterns) {
-    const match = transcript.match(pattern);
+    const match = text.match(pattern);
     if (match && match[1] && isValid(match[1])) return match[1].trim();
   }
 
@@ -354,6 +398,149 @@ export function validateRetailAIPayload(payload: unknown): payload is RetailAIPa
   return Boolean(callId);
 }
 
+function parseRelativeDate(text: string, referenceDate: Date = new Date()): Date | null {
+  const days = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"];
+  const lowerText = text.toLowerCase();
+  
+  // 1. Detect Day or Relative Day
+  let targetDate = new Date(referenceDate);
+  targetDate.setHours(0, 0, 0, 0);
+  
+  const dayMatch = lowerText.match(/(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/i);
+  const tomorrowMatch = lowerText.includes("tomorrow");
+  const todayMatch = lowerText.includes("today");
+  const nextMatch = lowerText.includes("next");
+  const hasAppointmentContext = /(appointment|consultation|meeting|scheduled|booked|confirmed|see you|got you down|set then)/i.test(text);
+
+  if (tomorrowMatch) {
+    targetDate.setDate(targetDate.getDate() + 1);
+  } else if (dayMatch) {
+    const targetDay = days.indexOf(dayMatch[1].toLowerCase());
+    let daysUntil = (targetDay - referenceDate.getDay() + 7) % 7;
+    
+    if (nextMatch) {
+      daysUntil += 7;
+    } else if (daysUntil === 0 && referenceDate.getHours() >= 12) {
+      daysUntil = 7; // If today and late, assume next week
+    }
+    
+    targetDate.setDate(targetDate.getDate() + daysUntil);
+  } else if (!todayMatch && !hasAppointmentContext) {
+    return null;
+  }
+
+  // 2. Detect Time
+  // Patterns: "8 PM", "8:30 AM", "at 5", "at 5:00"
+  const timeMatch = text.match(/(?:\bat\s+|\bfor\s+|\s)(\d{1,2})(?::(\d{2}))?\s*([ap]m)?\b/i);
+  if (!timeMatch) return null;
+
+  let hours = parseInt(timeMatch[1]);
+  const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
+  const ampm = timeMatch[3]?.toLowerCase();
+
+  if (ampm === "pm" && hours < 12) {
+    hours += 12;
+  } else if (ampm === "am" && hours === 12) {
+    hours = 0;
+  } else if (!ampm) {
+    // Fallback if no AM/PM: assume 8-11 are AM, 1-7 are PM, 12 is PM
+    if (hours >= 1 && hours <= 7) hours += 12;
+  }
+
+  targetDate.setHours(hours, minutes, 0, 0);
+  if (!dayMatch && !tomorrowMatch && !todayMatch && hasAppointmentContext && targetDate < referenceDate) {
+    targetDate.setDate(targetDate.getDate() + 1);
+  }
+  return targetDate;
+}
+
+function extractAppointmentTime(transcript: string, transcriptJson: RetailAITranscriptMessage[], referenceDate: Date): Date | null {
+  // 1. Look for confirmation patterns in the transcript
+  // We prefer the agent's confirmation at the end of the call
+  
+  const confirmationPatterns = [
+    /got you down for\s*([^.?!,]+)/i,
+    /set then,?\s*([^.?!,]+)/i,
+    /booked for\s*([^.?!,]+)/i,
+    /scheduled for\s*([^.?!,]+)/i,
+    /see you\s*([^.?!,]+)/i,
+    /confirmed for\s*([^.?!,]+)/i,
+    /appointment (?:is|at)\s*([^.?!,]+)/i,
+    /consultation (?:is|at)\s*([^.?!,]+)/i,
+    /online consultation at\s*(\d{1,2}(?::\d{2})?\s*(?:[ap]m)?)/i,
+    /(?:tomorrow|today) at\s*(\d{1,2}(?::\d{2})?\s*[ap]m)/i,
+    /(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday) at\s*(\d{1,2}(?::\d{2})?\s*(?:[ap]m)?)/i
+  ];
+
+  // Search from the end of the transcript (reverse order of messages)
+  for (let i = transcriptJson.length - 1; i >= 0; i--) {
+    const msg = transcriptJson[i];
+    if (msg.role === "agent" || msg.role === "assistant") {
+      const content = msg.content || "";
+      for (const pattern of confirmationPatterns) {
+        const match = content.match(pattern);
+        if (match) {
+          // Pass the full message content to parseRelativeDate
+          const parsed = parseRelativeDate(content, referenceDate);
+          if (parsed) {
+            console.log("[APPOINTMENT_EXTRACTOR] Transcript appointment detected:", parsed.toISOString());
+            return parsed;
+          }
+        }
+      }
+    }
+  }
+
+  // Fallback to searching the full transcript text
+  for (const pattern of confirmationPatterns) {
+    const match = transcript.match(pattern);
+    if (match) {
+      const startIndex = Math.max(0, match.index! - 50);
+      const endIndex = Math.min(transcript.length, match.index! + 100);
+      const context = transcript.slice(startIndex, endIndex);
+      const parsed = parseRelativeDate(context, referenceDate);
+      if (parsed) {
+          console.log("[APPOINTMENT_EXTRACTOR] Transcript appointment detected:", parsed.toISOString());
+          return parsed;
+        }
+    }
+  }
+
+  return null;
+}
+
+function generateAISummary(parsed: Partial<ParsedRetailAICall>): string {
+  const customerName = parsed.customer?.name || "The customer";
+  const intent = parsed.insights?.intent || "insurance";
+  const outcome = parsed.appointment?.booked ? `scheduled a consultation for ${parsed.appointment.date} at ${parsed.appointment.time}` : "expressed interest";
+  const sentiment = parsed.sentiment?.toLowerCase() || "neutral";
+  
+  let summary = `${customerName} showed ${sentiment} sentiment regarding ${intent}. `;
+  
+  if (parsed.appointment?.booked) {
+    summary += `They successfully booked an appointment for ${parsed.appointment.date} at ${parsed.appointment.time}.`;
+  } else if (parsed.insights?.followUpRequired) {
+    summary += `Follow-up is required as they were interested but didn't book.`;
+  } else {
+    summary += `The call ended without a specific booking.`;
+  }
+
+  return summary;
+}
+
+function generateSummaryFromTranscript(transcript: string, customerName?: string, appointmentTime?: Date, sentiment?: string) {
+  const compact = transcript.replace(/\s+/g, " ").trim();
+  const name = customerName && customerName !== "Unknown Caller" ? customerName : "The customer";
+  const tone = sentiment ?? "neutral";
+  if (!compact) return `${name} completed a Retail AI call with ${tone} sentiment.`;
+
+  const transcriptSummary = compact.length > 220 ? `${compact.slice(0, 217).trimEnd()}...` : compact;
+  const appointmentPart = appointmentTime
+    ? ` An appointment was detected for ${appointmentTime.toLocaleString("en-US")}.`
+    : "";
+  return `${name} completed a Retail AI call with ${tone} sentiment. ${transcriptSummary}${appointmentPart}`;
+}
+
 export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall {
   try {
     if (!validateRetailAIPayload(payload)) {
@@ -367,21 +554,33 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       ...asObject(call.call_analysis),
     } as RetailAICallAnalysis;
     const customData = asObject(analysis.custom_analysis_data);
+    const retellDynamicVariables = {
+      ...asObject(root.retell_llm_dynamic_variables),
+      ...asObject(call.retell_llm_dynamic_variables),
+    };
     const direction = firstString(call.direction, root.direction) || "unknown";
     const callType = firstString(call.type, call.call_type, root.type, root.call_type) || "unknown";
     const callStatus = firstString(call.call_status, root.call_status) || "unknown";
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       ...asObject(call.metadata),
       ...asObject(root.metadata),
+      ...(Object.keys(retellDynamicVariables).length
+        ? { retell_llm_dynamic_variables: retellDynamicVariables }
+        : {}),
       ...(direction ? { call_direction: direction } : {}),
       ...(callType ? { call_type: callType } : {}),
       ...(callStatus ? { call_status: callStatus } : {}),
     };
     const transcriptJson = normalizeTranscript(call.transcript_object ?? payload.transcript_object ?? payload.transcript);
     const transcript = transcriptText(call.transcript ?? payload.transcript, transcriptJson) || "";
-    const sentiment = normalizeSentiment(
-      analysis.user_sentiment ?? payload.user_sentiment ?? customData.user_sentiment,
-    ) || "Neutral";
+    const sentiment =
+      normalizeSentiment(
+        analysis.user_sentiment ??
+          payload.user_sentiment ??
+          customData.user_sentiment ??
+          retellDynamicVariables.user_sentiment ??
+          root.sentiment,
+      ) || inferSentimentFromTranscript(transcript);
     const callSuccessful =
       booleanValue(analysis.call_successful) ??
       booleanValue(payload.call_successful) ??
@@ -404,10 +603,37 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       dateValue(call.end_timestamp) ??
       dateValue(call.start_timestamp) ??
       new Date();
-    const appointmentBooked = isAppointmentBooked(customData);
+    
+    // 1. Appointment Extraction
+    let appointmentBooked = isAppointmentBooked(customData);
+    let extractedApptDate = firstString(customData.appointment_date, customData.appointmentDate, customData.meeting_date, customData.meetingDate);
+    let extractedApptTime = firstString(customData.appointment_time, customData.appointmentTime, customData.meeting_time, customData.meetingTime);
+    let appointmentTime: Date | undefined = undefined;
 
-    // Safe Summary Mapping
-    const summary = firstString(analysis.call_summary, analysis.summary) || "";
+    // Try to parse from custom data if present
+    if (extractedApptDate) {
+      const combined = extractedApptTime ? `${extractedApptDate} ${extractedApptTime}` : extractedApptDate;
+      const parsed = new Date(combined);
+      if (!isNaN(parsed.getTime())) {
+        appointmentTime = parsed;
+      }
+    }
+
+    // Enhanced extraction from transcript if fields are missing or if booked but no time
+    if (!appointmentTime) {
+      const parsedAppt = extractAppointmentTime(transcript, transcriptJson, eventTimestamp);
+      if (parsedAppt) {
+        appointmentBooked = true;
+        appointmentTime = parsedAppt;
+        // Format as YYYY-MM-DD and HH:mm for the legacy fields
+        extractedApptDate = parsedAppt.toISOString().split("T")[0];
+        extractedApptTime = parsedAppt.toTimeString().split(" ")[0].slice(0, 5);
+        console.log(`[RETELL WEBHOOK] Enhanced appointment extraction: ${extractedApptDate} ${extractedApptTime}`);
+      }
+    }
+
+    // 2. Summary Extraction
+    let summary = firstString(analysis.call_summary, analysis.summary) || "";
     const detailedSummary =
       firstString(customData.detailed_call_summary, customData.detailedCallSummary) || "";
     
@@ -454,6 +680,70 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       return firstString(fromNum, toNum, extractedPhone) || "Unknown";
     };
 
+    const customerData = {
+      name: firstString(
+        analysis.customer_name, 
+        analysis.userName, 
+        analysis.user_name,
+        customData.customer_name, 
+        customData.customerName, 
+        metadata.customer_name, 
+        metadata.customerName, 
+        retellDynamicVariables.customer_name,
+        retellDynamicVariables.customerName,
+        extractedName
+      ) || "Unknown Caller",
+      phone: getCustomerPhone(),
+      email: firstString(customData.customer_email, customData.customerEmail, metadata.customer_email, metadata.customerEmail, extractedEmail),
+      timezone: firstString(customData.customer_timezone, customData.customerTimezone, metadata.customer_timezone, metadata.customerTimezone, extractedTimezone),
+      state: firstString(customData.state, metadata.state, customData.location, metadata.location),
+      location: firstString(customData.location, metadata.location),
+    };
+
+    const insights = {
+      intent: firstString(customData.customer_intent, customData.intent),
+      urgency: firstString(customData.urgency),
+      products: arrayOfStrings(customData.requested_products ?? customData.products),
+      followUpRequired: booleanValue(customData.follow_up_required ?? customData.followUpRequired) ?? false,
+      conversionProbability:
+        numberValue(customData.conversion_probability ?? customData.conversionProbability) ??
+        (callSuccessful ? 80 : 20),
+      insuranceInterest: firstString(customData.insurance_interest, customData.insuranceInterest, extractedInsurance),
+      smokerStatus: firstString(customData.smoker_status, customData.smokerStatus, extractedSmoker),
+    };
+
+    const appointment = {
+       booked: appointmentBooked,
+       date: extractedApptDate,
+       time: extractedApptTime,
+       appointmentTime,
+       type: firstString(customData.appointment_type, customData.appointmentType),
+       consultationType: firstString(customData.consultation_type, customData.consultationType),
+       outcome:
+        firstString(customData.call_outcome, customData.callOutcome, customData.outcome) ??
+        (appointmentBooked ? "appointment_booked" : callSuccessful ? "completed" : "completed_no_booking"),
+     };
+
+    // If no summary was provided, generate one
+    if (!summary) {
+      summary = generateSummaryFromTranscript(transcript, customerData.name, appointment.appointmentTime, sentiment) ||
+        generateAISummary({
+          customer: customerData,
+          appointment,
+          insights,
+          sentiment,
+        });
+      console.log(`[RETELL WEBHOOK] Generated fallback summary: ${summary}`);
+    }
+
+    console.log("[PARSED_ACTIVITY_DATA]", {
+      customer_name: customerData.name,
+      appointment_time: appointment.appointmentTime ?? null,
+      call_summary: summary,
+      sentiment,
+      call_outcome: appointment.outcome,
+    });
+
     return {
       conversationId:
         firstString(call.call_id, call.id, root.call_id, root.conversation_id, root.conversationId) ?? "",
@@ -470,48 +760,15 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       sentiment,
       callSuccessful,
       confidenceScore: confidenceFrom(sentiment, callSuccessful, transcript),
-      customer: {
-        name: firstString(
-          analysis.customer_name, 
-          analysis.userName, 
-          analysis.user_name,
-          customData.customer_name, 
-          customData.customerName, 
-          metadata.customer_name, 
-          metadata.customerName, 
-          extractedName
-        ) || "Unknown Caller",
-        phone: getCustomerPhone(),
-        email: firstString(customData.customer_email, customData.customerEmail, metadata.customer_email, metadata.customerEmail, extractedEmail),
-        timezone: firstString(customData.customer_timezone, customData.customerTimezone, metadata.customer_timezone, metadata.customerTimezone, extractedTimezone),
-        state: firstString(customData.state, metadata.state, customData.location, metadata.location),
-        location: firstString(customData.location, metadata.location),
-      },
-      appointment: {
-        booked: appointmentBooked,
-        date: firstString(customData.appointment_date, customData.appointmentDate, customData.meeting_date, customData.meetingDate),
-        time: firstString(customData.appointment_time, customData.appointmentTime, customData.meeting_time, customData.meetingTime),
-        type: firstString(customData.appointment_type, customData.appointmentType),
-        consultationType: firstString(customData.consultation_type, customData.consultationType),
-        outcome: firstString(customData.call_outcome, customData.callOutcome, customData.outcome),
-      },
+      customer: customerData,
+      appointment,
       metrics: {
         latency: call.latency ?? payload.latency,
         tokenUsage: call.token_usage,
         cost: getCost(),
         durationSeconds: durationSeconds,
       },
-      insights: {
-        intent: firstString(customData.customer_intent, customData.intent),
-        urgency: firstString(customData.urgency),
-        products: arrayOfStrings(customData.requested_products ?? customData.products),
-        followUpRequired: booleanValue(customData.follow_up_required ?? customData.followUpRequired) ?? false,
-        conversionProbability:
-          numberValue(customData.conversion_probability ?? customData.conversionProbability) ??
-          (callSuccessful ? 80 : 20),
-        insuranceInterest: firstString(customData.insurance_interest, customData.insuranceInterest, extractedInsurance),
-        smokerStatus: firstString(customData.smoker_status, customData.smokerStatus, extractedSmoker),
-      },
+      insights,
       analysis,
       metadata,
       rawPayload: payload,
@@ -524,6 +781,7 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       transcript: "",
       transcriptJson: [],
       eventTimestamp: new Date(),
+      durationMinutes: null,
       summary: "Parsing failed",
       detailedSummary: "",
       callSuccessful: false,

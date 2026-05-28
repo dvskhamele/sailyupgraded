@@ -165,6 +165,14 @@ export async function POST(request: Request) {
 
   console.log(`[RETELL WEBHOOK] EVENT: ${event} | CALL ID: ${callId}`);
   console.log(`[RETELL WEBHOOK] FULL PAYLOAD:`, JSON.stringify(payload, null, 2));
+  console.log("[INCOMING_RETELL_WEBHOOK_FIELDS]", {
+    call_id: callId,
+    transcript: call.transcript ?? payload.transcript ?? call.transcript_object ?? payload.transcript_object,
+    analysis: call.call_analysis ?? payload.call_analysis,
+    metadata: call.metadata ?? payload.metadata,
+    retell_llm_dynamic_variables:
+      call.retell_llm_dynamic_variables ?? payload.retell_llm_dynamic_variables,
+  });
 
   if (!event || !callId) {
     console.error("[RETELL WEBHOOK] FAILED: Missing required fields (event or callId)", { event, callId });

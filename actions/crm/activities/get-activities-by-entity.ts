@@ -5,6 +5,7 @@ import {
   prisma,
   withPrismaRetry,
 } from "@/lib/prisma";
+import { serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getActivityAssignees, getActivityIdsAssignedTo } from "./activity-assignment";
 import {
   type ActivityLinkWithContact,
@@ -279,8 +280,8 @@ const loadActivities = cache(async (
     }
 
     const combined = [
-      ...standardActivities.map(a => ({ ...a, isRetailAI: false })),
-      ...retailActivities.map(a => ({ ...a, isRetailAI: true, type: 'meeting' as const }))
+      ...serializeDecimalsList(standardActivities).map(a => ({ ...a, isRetailAI: false })),
+      ...serializeDecimalsList(retailActivities).map(a => ({ ...a, isRetailAI: true, type: 'meeting' as const }))
     ].sort((a, b) => {
       const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
       if (dateDiff !== 0) return dateDiff;

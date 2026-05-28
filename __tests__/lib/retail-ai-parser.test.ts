@@ -44,7 +44,7 @@ describe("Retail AI Parser", () => {
     expect(parsed.customer.email).toBe("john@example.com");
     expect(parsed.durationMinutes).toBe(2);
     expect(parsed.callSuccessful).toBe(true);
-    expect(parsed.sentiment).toBe("Positive");
+    expect(parsed.sentiment).toBe("positive");
     expect(parsed.insights.products).toContain("Life Insurance");
     expect(parsed.insights.followUpRequired).toBe(true);
     expect(parsed.insights.conversionProbability).toBe(85);
@@ -66,9 +66,9 @@ describe("Retail AI Parser", () => {
 
     const parsed = parseRetailAICall(minimalPayload);
     expect(parsed.conversationId).toBe("min-call-id");
-    expect(parsed.customer.name).toBeUndefined();
+    expect(parsed.customer.name).toBe("Unknown Caller");
     expect(parsed.callSuccessful).toBe(false);
-    expect(parsed.confidenceScore).toBe(45);
+    expect(parsed.confidenceScore).toBe(50);
   });
 
   it("should handle top-level conversation webhook fields", () => {
@@ -96,7 +96,7 @@ describe("Retail AI Parser", () => {
     expect(parsed.eventTimestamp.toISOString()).toBe("2026-05-25T10:00:00.000Z");
     expect(parsed.durationMinutes).toBe(3);
     expect(parsed.appointment.booked).toBe(true);
-    expect(parsed.sentiment).toBe("Positive");
+    expect(parsed.sentiment).toBe("positive");
   });
 
   it("should parse successful outbound PSTN phone_call payloads", () => {
@@ -135,5 +135,30 @@ describe("Retail AI Parser", () => {
     expect(parsed.callSuccessful).toBe(true);
     expect(parsed.appointment.booked).toBe(true);
     expect(parsed.recordingUrl).toBe("https://recording.example/outbound.wav");
+  });
+
+  it("extracts fallback fields from transcript when analysis fields are missing", () => {
+    const parsed = parseRetailAICall({
+      event: "call_ended",
+      call: {
+        call_id: "fallback-transcript-call-id",
+        direction: "outbound",
+        to_number: "+15551234567",
+        start_timestamp: 1779976800000,
+        end_timestamp: 1779977100000,
+        transcript_object: [
+          { role: "agent", content: "Hi, who am I speaking with today?" },
+          { role: "user", content: "My name is Dave and I am interested in life insurance." },
+          { role: "agent", content: "Perfect, Dave. I have your online consultation at 7 PM confirmed." },
+          { role: "user", content: "Great, thank you." },
+        ],
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBe("Dave");
+    expect(parsed.appointment.appointmentTime).toBeInstanceOf(Date);
+    expect(parsed.appointment.appointmentTime?.getHours()).toBe(19);
+    expect(parsed.summary).toContain("Dave completed a Retail AI call");
+    expect(parsed.sentiment).toBe("positive");
   });
 });

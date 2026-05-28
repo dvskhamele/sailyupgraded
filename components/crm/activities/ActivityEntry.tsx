@@ -82,6 +82,18 @@ function getContactName(
   );
 }
 
+function normalizeSentiment(value?: string | null) {
+  const normalized = value?.toLowerCase();
+  if (normalized === "positive" || normalized === "negative" || normalized === "neutral") {
+    return normalized;
+  }
+  return null;
+}
+
+function sentimentLabel(value: "positive" | "neutral" | "negative") {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
 interface Props {
   activity: ActivityWithLinks & Partial<RetailAIActivityAIFields>;
   onDeleted: (id: string) => void;
@@ -111,7 +123,7 @@ export function ActivityEntry({
   const Icon = isRetailAI ? Bot : TYPE_ICONS[activity.type];
   
   // New Fields Logic
-  const sentiment = activity.user_sentiment || activity.sentiment;
+  const sentiment = normalizeSentiment(activity.user_sentiment || activity.sentiment);
   const isSuccessful = activity.call_successful === 'accepted' || activity.call_successful === 'yes' || activity.callSuccessful;
   const aiSummary = activity.call_summary || activity.aiGeneratedSummary;
   const customerName = activity.customer_name || (activity.links.find(l => l.entityType === 'contact')?.contact ? getContactName(activity.links.find(l => l.entityType === 'contact')!.contact!) : 'Anonymous');
@@ -203,11 +215,11 @@ export function ActivityEntry({
                   {sentiment && (
                     <Badge variant="outline" className={cn(
                       "rounded-md px-2 py-0.5 text-[11px] gap-1",
-                      sentiment === 'Positive' ? 'text-green-600 bg-green-50 border-green-200' : 
-                      sentiment === 'Negative' ? 'text-red-600 bg-red-50 border-red-200' : 
+                      sentiment === 'positive' ? 'text-green-600 bg-green-50 border-green-200' : 
+                      sentiment === 'negative' ? 'text-red-600 bg-red-50 border-red-200' : 
                       'text-blue-600 bg-blue-50 border-blue-200'
                     )}>
-                      {sentiment === 'Positive' ? '😊' : sentiment === 'Negative' ? '☹️' : '😐'} {sentiment}
+                      {sentimentLabel(sentiment)}
                     </Badge>
                   )}
                   {(activity.call_successful || activity.callSuccessful !== undefined) && (
