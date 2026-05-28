@@ -190,15 +190,19 @@ function extractFromText(text: string, currentData: any) {
 }
 
 export async function POST(request: NextRequest) {
+  console.log("[RETAIL AI ACTIVITIES ROUTE] >>>>> WEBHOOK HIT (retail-ai-activities) <<<<<");
   let body: any;
   try {
-    body = await request.json();
-  } catch {
+    const rawBody = await request.text();
+    console.log("[RETAIL AI ACTIVITIES ROUTE] Raw Body:", rawBody);
+    body = JSON.parse(rawBody);
+  } catch (e) {
+    console.error("[RETAIL AI ACTIVITIES ROUTE] Invalid JSON payload");
     return NextResponse.json({ success: false, error: "Invalid JSON body" }, { status: 400 });
   }
 
   const event = body.event || body.type;
-  console.log(`Retail AI Webhook received: ${event}`, JSON.stringify(body, null, 2));
+  console.log(`[RETAIL AI ACTIVITIES ROUTE] Event: ${event}`, JSON.stringify(body, null, 2));
 
   // 1. Only process completed events
   if (event && !COMPLETED_EVENTS.has(event) && event !== 'call_analyzed') {

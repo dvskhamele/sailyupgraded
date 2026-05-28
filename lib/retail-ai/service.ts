@@ -100,6 +100,12 @@ export async function createRetailAIActivityFromWebhook(
     receivedAt: options.receivedAt,
   });
   
+  console.log("[RETAIL AI SERVICE] Mapping complete. Input for repository:", JSON.stringify({
+    ...activityInput,
+    retailAIPayload: "[TRUNCATED]",
+    transcript: "[TRUNCATED]"
+  }, null, 2));
+
   console.log("[RETAIL AI SERVICE] UPSERTING Retail AI activity", {
     call_id: parsed.conversationId,
     direction: parsed.metadata.call_direction,
@@ -110,14 +116,15 @@ export async function createRetailAIActivityFromWebhook(
   let activity;
   try {
     activity = await createRetailAIActivityRecord(activityInput);
-    console.log("[RETAIL AI SERVICE] Activity record persisted", {
+    console.log("[RETAIL AI SERVICE] Activity record persisted successfully", {
       call_id: parsed.conversationId,
       activity_id: activity.id,
     });
-  } catch (error) {
-    console.error("[RETAIL AI SERVICE] Persistence failed", {
+  } catch (error: any) {
+    console.error("[RETAIL AI SERVICE] Persistence failed CRITICAL", {
       call_id: parsed.conversationId,
-      error,
+      message: error.message,
+      stack: error.stack
     });
     throw error;
   }

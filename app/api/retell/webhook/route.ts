@@ -135,29 +135,54 @@ function getCustomAnalysisValue(
 }
 
 export async function POST(request: Request) {
+  const startTime = Date.now();
+  console.log("[RETELL WEBHOOK] >>>>> WEBHOOK HIT START <<<<<");
+  
   const rawBody = await request.text();
   let payload: any;
 
   try {
     payload = JSON.parse(rawBody);
-  } catch {
-    console.error("[RETELL WEBHOOK] Invalid JSON payload received:", rawBody);
+    console.log("[RETELL WEBHOOK] Parsed JSON payload successfully");
+  } catch (parseError) {
+    console.error("[RETELL WEBHOOK] CRITICAL: Invalid JSON payload received:", rawBody);
+    console.error("[RETELL WEBHOOK] Parse Error:", parseError);
     return NextResponse.json({ error: "Invalid JSON payload" }, { status: 400 });
   }
 
+  const headers = Object.fromEntries(request.headers.entries());
+  console.log("[RETELL WEBHOOK] Headers:", JSON.stringify(headers, null, 2));
+
   const event = stringValue(payload.event);
   const call = payload.call || {};
+  
+  // Flexible Call ID Extraction
   const callId = stringValue(call.call_id) || 
                  stringValue(call.id) || 
                  stringValue(payload.call_id) || 
                  stringValue(payload.conversation_id) || 
                  stringValue(payload.conversationId);
 
-  console.log(`[RETELL WEBHOOK] Incoming Payload [${event}] for [${callId}]`);
-  console.log(`[RETELL WEBHOOK] Raw Payload Snapshot:`, JSON.stringify(payload, null, 2));
+  console.log(`[RETELL WEBHOOK] EVENT: ${event} | CALL ID: ${callId}`);
+  console.log(`[RETELL WEBHOOK] FULL PAYLOAD:`, JSON.stringify(payload, null, 2));
 
   if (!event || !callId) {
-    console.error("[RETELL WEBHOOK] Missing required fields (event or callId)", { event, callId });
+    console.error("[RETELL WEBHOOK] FAILED: Missing required fields (event or callId)", { event, callId });
+    
+    // Attempt to save raw event for debugging anyway
+    try {
+      await prismadb.crm_LeadCallWebhookEvent.create({
+        data: {
+          callId: callId || "unknown",
+          event: event || "unknown",
+          payload: payload as any,
+        },
+      });
+      console.log("[RETELL WEBHOOK] Saved raw event for debugging despite missing fields");
+    } catch (e) {
+      console.error("[RETELL WEBHOOK] Could not even save raw event log:", e);
+    }
+    
     return NextResponse.json(
       { error: "Retell webhook event and callId are required" },
       { status: 400 },
@@ -169,30 +194,30 @@ export async function POST(request: Request) {
   const direction = stringValue(call.direction);
   const callStatus = stringValue(call.call_status);
 
-  console.log("[RETELL WEBHOOK] Received call event", {
+  console.log("[RETELL WEBHOOK] Call Context", {
     call_id: callId,
     direction,
     call_type: callType,
     call_status: callStatus,
     event_type: event,
-  });
-  console.log("[RETELL WEBHOOK] Call routing", {
-    call_id: callId,
     from_number: call.from_number,
     to_number: call.to_number,
   });
-  console.log("[RETELL WEBHOOK] Metadata", { call_id: callId, metadata });
 
+  // Support All Retell Events (Step 3)
   if (!handledEvents.has(event)) {
-    console.log(`[RETELL WEBHOOK] Ignoring unhandled event: ${event}`);
-    await prismadb.crm_LeadCallWebhookEvent.create({
-      data: {
-        callId,
-        event,
-        payload: payload as any,
-      },
-    });
-
+    console.warn(`[RETELL WEBHOOK] UNSUPPORTED EVENT: ${event}. Saving as raw event log.`);
+    try {
+      await prismadb.crm_LeadCallWebhookEvent.create({
+        data: {
+          callId,
+          event,
+          payload: payload as any,
+        },
+      });
+    } catch (e) {
+      console.error("[RETELL WEBHOOK] Failed to save unsupported event log:", e);
+    }
     return new NextResponse(null, { status: 204 });
   }
 
@@ -202,15 +227,19 @@ export async function POST(request: Request) {
   const email = stringValue(metadata.member_email);
   const startedAt = dateFromRetellTimestamp(call.start_timestamp);
   const endedAt = dateFromRetellTimestamp(call.end_timestamp);
+  
+  // Safe Transcript Parsing
   const transcript =
     stringValue(call.transcript) ??
     (call.transcript_object ? JSON.stringify(call.transcript_object) : undefined);
+    
   const appointmentStatus =
     getCustomAnalysisValue(customAnalysisData, [
       "appointment_status",
       "appointmentStatus",
       "appointment",
     ]) ?? "none";
+    
   const qualificationStatus =
     getCustomAnalysisValue(customAnalysisData, [
       "qualification_status",
@@ -219,19 +248,13 @@ export async function POST(request: Request) {
       "lead_status",
     ]) ?? "unknown";
 
-  console.log(`[RETELL WEBHOOK] Processing data for callId: ${callId}`, {
-    event,
-    direction,
-    callType,
-    callStatus,
-    opportunityId,
-    memberId,
-    phone: call.to_number,
-    appointmentStatus,
-    qualificationStatus
-  });
+  console.log(`[RETELL WEBHOOK] PROCESSING PIPELINE START for callId: ${callId}`);
+  const pipelineStart = Date.now();
 
   try {
+    // 1. Transactional Call Tracking Update
+    console.log(`[RETELL WEBHOOK] Step 1: Upserting Call Tracking for: ${callId}`);
+    const step1Start = Date.now();
     await prismadb.$transaction([
       prismadb.crm_LeadCallWebhookEvent.create({
         data: {
@@ -272,8 +295,8 @@ export async function POST(request: Request) {
           agentVersion: call.agent_version,
           callStatus: statusForEvent(event, call),
           callDisposition: call.disconnection_reason,
-          transcript,
-          summary: getSummary(call),
+          transcript: transcript || undefined,
+          summary: getSummary(call) || undefined,
           appointmentStatus,
           qualificationStatus,
           duration: durationSeconds(call),
@@ -286,49 +309,67 @@ export async function POST(request: Request) {
         },
       }),
     ]);
+    console.log(`[RETELL WEBHOOK] Step 1 SUCCESS in ${Date.now() - step1Start}ms: Call Tracking updated for: ${callId}`);
 
+    // 2. Retail AI Activity Creation (Step 1-13)
     if (COMPLETED_EVENTS.has(event)) {
-      console.log(`[RETELL WEBHOOK] Triggering Retail AI Activity creation for callId: ${callId} (event: ${event})`);
+      console.log(`[RETELL WEBHOOK] Step 2: Triggering Retail AI Activity creation for event: ${event}`);
+      const step2Start = Date.now();
       try {
         const result = await createRetailAIActivityFromWebhook(payload, { receivedAt: new Date() });
-        console.log(`[RETELL WEBHOOK] Retail AI Activity result for callId: ${callId}:`, result);
-      } catch (activityError) {
-        console.error(`[RETELL WEBHOOK] Failed to create Retail AI Activity for callId: ${callId}:`, activityError);
+        console.log(`[RETELL WEBHOOK] Step 2 SUCCESS in ${Date.now() - step2Start}ms: Retail AI Activity Result:`, JSON.stringify(result, null, 2));
+      } catch (activityError: any) {
+        console.error(`[RETELL WEBHOOK] Step 2 FAILED after ${Date.now() - step2Start}ms: Pipeline error for callId: ${callId}`);
+        console.error(`[RETELL WEBHOOK] Error Message: ${activityError.message}`);
+        console.error(`[RETELL WEBHOOK] Error Stack:`, activityError.stack);
+        // We don't return 500 here to avoid Retell retrying forever if it's a transient DB error
       }
       
-      // Automated SMS triggers
+      // 3. Automated SMS triggers
       const phone = call.to_number;
       if (phone) {
-        if (appointmentStatus === "scheduled" || appointmentStatus === "booked") {
-          await sendSMS({
-            to: phone,
-            message: `Hi! Your appointment with BlueTide Financial has been booked. We look forward to speaking with you!`,
-            opportunityId,
-          });
-        } else if (qualificationStatus === "qualified") {
-           await sendSMS({
-            to: phone,
-            message: `Thank you for speaking with us! We've marked you as a qualified lead and will be in touch soon.`,
-            opportunityId,
-          });
+        try {
+          if (appointmentStatus === "scheduled" || appointmentStatus === "booked") {
+            console.log(`[RETELL WEBHOOK] Triggering SMS: Appointment booked for ${phone}`);
+            await sendSMS({
+              to: phone,
+              message: `Hi! Your appointment with BlueTide Financial has been booked. We look forward to speaking with you!`,
+              opportunityId,
+            });
+          } else if (qualificationStatus === "qualified") {
+             console.log(`[RETELL WEBHOOK] Triggering SMS: Lead qualified for ${phone}`);
+             await sendSMS({
+              to: phone,
+              message: `Thank you for speaking with us! We've marked you as a qualified lead and will be in touch soon.`,
+              opportunityId,
+            });
+          }
+        } catch (smsError) {
+          console.error("[RETELL WEBHOOK] SMS Trigger failed:", smsError);
         }
       }
     } else if (event === "dial_no_answer" || event === "voicemail_reached") {
        const phone = call.to_number;
        if (phone) {
-         await sendSMS({
-           to: phone,
-           message: `Hi! We tried to reach you from BlueTide Financial but missed you. We'll try again later, or feel free to call us back!`,
-           opportunityId,
-         });
+         try {
+           console.log(`[RETELL WEBHOOK] Triggering SMS: Missed call for ${phone}`);
+           await sendSMS({
+             to: phone,
+             message: `Hi! We tried to reach you from BlueTide Financial but missed you. We'll try again later, or feel free to call us back!`,
+             opportunityId,
+           });
+         } catch (smsError) {
+           console.error("[RETELL WEBHOOK] SMS Trigger failed:", smsError);
+         }
        }
     }
 
+    console.log(`[RETELL WEBHOOK] PIPELINE COMPLETE for callId: ${callId} in ${Date.now() - pipelineStart}ms`);
     return new NextResponse(null, { status: 204 });
   } catch (error) {
-    console.error("[RETELL_WEBHOOK_POST]", error);
+    console.error("[RETELL WEBHOOK] CRITICAL PIPELINE FAILURE:", error);
     return NextResponse.json(
-      { error: "Failed to persist Retell webhook" },
+      { error: "Internal server error during webhook processing" },
       { status: 500 },
     );
   }

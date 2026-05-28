@@ -330,182 +330,213 @@ function extractSmokerStatus(transcript: string): string | undefined {
 }
 
 export function validateRetailAIPayload(payload: unknown): payload is RetailAIPayload {
-  if (!payload || typeof payload !== "object") return false;
+  if (!payload || typeof payload !== "object") {
+    console.error("[RETAIL AI PARSER] Validation failed: payload is null or not an object", typeof payload);
+    return false;
+  }
   const root = payload as RetailAIPayload;
   const call = asObject(root.call);
-  return Boolean(
-    firstString(
-      call.call_id,
-      call.id,
-      (payload as Record<string, unknown>).call_id,
-      (payload as Record<string, unknown>).conversation_id,
-      (payload as Record<string, unknown>).conversationId,
-    ),
+  
+  const callId = firstString(
+    call.call_id,
+    call.id,
+    (payload as Record<string, unknown>).call_id,
+    (payload as Record<string, unknown>).conversation_id,
+    (payload as Record<string, unknown>).conversationId,
   );
+
+  if (!callId) {
+    console.error("[RETAIL AI PARSER] Validation failed: No call identifier found in payload.");
+    console.error("[RETAIL AI PARSER] Payload keys:", Object.keys(root));
+    if (root.call) console.error("[RETAIL AI PARSER] Payload.call keys:", Object.keys(call));
+  }
+
+  return Boolean(callId);
 }
 
 export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall {
-  if (!validateRetailAIPayload(payload)) {
-    throw new Error("Retail AI payload must include call.call_id or conversation id");
-  }
-
-  const root = payload as Record<string, unknown>;
-  const call = asObject(payload.call) as RetailAICallPayload;
-  const analysis = {
-    ...asObject(payload.call_analysis),
-    ...asObject(call.call_analysis),
-  } as RetailAICallAnalysis;
-  const customData = asObject(analysis.custom_analysis_data);
-  const direction = firstString(call.direction, root.direction);
-  const callType = firstString(call.type, call.call_type, root.type, root.call_type);
-  const callStatus = firstString(call.call_status, root.call_status);
-  const metadata = {
-    ...asObject(call.metadata),
-    ...asObject(root.metadata),
-    ...(direction ? { call_direction: direction } : {}),
-    ...(callType ? { call_type: callType } : {}),
-    ...(callStatus ? { call_status: callStatus } : {}),
-  };
-  const transcriptJson = normalizeTranscript(call.transcript_object ?? payload.transcript_object ?? payload.transcript);
-  const transcript = transcriptText(call.transcript ?? payload.transcript, transcriptJson);
-  const sentiment = normalizeSentiment(
-    analysis.user_sentiment ?? payload.user_sentiment ?? customData.user_sentiment,
-  );
-  const callSuccessful =
-    booleanValue(analysis.call_successful) ??
-    booleanValue(payload.call_successful) ??
-    booleanValue(customData.call_successful) ??
-    false;
-  const durationSeconds =
-    numberValue(call.total_duration_seconds) ??
-    numberValue(payload.total_duration_seconds) ??
-    undefined;
-  const durationMs = numberValue(call.duration_ms) ?? numberValue(payload.duration_ms);
-  const durationMinutes =
-    durationSeconds !== undefined
-      ? Math.round(durationSeconds / 60)
-      : durationMs !== undefined
-        ? Math.round(durationMs / 60_000)
-        : null;
-  const eventTimestamp =
-    dateValue(payload.event_timestamp) ??
-    dateValue(call.event_timestamp) ??
-    dateValue(call.end_timestamp) ??
-    dateValue(call.start_timestamp) ??
-    new Date();
-  const appointmentBooked = isAppointmentBooked(customData);
-
-  // Issue 2: Fixed Summary Mapping
-  const summary = firstString(analysis.call_summary, analysis.summary) ?? "";
-  const detailedSummary =
-    firstString(customData.detailed_call_summary, customData.detailedCallSummary) ?? "";
-  
-  const extractedName = extractName(detailedSummary, summary, transcript);
-  const extractedEmail = extractEmail(transcript);
-  const extractedPhone = extractPhone(transcript);
-  const extractedTimezone = extractTimezone(transcript);
-  const extractedInsurance = extractInsuranceInterest(transcript);
-  const extractedSmoker = extractSmokerStatus(transcript);
-
-  const getCost = () => {
-    const rawCost = call.call_cost ?? payload.call_cost;
-    if (typeof rawCost === "number") return rawCost;
-    if (rawCost && typeof rawCost === "object" && "combined_cost" in (rawCost as any)) {
-      return numberValue((rawCost as any).combined_cost);
+  try {
+    if (!validateRetailAIPayload(payload)) {
+      throw new Error("Retail AI payload must include call.call_id or conversation id");
     }
-    return undefined;
-  };
 
-  const getCustomerPhone = () => {
-    // 1. Check custom data/metadata first (explicitly set)
-    const explicitPhone = firstString(
-      customData.customer_phone,
-      customData.customerPhone,
-      metadata.customer_phone,
-      metadata.customerPhone
-    );
-    if (explicitPhone) return explicitPhone;
+    const root = payload as Record<string, unknown>;
+    const call = asObject(payload.call) as RetailAICallPayload;
+    const analysis = {
+      ...asObject(payload.call_analysis),
+      ...asObject(call.call_analysis),
+    } as RetailAICallAnalysis;
+    const customData = asObject(analysis.custom_analysis_data);
+    const direction = firstString(call.direction, root.direction) || "unknown";
+    const callType = firstString(call.type, call.call_type, root.type, root.call_type) || "unknown";
+    const callStatus = firstString(call.call_status, root.call_status) || "unknown";
+    const metadata = {
+      ...asObject(call.metadata),
+      ...asObject(root.metadata),
+      ...(direction ? { call_direction: direction } : {}),
+      ...(callType ? { call_type: callType } : {}),
+      ...(callStatus ? { call_status: callStatus } : {}),
+    };
+    const transcriptJson = normalizeTranscript(call.transcript_object ?? payload.transcript_object ?? payload.transcript);
+    const transcript = transcriptText(call.transcript ?? payload.transcript, transcriptJson) || "";
+    const sentiment = normalizeSentiment(
+      analysis.user_sentiment ?? payload.user_sentiment ?? customData.user_sentiment,
+    ) || "Neutral";
+    const callSuccessful =
+      booleanValue(analysis.call_successful) ??
+      booleanValue(payload.call_successful) ??
+      booleanValue(customData.call_successful) ??
+      false;
+    const durationSeconds =
+      numberValue(call.total_duration_seconds) ??
+      numberValue(payload.total_duration_seconds) ??
+      undefined;
+    const durationMs = numberValue(call.duration_ms) ?? numberValue(payload.duration_ms);
+    const durationMinutes =
+      durationSeconds !== undefined
+        ? Math.round(durationSeconds / 60)
+        : durationMs !== undefined
+          ? Math.round(durationMs / 60_000)
+          : null;
+    const eventTimestamp =
+      dateValue(payload.event_timestamp) ??
+      dateValue(call.event_timestamp) ??
+      dateValue(call.end_timestamp) ??
+      dateValue(call.start_timestamp) ??
+      new Date();
+    const appointmentBooked = isAppointmentBooked(customData);
 
-    // 2. For phone calls, determine based on direction
-    const direction = firstString(call.direction, payload.direction)?.toLowerCase();
-    const fromNum = call.from_number;
-    const toNum = call.to_number;
+    // Safe Summary Mapping
+    const summary = firstString(analysis.call_summary, analysis.summary) || "";
+    const detailedSummary =
+      firstString(customData.detailed_call_summary, customData.detailedCallSummary) || "";
+    
+    const extractedName = extractName(detailedSummary, summary, transcript);
+    const extractedEmail = extractEmail(transcript);
+    const extractedPhone = extractPhone(transcript);
+    const extractedTimezone = extractTimezone(transcript);
+    const extractedInsurance = extractInsuranceInterest(transcript);
+    const extractedSmoker = extractSmokerStatus(transcript);
 
-    if (fromNum && toNum) {
-      if (direction === "inbound") {
-        return fromNum; // Inbound: From customer to AI
-      } else if (direction === "outbound") {
-        return toNum; // Outbound: From AI to customer
+    const getCost = () => {
+      const rawCost = call.call_cost ?? payload.call_cost;
+      if (typeof rawCost === "number") return rawCost;
+      if (rawCost && typeof rawCost === "object" && "combined_cost" in (rawCost as any)) {
+        return numberValue((rawCost as any).combined_cost);
       }
-    }
+      return undefined;
+    };
 
-    // 3. Fallback to any available number or extracted
-    return firstString(fromNum, toNum, extractedPhone);
-  };
+    const getCustomerPhone = () => {
+      // 1. Check custom data/metadata first (explicitly set)
+      const explicitPhone = firstString(
+        customData.customer_phone,
+        customData.customerPhone,
+        metadata.customer_phone,
+        metadata.customerPhone
+      );
+      if (explicitPhone) return explicitPhone;
 
-  return {
-    conversationId:
-      firstString(call.call_id, call.id, root.call_id, root.conversation_id, root.conversationId) ?? "",
-    transcript,
-    transcriptJson,
-    recordingUrl: firstString(call.recording_url, payload.recording_url),
-    publicLogUrl: firstString(call.public_log_url, payload.public_log_url),
-    eventTimestamp,
-    startedAt: dateValue(call.start_timestamp),
-    endedAt: dateValue(call.end_timestamp),
-    durationMinutes,
-    summary,
-    detailedSummary,
-    sentiment,
-    callSuccessful,
-    confidenceScore: confidenceFrom(sentiment, callSuccessful, transcript),
-    customer: {
-      // Issue 1: Fixed Name Priority
-      name: firstString(
-        analysis.customer_name, 
-        analysis.userName, 
-        analysis.user_name,
-        customData.customer_name, 
-        customData.customerName, 
-        metadata.customer_name, 
-        metadata.customerName, 
-        extractedName
-      ),
-      phone: getCustomerPhone(),
-      email: firstString(customData.customer_email, customData.customerEmail, metadata.customer_email, metadata.customerEmail, extractedEmail),
-      timezone: firstString(customData.customer_timezone, customData.customerTimezone, metadata.customer_timezone, metadata.customerTimezone, extractedTimezone),
-      state: firstString(customData.state, metadata.state, customData.location, metadata.location),
-      location: firstString(customData.location, metadata.location),
-    },
-    appointment: {
-      booked: appointmentBooked,
-      date: firstString(customData.appointment_date, customData.appointmentDate, customData.meeting_date, customData.meetingDate),
-      time: firstString(customData.appointment_time, customData.appointmentTime, customData.meeting_time, customData.meetingTime),
-      type: firstString(customData.appointment_type, customData.appointmentType),
-      consultationType: firstString(customData.consultation_type, customData.consultationType),
-      outcome: firstString(customData.call_outcome, customData.callOutcome, customData.outcome),
-    },
-    metrics: {
-      latency: call.latency ?? payload.latency,
-      tokenUsage: call.token_usage,
-      cost: getCost(),
-      durationSeconds: durationSeconds,
-    },
-    insights: {
-      intent: firstString(customData.customer_intent, customData.intent),
-      urgency: firstString(customData.urgency),
-      products: arrayOfStrings(customData.requested_products ?? customData.products),
-      followUpRequired: booleanValue(customData.follow_up_required ?? customData.followUpRequired) ?? false,
-      conversionProbability:
-        numberValue(customData.conversion_probability ?? customData.conversionProbability) ??
-        (callSuccessful ? 80 : 20),
-      insuranceInterest: firstString(customData.insurance_interest, customData.insuranceInterest, extractedInsurance),
-      smokerStatus: firstString(customData.smoker_status, customData.smokerStatus, extractedSmoker),
-    },
-    analysis,
-    metadata,
-    rawPayload: payload,
-  };
+      // 2. For phone calls, determine based on direction
+      const directionVal = direction.toLowerCase();
+      const fromNum = call.from_number;
+      const toNum = call.to_number;
+
+      if (fromNum && toNum) {
+        if (directionVal === "inbound") {
+          return fromNum; // Inbound: From customer to AI
+        } else if (directionVal === "outbound") {
+          return toNum; // Outbound: From AI to customer
+        }
+      }
+
+      // 3. Fallback to any available number or extracted
+      return firstString(fromNum, toNum, extractedPhone) || "Unknown";
+    };
+
+    return {
+      conversationId:
+        firstString(call.call_id, call.id, root.call_id, root.conversation_id, root.conversationId) ?? "",
+      transcript,
+      transcriptJson,
+      recordingUrl: firstString(call.recording_url, payload.recording_url),
+      publicLogUrl: firstString(call.public_log_url, payload.public_log_url),
+      eventTimestamp,
+      startedAt: dateValue(call.start_timestamp),
+      endedAt: dateValue(call.end_timestamp),
+      durationMinutes,
+      summary,
+      detailedSummary,
+      sentiment,
+      callSuccessful,
+      confidenceScore: confidenceFrom(sentiment, callSuccessful, transcript),
+      customer: {
+        name: firstString(
+          analysis.customer_name, 
+          analysis.userName, 
+          analysis.user_name,
+          customData.customer_name, 
+          customData.customerName, 
+          metadata.customer_name, 
+          metadata.customerName, 
+          extractedName
+        ) || "Unknown Caller",
+        phone: getCustomerPhone(),
+        email: firstString(customData.customer_email, customData.customerEmail, metadata.customer_email, metadata.customerEmail, extractedEmail),
+        timezone: firstString(customData.customer_timezone, customData.customerTimezone, metadata.customer_timezone, metadata.customerTimezone, extractedTimezone),
+        state: firstString(customData.state, metadata.state, customData.location, metadata.location),
+        location: firstString(customData.location, metadata.location),
+      },
+      appointment: {
+        booked: appointmentBooked,
+        date: firstString(customData.appointment_date, customData.appointmentDate, customData.meeting_date, customData.meetingDate),
+        time: firstString(customData.appointment_time, customData.appointmentTime, customData.meeting_time, customData.meetingTime),
+        type: firstString(customData.appointment_type, customData.appointmentType),
+        consultationType: firstString(customData.consultation_type, customData.consultationType),
+        outcome: firstString(customData.call_outcome, customData.callOutcome, customData.outcome),
+      },
+      metrics: {
+        latency: call.latency ?? payload.latency,
+        tokenUsage: call.token_usage,
+        cost: getCost(),
+        durationSeconds: durationSeconds,
+      },
+      insights: {
+        intent: firstString(customData.customer_intent, customData.intent),
+        urgency: firstString(customData.urgency),
+        products: arrayOfStrings(customData.requested_products ?? customData.products),
+        followUpRequired: booleanValue(customData.follow_up_required ?? customData.followUpRequired) ?? false,
+        conversionProbability:
+          numberValue(customData.conversion_probability ?? customData.conversionProbability) ??
+          (callSuccessful ? 80 : 20),
+        insuranceInterest: firstString(customData.insurance_interest, customData.insuranceInterest, extractedInsurance),
+        smokerStatus: firstString(customData.smoker_status, customData.smokerStatus, extractedSmoker),
+      },
+      analysis,
+      metadata,
+      rawPayload: payload,
+    };
+  } catch (error) {
+    console.error("[RETAIL AI PARSER] CRITICAL FAILURE:", error);
+    // Return a minimally valid object to prevent total pipeline crash
+    return {
+      conversationId: firstString((payload as any)?.call?.call_id, (payload as any)?.call_id) || "unknown",
+      transcript: "",
+      transcriptJson: [],
+      eventTimestamp: new Date(),
+      summary: "Parsing failed",
+      detailedSummary: "",
+      callSuccessful: false,
+      confidenceScore: 0,
+      customer: { name: "Unknown Caller", phone: "Unknown" },
+      appointment: { booked: false },
+      metrics: {},
+      insights: { products: [], followUpRequired: false, conversionProbability: 0 },
+      analysis: {},
+      metadata: {},
+      rawPayload: payload,
+    };
+  }
 }
 
 export function formatTranscript(transcriptObj: RetailAITranscriptMessage[]): string {

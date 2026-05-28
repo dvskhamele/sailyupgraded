@@ -97,9 +97,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    console.log(`[RETELL_CREATE_PHONE_CALL] Fetching opportunity: ${opportunityId}`);
+    const dbStartTime = Date.now();
     const opportunity = await prismadb.crm_Opportunities.findFirst({
       where: { id: opportunityId, deletedAt: null },
-      include: {
+      select: {
+        id: true,
+        name: true,
+        clientName: true,
         contacts: {
           include: {
             contact: {
@@ -119,6 +124,8 @@ export async function POST(request: Request) {
         },
       },
     });
+    const dbEndTime = Date.now();
+    console.log(`[RETELL_CREATE_PHONE_CALL] Opportunity fetched in ${dbEndTime - dbStartTime}ms`);
 
     if (!opportunity) {
       return NextResponse.json(
@@ -194,6 +201,10 @@ export async function POST(request: Request) {
       retellBody.override_agent_version = agentVersion;
     }
 
+    console.log(`[RETELL_CREATE_PHONE_CALL] Initiating fetch to Retell API: ${RETELL_API_BASE_URL}/v2/create-phone-call`);
+    console.log(`[RETELL_CREATE_PHONE_CALL] Request Body:`, JSON.stringify(retellBody, null, 2));
+    const startTime = Date.now();
+    
     const response = await fetch(`${RETELL_API_BASE_URL}/v2/create-phone-call`, {
       method: "POST",
       headers: {
@@ -204,8 +215,14 @@ export async function POST(request: Request) {
       cache: "no-store",
     });
 
+    const endTime = Date.now();
+    console.log(`[RETELL_CREATE_PHONE_CALL] Retell API responded in ${endTime - startTime}ms with status: ${response.status}`);
+
     const payload = (await response.json()) as RetellCreatePhoneCallResponse;
+    console.log(`[RETELL_CREATE_PHONE_CALL] Retell API Payload:`, JSON.stringify(payload, null, 2));
+
     if (!response.ok || !payload.call_id) {
+      console.error(`[RETELL_CREATE_PHONE_CALL] Retell API Error:`, payload);
       return NextResponse.json(
         {
           error:
@@ -217,6 +234,8 @@ export async function POST(request: Request) {
       );
     }
 
+    console.log(`[RETELL_CREATE_PHONE_CALL] Upserting LeadCallTracking for call_id: ${payload.call_id}`);
+    const trackingStartTime = Date.now();
     await prismadb.crm_LeadCallTracking.upsert({
       where: { callId: payload.call_id },
       create: {
@@ -245,6 +264,8 @@ export async function POST(request: Request) {
         createdBy: session.user.id,
       },
     });
+    const trackingEndTime = Date.now();
+    console.log(`[RETELL_CREATE_PHONE_CALL] LeadCallTracking upserted in ${trackingEndTime - trackingStartTime}ms`);
 
     return NextResponse.json({
       success: true,
