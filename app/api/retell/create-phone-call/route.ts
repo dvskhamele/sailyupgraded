@@ -9,6 +9,7 @@ import {
   getConfiguredRetellPhoneNumber,
   getFirstRetellVoiceAgent,
   getRetellApiKey,
+  ensureRetellAgentWebhookUrl,
   isE164PhoneNumber,
   normalizeE164PhoneNumber,
 } from "@/lib/retell";
@@ -165,6 +166,8 @@ export async function POST(request: Request) {
         { status: 404 },
       );
     }
+
+    await ensureRetellAgentWebhookUrl(apiKey, agentId);
 
     const memberName =
       cleanString(requestBody.memberName) ||

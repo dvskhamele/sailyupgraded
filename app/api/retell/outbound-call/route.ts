@@ -3,6 +3,7 @@ import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import {
   RETELL_API_BASE_URL,
+  ensureRetellAgentWebhookUrl,
   getRetellApiKey,
   getConfiguredRetellPhoneNumber,
   normalizeE164PhoneNumber,
@@ -30,6 +31,8 @@ export async function POST(request: Request) {
     if (!agent_id || !to_number || !lead_id) {
       return NextResponse.json({ error: "Missing required fields: agent_id, to_number, or lead_id" }, { status: 400 });
     }
+
+    await ensureRetellAgentWebhookUrl(apiKey, agent_id);
 
     const retellBody = {
       from_number: fromNumber,

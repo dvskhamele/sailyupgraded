@@ -1,5 +1,9 @@
 const RETELL_API_BASE_URL = "https://api.retellai.com";
 const RETELL_FETCH_TIMEOUT_MS = 10000;
+const RETELL_PRODUCTION_WEBHOOK_URL =
+  "https://sailyupgraded.vercel.app/api/retell/webhook";
+
+const syncedWebhookAgentIds = new Set<string>();
 
 export type RetellResponseEngine = {
   type?: string;
@@ -13,6 +17,7 @@ export type RetellAgent = {
   version?: number;
   agent_name?: string | null;
   is_published?: boolean;
+  webhook_url?: string | null;
   response_engine?: RetellResponseEngine;
 };
 
@@ -62,6 +67,24 @@ export function getConfiguredRetellPhoneNumber() {
   return process.env.RETELL_PHONE_NUMBER ?? process.env.RETAIL_PHONE_NUMBER;
 }
 
+export function getRetellWebhookConfig() {
+  const isProduction = process.env.NODE_ENV === "production";
+  const envWebhookUrl = process.env.RETELL_WEBHOOK_URL?.trim();
+  const webhookUrl = isProduction ? RETELL_PRODUCTION_WEBHOOK_URL : envWebhookUrl;
+
+  return {
+    webhookUrl,
+    environment: isProduction ? "production" : "development",
+  };
+}
+
+export function logRetellWebhookUrl() {
+  const { webhookUrl, environment } = getRetellWebhookConfig();
+  console.log(
+    `[RETELL WEBHOOK URL] ${webhookUrl || "not configured"} (${environment})`,
+  );
+}
+
 export function isE164PhoneNumber(phone: string) {
   return /^\+[1-9]\d{1,14}$/.test(phone);
 }
@@ -106,6 +129,58 @@ export async function listRetellAgents(apiKey: string) {
   }
 
   return (await response.json()) as RetellAgent[];
+}
+
+export async function updateRetellAgentWebhookUrl(
+  apiKey: string,
+  agentId: string,
+  webhookUrl: string,
+) {
+  const response = await fetch(`${RETELL_API_BASE_URL}/update-agent/${agentId}`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ webhook_url: webhookUrl }),
+    cache: "no-store",
+    signal: AbortSignal.timeout(RETELL_FETCH_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    const payload = await response.json().catch(() => undefined);
+    throw new Error(
+      payload?.message ?? payload?.error ?? "Unable to update Retell webhook URL",
+    );
+  }
+}
+
+export async function ensureRetellAgentWebhookUrl(
+  apiKey: string,
+  agentId: string | undefined,
+) {
+  if (!agentId) {
+    return;
+  }
+
+  const { webhookUrl, environment } = getRetellWebhookConfig();
+  logRetellWebhookUrl();
+
+  if (!webhookUrl) {
+    console.warn(
+      "[RETELL WEBHOOK URL] RETELL_WEBHOOK_URL is required outside production",
+    );
+    return;
+  }
+
+  const syncKey = `${environment}:${agentId}:${webhookUrl}`;
+  if (syncedWebhookAgentIds.has(syncKey)) {
+    return;
+  }
+
+  await updateRetellAgentWebhookUrl(apiKey, agentId, webhookUrl);
+  syncedWebhookAgentIds.add(syncKey);
+  console.log(`[RETELL WEBHOOK URL] Updated Retell agent ${agentId}`);
 }
 
 export async function listRetellChatAgents(apiKey: string) {

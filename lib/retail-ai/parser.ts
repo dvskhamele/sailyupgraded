@@ -24,7 +24,6 @@ export interface RetailAIPayload {
   public_log_url?: string;
   total_duration_seconds?: number;
   duration_ms?: number;
-  retell_llm_dynamic_variables?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -51,7 +50,6 @@ export interface RetailAICallPayload {
   metadata?: Record<string, unknown>;
   from_number?: string;
   to_number?: string;
-  retell_llm_dynamic_variables?: Record<string, unknown>;
   [key: string]: unknown;
 }
 
@@ -204,11 +202,7 @@ function transcriptText(rawTranscript: unknown, transcriptObject: RetailAITransc
 function normalizeSentiment(value: unknown): string | undefined {
   const sentiment = stringValue(value);
   if (!sentiment) return undefined;
-  const normalized = sentiment.toLowerCase();
-  if (normalized.includes("positive")) return "positive";
-  if (normalized.includes("negative")) return "negative";
-  if (normalized.includes("neutral")) return "neutral";
-  return undefined;
+  return sentiment.charAt(0).toUpperCase() + sentiment.slice(1).toLowerCase();
 }
 
 function arrayOfStrings(value: unknown): string[] {
@@ -253,39 +247,6 @@ function confidenceFrom(sentiment: string | undefined, successful: boolean, tran
   return Math.min(Math.max(confidence, 0), 100);
 }
 
-function inferSentimentFromTranscript(transcript: string): "positive" | "neutral" | "negative" {
-  const lower = transcript.toLowerCase();
-  const positiveMatches = [
-    "thank you",
-    "thanks",
-    "perfect",
-    "great",
-    "sounds good",
-    "appreciate",
-    "interested",
-    "book",
-    "schedule",
-    "appointment",
-    "yes",
-  ].filter((phrase) => lower.includes(phrase)).length;
-  const negativeMatches = [
-    "not interested",
-    "don't call",
-    "do not call",
-    "stop calling",
-    "angry",
-    "frustrated",
-    "annoyed",
-    "cancel",
-    "no thanks",
-    "no thank you",
-  ].filter((phrase) => lower.includes(phrase)).length;
-
-  if (negativeMatches > positiveMatches) return "negative";
-  if (positiveMatches > 0) return "positive";
-  return "neutral";
-}
-
 function extractEmail(transcript: string): string | undefined {
   const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
   const matches = transcript.match(emailRegex);
@@ -328,12 +289,8 @@ function extractName(detailedSummary: string, summary: string, transcript: strin
     return true;
   };
 
-  const text = `${detailedSummary}\n${summary}\n${transcript}`;
+  // Transcript parsing fallback patterns
   const transcriptPatterns = [
-    /the user,?\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?),?\s+(?:called|asked|is|was|expressed|scheduled)/i,
-    /user named\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
-    /customer(?:'s)? name is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
-    /client(?:'s)? name is\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/i,
     /your name is ([A-Z][a-z]+)/i,
     /name as ([A-Z][a-z]+)/i,
     /this is ([A-Z][a-z]+)/i,
@@ -345,7 +302,7 @@ function extractName(detailedSummary: string, summary: string, transcript: strin
   ];
   
   for (const pattern of transcriptPatterns) {
-    const match = text.match(pattern);
+    const match = transcript.match(pattern);
     if (match && match[1] && isValid(match[1])) return match[1].trim();
   }
 
@@ -410,7 +367,6 @@ function parseRelativeDate(text: string, referenceDate: Date = new Date()): Date
   const tomorrowMatch = lowerText.includes("tomorrow");
   const todayMatch = lowerText.includes("today");
   const nextMatch = lowerText.includes("next");
-  const hasAppointmentContext = /(appointment|consultation|meeting|scheduled|booked|confirmed|see you|got you down|set then)/i.test(text);
 
   if (tomorrowMatch) {
     targetDate.setDate(targetDate.getDate() + 1);
@@ -425,13 +381,14 @@ function parseRelativeDate(text: string, referenceDate: Date = new Date()): Date
     }
     
     targetDate.setDate(targetDate.getDate() + daysUntil);
-  } else if (!todayMatch && !hasAppointmentContext) {
+  } else if (!todayMatch) {
+    // If no day/tomorrow/today mentioned, we can't reliably parse the date
     return null;
   }
 
   // 2. Detect Time
   // Patterns: "8 PM", "8:30 AM", "at 5", "at 5:00"
-  const timeMatch = text.match(/(?:\bat\s+|\bfor\s+|\s)(\d{1,2})(?::(\d{2}))?\s*([ap]m)?\b/i);
+  const timeMatch = text.match(/(\d{1,2})(?::(\d{2}))?\s*([ap]m)?/i);
   if (!timeMatch) return null;
 
   let hours = parseInt(timeMatch[1]);
@@ -448,9 +405,6 @@ function parseRelativeDate(text: string, referenceDate: Date = new Date()): Date
   }
 
   targetDate.setHours(hours, minutes, 0, 0);
-  if (!dayMatch && !tomorrowMatch && !todayMatch && hasAppointmentContext && targetDate < referenceDate) {
-    targetDate.setDate(targetDate.getDate() + 1);
-  }
   return targetDate;
 }
 
@@ -467,9 +421,8 @@ function extractAppointmentTime(transcript: string, transcriptJson: RetailAITran
     /confirmed for\s*([^.?!,]+)/i,
     /appointment (?:is|at)\s*([^.?!,]+)/i,
     /consultation (?:is|at)\s*([^.?!,]+)/i,
-    /online consultation at\s*(\d{1,2}(?::\d{2})?\s*(?:[ap]m)?)/i,
     /(?:tomorrow|today) at\s*(\d{1,2}(?::\d{2})?\s*[ap]m)/i,
-    /(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday) at\s*(\d{1,2}(?::\d{2})?\s*(?:[ap]m)?)/i
+    /(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday) at\s*(\d{1,2}(?::\d{2})?\s*[ap]m)/i
   ];
 
   // Search from the end of the transcript (reverse order of messages)
@@ -528,19 +481,6 @@ function generateAISummary(parsed: Partial<ParsedRetailAICall>): string {
   return summary;
 }
 
-function generateSummaryFromTranscript(transcript: string, customerName?: string, appointmentTime?: Date, sentiment?: string) {
-  const compact = transcript.replace(/\s+/g, " ").trim();
-  const name = customerName && customerName !== "Unknown Caller" ? customerName : "The customer";
-  const tone = sentiment ?? "neutral";
-  if (!compact) return `${name} completed a Retail AI call with ${tone} sentiment.`;
-
-  const transcriptSummary = compact.length > 220 ? `${compact.slice(0, 217).trimEnd()}...` : compact;
-  const appointmentPart = appointmentTime
-    ? ` An appointment was detected for ${appointmentTime.toLocaleString("en-US")}.`
-    : "";
-  return `${name} completed a Retail AI call with ${tone} sentiment. ${transcriptSummary}${appointmentPart}`;
-}
-
 export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall {
   try {
     if (!validateRetailAIPayload(payload)) {
@@ -554,33 +494,21 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       ...asObject(call.call_analysis),
     } as RetailAICallAnalysis;
     const customData = asObject(analysis.custom_analysis_data);
-    const retellDynamicVariables = {
-      ...asObject(root.retell_llm_dynamic_variables),
-      ...asObject(call.retell_llm_dynamic_variables),
-    };
     const direction = firstString(call.direction, root.direction) || "unknown";
     const callType = firstString(call.type, call.call_type, root.type, root.call_type) || "unknown";
     const callStatus = firstString(call.call_status, root.call_status) || "unknown";
-    const metadata: Record<string, unknown> = {
+    const metadata = {
       ...asObject(call.metadata),
       ...asObject(root.metadata),
-      ...(Object.keys(retellDynamicVariables).length
-        ? { retell_llm_dynamic_variables: retellDynamicVariables }
-        : {}),
       ...(direction ? { call_direction: direction } : {}),
       ...(callType ? { call_type: callType } : {}),
       ...(callStatus ? { call_status: callStatus } : {}),
     };
     const transcriptJson = normalizeTranscript(call.transcript_object ?? payload.transcript_object ?? payload.transcript);
     const transcript = transcriptText(call.transcript ?? payload.transcript, transcriptJson) || "";
-    const sentiment =
-      normalizeSentiment(
-        analysis.user_sentiment ??
-          payload.user_sentiment ??
-          customData.user_sentiment ??
-          retellDynamicVariables.user_sentiment ??
-          root.sentiment,
-      ) || inferSentimentFromTranscript(transcript);
+    const sentiment = normalizeSentiment(
+      analysis.user_sentiment ?? payload.user_sentiment ?? customData.user_sentiment,
+    ) || "Neutral";
     const callSuccessful =
       booleanValue(analysis.call_successful) ??
       booleanValue(payload.call_successful) ??
@@ -689,8 +617,6 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
         customData.customerName, 
         metadata.customer_name, 
         metadata.customerName, 
-        retellDynamicVariables.customer_name,
-        retellDynamicVariables.customerName,
         extractedName
       ) || "Unknown Caller",
       phone: getCustomerPhone(),
@@ -719,30 +645,19 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
        appointmentTime,
        type: firstString(customData.appointment_type, customData.appointmentType),
        consultationType: firstString(customData.consultation_type, customData.consultationType),
-       outcome:
-        firstString(customData.call_outcome, customData.callOutcome, customData.outcome) ??
-        (appointmentBooked ? "appointment_booked" : callSuccessful ? "completed" : "completed_no_booking"),
+       outcome: firstString(customData.call_outcome, customData.callOutcome, customData.outcome),
      };
 
     // If no summary was provided, generate one
     if (!summary) {
-      summary = generateSummaryFromTranscript(transcript, customerData.name, appointment.appointmentTime, sentiment) ||
-        generateAISummary({
-          customer: customerData,
-          appointment,
-          insights,
-          sentiment,
-        });
+      summary = generateAISummary({
+        customer: customerData,
+        appointment,
+        insights,
+        sentiment,
+      });
       console.log(`[RETELL WEBHOOK] Generated fallback summary: ${summary}`);
     }
-
-    console.log("[PARSED_ACTIVITY_DATA]", {
-      customer_name: customerData.name,
-      appointment_time: appointment.appointmentTime ?? null,
-      call_summary: summary,
-      sentiment,
-      call_outcome: appointment.outcome,
-    });
 
     return {
       conversationId:
@@ -781,7 +696,6 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       transcript: "",
       transcriptJson: [],
       eventTimestamp: new Date(),
-      durationMinutes: null,
       summary: "Parsing failed",
       detailedSummary: "",
       callSuccessful: false,

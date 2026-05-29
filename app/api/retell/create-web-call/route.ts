@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-server";
 import {
   RETELL_API_BASE_URL,
+  ensureRetellAgentWebhookUrl,
   getConfiguredAgentId,
   getConfiguredAgentVersion,
   getFirstRetellVoiceAgent,
@@ -48,6 +49,8 @@ export async function POST(request: Request) {
         { status: 404 },
       );
     }
+
+    await ensureRetellAgentWebhookUrl(apiKey, agentId);
 
     const user = (session as any).user;
     const body: Record<string, unknown> = {
