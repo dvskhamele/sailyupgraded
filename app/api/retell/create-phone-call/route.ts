@@ -9,7 +9,10 @@ import {
   getConfiguredRetellPhoneNumber,
   getFirstRetellVoiceAgent,
   getRetellApiKey,
+  getRetellApiKeySource,
+  getRetellRuntimeDiagnostics,
   ensureRetellAgentWebhookUrl,
+  fingerprintSecret,
   isE164PhoneNumber,
   normalizeE164PhoneNumber,
 } from "@/lib/retell";
@@ -45,6 +48,17 @@ function getContactName(contact?: {
   return [contact?.first_name, contact?.last_name].filter(Boolean).join(" ").trim();
 }
 
+async function readRetellCreatePhoneCallPayload(response: Response) {
+  const text = await response.text().catch(() => "");
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text) as RetellCreatePhoneCallResponse;
+  } catch {
+    return { error: text } satisfies RetellCreatePhoneCallResponse;
+  }
+}
+
 export async function POST(request: Request) {
   const session = await getSession();
   if (!session?.user?.id) {
@@ -52,6 +66,11 @@ export async function POST(request: Request) {
   }
 
   const apiKey = getRetellApiKey();
+  console.log(
+    "[RETELL_CREATE_PHONE_CALL] Env diagnostics",
+    getRetellRuntimeDiagnostics(apiKey),
+  );
+
   if (!apiKey) {
     return NextResponse.json(
       { error: "Retell API key is not configured" },
@@ -158,6 +177,14 @@ export async function POST(request: Request) {
       const agent = await getFirstRetellVoiceAgent(apiKey);
       agentId = agent?.agent_id;
       agentVersion = agentVersion ?? agent?.version;
+      console.log("[RETELL_CREATE_PHONE_CALL] Selected first Retell voice agent", {
+        agentId,
+        agentVersion,
+        agentName: agent?.agent_name ?? null,
+        isPublished: agent?.is_published ?? null,
+        webhookUrl: agent?.webhook_url ?? null,
+        responseEngineType: agent?.response_engine?.type ?? null,
+      });
     }
 
     if (!agentId) {
@@ -166,6 +193,15 @@ export async function POST(request: Request) {
         { status: 404 },
       );
     }
+
+    console.log("[RETELL_CREATE_PHONE_CALL] Using Retell agent", {
+      requestAgentId: cleanString(requestBody.agentId) || null,
+      configuredAgentId: getConfiguredAgentId() || null,
+      finalAgentId: agentId,
+      finalAgentVersion: agentVersion ?? null,
+      apiKeySource: getRetellApiKeySource(),
+      apiKeyFingerprint: fingerprintSecret(apiKey),
+    });
 
     await ensureRetellAgentWebhookUrl(apiKey, agentId);
 
@@ -205,7 +241,16 @@ export async function POST(request: Request) {
     }
 
     console.log(`[RETELL_CREATE_PHONE_CALL] Initiating fetch to Retell API: ${RETELL_API_BASE_URL}/v2/create-phone-call`);
-    console.log(`[RETELL_CREATE_PHONE_CALL] Request Body:`, JSON.stringify(retellBody, null, 2));
+    console.log("[RETELL_CREATE_PHONE_CALL] Safe request summary", {
+      fromNumberFingerprint: fingerprintSecret(fromNumber),
+      toNumberFingerprint: fingerprintSecret(requestedPhone),
+      overrideAgentId: agentId,
+      overrideAgentVersion: agentVersion ?? null,
+      metadataKeys: Object.keys((retellBody.metadata as Record<string, unknown>) ?? {}),
+      dynamicVariableKeys: Object.keys(
+        (retellBody.retell_llm_dynamic_variables as Record<string, unknown>) ?? {},
+      ),
+    });
     const startTime = Date.now();
     
     const response = await fetch(`${RETELL_API_BASE_URL}/v2/create-phone-call`, {
@@ -221,11 +266,19 @@ export async function POST(request: Request) {
     const endTime = Date.now();
     console.log(`[RETELL_CREATE_PHONE_CALL] Retell API responded in ${endTime - startTime}ms with status: ${response.status}`);
 
-    const payload = (await response.json()) as RetellCreatePhoneCallResponse;
+    const payload = (await readRetellCreatePhoneCallPayload(response)) ?? {};
     console.log(`[RETELL_CREATE_PHONE_CALL] Retell API Payload:`, JSON.stringify(payload, null, 2));
 
     if (!response.ok || !payload.call_id) {
-      console.error(`[RETELL_CREATE_PHONE_CALL] Retell API Error:`, payload);
+      console.error(`[RETELL_CREATE_PHONE_CALL] Retell API Error:`, {
+        status: response.status,
+        statusText: response.statusText,
+        payload,
+        apiKeySource: getRetellApiKeySource(),
+        apiKeyFingerprint: fingerprintSecret(apiKey),
+        agentId,
+        agentVersion: agentVersion ?? null,
+      });
       return NextResponse.json(
         {
           error:

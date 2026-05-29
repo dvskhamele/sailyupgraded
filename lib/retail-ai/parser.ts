@@ -202,7 +202,19 @@ function transcriptText(rawTranscript: unknown, transcriptObject: RetailAITransc
 function normalizeSentiment(value: unknown): string | undefined {
   const sentiment = stringValue(value);
   if (!sentiment) return undefined;
-  return sentiment.charAt(0).toUpperCase() + sentiment.slice(1).toLowerCase();
+  return sentiment.toLowerCase();
+}
+
+function inferSentiment(transcript: string): string | undefined {
+  if (/\b(great|perfect|thank you|thanks|interested|book|appointment|confirmed)\b/i.test(transcript)) {
+    return "positive";
+  }
+
+  if (/\b(not interested|stop calling|angry|upset|bad|terrible|no thanks)\b/i.test(transcript)) {
+    return "negative";
+  }
+
+  return undefined;
 }
 
 function arrayOfStrings(value: unknown): string[] {
@@ -259,54 +271,196 @@ function extractPhone(transcript: string): string | undefined {
   return matches ? matches[0].replace(/[-.\s()]/g, "") : undefined;
 }
 
-function extractName(detailedSummary: string, summary: string, transcript: string): string | undefined {
-  const invalidNames = new Set([
-    "ontario", "covering", "final", "um", "life", "insurance", "retail", "assistant", 
-    "financial", "insurance interests", "province", "state", "keywords", "generated", 
-    "titles", "topics", "ontario life", "covering final", "wanted", "consultation",
-    "long term", "whole life", "gmail", "sunday", "california", "bluetide financial"
-  ]);
+type NameCandidate = {
+  name: string;
+  source: string;
+  role: "user";
+  segment: string;
+  priority: number;
+  order: number;
+};
 
-  const isValid = (name: string) => {
-    if (!name) return false;
-    const trimmed = name.trim();
-    const lower = trimmed.toLowerCase();
-    
-    // Validation Rules:
-    // 1. Alphabets/spaces only
-    if (!/^[a-zA-Z\s]+$/.test(trimmed)) return false;
-    
-    // 2. Max 3 words
-    if (trimmed.split(/\s+/).length > 3) return false;
-    
-    // 3. Reject filler/invalid words
-    if (invalidNames.has(lower)) return false;
-    if (lower.length < 2) return false;
-    
-    const invalidPhrases = ["insurance", "ontario", "covering", "life", "final", "policy", "financial", "bluetide"];
-    if (invalidPhrases.some(phrase => lower.includes(phrase))) return false;
-    
-    return true;
+type RejectedNameCandidate = NameCandidate & {
+  reason: string;
+};
+
+function normalizeRole(role: string | undefined) {
+  const normalized = role?.toLowerCase();
+  if (normalized === "agent" || normalized === "assistant" || normalized === "ai") return "agent";
+  if (normalized === "user" || normalized === "customer" || normalized === "human") return "user";
+  return undefined;
+}
+
+function cleanNameCandidate(value: string) {
+  return value
+    .replace(/\s+\b(?:and|from|calling|speaking|with|for|about|because|but|so)\b.*$/i, "")
+    .replace(/^[\s"'`.,:;!?-]+|[\s"'`.,:;!?-]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function extractKnownAgentNames(...values: unknown[]) {
+  const names = new Set<string>();
+  const add = (value: unknown) => {
+    const text = stringValue(value);
+    if (!text) return;
+    const cleaned = cleanNameCandidate(text).toLowerCase();
+    if (cleaned) names.add(cleaned);
   };
 
-  // Transcript parsing fallback patterns
-  const transcriptPatterns = [
-    /your name is ([A-Z][a-z]+)/i,
-    /name as ([A-Z][a-z]+)/i,
-    /this is ([A-Z][a-z]+)/i,
-    /Perfect, ([A-Z][a-z]+)/i,
-    /Thanks, ([A-Z][a-z]+)/i,
-    /Hello ([A-Z][a-z]+)/i,
-    /Hi ([A-Z][a-z]+)/i,
-    /My name is ([A-Z][a-z]+)/i
-  ];
-  
-  for (const pattern of transcriptPatterns) {
-    const match = transcript.match(pattern);
-    if (match && match[1] && isValid(match[1])) return match[1].trim();
+  for (const value of values) {
+    add(value);
   }
 
-  return undefined;
+  return names;
+}
+
+function transcriptUserMessages(
+  transcriptJson: RetailAITranscriptMessage[],
+  transcript: string,
+): Array<{ content: string; source: string }> {
+  const structuredMessages = transcriptJson
+    .filter((message) => normalizeRole(message.role) === "user")
+    .map((message) => ({
+      content: message.content ?? message.text ?? "",
+      source: "user transcript message",
+    }))
+    .filter((message) => message.content.trim());
+
+  if (structuredMessages.length > 0) return structuredMessages;
+
+  const messages: Array<{ content: string; source: string }> = [];
+  const taggedUserPattern = /(?:^|\n|\b)(?:User|Customer|Human|\[Customer\])\s*:?\s*([\s\S]*?)(?=(?:\n|\b)(?:Agent|Assistant|AI Agent|User|Customer|Human|\[AI Agent\]|\[Customer\])\s*:|$)/gi;
+  for (const match of transcript.matchAll(taggedUserPattern)) {
+    const content = match[1]?.trim();
+    if (content) {
+      messages.push({ content, source: "tagged user transcript text" });
+    }
+  }
+
+  return messages;
+}
+
+function extractName(
+  transcriptJson: RetailAITranscriptMessage[],
+  transcript: string,
+  knownAgentNames: Set<string>,
+): string | undefined {
+  const invalidNames = new Set([
+    "agent", "ai", "assistant", "bot", "caller", "customer", "user", "human",
+    "rita", "retail", "retell", "voice", "voicebot", "voice bot", "ai agent",
+    "ontario", "covering", "final", "um", "life", "insurance", "financial",
+    "insurance interests", "province", "state", "keywords", "generated",
+    "titles", "topics", "ontario life", "covering final", "wanted",
+    "consultation", "long term", "whole life", "gmail", "sunday", "california",
+    "bluetide financial", "unknown", "unknown caller", "available", "interested",
+    "busy", "calling", "speaking", "talking", "looking", "trying",
+    "evening", "morning", "afternoon", "night", "hello", "hi", "hey",
+    "good evening", "good morning", "good afternoon", "good night",
+  ]);
+  const invalidPhrases = [
+    "insurance", "ontario", "covering", "life", "final", "policy", "financial",
+    "bluetide", "assistant", "agent", "bot", "retell", "retail ai", "ai ",
+    "call", "appointment",
+  ];
+  const candidates: NameCandidate[] = [];
+  const rejected: RejectedNameCandidate[] = [];
+
+  const addCandidate = (
+    name: string | undefined,
+    source: string,
+    segment: string,
+    priority: number,
+    order: number,
+  ) => {
+    if (!name) return;
+    candidates.push({
+      name: cleanNameCandidate(name),
+      source,
+      role: "user",
+      segment: segment.slice(0, 180),
+      priority,
+      order,
+    });
+  };
+
+  const reject = (candidate: NameCandidate, reason: string) => {
+    rejected.push({ ...candidate, reason });
+  };
+
+  const validate = (candidate: NameCandidate) => {
+    const trimmed = cleanNameCandidate(candidate.name);
+    const lower = trimmed.toLowerCase();
+    const words = trimmed.split(/\s+/).filter(Boolean);
+
+    if (!trimmed) return reject(candidate, "empty");
+    if (/\S+@\S+\.\S+/.test(trimmed)) return reject(candidate, "email-like text");
+    if (/\b(?:at|dot)\b/i.test(trimmed)) return reject(candidate, "spoken email-like text");
+    if (/\d/.test(trimmed)) return reject(candidate, "contains numbers");
+    if (!/^[a-zA-Z][a-zA-Z' -]*$/.test(trimmed)) return reject(candidate, "contains punctuation or non-name characters");
+    if (words.some((word) => !/^[A-Z][a-zA-Z'-]*$/.test(word))) return reject(candidate, "not title-cased like a name");
+    if (words.length > 2) return reject(candidate, "too many words");
+    if (words.some((word) => word.length < 2)) return reject(candidate, "word too short");
+    if (invalidNames.has(lower)) return reject(candidate, "known non-customer name");
+    if (knownAgentNames.has(lower)) return reject(candidate, "matches known agent name");
+    if (invalidPhrases.some((phrase) => lower.includes(phrase))) return reject(candidate, "contains assistant/business phrase");
+    if (/^(this|that|there|okay|ok|yes|yeah|no|name|speaking|calling|with|from)$/i.test(trimmed)) {
+      return reject(candidate, "conversation filler");
+    }
+
+    return { ...candidate, name: trimmed };
+  };
+
+  const userPatterns: Array<{ pattern: RegExp; source: string; priority: number }> = [
+    { pattern: /\b(?:my name is|my name's|name is|name's)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,1})\b/gi, source: "my name is statement", priority: 1 },
+    { pattern: /\bi am\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,1})\b/gi, source: "i am statement", priority: 2 },
+    { pattern: /\b(?:i'm|i m)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,1})\b/gi, source: "i'm statement", priority: 3 },
+    { pattern: /^\s*([A-Z][a-z]+)\s+(?:at|@)\s+[a-z0-9._%+-]+(?:\s+dot\s+|\.)[a-z]{2,}\b/gi, source: "user name before email", priority: 4 },
+    { pattern: /^\s*([A-Z][a-z]+(?:\s+[A-Z][a-z]+){0,1})\s*\.?\s*$/g, source: "direct user name reply", priority: 5 },
+  ];
+
+  transcriptUserMessages(transcriptJson, transcript).forEach((message, index) => {
+    const content = message.content;
+    for (const { pattern, source, priority } of userPatterns) {
+      for (const match of content.matchAll(pattern)) {
+        addCandidate(match[1], `${message.source}: ${source}`, content, priority, index);
+      }
+    }
+  });
+
+  const selected = candidates
+    .map(validate)
+    .filter(Boolean)
+    .sort((a, b) => a!.order - b!.order || a!.priority - b!.priority)[0];
+
+  console.log("[CUSTOMER NAME EXTRACTION]", {
+    detectedCandidates: candidates.map((candidate) => ({
+      name: candidate.name,
+      source: candidate.source,
+      role: candidate.role,
+      priority: candidate.priority,
+      order: candidate.order,
+      segment: candidate.segment,
+    })),
+    rejectedCandidates: rejected.map((candidate) => ({
+      name: candidate.name,
+      source: candidate.source,
+      role: candidate.role,
+      reason: candidate.reason,
+      segment: candidate.segment,
+    })),
+    finalSelectedCustomerName: selected?.name ?? null,
+    exactTranscriptMessageUsed: selected?.segment ?? null,
+    transcriptSegmentSource: selected
+      ? {
+          source: selected.source,
+          role: selected.role,
+          segment: selected.segment,
+        }
+      : null,
+  });
+
+  return selected?.name;
 }
 
 function extractTimezone(transcript: string): string | undefined {
@@ -381,9 +535,6 @@ function parseRelativeDate(text: string, referenceDate: Date = new Date()): Date
     }
     
     targetDate.setDate(targetDate.getDate() + daysUntil);
-  } else if (!todayMatch) {
-    // If no day/tomorrow/today mentioned, we can't reliably parse the date
-    return null;
   }
 
   // 2. Detect Time
@@ -468,7 +619,7 @@ function generateAISummary(parsed: Partial<ParsedRetailAICall>): string {
   const outcome = parsed.appointment?.booked ? `scheduled a consultation for ${parsed.appointment.date} at ${parsed.appointment.time}` : "expressed interest";
   const sentiment = parsed.sentiment?.toLowerCase() || "neutral";
   
-  let summary = `${customerName} showed ${sentiment} sentiment regarding ${intent}. `;
+  let summary = `${customerName} completed a Retail AI call and showed ${sentiment} sentiment regarding ${intent}. `;
   
   if (parsed.appointment?.booked) {
     summary += `They successfully booked an appointment for ${parsed.appointment.date} at ${parsed.appointment.time}.`;
@@ -497,7 +648,7 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
     const direction = firstString(call.direction, root.direction) || "unknown";
     const callType = firstString(call.type, call.call_type, root.type, root.call_type) || "unknown";
     const callStatus = firstString(call.call_status, root.call_status) || "unknown";
-    const metadata = {
+    const metadata: Record<string, unknown> = {
       ...asObject(call.metadata),
       ...asObject(root.metadata),
       ...(direction ? { call_direction: direction } : {}),
@@ -508,7 +659,7 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
     const transcript = transcriptText(call.transcript ?? payload.transcript, transcriptJson) || "";
     const sentiment = normalizeSentiment(
       analysis.user_sentiment ?? payload.user_sentiment ?? customData.user_sentiment,
-    ) || "Neutral";
+    ) || inferSentiment(transcript) || "neutral";
     const callSuccessful =
       booleanValue(analysis.call_successful) ??
       booleanValue(payload.call_successful) ??
@@ -565,7 +716,39 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
     const detailedSummary =
       firstString(customData.detailed_call_summary, customData.detailedCallSummary) || "";
     
-    const extractedName = extractName(detailedSummary, summary, transcript);
+    const knownAgentNames = extractKnownAgentNames(
+      call.agent_name,
+      (call as Record<string, unknown>).agentName,
+      root.agent_name,
+      root.agentName,
+      metadata.agent_name,
+      metadata.agentName,
+      customData.agent_name,
+      customData.agentName,
+      customData.assistant_name,
+      customData.assistantName,
+      customData.bot_name,
+      customData.botName,
+    );
+    console.log("[CUSTOMER NAME EXTRACTION] Skipping fallback customer-name sources", {
+      reason: "Customer names must come only from user transcript messages",
+      skippedSources: {
+        analysis_customer_name: analysis.customer_name ?? null,
+        analysis_userName: analysis.userName ?? null,
+        analysis_user_name: analysis.user_name ?? null,
+        customData_customer_name: customData.customer_name ?? null,
+        customData_customerName: customData.customerName ?? null,
+        metadata_customer_name: metadata.customer_name ?? null,
+        metadata_customerName: metadata.customerName ?? null,
+        summary: summary || null,
+        detailedSummary: detailedSummary || null,
+      },
+    });
+    const extractedName = extractName(
+      transcriptJson,
+      transcript,
+      knownAgentNames,
+    );
     const extractedEmail = extractEmail(transcript);
     const extractedPhone = extractPhone(transcript);
     const extractedTimezone = extractTimezone(transcript);
@@ -609,16 +792,7 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
     };
 
     const customerData = {
-      name: firstString(
-        analysis.customer_name, 
-        analysis.userName, 
-        analysis.user_name,
-        customData.customer_name, 
-        customData.customerName, 
-        metadata.customer_name, 
-        metadata.customerName, 
-        extractedName
-      ) || "Unknown Caller",
+      name: extractedName,
       phone: getCustomerPhone(),
       email: firstString(customData.customer_email, customData.customerEmail, metadata.customer_email, metadata.customerEmail, extractedEmail),
       timezone: firstString(customData.customer_timezone, customData.customerTimezone, metadata.customer_timezone, metadata.customerTimezone, extractedTimezone),
@@ -696,6 +870,7 @@ export function parseRetailAICall(payload: RetailAIPayload): ParsedRetailAICall 
       transcript: "",
       transcriptJson: [],
       eventTimestamp: new Date(),
+      durationMinutes: null,
       summary: "Parsing failed",
       detailedSummary: "",
       callSuccessful: false,

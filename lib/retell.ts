@@ -5,6 +5,11 @@ const RETELL_PRODUCTION_WEBHOOK_URL =
 
 const syncedWebhookAgentIds = new Set<string>();
 
+function cleanEnv(value: string | undefined) {
+  const trimmed = value?.trim();
+  return trimmed ? trimmed : undefined;
+}
+
 export type RetellResponseEngine = {
   type?: string;
   llm_id?: string;
@@ -19,6 +24,13 @@ export type RetellAgent = {
   is_published?: boolean;
   webhook_url?: string | null;
   response_engine?: RetellResponseEngine;
+};
+
+export type RetellPhoneNumber = {
+  phone_number?: string | null;
+  number?: string | null;
+  inbound_agent_id?: string | null;
+  outbound_agent_id?: string | null;
 };
 
 type RetellLlmState = {
@@ -46,15 +58,55 @@ type RetellConversationFlow = {
 };
 
 export function getRetellApiKey() {
-  return process.env.RETELL_API_KEY ?? process.env.RETAIL_API_KEY;
+  return cleanEnv(process.env.RETELL_API_KEY) ?? cleanEnv(process.env.RETAIL_API_KEY);
+}
+
+export function getRetellApiKeySource() {
+  if (cleanEnv(process.env.RETELL_API_KEY)) return "RETELL_API_KEY";
+  if (cleanEnv(process.env.RETAIL_API_KEY)) return "RETAIL_API_KEY";
+  return "missing";
+}
+
+export function fingerprintSecret(value: string | undefined) {
+  if (value === undefined) return "missing";
+  if (!value.trim()) return "empty";
+  return `prefix=${value.slice(0, 6)} len=${value.length}`;
+}
+
+export function getRetellRuntimeDiagnostics(apiKey = getRetellApiKey()) {
+  const { webhookUrl, environment } = getRetellWebhookConfig();
+
+  return {
+    nodeEnv: process.env.NODE_ENV,
+    vercelEnv: process.env.VERCEL_ENV ?? null,
+    environment,
+    productionModeActive: process.env.NODE_ENV === "production",
+    webhookUrl: webhookUrl || null,
+    apiKeySource: getRetellApiKeySource(),
+    apiKeyFingerprint: fingerprintSecret(apiKey),
+    retellApiKeyFingerprint: fingerprintSecret(process.env.RETELL_API_KEY),
+    retailApiKeyFingerprint: fingerprintSecret(process.env.RETAIL_API_KEY),
+    configuredAgentId: getConfiguredAgentId() || null,
+    configuredAgentVersion: getConfiguredAgentVersion() ?? null,
+    retellWorkspaceIdentifier:
+      process.env.RETELL_WORKSPACE_ID ??
+      process.env.RETELL_ACCOUNT_ID ??
+      process.env.RETAIL_WORKSPACE_ID ??
+      process.env.RETAIL_ACCOUNT_ID ??
+      null,
+    hasRetellWebhookUrl: Boolean(process.env.RETELL_WEBHOOK_URL?.trim()),
+    phoneNumberFingerprint: fingerprintSecret(getConfiguredRetellPhoneNumber()),
+  };
 }
 
 export function getConfiguredAgentId() {
-  return process.env.RETELL_AGENT_ID ?? process.env.RETAIL_AGENT_ID;
+  return cleanEnv(process.env.RETELL_AGENT_ID) ?? cleanEnv(process.env.RETAIL_AGENT_ID);
 }
 
 export function getConfiguredAgentVersion() {
-  const value = process.env.RETELL_AGENT_VERSION ?? process.env.RETAIL_AGENT_VERSION;
+  const value =
+    cleanEnv(process.env.RETELL_AGENT_VERSION) ??
+    cleanEnv(process.env.RETAIL_AGENT_VERSION);
   if (!value) {
     return undefined;
   }
@@ -64,7 +116,10 @@ export function getConfiguredAgentVersion() {
 }
 
 export function getConfiguredRetellPhoneNumber() {
-  return process.env.RETELL_PHONE_NUMBER ?? process.env.RETAIL_PHONE_NUMBER;
+  return (
+    cleanEnv(process.env.RETELL_PHONE_NUMBER) ??
+    cleanEnv(process.env.RETAIL_PHONE_NUMBER)
+  );
 }
 
 export function getRetellWebhookConfig() {
@@ -83,6 +138,17 @@ export function logRetellWebhookUrl() {
   console.log(
     `[RETELL WEBHOOK URL] ${webhookUrl || "not configured"} (${environment})`,
   );
+}
+
+async function readRetellErrorPayload(response: Response) {
+  const text = await response.text().catch(() => "");
+  if (!text) return undefined;
+
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    return text;
+  }
 }
 
 export function isE164PhoneNumber(phone: string) {
@@ -125,10 +191,38 @@ export async function listRetellAgents(apiKey: string) {
   );
 
   if (!response.ok) {
+    const payload = await readRetellErrorPayload(response);
+    console.error("[RETELL_LIST_AGENTS_ERROR]", {
+      status: response.status,
+      statusText: response.statusText,
+      payload,
+    });
     throw new Error("Unable to load Retell voice agents");
   }
 
   return (await response.json()) as RetellAgent[];
+}
+
+export async function listRetellPhoneNumbers(apiKey: string) {
+  const response = await fetch(`${RETELL_API_BASE_URL}/list-phone-numbers`, {
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+    },
+    cache: "no-store",
+    signal: AbortSignal.timeout(RETELL_FETCH_TIMEOUT_MS),
+  });
+
+  if (!response.ok) {
+    const payload = await readRetellErrorPayload(response);
+    console.error("[RETELL_LIST_PHONE_NUMBERS_ERROR]", {
+      status: response.status,
+      statusText: response.statusText,
+      payload,
+    });
+    throw new Error("Unable to load Retell phone numbers");
+  }
+
+  return (await response.json()) as RetellPhoneNumber[];
 }
 
 export async function updateRetellAgentWebhookUrl(
@@ -148,9 +242,20 @@ export async function updateRetellAgentWebhookUrl(
   });
 
   if (!response.ok) {
-    const payload = await response.json().catch(() => undefined);
+    const payload = await readRetellErrorPayload(response);
+    console.error("[RETELL_WEBHOOK_UPDATE_ERROR]", {
+      agentId,
+      webhookUrl,
+      status: response.status,
+      statusText: response.statusText,
+      payload,
+    });
     throw new Error(
-      payload?.message ?? payload?.error ?? "Unable to update Retell webhook URL",
+      typeof payload === "object" && payload && "message" in payload
+        ? String((payload as { message?: unknown }).message)
+        : typeof payload === "object" && payload && "error" in payload
+          ? String((payload as { error?: unknown }).error)
+          : "Unable to update Retell webhook URL",
     );
   }
 }
@@ -165,6 +270,10 @@ export async function ensureRetellAgentWebhookUrl(
 
   const { webhookUrl, environment } = getRetellWebhookConfig();
   logRetellWebhookUrl();
+  console.log("[RETELL WEBHOOK URL] Sync context", {
+    agentId,
+    ...getRetellRuntimeDiagnostics(apiKey),
+  });
 
   if (!webhookUrl) {
     console.warn(

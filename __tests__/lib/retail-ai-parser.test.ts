@@ -1,3 +1,4 @@
+import { mapParsedRetailAICallToActivity } from "@/lib/retail-ai/mapper";
 import { parseRetailAICall, RetailAIPayload } from "@/lib/retail-ai/parser";
 
 describe("Retail AI Parser", () => {
@@ -5,10 +6,10 @@ describe("Retail AI Parser", () => {
     event: "call_analyzed",
     call: {
       call_id: "test-call-id",
-      transcript: "Agent: Hello, User: Hi, I want to buy insurance.",
+      transcript: "Agent: Hello, User: My name is John Doe and I want to buy insurance.",
       transcript_object: [
         { role: "agent", content: "Hello" },
-        { role: "user", content: "Hi, I want to buy insurance." }
+        { role: "user", content: "My name is John Doe and I want to buy insurance." }
       ],
       recording_url: "https://recording.url",
       public_log_url: "https://logs.url",
@@ -66,7 +67,7 @@ describe("Retail AI Parser", () => {
 
     const parsed = parseRetailAICall(minimalPayload);
     expect(parsed.conversationId).toBe("min-call-id");
-    expect(parsed.customer.name).toBe("Unknown Caller");
+    expect(parsed.customer.name).toBeUndefined();
     expect(parsed.callSuccessful).toBe(false);
     expect(parsed.confidenceScore).toBe(50);
   });
@@ -109,7 +110,7 @@ describe("Retail AI Parser", () => {
         call_status: "ended",
         to_number: "+15551234567",
         from_number: "+15557654321",
-        transcript: "Agent: Hello Dave. User: I would like an appointment.",
+        transcript: "Agent: Hello Dave. User: I am Dave and I would like an appointment.",
         recording_url: "https://recording.example/outbound.wav",
         duration_ms: 90000,
         call_analysis: {
@@ -160,5 +161,194 @@ describe("Retail AI Parser", () => {
     expect(parsed.appointment.appointmentTime?.getHours()).toBe(19);
     expect(parsed.summary).toContain("Dave completed a Retail AI call");
     expect(parsed.sentiment).toBe("positive");
+  });
+
+  it("rejects assistant names from customer fields and uses the user identity statement", () => {
+    const parsed = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "assistant-name-rejected-call-id",
+        direction: "outbound",
+        to_number: "+15551234567",
+        metadata: {
+          agent_name: "Rita",
+        },
+        transcript_object: [
+          { role: "agent", content: "Hi, this is Rita from BlueTide Financial. Who am I speaking with?" },
+          { role: "user", content: "My name is Sarah Johnson." },
+          { role: "agent", content: "Nice to meet you, Sarah. I can help with that." },
+        ],
+        call_analysis: {
+          custom_analysis_data: {
+            customer_name: "Rita",
+            assistant_name: "Rita",
+          },
+        },
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBe("Sarah Johnson");
+  });
+
+  it("does not use agent confirmation when the user did not state their name", () => {
+    const parsed = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "agent-confirmation-name-call-id",
+        direction: "outbound",
+        to_number: "+15551234567",
+        transcript_object: [
+          { role: "agent", content: "Hi, this is the AI assistant calling." },
+          { role: "user", content: "Yes, I can talk now." },
+          { role: "agent", content: "Okay Michael, I have your appointment request here." },
+        ],
+        call_analysis: {
+          custom_analysis_data: {
+            customer_name: "AI Assistant",
+          },
+        },
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBeUndefined();
+  });
+
+  it("does not fallback to the agent identity when no customer name is present", () => {
+    const parsed = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "no-customer-name-call-id",
+        direction: "outbound",
+        to_number: "+15551234567",
+        transcript_object: [
+          { role: "agent", content: "Hi, this is Rita from BlueTide Financial." },
+          { role: "user", content: "I want to hear about life insurance." },
+        ],
+        call_analysis: {
+          custom_analysis_data: {
+            customer_name: "Rita",
+            agent_name: "Rita",
+          },
+        },
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBeUndefined();
+  });
+
+  it("extracts the earliest valid name from user transcript messages only", () => {
+    const parsed = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "earliest-user-name-call-id",
+        transcript_object: [
+          { role: "agent", content: "Hi, this is Rita. Who am I speaking with?" },
+          { role: "user", content: "I am Manasan." },
+          { role: "user", content: "My name is Dale." },
+        ],
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBe("Manasan");
+  });
+
+  it("extracts direct user name replies and spoken email prefixes", () => {
+    const directReply = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "direct-user-name-call-id",
+        transcript_object: [
+          { role: "agent", content: "Who am I speaking with?" },
+          { role: "user", content: "Dale." },
+        ],
+      },
+    } as RetailAIPayload);
+
+    const spokenEmail = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "spoken-email-name-call-id",
+        transcript_object: [
+          { role: "agent", content: "Can I get your email?" },
+          { role: "user", content: "Divya at gmail dot com." },
+        ],
+      },
+    } as RetailAIPayload);
+
+    expect(directReply.customer.name).toBe("Dale");
+    expect(spokenEmail.customer.name).toBe("Divya");
+  });
+
+  it("rejects non-customer fallback strings from user messages", () => {
+    const parsed = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "invalid-user-name-call-id",
+        transcript_object: [
+          { role: "agent", content: "Who am I speaking with?" },
+          { role: "user", content: "my first call" },
+        ],
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBeUndefined();
+  });
+
+  it("prioritizes explicit user identity over earlier greeting-like direct replies", () => {
+    const parsed = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "greeting-before-name-call-id",
+        transcript_object: [
+          { role: "agent", content: "Good evening. Whats your name?" },
+          { role: "user", content: "Evening" },
+          { role: "user", content: "My name is Harry." },
+        ],
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBe("Harry");
+  });
+
+  it("rejects greeting words as direct user name replies", () => {
+    const parsed = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "greeting-only-call-id",
+        transcript_object: [
+          { role: "agent", content: "Whats your name?" },
+          { role: "user", content: "Evening" },
+        ],
+      },
+    } as RetailAIPayload);
+
+    expect(parsed.customer.name).toBeUndefined();
+  });
+
+  it("persists only locked user-transcript customer names", () => {
+    const withName = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "persist-user-name-call-id",
+        transcript_object: [
+          { role: "agent", content: "Whats your name?" },
+          { role: "user", content: "My name is Harry." },
+        ],
+      },
+    } as RetailAIPayload);
+
+    const withoutName = parseRetailAICall({
+      event: "call_analyzed",
+      call: {
+        call_id: "do-not-persist-fallback-name-call-id",
+        transcript_object: [
+          { role: "agent", content: "Good evening. Whats your name?" },
+          { role: "user", content: "Evening" },
+        ],
+      },
+    } as RetailAIPayload);
+
+    expect(mapParsedRetailAICallToActivity(withName).customer_name).toBe("Harry");
+    expect(mapParsedRetailAICallToActivity(withoutName).customer_name).toBeNull();
   });
 });

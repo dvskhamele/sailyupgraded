@@ -14,6 +14,18 @@ function titleFromSummary(parsed: ParsedRetailAICall) {
   return truncate(`Retail AI Call - ${parsed.conversationId.slice(-6)}`, 120);
 }
 
+function customerNameForPersistence(parsed: ParsedRetailAICall) {
+  const name = parsed.customer.name?.trim();
+  if (!name || name === "Unknown Caller") {
+    console.log("[CUSTOMER NAME EXTRACTION] Skipping fallback customer_name persistence", {
+      reason: "No valid user transcript customer name was extracted",
+      parsedCustomerName: parsed.customer.name ?? null,
+    });
+    return null;
+  }
+  return name;
+}
+
 export function mapParsedRetailAICallToActivity(
   parsed: ParsedRetailAICall,
   options: {
@@ -25,6 +37,7 @@ export function mapParsedRetailAICallToActivity(
   const links = options.contactId
     ? [{ entityType: "contact", entityId: options.contactId }]
     : [];
+  const lockedCustomerName = customerNameForPersistence(parsed);
 
   return {
     type: "call",
@@ -43,7 +56,10 @@ export function mapParsedRetailAICallToActivity(
       callStatus: parsed.metadata.call_status,
       callCost: parsed.metrics.cost,
       transcript: parsed.transcriptJson.length > 0 ? parsed.transcriptJson : parsed.transcript,
-      customer: parsed.customer,
+      customer: {
+        ...parsed.customer,
+        name: lockedCustomerName,
+      },
       appointment: parsed.appointment,
     },
     aiSource: "Retell AI",
@@ -77,7 +93,7 @@ export function mapParsedRetailAICallToActivity(
 
     // New Fields mapping
     call_id: parsed.conversationId,
-    customer_name: parsed.customer.name,
+    customer_name: lockedCustomerName,
     phone_number: parsed.customer.phone,
     email: parsed.customer.email,
     appointment_time: parsed.appointment.appointmentTime ?? (parsed.appointment.date && parsed.appointment.time 
