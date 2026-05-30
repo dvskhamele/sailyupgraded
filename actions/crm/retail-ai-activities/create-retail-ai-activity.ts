@@ -3,6 +3,7 @@ import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { generateActivityTitle } from "@/lib/crm/activity-title";
+import { createActivityFromRetailAIActivity } from "@/lib/retail-ai/activity-sync";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import { withActivityContactLink } from "@/actions/crm/activities/activity-contact-links";
 import type { RetailAIActivityInput, RetailAIActivityWithLinks } from "./types";
@@ -92,6 +93,11 @@ export const createRetailAIActivity = async (data: RetailAIActivityInput & { ove
         });
       }
 
+      await createActivityFromRetailAIActivity(tx, {
+        ...created,
+        links: data.links,
+      });
+
       return created;
     });
 
@@ -111,6 +117,7 @@ export const createRetailAIActivity = async (data: RetailAIActivityInput & { ove
       );
     }
     revalidatePath("/[locale]/(routes)/retail-ai-activities", "page");
+    revalidatePath("/[locale]/(routes)/activities", "page");
 
     return {
       data: (await withActivityContactLink(

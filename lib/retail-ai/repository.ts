@@ -1,4 +1,5 @@
 import { prismadb } from "@/lib/prisma";
+import { createActivityFromRetailAIActivity } from "./activity-sync";
 import type { RetailAIActivityCreateInput } from "./types";
 
 export async function findRetailAIActivityByConversationId(conversationId: string) {
@@ -148,6 +149,19 @@ export async function upsertRetailAIActivityRecord(data: RetailAIActivityCreateI
       activity_id: activity.id,
       call_id: upsertId,
       was_created: !existing
+    });
+
+    const crmActivity = await createActivityFromRetailAIActivity(prismadb, {
+      ...activity,
+      links: activity.links.map((link) => ({
+        entityType: link.entityType,
+        entityId: link.entityId,
+      })),
+    });
+
+    console.log("[RETAIL AI REPOSITORY] CRM activity ensured for Retail AI activity", {
+      retail_ai_activity_id: activity.id,
+      crm_activity_id: crmActivity.id,
     });
 
     return activity;

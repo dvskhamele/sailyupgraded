@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 
 import {
@@ -38,6 +39,7 @@ interface LeadsViewProps {
 
 const LeadsView = ({ data, crmData, products = [], sourceFilter }: LeadsViewProps) => {
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, saleStages } = crmData;
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [localLeads, setLocalLeads] = useState<LocalLeadEntity[]>(data);
   const t = useTranslations("CrmPage");
@@ -119,6 +121,7 @@ const LeadsView = ({ data, crmData, products = [], sourceFilter }: LeadsViewProp
                     products={activeProducts}
                     onFinish={() => {
                       setOpen(false);
+                      router.refresh();
                       void loadLocalLeads();
                     }}
                   />

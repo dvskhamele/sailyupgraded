@@ -203,7 +203,7 @@ export const createLead = async (data: {
       userId: session.user.id,
     });
     void inngest.send({ name: "crm/lead.saved", data: { record_id: lead.id } });
-    revalidatePath("/[locale]/(routes)/crm/leads", "page");
+    revalidatePath("/[locale]/crm/leads", "page");
     return { data: lead };
   } catch (error: any) {
     console.log("[CREATE_LEAD] Error detail:", {

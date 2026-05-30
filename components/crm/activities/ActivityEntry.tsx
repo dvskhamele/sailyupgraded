@@ -94,6 +94,30 @@ function sentimentLabel(value: "positive" | "neutral" | "negative") {
   return value.charAt(0).toUpperCase() + value.slice(1);
 }
 
+function getRetailAIActivityDetails(metadata: unknown) {
+  if (!metadata || typeof metadata !== "object") return null;
+
+  const root = metadata as Record<string, any>;
+  const details = root.retailAI;
+  if (root.source !== "retail-ai" || !details || typeof details !== "object") {
+    return null;
+  }
+
+  return {
+    customerName:
+      typeof details.customerName === "string" ? details.customerName : null,
+    customerEmail:
+      typeof details.customerEmail === "string" ? details.customerEmail : null,
+    customerPhone:
+      typeof details.customerPhone === "string" ? details.customerPhone : null,
+    scheduledMeetingTime:
+      typeof details.scheduledMeetingTime === "string" ||
+      details.scheduledMeetingTime instanceof Date
+        ? details.scheduledMeetingTime
+        : null,
+  };
+}
+
 interface Props {
   activity: ActivityWithLinks & Partial<RetailAIActivityAIFields>;
   onDeleted: (id: string) => void;
@@ -118,9 +142,13 @@ export function ActivityEntry({
   const [relativeDate, setRelativeDate] = useState("");
   const [absoluteDate, setAbsoluteDate] = useState("");
   const [appointmentDate, setAppointmentDate] = useState("");
+  const [scheduledMeetingTime, setScheduledMeetingTime] = useState("");
 
   const isRetailAI = activity.isRetailAI || activityModule === "retail-ai";
   const Icon = isRetailAI ? Bot : TYPE_ICONS[activity.type];
+  const retailAIActivityDetails = !isRetailAI
+    ? getRetailAIActivityDetails(activity.metadata)
+    : null;
   
   // New Fields Logic
   const sentiment = normalizeSentiment(activity.user_sentiment || activity.sentiment);
@@ -135,7 +163,6 @@ export function ActivityEntry({
   const contactPhone = activity.phone_number;
   const contactEmail = activity.email;
   const callId = activity.call_id || activity.conversationId;
-
   const contactNames = activity.links
     .filter((link) => link.entityType === "contact" && link.contact)
     .map((link) => getContactName(link.contact!));
@@ -149,8 +176,21 @@ export function ActivityEntry({
       setAppointmentDate(new Date(activity.appointment_time).toLocaleString(undefined, { 
         weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit'
       }));
+    } else {
+      setAppointmentDate("");
     }
-  }, [activity.date, activity.appointment_time]);
+
+    if (retailAIActivityDetails?.scheduledMeetingTime) {
+      const scheduledMeetingDate = new Date(retailAIActivityDetails.scheduledMeetingTime);
+      setScheduledMeetingTime(
+        Number.isNaN(scheduledMeetingDate.getTime())
+          ? ""
+          : scheduledMeetingDate.toLocaleString(),
+      );
+    } else {
+      setScheduledMeetingTime("");
+    }
+  }, [activity.date, activity.appointment_time, retailAIActivityDetails?.scheduledMeetingTime]);
 
   const handleDelete = async () => {
     setDeleting(true);
@@ -346,6 +386,34 @@ export function ActivityEntry({
                 <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2">
                   <span className="font-medium text-foreground">Contact:</span>
                   <span className="truncate">{contactNames.join(", ")}</span>
+                </div>
+              )}
+
+              {retailAIActivityDetails?.customerName && (
+                <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2">
+                  <span className="font-medium text-foreground">Customer Name:</span>
+                  <span className="truncate">{retailAIActivityDetails.customerName}</span>
+                </div>
+              )}
+
+              {retailAIActivityDetails?.customerEmail && (
+                <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2">
+                  <span className="font-medium text-foreground">Customer Email:</span>
+                  <span className="truncate">{retailAIActivityDetails.customerEmail}</span>
+                </div>
+              )}
+
+              {retailAIActivityDetails?.customerPhone && (
+                <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2">
+                  <span className="font-medium text-foreground">Customer Phone:</span>
+                  <span className="truncate">{retailAIActivityDetails.customerPhone}</span>
+                </div>
+              )}
+
+              {scheduledMeetingTime && (
+                <div className="flex items-start gap-2 rounded-lg bg-muted/40 px-3 py-2">
+                  <span className="font-medium text-foreground">Scheduled Meeting Time:</span>
+                  <span className="truncate">{scheduledMeetingTime}</span>
                 </div>
               )}
             </>

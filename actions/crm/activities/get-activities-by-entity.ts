@@ -83,7 +83,6 @@ export type ActivityFilters = {
   status?: ActivityWithLinks["status"] | "all";
   contactId?: string;
   assignedTo?: string;
-  retailAIOnly?: boolean;
   aiStatus?: string;
   sentiment?: string;
   minAIConfidence?: number;
@@ -110,75 +109,38 @@ const loadActivities = cache(async (
 
   try {
     const andClauses: Record<string, unknown>[] = [{ deletedAt: null }];
-    const retailAIAndClauses: Record<string, unknown>[] = [{ deletedAt: null }];
+    let assignedStandardActivityIds: string[] | null = null;
     
     const type = filters.type && filters.type !== "all" ? filters.type : null;
     const status = filters.status && filters.status !== "all" ? filters.status : null;
-    const hasAIFilters = Boolean(
-      filters.retailAIOnly ||
-        filters.aiStatus ||
-        typeof filters.minAIConfidence === "number" ||
-        typeof filters.maxAIConfidence === "number",
-    );
 
     if (type) {
       andClauses.push({ type });
-      retailAIAndClauses.push({ type });
     }
 
     if (status) {
       andClauses.push({ status });
-      retailAIAndClauses.push({ status });
-    }
-
-    if (filters.sentiment) {
-      retailAIAndClauses.push({ sentiment: filters.sentiment });
-    }
-
-    if (filters.aiStatus) {
-      retailAIAndClauses.push({ aiStatus: filters.aiStatus });
-    }
-
-    const confidence: Record<string, number> = {};
-    if (typeof filters.minAIConfidence === "number") {
-      confidence.gte = filters.minAIConfidence;
-    }
-    if (typeof filters.maxAIConfidence === "number") {
-      confidence.lte = filters.maxAIConfidence;
-    }
-    if (Object.keys(confidence).length > 0) {
-      retailAIAndClauses.push({ aiConfidenceScore: confidence });
     }
 
     if (entityType && entityId) {
-      const linkClause = {
+      andClauses.push({
         links: {
           some: { entityType, entityId },
         },
-      };
-      andClauses.push(linkClause);
-      retailAIAndClauses.push(linkClause);
+      });
     }
 
     if (!entityType && filters.contactId) {
-      const contactClause = {
+      andClauses.push({
         links: {
           some: { entityType: "contact", entityId: filters.contactId },
         },
-      };
-      andClauses.push(contactClause);
-      retailAIAndClauses.push(contactClause);
+      });
     }
 
     if (filters.assignedTo) {
-      const assignedActivityIds = await getActivityIdsAssignedTo(prisma, filters.assignedTo);
-      // We might need a separate assignment check for RetailAIActivities if they use different assignment logic
-      // but for now let's assume they might not be fully integrated into that system yet or handled similarly.
-      if (assignedActivityIds.length === 0 && !filters.retailAIOnly) {
-        return { data: [], nextCursor: null };
-      }
-      andClauses.push({ id: { in: assignedActivityIds } });
-      retailAIAndClauses.push({ assignedTo: filters.assignedTo });
+      assignedStandardActivityIds = await getActivityIdsAssignedTo(prisma, filters.assignedTo);
+      andClauses.push({ id: { in: assignedStandardActivityIds } });
     }
 
     if (cursor && cursorDate) {
@@ -189,11 +151,10 @@ const loadActivities = cache(async (
         ],
       };
       andClauses.push(cursorClause);
-      retailAIAndClauses.push(cursorClause);
     }
 
     let standardActivities: any[] = [];
-    if (!hasAIFilters) {
+    if (assignedStandardActivityIds?.length !== 0) {
       standardActivities = (await withPrismaRetry(() =>
         (prisma as any).crm_Activities.findMany({
           where: { AND: andClauses },
@@ -218,91 +179,23 @@ const loadActivities = cache(async (
       )) as any[];
     }
 
-    let retailActivities: any[] = [];
-    if (hasAIFilters) {
-      retailActivities = (await withPrismaRetry(() =>
-        (prisma as any).crm_RetailAIActivities.findMany({
-          where: { AND: retailAIAndClauses },
-          orderBy: [{ date: "desc" }, { id: "desc" }],
-          take: PAGE_SIZE,
-          select: {
-            id: true,
-            type: true,
-            title: true,
-            description: true,
-            date: true,
-            duration: true,
-            outcome: true,
-            status: true,
-            metadata: true,
-            createdAt: true,
-            createdBy: true,
-            created_by_user: { select: { id: true, name: true, avatar: true } },
-            assignedTo: true,
-            assigned_to_user: { select: { id: true, name: true, avatar: true } },
-            links: { select: { id: true, entityType: true, entityId: true } },
-            aiSource: true,
-            aiStatus: true,
-            aiConfidenceScore: true,
-            aiGeneratedSummary: true,
-            aiInsights: true,
-            aiMetadata: true,
-            retailAIPayload: true,
-            conversationId: true,
-            webhookReceivedAt: true,
-            sentiment: true,
-            callSuccessful: true,
-            recordingUrl: true,
-            publicLogUrl: true,
-            transcript: true,
-            // New Fields
-            call_id: true,
-            customer_name: true,
-            phone_number: true,
-            email: true,
-            appointment_time: true,
-            call_summary: true,
-            call_successful: true,
-            user_sentiment: true,
-            combined_cost: true,
-            call_duration: true,
-            // Additional Extraction Fields
-            state: true,
-            location: true,
-            timezone: true,
-            insurance_interest: true,
-            smoker_status: true,
-            call_outcome: true,
-            consultation_type: true,
-          },
-        })
-      )) as any[];
-    }
-
-    const combined = [
-      ...serializeDecimalsList(standardActivities).map(a => ({ ...a, isRetailAI: false })),
-      ...serializeDecimalsList(retailActivities).map(a => ({ ...a, isRetailAI: true, type: 'meeting' as const }))
-    ].sort((a, b) => {
-      const dateDiff = new Date(b.date).getTime() - new Date(a.date).getTime();
-      if (dateDiff !== 0) return dateDiff;
-      return b.id.localeCompare(a.id);
-    }).slice(0, PAGE_SIZE);
+    const activities = serializeDecimalsList(standardActivities).map(a => ({
+      ...a,
+      isRetailAI: false,
+    }));
 
     const assignees = await getActivityAssignees(
       prisma,
-      combined.filter(a => !a.isRetailAI).map((activity) => activity.id)
+      activities.map((activity) => activity.id)
     );
     
-    const activitiesWithAssignees = combined.map((activity) => {
-      if (activity.isRetailAI) return activity;
-      return {
-        ...activity,
-        ...(assignees.get(activity.id) ?? {
-          assignedTo: null,
-          assigned_to_user: null,
-        }),
-      };
-    });
+    const activitiesWithAssignees = activities.map((activity) => ({
+      ...activity,
+      ...(assignees.get(activity.id) ?? {
+        assignedTo: null,
+        assigned_to_user: null,
+      }),
+    }));
 
     const activitiesWithContactLinks = await withActivityContactLinks(
       prisma,

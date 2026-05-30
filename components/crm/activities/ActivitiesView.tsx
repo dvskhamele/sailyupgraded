@@ -233,7 +233,6 @@ export function ActivitiesView({
   const [selectedContact, setSelectedContact] =
     useState<ContactSearchItem | null>(null);
   const [assignedTo, setAssignedTo] = useState("");
-  const [retailAIOnly, setRetailAIOnly] = useState(false);
   const [aiStatus, setAIStatus] = useState("all");
   const [minAIConfidence, setMinAIConfidence] = useState("");
   const [maxAIConfidence, setMaxAIConfidence] = useState("");
@@ -241,16 +240,16 @@ export function ActivitiesView({
   const didMountRef = useRef(false);
   const hasEntityContext = !!entityType && !!entityId;
   const showFilters = !hasEntityContext;
+  const showAIFilters = activityModule === "retail-ai";
 
   const filters: ActivityFilters = {
     type: typeFilter,
     status: statusFilter,
     contactId: selectedContact?.id,
     assignedTo,
-    retailAIOnly,
-    aiStatus: aiStatus === "all" ? undefined : aiStatus,
-    minAIConfidence: minAIConfidence ? Number(minAIConfidence) : undefined,
-    maxAIConfidence: maxAIConfidence ? Number(maxAIConfidence) : undefined,
+    aiStatus: showAIFilters && aiStatus !== "all" ? aiStatus : undefined,
+    minAIConfidence: showAIFilters && minAIConfidence ? Number(minAIConfidence) : undefined,
+    maxAIConfidence: showAIFilters && maxAIConfidence ? Number(maxAIConfidence) : undefined,
   };
 
   const loadFirstPage = () => {
@@ -285,7 +284,6 @@ export function ActivitiesView({
     statusFilter,
     selectedContact?.id,
     assignedTo,
-    retailAIOnly,
     aiStatus,
     minAIConfidence,
     maxAIConfidence,
@@ -331,7 +329,6 @@ export function ActivitiesView({
     setStatusFilter("all");
     setSelectedContact(null);
     setAssignedTo("");
-    setRetailAIOnly(false);
     setAIStatus("all");
     setMinAIConfidence("");
     setMaxAIConfidence("");
@@ -390,7 +387,6 @@ export function ActivitiesView({
                     statusFilter === "all" &&
                     !selectedContact &&
                     !assignedTo &&
-                    !retailAIOnly &&
                     aiStatus === "all" &&
                     !minAIConfidence &&
                     !maxAIConfidence
@@ -481,68 +477,58 @@ export function ActivitiesView({
                   />
                 </div>
 
-                {/* Retail AI Only */}
-                <div className="flex items-center space-x-2 pt-8">
-                  <input
-                    type="checkbox"
-                    id="retail-ai-only"
-                    checked={retailAIOnly}
-                    onChange={(e) => setRetailAIOnly(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <Label htmlFor="retail-ai-only" className="text-sm font-medium cursor-pointer">
-                     AI Only
-                  </Label>
-                </div>
-
                 {/* AI Status */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    AI Status
-                  </Label>
+                {showAIFilters && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      AI Status
+                    </Label>
 
-                  <Select value={aiStatus} onValueChange={setAIStatus}>
-                    <SelectTrigger className="rounded-xl">
-                      <SelectValue />
-                    </SelectTrigger>
+                    <Select value={aiStatus} onValueChange={setAIStatus}>
+                      <SelectTrigger className="rounded-xl">
+                        <SelectValue />
+                      </SelectTrigger>
 
-                    <SelectContent>
-                      {AI_STATUS_FILTERS.map((item) => (
-                        <SelectItem key={item.value} value={item.value}>
-                          {item.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                      <SelectContent>
+                        {AI_STATUS_FILTERS.map((item) => (
+                          <SelectItem key={item.value} value={item.value}>
+                            {item.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
 
                 {/* AI Confidence */}
-                <div className="space-y-2">
-                  <Label className="text-xs font-medium text-muted-foreground">
-                    AI Confidence Score
-                  </Label>
+                {showAIFilters && (
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium text-muted-foreground">
+                      AI Confidence Score
+                    </Label>
 
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={minAIConfidence}
-                      onChange={(event) => setMinAIConfidence(event.target.value)}
-                      placeholder="Min"
-                      className="h-10 rounded-xl border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    />
-                    <input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={maxAIConfidence}
-                      onChange={(event) => setMaxAIConfidence(event.target.value)}
-                      placeholder="Max"
-                      className="h-10 rounded-xl border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
-                    />
+                    <div className="grid grid-cols-2 gap-2">
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={minAIConfidence}
+                        onChange={(event) => setMinAIConfidence(event.target.value)}
+                        placeholder="Min"
+                        className="h-10 rounded-xl border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={maxAIConfidence}
+                        onChange={(event) => setMaxAIConfidence(event.target.value)}
+                        placeholder="Max"
+                        className="h-10 rounded-xl border bg-background px-3 text-sm outline-none focus:ring-2 focus:ring-ring"
+                      />
+                    </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           )}
