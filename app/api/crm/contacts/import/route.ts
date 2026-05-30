@@ -18,7 +18,7 @@ import {
   type CustomFieldDefinition,
 } from "@/lib/custom-fields";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 
 type RawRow = Record<string, string>;
 type MappingKey =
@@ -535,6 +535,10 @@ export async function POST(request: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  console.log("[CONTACT CREATE DEBUG] Entry point", {
+    path: "app/api/crm/contacts/import/route.ts:POST",
+    database: getDatabaseUrlDiagnostics(),
+  });
 
   const body = await request.json();
   const rows = Array.isArray(body?.rows) ? (body.rows as RawRow[]) : [];
@@ -1140,6 +1144,13 @@ export async function POST(request: NextRequest) {
           } as any,
           select: { id: true },
         });
+        console.log("[CONTACT CREATE DEBUG] Create result", created);
+        console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: created.id });
+
+        const verificationContact = await prismadb.crm_Contacts.findUnique({
+          where: { id: created.id },
+        });
+        console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
         await updateImportedContactColumns(created.id, importedColumnValues);
 
         if (candidate.normalizedEmail) {

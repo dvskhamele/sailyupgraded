@@ -2,7 +2,7 @@
 import { getSession } from "@/lib/auth-server";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
 export async function convertTarget(
@@ -10,6 +10,11 @@ export async function convertTarget(
 ): Promise<{ accountId: string; contactId: string } | { error: string }> {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  console.log("[CONTACT CREATE DEBUG] Entry point", {
+    path: "actions/crm/targets/convert-target.ts:convertTarget",
+    database: getDatabaseUrlDiagnostics(),
+  });
+  console.log("[CONTACT CREATE DEBUG] Incoming payload", { targetId });
 
   const target = await prismadb.crm_Targets.findFirst({ where: { id: targetId, deletedAt: null } });
   if (!target) return { error: "Target not found" };
@@ -68,6 +73,13 @@ export async function convertTarget(
         },
         select: { id: true },
       });
+      console.log("[CONTACT CREATE DEBUG] Create result", ctct);
+      console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: ctct.id });
+
+      const verificationContact = await tx.crm_Contacts.findUnique({
+        where: { id: ctct.id },
+      });
+      console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
 
       await tx.crm_Targets.update({
         where: { id: targetId },

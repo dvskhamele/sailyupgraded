@@ -1,7 +1,12 @@
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
+  console.log("[LEAD CREATE DEBUG] Entry point", {
+    path: "app/api/crm/leads/create-lead-from-web/route.ts:POST",
+    database: getDatabaseUrlDiagnostics(),
+  });
+
   if (req.headers.get("content-type") !== "application/json") {
     return NextResponse.json(
       { message: "Invalid content-type" },
@@ -11,6 +16,7 @@ export async function POST(req: Request) {
 
   const body = await req.json();
   const headers = req.headers;
+  console.log("[LEAD CREATE DEBUG] Incoming lead payload", body);
 
   if (!body) {
     return NextResponse.json({ message: "No body" }, { status: 400 });
@@ -46,16 +52,39 @@ export async function POST(req: Request) {
       );
     }
     try {
-      await prismadb.crm_Leads.create({
+      const createPayload = {
+        v: 1,
+        firstName,
+        lastName,
+        company: account,
+        jobTitle: job,
+        email,
+        phone,
+      };
+      console.log("[LEAD CREATE DEBUG] Prisma create payload", createPayload);
+      console.log("[LEAD CREATE DEBUG] Executing prismadb.crm_Leads.create()");
+      const lead = await prismadb.crm_Leads.create({
         data: {
-          v: 1,
-          firstName,
-          lastName,
-          company: account,
-          jobTitle: job,
-          email,
-          phone,
+          ...createPayload,
         },
+      });
+      console.log("[LEAD CREATE DEBUG] Create result", lead);
+      console.log("[LEAD CREATE DEBUG] Created lead ID", { id: lead.id });
+
+      const verificationLead = await prismadb.crm_Leads.findUnique({
+        where: { id: lead.id },
+      });
+      console.log("[LEAD CREATE DEBUG] Verification query result", verificationLead);
+
+      if (!verificationLead) {
+        console.error("[LEAD CREATE DEBUG] Verification query did not find created lead", {
+          id: lead.id,
+          database: getDatabaseUrlDiagnostics(),
+        });
+      }
+      console.log("[LEAD CREATE DEBUG] Completed without transaction rollback", {
+        id: lead.id,
+        note: "create-lead-from-web does not wrap crm_Leads.create() in a transaction",
       });
 
       return NextResponse.json({ message: "New lead created successfully" });

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import {
   paginationSchema,
   paginationArgs,
@@ -92,15 +92,34 @@ export const crmLeadTools = [
       userId: string
     ) {
       const { lastName, firstName, ...rest } = args;
+      const createPayload = {
+        v: 0,
+        lastName,
+        firstName: firstName || "",
+        ...rest,
+        assigned_to: userId,
+        createdBy: userId,
+      };
+      console.log("[LEAD CREATE DEBUG] Entry point", {
+        path: "lib/mcp/tools/crm-leads.ts:crm_create_lead",
+        database: getDatabaseUrlDiagnostics(),
+      });
+      console.log("[LEAD CREATE DEBUG] Incoming lead payload", args);
+      console.log("[LEAD CREATE DEBUG] Prisma create payload", createPayload);
+      console.log("[LEAD CREATE DEBUG] Executing prismadb.crm_Leads.create()");
       const lead = await prismadb.crm_Leads.create({
-        data: {
-          v: 0,
-          lastName,
-          firstName: firstName || "",
-          ...rest,
-          assigned_to: userId,
-          createdBy: userId,
-        },
+        data: createPayload,
+      });
+      console.log("[LEAD CREATE DEBUG] Create result", lead);
+      console.log("[LEAD CREATE DEBUG] Created lead ID", { id: lead.id });
+
+      const verificationLead = await prismadb.crm_Leads.findUnique({
+        where: { id: lead.id },
+      });
+      console.log("[LEAD CREATE DEBUG] Verification query result", verificationLead);
+      console.log("[LEAD CREATE DEBUG] Completed without transaction rollback", {
+        id: lead.id,
+        note: "crm_create_lead does not wrap crm_Leads.create() in a transaction",
       });
       return itemResponse(lead);
     },

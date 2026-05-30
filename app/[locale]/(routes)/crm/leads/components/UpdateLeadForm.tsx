@@ -1,9 +1,11 @@
 "use client";
 
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { UnifiedPersonForm, type UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
 import { localLeadRepository } from "@/lib/offline-first/storage";
+import { updateLead } from "@/actions/crm/leads/update-lead";
 
 type Option = { id: string; name: string };
 type AccountItem = {
@@ -25,10 +27,6 @@ type UpdateLeadFormProps = {
   onDataChange?: () => void | Promise<void>;
 };
 
-function findName(options: Option[], id?: string | null) {
-  return options.find((option) => option.id === id)?.name;
-}
-
 export function UpdateLeadForm({
   initialData,
   setOpen,
@@ -42,6 +40,7 @@ export function UpdateLeadForm({
   onDataChange,
 }: UpdateLeadFormProps) {
   const t = useTranslations("CrmLeadForm");
+  const router = useRouter();
 
   if (!initialData) {
     return null;
@@ -96,26 +95,10 @@ export function UpdateLeadForm({
   };
 
   const updateLocalLead = async (data: UnifiedPersonFormValues) => {
-    const lead = await localLeadRepository.update(initialData.id, {
+    return updateLead({
       ...data,
-      firstName: data.first_name ?? "",
-      lastName: data.last_name ?? "",
-      updatedAt: new Date().toISOString(),
-      lead_source: data.lead_source_id
-        ? { name: findName(leadSources, data.lead_source_id) }
-        : null,
-      lead_status: data.lead_status_id
-        ? { name: findName(leadStatuses, data.lead_status_id) }
-        : null,
-      lead_type: data.lead_type_id
-        ? { name: findName(leadTypes, data.lead_type_id) }
-        : null,
-      contact_type: data.contact_type_id
-        ? { name: findName(contactTypes, data.contact_type_id) }
-        : null,
-    });
-
-    return { data: lead };
+      id: initialData.id,
+    } as Parameters<typeof updateLead>[0]);
   };
 
   return (
@@ -134,7 +117,9 @@ export function UpdateLeadForm({
       initialValues={initialValues}
       onSubmitAction={updateLocalLead}
       onSuccess={async () => {
+        await localLeadRepository.discardLocal(initialData.id);
         setOpen(false);
+        router.refresh();
         await onDataChange?.();
       }}
     />

@@ -1,6 +1,6 @@
 "use server";
 import { getSession } from "@/lib/auth-server";
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
@@ -61,6 +61,12 @@ export const createLead = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+
+  console.log("[LEAD CREATE DEBUG] Entry point", {
+    path: "actions/crm/leads/create-lead.ts:createLead",
+    database: getDatabaseUrlDiagnostics(),
+  });
+  console.log("[LEAD CREATE DEBUG] Incoming lead payload", data);
 
   const userId = session.user.id;
   const {
@@ -169,10 +175,26 @@ export const createLead = async (data: {
     social_youtube,
     social_tiktok,
   });
+  console.log("[LEAD CREATE DEBUG] Prisma create payload", supportedFields);
   try {
+    console.log("[LEAD CREATE DEBUG] Executing prismadb.crm_Leads.create()");
     const lead = await prismadb.crm_Leads.create({
       data: supportedFields as any,
     });
+    console.log("[LEAD CREATE DEBUG] Create result", lead);
+    console.log("[LEAD CREATE DEBUG] Created lead ID", { id: lead.id });
+
+    const verificationLead = await prismadb.crm_Leads.findUnique({
+      where: { id: lead.id },
+    });
+    console.log("[LEAD CREATE DEBUG] Verification query result", verificationLead);
+
+    if (!verificationLead) {
+      console.error("[LEAD CREATE DEBUG] Verification query did not find created lead", {
+        id: lead.id,
+        database: getDatabaseUrlDiagnostics(),
+      });
+    }
 
     if (assigned_to && assigned_to !== userId) {
       const notifyRecipient = await prismadb.users.findFirst({
@@ -204,6 +226,10 @@ export const createLead = async (data: {
     });
     void inngest.send({ name: "crm/lead.saved", data: { record_id: lead.id } });
     revalidatePath("/[locale]/crm/leads", "page");
+    console.log("[LEAD CREATE DEBUG] Completed without transaction rollback", {
+      id: lead.id,
+      note: "createLead does not wrap crm_Leads.create() in a transaction",
+    });
     return { data: lead };
   } catch (error: any) {
     console.log("[CREATE_LEAD] Error detail:", {

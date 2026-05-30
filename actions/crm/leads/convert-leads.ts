@@ -1,7 +1,7 @@
 "use server";
 
 import { getSession } from "@/lib/auth-server";
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit-log";
 import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
@@ -14,6 +14,11 @@ export const convertLeadsToContacts = async (leadIds: string[]) => {
     console.log("[CONVERT_LEADS] Unauthorized");
     return { error: "Unauthorized" };
   }
+  console.log("[CONTACT CREATE DEBUG] Entry point", {
+    path: "actions/crm/leads/convert-leads.ts:convertLeadsToContacts",
+    database: getDatabaseUrlDiagnostics(),
+  });
+  console.log("[CONTACT CREATE DEBUG] Incoming payload", { leadIds });
 
   // Handle both string[] and nested [string[]] (Next.js server action arg wrapping)
   const flatIds = Array.isArray(leadIds) ? leadIds.flat() : [];
@@ -130,6 +135,13 @@ export const convertLeadsToContacts = async (leadIds: string[]) => {
           const contact = await tx.crm_Contacts.create({
             data: cleanedContactData as any,
           });
+          console.log("[CONTACT CREATE DEBUG] Create result", contact);
+          console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: contact.id });
+
+          const verificationContact = await tx.crm_Contacts.findUnique({
+            where: { id: contact.id },
+          });
+          console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
 
           // Update lead status and soft delete
           await tx.crm_Leads.update({

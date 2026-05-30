@@ -1,6 +1,6 @@
 "use server";
 import { getSession } from "@/lib/auth-server";
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
@@ -114,6 +114,11 @@ export const createContact = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  console.log("[CONTACT CREATE DEBUG] Entry point", {
+    path: "actions/crm/contacts/create-contact.ts:createContact",
+    database: getDatabaseUrlDiagnostics(),
+  });
+  console.log("[CONTACT CREATE DEBUG] Incoming payload", data);
 
   const userId = session.user.id;
   const {
@@ -195,6 +200,7 @@ export const createContact = async (data: {
     ...supportedAddressFields,
     ...rest,
   });
+  console.log("[CONTACT CREATE DEBUG] Prisma create payload", supportedCreateFields);
 
   try {
     const contactSelect = await getCrmContactDetailSelect();
@@ -217,20 +223,37 @@ export const createContact = async (data: {
       let createdContact;
 
       try {
+        console.log("[CONTACT CREATE DEBUG] Executing tx.crm_Contacts.create()");
         createdContact = await tx.crm_Contacts.create({
           data: supportedCreateFields as any,
           select: contactSelect,
         });
+        console.log("[CONTACT CREATE DEBUG] Create result", createdContact);
+        console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: createdContact.id });
+
+        const verificationContact = await tx.crm_Contacts.findUnique({
+          where: { id: createdContact.id },
+        });
+        console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
       } catch (error) {
         if (!isMissingContactSerialColumnError(error) || !("serial" in supportedCreateFields)) {
+          console.error("[CONTACT CREATE DEBUG] Create error before fallback", error);
           throw error;
         }
 
         const { serial: _serial, ...fallbackCreateFields } = supportedCreateFields as Record<string, unknown>;
+        console.log("[CONTACT CREATE DEBUG] Executing tx.crm_Contacts.create() fallback", fallbackCreateFields);
         createdContact = await tx.crm_Contacts.create({
           data: fallbackCreateFields as any,
           select: contactSelect,
         });
+        console.log("[CONTACT CREATE DEBUG] Create result", createdContact);
+        console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: createdContact.id });
+
+        const verificationContact = await tx.crm_Contacts.findUnique({
+          where: { id: createdContact.id },
+        });
+        console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
       }
 
       if (!shouldCreateOpportunity) {
@@ -331,6 +354,10 @@ export const createContact = async (data: {
         ],
       };
     });
+    console.log("[CONTACT CREATE DEBUG] Transaction completed", {
+      id: contact.id,
+      note: "crm_Contacts.create() is inside a transaction; rollback would be surfaced in catch",
+    });
 
     if (resolvedAssignedTo && resolvedAssignedTo !== userId) {
       const notifyRecipient = await prismadb.users.findFirst({
@@ -365,6 +392,12 @@ export const createContact = async (data: {
     revalidatePath("/[locale]/crm/opportunities", "page");
     return { data: serializeDecimals(contact) };
   } catch (error: any) {
+    console.error("[CONTACT CREATE DEBUG] Error", {
+      message: error.message,
+      code: error.code,
+      meta: error.meta,
+      database: getDatabaseUrlDiagnostics(),
+    });
     console.log("[CREATE_CONTACT] Error detail:", {
       message: error.message,
       code: error.code,

@@ -1,9 +1,13 @@
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
 
 export async function POST(req: Request) {
+  console.log("[CONTACT CREATE DEBUG] Entry point", {
+    path: "app/api/crm/contacts/create-from-remote/route.ts:POST",
+    database: getDatabaseUrlDiagnostics(),
+  });
   const apiKey = req.headers.get("NEXTCRM_TOKEN");
 
   // Get API key from headers
@@ -20,7 +24,7 @@ export async function POST(req: Request) {
 
   const body = await req.json();
 
-  console.log(body, "body");
+  console.log("[CONTACT CREATE DEBUG] Incoming payload", body);
 
   const { name, surname, email, phone, company, message, tag } = body;
   if (!name || !surname || !email || !phone || !company || !message || !tag) {
@@ -31,7 +35,7 @@ export async function POST(req: Request) {
   }
 
   try {
-    await prismadb.crm_Contacts.create({
+    const created = await prismadb.crm_Contacts.create({
       data: {
         first_name: name,
         last_name: surname,
@@ -46,6 +50,13 @@ export async function POST(req: Request) {
       },
       select: { id: true },
     });
+    console.log("[CONTACT CREATE DEBUG] Create result", created);
+    console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: created.id });
+
+    const verificationContact = await prismadb.crm_Contacts.findUnique({
+      where: { id: created.id },
+    });
+    console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
     return NextResponse.json({ message: "Contact created" });
   } catch (error) {
     console.log("Error creating contact:", error);

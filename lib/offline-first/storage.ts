@@ -299,6 +299,7 @@ export type LocalRepository<TEntity extends LocalDatabaseEntity> = {
     changes: UpdateLocalEntityInput<TEntity>,
   ) => Promise<TEntity>;
   delete: (id: string) => Promise<void>;
+  discardLocal: (id: string) => Promise<void>;
   getById: (id: string) => Promise<TEntity | undefined>;
   getAll: () => Promise<TEntity[]>;
 };
@@ -434,6 +435,13 @@ export function createLocalRepository<TEntity extends LocalDatabaseEntity>(
           createOfflineQueueEntry("delete", tableName, id, existing ?? null),
         );
       });
+    },
+
+    async discardLocal(id) {
+      const db = getLocalDatabase();
+      const table = getTable(db);
+
+      await table.delete(id);
     },
 
     getById(id) {

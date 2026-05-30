@@ -16,6 +16,40 @@ const slowQueryThresholdMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 1000);
 const transactionMaxWaitMs = Number(process.env.PRISMA_TRANSACTION_MAX_WAIT_MS ?? 10_000);
 const transactionTimeoutMs = Number(process.env.PRISMA_TRANSACTION_TIMEOUT_MS ?? 30_000);
 
+export function getDatabaseUrlDiagnostics() {
+  if (!databaseUrl) {
+    return {
+      configured: false,
+      protocol: null,
+      host: null,
+      port: null,
+      database: null,
+      username: null,
+      sslaccept: null,
+      sslmode: null,
+    };
+  }
+
+  try {
+    const url = new URL(databaseUrl);
+    return {
+      configured: true,
+      protocol: url.protocol.replace(/:$/, ""),
+      host: url.hostname,
+      port: url.port || (url.protocol === "mysql:" || url.protocol === "mariadb:" ? "3306" : null),
+      database: url.pathname.replace(/^\/+/, "") || null,
+      username: url.username ? decodeURIComponent(url.username) : null,
+      sslaccept: url.searchParams.get("sslaccept"),
+      sslmode: url.searchParams.get("sslmode"),
+    };
+  } catch (error) {
+    return {
+      configured: true,
+      parseError: error instanceof Error ? error.message : String(error),
+    };
+  }
+}
+
 function getPrismaSchemaSignature() {
   return Prisma.dmmf.datamodel.models
     .map((model) => `${model.name}:${model.fields.map((field) => field.name).join(",")}`)

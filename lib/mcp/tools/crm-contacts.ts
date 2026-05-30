@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { prismadb } from "@/lib/prisma";
+import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import {
   paginationSchema,
   paginationArgs,
@@ -93,16 +93,29 @@ export const crmContactTools = [
       userId: string
     ) {
       const { last_name, ...rest } = args;
-      const contact = await prismadb.crm_Contacts.create({
-        data: {
-          v: 0,
-          last_name,
-          ...rest,
-          assigned_to: userId,
-          createdBy: userId,
-          updatedBy: userId,
-        },
+      const createPayload = {
+        v: 0,
+        last_name,
+        ...rest,
+        assigned_to: userId,
+        createdBy: userId,
+        updatedBy: userId,
+      };
+      console.log("[CONTACT CREATE DEBUG] Entry point", {
+        path: "lib/mcp/tools/crm-contacts.ts:crm_create_contact",
+        database: getDatabaseUrlDiagnostics(),
       });
+      console.log("[CONTACT CREATE DEBUG] Incoming payload", args);
+      console.log("[CONTACT CREATE DEBUG] Prisma create payload", createPayload);
+      console.log("[CONTACT CREATE DEBUG] Executing prismadb.crm_Contacts.create()");
+      const contact = await prismadb.crm_Contacts.create({ data: createPayload });
+      console.log("[CONTACT CREATE DEBUG] Create result", contact);
+      console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: contact.id });
+
+      const verificationContact = await prismadb.crm_Contacts.findUnique({
+        where: { id: contact.id },
+      });
+      console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
       return itemResponse(contact);
     },
   },
