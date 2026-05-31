@@ -8,12 +8,295 @@ import { writeAuditLog } from "@/lib/audit-log";
 import { getAddressLine1 } from "@/lib/crm-address";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
+import { getSalesStageCollections } from "@/lib/crm-sales-stages";
+import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
 import {
   type CustomFieldValue,
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
 import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
+
+function normalizeOptionalText(value?: string | null) {
+  const trimmed = value?.trim() ?? "";
+  return trimmed || undefined;
+}
+
+const OPPORTUNITY_DESCRIPTION_MAX_LENGTH = 191;
+
+function truncateForOpportunityDescription(value: string) {
+  return Array.from(value).slice(0, OPPORTUNITY_DESCRIPTION_MAX_LENGTH).join("");
+}
+
+function buildManualLeadOpportunityMetadata(data: {
+  leadId: string;
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  email?: string | null;
+  phone?: string | null;
+}) {
+  return {
+    manualLeadSource: {
+      leadId: data.leadId,
+      firstName: normalizeOptionalText(data.firstName) ?? null,
+      lastName: normalizeOptionalText(data.lastName) ?? null,
+      company: normalizeOptionalText(data.company) ?? null,
+      email: normalizeOptionalText(data.email) ?? null,
+      phone: normalizeOptionalText(data.phone) ?? null,
+    },
+  };
+}
+
+function buildManualLeadOpportunityDescription(data: {
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  description?: string | null;
+}) {
+  const description = [
+    "Created from manual Lead",
+    [data.firstName, data.lastName].filter(Boolean).join(" ").trim() || null,
+    normalizeOptionalText(data.company) ? `Company: ${data.company}` : null,
+    normalizeOptionalText(data.description) ? `Lead description: ${data.description}` : null,
+  ].filter(Boolean).join("\n");
+
+  return truncateForOpportunityDescription(description);
+}
+
+async function findExistingContactForLead(data: {
+  email?: string | null;
+  phone?: string | null;
+  mobilePhone?: string | null;
+}) {
+  const email = normalizeOptionalText(data.email);
+  if (email) {
+    const contact = await prismadb.crm_Contacts.findFirst({
+      where: { email, deletedAt: null },
+      select: { id: true, first_name: true, last_name: true },
+    });
+    if (contact) return contact;
+  }
+
+  const phone = normalizeOptionalText(data.phone);
+  if (phone) {
+    const contact = await prismadb.crm_Contacts.findFirst({
+      where: { phone, deletedAt: null },
+      select: { id: true, first_name: true, last_name: true },
+    });
+    if (contact) return contact;
+  }
+
+  const mobilePhone = normalizeOptionalText(data.mobilePhone);
+  if (mobilePhone) {
+    const contact = await prismadb.crm_Contacts.findFirst({
+      where: { mobile_phone: mobilePhone, deletedAt: null },
+      select: { id: true, first_name: true, last_name: true },
+    });
+    if (contact) return contact;
+  }
+
+  return null;
+}
+
+async function getOrCreateContactForLead(data: {
+  userId: string;
+  assignedTo?: string | null;
+  accountId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  email?: string | null;
+  personalEmail?: string | null;
+  phone?: string | null;
+  officePhone?: string | null;
+  mobilePhone?: string | null;
+  website?: string | null;
+  country?: string | null;
+  description?: string | null;
+}) {
+  const existingContact = await findExistingContactForLead(data);
+  if (existingContact) {
+    return existingContact;
+  }
+
+  const resolvedAssignedTo = await resolveExistingUserId(data.assignedTo, data.userId);
+  const contactPayload = await pickExistingDbModelFields("crm_Contacts", {
+    v: 0,
+    first_name: data.firstName || "",
+    last_name:
+      data.lastName ||
+      data.firstName ||
+      normalizeOptionalText(data.email)?.split("@")[0] ||
+      normalizeOptionalText(data.phone) ||
+      normalizeOptionalText(data.mobilePhone) ||
+      "Manual Lead",
+    company: normalizeOptionalText(data.company),
+    email: normalizeOptionalText(data.email),
+    personal_email: normalizeOptionalText(data.personalEmail),
+    phone: normalizeOptionalText(data.phone),
+    mobile_phone: normalizeOptionalText(data.mobilePhone),
+    office_phone: normalizeOptionalText(data.officePhone),
+    website: normalizeOptionalText(data.website),
+    country: normalizeOptionalText(data.country),
+    description: normalizeOptionalText(data.description),
+    assigned_to: resolvedAssignedTo || undefined,
+    accountsIDs: normalizeOptionalText(data.accountId),
+    status: true,
+    role: normalizeContactRole("Customer"),
+    createdBy: data.userId,
+    created_by: data.userId,
+    updatedBy: data.userId,
+    last_activity_by: data.userId,
+  });
+
+  const contact = await prismadb.crm_Contacts.create({
+    data: contactPayload as any,
+    select: { id: true, first_name: true, last_name: true },
+  });
+
+  await writeAuditLog({
+    entityType: "contact",
+    entityId: contact.id,
+    action: "created",
+    changes: [{ field: "source", old: null, new: "manual_lead" }],
+    userId: data.userId,
+  });
+
+  return contact;
+}
+
+async function linkContactToOpportunity(data: {
+  contactId: string;
+  opportunityId: string;
+  userId: string;
+}) {
+  await prismadb.contactsToOpportunities.upsert({
+    where: {
+      contact_id_opportunity_id: {
+        contact_id: data.contactId,
+        opportunity_id: data.opportunityId,
+      },
+    },
+    update: {},
+    create: {
+      contact_id: data.contactId,
+      opportunity_id: data.opportunityId,
+    },
+  });
+
+  await prismadb.crm_Opportunities.update({
+    where: { id: data.opportunityId },
+    data: {
+      contact: data.contactId,
+      updatedBy: data.userId,
+      last_activity_by: data.userId,
+    },
+    select: { id: true },
+  });
+}
+
+async function createPipelineOpportunityForLead(data: {
+  leadId: string;
+  userId: string;
+  assignedTo?: string | null;
+  accountId?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  company?: string | null;
+  email?: string | null;
+  personalEmail?: string | null;
+  phone?: string | null;
+  officePhone?: string | null;
+  mobilePhone?: string | null;
+  website?: string | null;
+  country?: string | null;
+  description?: string | null;
+}) {
+  const contact = await getOrCreateContactForLead(data);
+  const leadMarker = `Linked Lead ID: ${data.leadId}`;
+  const existingOpportunity = await prismadb.crm_Opportunities.findFirst({
+    where: {
+      deletedAt: null,
+      OR: [
+        { custom_fields_data: { path: "$.manualLeadSource.leadId", equals: data.leadId } },
+        { description: { contains: leadMarker } },
+      ],
+    },
+    select: { id: true },
+  });
+
+  if (existingOpportunity) {
+    await linkContactToOpportunity({
+      contactId: contact.id,
+      opportunityId: existingOpportunity.id,
+      userId: data.userId,
+    });
+    return existingOpportunity;
+  }
+
+  const { firstStage } = await getSalesStageCollections();
+  const resolvedAssignedTo = await resolveExistingUserId(data.assignedTo, data.userId);
+  const resolvedCreatedBy = await resolveExistingUserId(data.userId);
+  const accountId = normalizeOptionalText(data.accountId);
+  const assignedAccount = accountId
+    ? await prismadb.crm_Accounts.findFirst({
+        where: { id: accountId, deletedAt: null },
+        select: { id: true },
+      })
+    : null;
+  const fullName = [data.firstName, data.lastName].filter(Boolean).join(" ").trim();
+  const opportunityName =
+    fullName ||
+    normalizeOptionalText(data.company) ||
+    normalizeOptionalText(data.email) ||
+    normalizeOptionalText(data.phone) ||
+    "Manual Lead";
+
+  const opportunity = await prismadb.crm_Opportunities.create({
+    data: {
+      assigned_account: assignedAccount
+        ? { connect: { id: assignedAccount.id } }
+        : undefined,
+      assigned_to_user: connectUserById(resolvedAssignedTo),
+      assigned_sales_stage: firstStage
+        ? { connect: { id: firstStage.id } }
+        : undefined,
+      clientName: fullName || null,
+      contact: contact.id,
+      contacts: {
+        create: {
+          contact: { connect: { id: contact.id } },
+        },
+      },
+      created_by_user: connectUserById(resolvedCreatedBy),
+      createdBy: data.userId,
+      updatedBy: data.userId,
+      last_activity_by: data.userId,
+      custom_fields_data: buildManualLeadOpportunityMetadata(data),
+      description: buildManualLeadOpportunityDescription(data),
+      name: opportunityName,
+      next_step: "New manual lead",
+      status: "ACTIVE",
+    },
+    select: { id: true },
+  });
+
+  await writeAuditLog({
+    entityType: "opportunity",
+    entityId: opportunity.id,
+    action: "created",
+    changes: [{ field: "source", old: null, new: "manual_lead" }],
+    userId: data.userId,
+  });
+  void inngest
+    .send({ name: "crm/opportunity.saved", data: { record_id: opportunity.id } })
+    .catch((error) => {
+      console.error("[CREATE_LEAD_OPPORTUNITY_INGGEST]", error);
+    });
+
+  return opportunity;
+}
 
 export const createLead = async (data: {
   serial?: string;
@@ -224,10 +507,33 @@ export const createLead = async (data: {
       changes: null,
       userId: session.user.id,
     });
+    const pipelineOpportunity = await createPipelineOpportunityForLead({
+      leadId: lead.id,
+      userId,
+      assignedTo: lead.assigned_to || assigned_to || userId,
+      accountId: lead.accountsIDs || assigned_account || accountIDs,
+      firstName: lead.firstName || first_name,
+      lastName: lead.lastName || last_name,
+      company: lead.company || company,
+      email: lead.email || email,
+      personalEmail: lead.personal_email || personal_email,
+      phone: lead.phone || phone,
+      officePhone: lead.office_phone || office_phone,
+      mobilePhone: lead.mobile_phone || mobile_phone,
+      website: lead.website || website,
+      country: lead.country || country,
+      description: lead.description || description,
+    });
     void inngest.send({ name: "crm/lead.saved", data: { record_id: lead.id } });
     revalidatePath("/[locale]/crm/leads", "page");
+    revalidatePath("/[locale]/(routes)/crm/leads", "page");
+    revalidatePath("/[locale]/crm/opportunities", "page");
+    revalidatePath("/[locale]/(routes)/crm/opportunities", "page");
+    revalidatePath("/[locale]/crm/dashboard", "page");
+    revalidatePath("/[locale]/(routes)/crm/dashboard", "page");
     console.log("[LEAD CREATE DEBUG] Completed without transaction rollback", {
       id: lead.id,
+      pipelineOpportunityId: pipelineOpportunity.id,
       note: "createLead does not wrap crm_Leads.create() in a transaction",
     });
     return { data: lead };

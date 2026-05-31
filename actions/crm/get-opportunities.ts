@@ -19,7 +19,7 @@ function shouldUseFallback(error: unknown) {
 }
 
 async function loadOpportunities() {
-  return prismadb.crm_Opportunities.findMany({
+  const opportunities = await prismadb.crm_Opportunities.findMany({
     where: { deletedAt: null },
     include: {
       // Include assigned user (uses "assigned_to_user_relation")
@@ -66,6 +66,47 @@ async function loadOpportunities() {
       },
     },
   });
+
+  const assignedClientIds = [
+    ...new Set(
+      opportunities
+        .map((opportunity) => opportunity.contact)
+        .filter((contactId): contactId is string => Boolean(contactId)),
+    ),
+  ];
+
+  if (assignedClientIds.length === 0) {
+    return opportunities;
+  }
+
+  const assignedClientContacts = await prismadb.crm_Contacts.findMany({
+    where: {
+      id: { in: assignedClientIds },
+      deletedAt: null,
+    },
+    select: {
+      id: true,
+      first_name: true,
+      last_name: true,
+      email: true,
+      personal_email: true,
+      phone: true,
+      mobile_phone: true,
+      office_phone: true,
+      state: true,
+    },
+  });
+
+  const assignedClientContactsById = new Map(
+    assignedClientContacts.map((contact) => [contact.id, contact]),
+  );
+
+  return opportunities.map((opportunity) => ({
+    ...opportunity,
+    assignedClientContact: opportunity.contact
+      ? assignedClientContactsById.get(opportunity.contact) ?? null
+      : null,
+  }));
 }
 
 export const getOpportunities = async () => {

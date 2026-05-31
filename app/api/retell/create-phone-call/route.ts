@@ -44,8 +44,29 @@ function cleanString(value: unknown) {
 function getContactName(contact?: {
   first_name?: string | null;
   last_name?: string | null;
-}) {
+} | null) {
   return [contact?.first_name, contact?.last_name].filter(Boolean).join(" ").trim();
+}
+
+function getContactPhone(contact?: {
+  phone?: string | null;
+  mobile_phone?: string | null;
+  office_phone?: string | null;
+} | null) {
+  const phone =
+    contact?.phone?.trim() ||
+    contact?.mobile_phone?.trim() ||
+    contact?.office_phone?.trim() ||
+    "";
+  const selectedPhoneField = contact?.phone?.trim()
+    ? "phone"
+    : contact?.mobile_phone?.trim()
+      ? "mobile_phone"
+      : contact?.office_phone?.trim()
+        ? "office_phone"
+        : null;
+
+  return { phone, selectedPhoneField };
 }
 
 async function readRetellCreatePhoneCallPayload(response: Response) {
@@ -109,13 +130,6 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!requestedPhone || !isE164PhoneNumber(requestedPhone)) {
-    return NextResponse.json(
-      { error: "Lead phone must include a country code, for example +14155552671" },
-      { status: 400 },
-    );
-  }
-
   try {
     console.log(`[RETELL_CREATE_PHONE_CALL] Fetching opportunity: ${opportunityId}`);
     const dbStartTime = Date.now();
@@ -125,6 +139,7 @@ export async function POST(request: Request) {
         id: true,
         name: true,
         clientName: true,
+        contact: true,
         contacts: {
           include: {
             contact: {
@@ -154,15 +169,64 @@ export async function POST(request: Request) {
       );
     }
 
+    const assignedContact = opportunity.contact
+      ? await prismadb.crm_Contacts.findFirst({
+          where: {
+            id: opportunity.contact,
+            deletedAt: null,
+          },
+          select: {
+            id: true,
+            first_name: true,
+            last_name: true,
+            email: true,
+            personal_email: true,
+            phone: true,
+            mobile_phone: true,
+            office_phone: true,
+            state: true,
+          },
+        })
+      : null;
+
+    const junctionContacts = opportunity.contacts
+      .map((link) => link.contact)
+      .filter(Boolean);
+
     const linkedContact = memberId
-      ? opportunity.contacts
-          .map((link) => link.contact)
-          .find((contact) => contact.id === memberId)
-      : opportunity.contacts[0]?.contact;
+      ? (assignedContact?.id === memberId
+          ? assignedContact
+          : junctionContacts.find((contact) => contact.id === memberId) ?? null)
+      : assignedContact ?? junctionContacts[0] ?? null;
+    const linkedContactPhone = getContactPhone(linkedContact);
+    const finalResolvedPhone = normalizeE164PhoneNumber(
+      requestedPhone || linkedContactPhone.phone,
+    );
+
+    console.log("[RETELL_CREATE_PHONE_CALL_CONTACT_RESOLUTION]", {
+      opportunityId: opportunity.id,
+      opportunityContact: opportunity.contact ?? null,
+      assignedClientId: assignedContact?.id ?? null,
+      resolvedContactId: linkedContact?.id ?? null,
+      resolvedContactPhone: linkedContact?.phone ?? null,
+      resolvedContactMobilePhone: linkedContact?.mobile_phone ?? null,
+      resolvedContactOfficePhone: linkedContact?.office_phone ?? null,
+      finalResolvedPhone: finalResolvedPhone || null,
+      selectedPhoneField: requestedPhone
+        ? "requestBody.phone"
+        : linkedContactPhone.selectedPhoneField,
+    });
 
     if (memberId && !linkedContact) {
       return NextResponse.json(
         { error: "Member is not linked to this opportunity" },
+        { status: 400 },
+      );
+    }
+
+    if (!finalResolvedPhone || !isE164PhoneNumber(finalResolvedPhone)) {
+      return NextResponse.json(
+        { error: "Client phone must include a country code, for example +14155552671" },
         { status: 400 },
       );
     }
@@ -220,7 +284,7 @@ export async function POST(request: Request) {
 
     const retellBody: Record<string, unknown> = {
       from_number: fromNumber,
-      to_number: requestedPhone,
+      to_number: finalResolvedPhone,
       override_agent_id: agentId,
       metadata: {
         source: "crm-opportunity-card",
@@ -243,7 +307,7 @@ export async function POST(request: Request) {
     console.log(`[RETELL_CREATE_PHONE_CALL] Initiating fetch to Retell API: ${RETELL_API_BASE_URL}/v2/create-phone-call`);
     console.log("[RETELL_CREATE_PHONE_CALL] Safe request summary", {
       fromNumberFingerprint: fingerprintSecret(fromNumber),
-      toNumberFingerprint: fingerprintSecret(requestedPhone),
+      toNumberFingerprint: fingerprintSecret(finalResolvedPhone),
       overrideAgentId: agentId,
       overrideAgentVersion: agentVersion ?? null,
       metadataKeys: Object.keys((retellBody.metadata as Record<string, unknown>) ?? {}),
@@ -298,7 +362,7 @@ export async function POST(request: Request) {
         callId: payload.call_id,
         opportunityId,
         memberId: memberId || linkedContact?.id,
-        phone: requestedPhone,
+        phone: finalResolvedPhone,
         email: email || undefined,
         agentId: payload.agent_id ?? agentId,
         agentVersion: payload.agent_version ?? agentVersion,
@@ -311,7 +375,7 @@ export async function POST(request: Request) {
       update: {
         opportunityId,
         memberId: memberId || linkedContact?.id,
-        phone: requestedPhone,
+        phone: finalResolvedPhone,
         email: email || undefined,
         agentId: payload.agent_id ?? agentId,
         agentVersion: payload.agent_version ?? agentVersion,

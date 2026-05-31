@@ -488,17 +488,40 @@ function getOpportunityClientName(opportunity: crm_Opportunities) {
   return (opportunity as any).clientName?.trim() || "";
 }
 
-function getOpportunityPrimaryContact(opportunity: crm_Opportunities) {
-  const contacts = (opportunity as any).contacts;
-  if (!Array.isArray(contacts)) {
+function getOpportunityPrimaryContact(
+  opportunity: crm_Opportunities,
+  contactsById: Map<string, any>,
+) {
+  const assignedClientId = (opportunity as any).contact;
+  const assignedClientContact = (opportunity as any).assignedClientContact;
+  const opportunityContacts = Array.isArray((opportunity as any).contacts)
+    ? (opportunity as any).contacts
+    : [];
+
+  if (assignedClientId) {
+    const assignedContact =
+      assignedClientContact?.id === assignedClientId
+        ? assignedClientContact
+        : contactsById.get(assignedClientId) ??
+          opportunityContacts.find(
+            (link: any) => link?.contact?.id === assignedClientId,
+          )?.contact;
+
+    if (assignedContact) {
+      return assignedContact;
+    }
+
     return null;
   }
 
-  return contacts[0]?.contact ?? null;
+  return opportunityContacts[0]?.contact ?? null;
 }
 
-function getOpportunityMemberName(opportunity: crm_Opportunities) {
-  const contact = getOpportunityPrimaryContact(opportunity);
+function getOpportunityMemberName(
+  opportunity: crm_Opportunities,
+  contactsById: Map<string, any>,
+) {
+  const contact = getOpportunityPrimaryContact(opportunity, contactsById);
   const contactName = [contact?.first_name, contact?.last_name]
     .filter(Boolean)
     .join(" ")
@@ -513,17 +536,38 @@ function getOpportunityMemberName(opportunity: crm_Opportunities) {
   );
 }
 
-function getOpportunityCallTarget(opportunity: crm_Opportunities) {
-  const contact = getOpportunityPrimaryContact(opportunity);
+function getOpportunityCallTarget(
+  opportunity: crm_Opportunities,
+  contactsById: Map<string, any>,
+) {
+  const contact = getOpportunityPrimaryContact(opportunity, contactsById);
   const phone =
     contact?.phone?.trim() ||
     contact?.mobile_phone?.trim() ||
     contact?.office_phone?.trim() ||
     "";
+  const selectedPhoneField = contact?.phone?.trim()
+    ? "phone"
+    : contact?.mobile_phone?.trim()
+      ? "mobile_phone"
+      : contact?.office_phone?.trim()
+        ? "office_phone"
+        : null;
+
+  console.log("[CRMKANBAN_RETAIL_AI_PHONE_RESOLUTION]", {
+    opportunityId: opportunity.id,
+    opportunityContact: (opportunity as any).contact ?? null,
+    resolvedContactId: contact?.id ?? null,
+    resolvedContactPhone: contact?.phone ?? null,
+    resolvedContactMobilePhone: contact?.mobile_phone ?? null,
+    resolvedContactOfficePhone: contact?.office_phone ?? null,
+    finalResolvedPhone: phone || null,
+    selectedPhoneField,
+  });
 
   return {
     memberId: contact?.id ?? "",
-    memberName: getOpportunityMemberName(opportunity),
+    memberName: getOpportunityMemberName(opportunity, contactsById),
     phone,
     email: contact?.email?.trim() || contact?.personal_email?.trim() || "",
     state: contact?.state?.trim() || "",
@@ -538,6 +582,7 @@ function OpportunityAiMessageDialog({
   open,
   onOpenChange,
   opportunity,
+  contactsById,
   message,
   onMessageChange,
   onSend,
@@ -546,12 +591,13 @@ function OpportunityAiMessageDialog({
   open: boolean;
   onOpenChange: (open: boolean) => void;
   opportunity: crm_Opportunities | null;
+  contactsById: Map<string, any>;
   message: string;
   onMessageChange: (message: string) => void;
   onSend: () => void;
   isSending: boolean;
 }) {
-  const target = opportunity ? getOpportunityCallTarget(opportunity) : null;
+  const target = opportunity ? getOpportunityCallTarget(opportunity, contactsById) : null;
   const canSend =
     Boolean(opportunity && target?.phone && message.trim()) &&
     !isSending;
@@ -597,7 +643,7 @@ function OpportunityAiMessageDialog({
             />
             {!target?.phone && (
               <p className="text-xs text-destructive">
-                This opportunity does not have a linked lead phone number.
+                This opportunity does not have a linked client phone number.
               </p>
             )}
           </div>
@@ -629,6 +675,7 @@ function OpportunityAiMessageDialog({
 // Draggable Opportunity Card
 function OpportunityCard({
   opportunity,
+  contactsById,
   onThumbsDown,
   onOpenEdit,
   onOpenAiMessage,
@@ -646,7 +693,7 @@ function OpportunityCard({
   const isCallActive = callState.status === "active";
   const isCallFailed = callState.status === "failed";
   const isCallBooked = callState.status === "booked";
-  const callTarget = getOpportunityCallTarget(opportunity);
+  const callTarget = getOpportunityCallTarget(opportunity, contactsById);
   const canStartCall = !isCalling && !isCallActive;
   const callStatusLabel =
     callState.error ??
@@ -1071,6 +1118,13 @@ const CRMKanban = ({
     currencies,
     lostStage,
   } = crmData;
+  const contactsById = useMemo(
+    () =>
+      new Map(
+        (contacts as Array<any>).map((contact) => [contact.id, contact]),
+      ),
+    [contacts],
+  );
 
   const openEditOpportunity = (opportunity: crm_Opportunities) => {
     setEditingOpportunity(opportunity);
@@ -1152,17 +1206,17 @@ const CRMKanban = ({
 
   // Sync from server (e.g. after onThumbsDown router.refresh()) — only when not dragging
   const handleStartPhoneCall = async (opportunity: crm_Opportunities) => {
-    const target = getOpportunityCallTarget(opportunity);
+    const target = getOpportunityCallTarget(opportunity, contactsById);
 
     if (!target.phone) {
       setOpportunityCallStates((current) => ({
         ...current,
         [opportunity.id]: {
           status: "failed",
-          error: "No phone number on linked member",
+          error: "No phone number on linked client",
         },
       }));
-      toast.error("No phone number found for this opportunity member");
+      toast.error("No phone number found for this opportunity client");
       return;
     }
 
@@ -1228,11 +1282,11 @@ const CRMKanban = ({
       return;
     }
 
-    const target = getOpportunityCallTarget(aiMessageOpportunity);
+    const target = getOpportunityCallTarget(aiMessageOpportunity, contactsById);
     const message = aiMessageText.trim();
 
     if (!target.phone) {
-      toast.error("No phone number found for this opportunity member");
+      toast.error("No phone number found for this opportunity client");
       return;
     }
 
@@ -1513,7 +1567,7 @@ const CRMKanban = ({
         open={Boolean(aiMessageOpportunity)}
         onOpenChange={closeAiMessageDialog}
         opportunity={aiMessageOpportunity}
-        
+        contactsById={contactsById}
         message={aiMessageText}
         onMessageChange={setAiMessageText}
         onSend={handleSendAiMessage}
@@ -1666,6 +1720,7 @@ const CRMKanban = ({
                         <OpportunityCard
                           key={opportunity.id}
                           opportunity={opportunity}
+                          contactsById={contactsById}
                           onThumbsDown={onThumbsDown}
                           onOpenEdit={openEditOpportunity}
                           onOpenAiMessage={openAiMessageDialog}
@@ -1700,6 +1755,7 @@ const CRMKanban = ({
                       <OpportunityCard
                         key={opportunity.id}
                         opportunity={opportunity}
+                        contactsById={contactsById}
                         onThumbsDown={onThumbsDown}
                         onOpenEdit={openEditOpportunity}
                         onOpenAiMessage={openAiMessageDialog}
