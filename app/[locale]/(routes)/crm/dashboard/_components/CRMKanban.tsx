@@ -6,12 +6,13 @@ import { useRouter } from "next/navigation";
 import {
   Bot,
   MessageSquareMore,
-  Calendar,
-  DollarSign,
+  User,
+  Building2,
   Loader2,
   Mic,
   PhoneCall,
   PhoneOff,
+  Pencil,
 } from "lucide-react";
 import { ThumbsDown } from "lucide-react";
 import { RetellWebClient } from "retell-client-js-sdk";
@@ -41,14 +42,7 @@ import {
   crm_Opportunities_Sales_Stages,
 } from "@prisma/client";
 
-import { DotsHorizontalIcon, PlusCircledIcon } from "@radix-ui/react-icons";
-
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { PlusCircledIcon } from "@radix-ui/react-icons";
 import { toast } from "sonner";
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
 import {
@@ -373,9 +367,7 @@ function RetellAssistantDialog({
             Select Voice AI Agent
           </DialogTitle>
           <DialogDescription>
-            {error
-              ? error
-              : "Choose an agent to be used for outbound calls."}
+            {error ? error : "Choose an agent to be used for outbound calls."}
           </DialogDescription>
         </DialogHeader>
 
@@ -488,6 +480,14 @@ function getOpportunityClientName(opportunity: crm_Opportunities) {
   return (opportunity as any).clientName?.trim() || "";
 }
 
+function getOpportunityAssignedMemberName(opportunity: crm_Opportunities) {
+  return (opportunity as any).assigned_to_user?.name?.trim() || "Unassigned";
+}
+
+function getOpportunityAssignedCompanyName(opportunity: crm_Opportunities) {
+  return (opportunity as any).assigned_account?.name?.trim() || "No Company";
+}
+
 function getOpportunityPrimaryContact(
   opportunity: crm_Opportunities,
   contactsById: Map<string, any>,
@@ -502,10 +502,10 @@ function getOpportunityPrimaryContact(
     const assignedContact =
       assignedClientContact?.id === assignedClientId
         ? assignedClientContact
-        : contactsById.get(assignedClientId) ??
+        : (contactsById.get(assignedClientId) ??
           opportunityContacts.find(
             (link: any) => link?.contact?.id === assignedClientId,
-          )?.contact;
+          )?.contact);
 
     if (assignedContact) {
       return assignedContact;
@@ -534,6 +534,31 @@ function getOpportunityMemberName(
     opportunity.name ||
     "Customer"
   );
+}
+
+function getOpportunityAssignedClientName(
+  opportunity: crm_Opportunities,
+  contactsById: Map<string, any>,
+) {
+  const contact = getOpportunityPrimaryContact(opportunity, contactsById);
+  const contactName = [contact?.first_name, contact?.last_name]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  return (
+    contactName ||
+    getOpportunityClientName(opportunity) ||
+    getOpportunityDisplayName(opportunity) ||
+    "No client assigned"
+  );
+}
+
+function getOpportunityAssignedClientId(
+  opportunity: crm_Opportunities,
+  contactsById: Map<string, any>,
+) {
+  return getOpportunityPrimaryContact(opportunity, contactsById)?.id ?? "";
 }
 
 function getOpportunityCallTarget(
@@ -597,10 +622,11 @@ function OpportunityAiMessageDialog({
   onSend: () => void;
   isSending: boolean;
 }) {
-  const target = opportunity ? getOpportunityCallTarget(opportunity, contactsById) : null;
+  const target = opportunity
+    ? getOpportunityCallTarget(opportunity, contactsById)
+    : null;
   const canSend =
-    Boolean(opportunity && target?.phone && message.trim()) &&
-    !isSending;
+    Boolean(opportunity && target?.phone && message.trim()) && !isSending;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -685,6 +711,7 @@ function OpportunityCard({
   phoneCallState,
   onStartPhoneCall,
 }: any) {
+  const router = useRouter();
   const opportunityProducts = getOpportunityProduct(opportunity);
   const callState = (phoneCallState ?? {
     status: "idle",
@@ -694,6 +721,10 @@ function OpportunityCard({
   const isCallFailed = callState.status === "failed";
   const isCallBooked = callState.status === "booked";
   const callTarget = getOpportunityCallTarget(opportunity, contactsById);
+  const assignedClientId = getOpportunityAssignedClientId(
+    opportunity,
+    contactsById,
+  );
   const canStartCall = !isCalling && !isCallActive;
   const callStatusLabel =
     callState.error ??
@@ -740,29 +771,25 @@ function OpportunityCard({
       {/* HEADER */}
       <CardHeader className="relative z-10 p-4 pb-2">
         <div className="flex justify-between items-start gap-2">
-          <h3 className="text-sm font-semibold text-gray-800 leading-snug group-hover:text-indigo-600 transition">
+          <h3
+            className="cursor-pointer text-sm font-semibold text-gray-800 leading-snug transition group-hover:text-indigo-600"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              router.push(`/crm/opportunities/${opportunity.id}`);
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+          >
             {opportunity.name}
           </h3>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <DotsHorizontalIcon
-                className="w-4 h-4 text-gray-500 hover:text-gray-700 transition"
-                onClick={(e) => e.stopPropagation()}
-              />
-            </DropdownMenuTrigger>
-
-            <DropdownMenuContent align="end" onClick={stopRowNavigation}>
-              <DropdownMenuItem
-                onClick={(event) => {
-                  event.stopPropagation();
-                  onOpenEdit(opportunity);
-                }}
-              >
-                ✏️ Update
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Pencil
+            className="w-4 h-4 text-gray-500 hover:text-gray-700 cursor-pointer transition"
+            onClick={(event) => {
+              event.stopPropagation();
+              onOpenEdit(opportunity);
+            }}
+          />
         </div>
       </CardHeader>
 
@@ -771,63 +798,86 @@ function OpportunityCard({
         {/* DESCRIPTION */}
         <p className="line-clamp-2 text-gray-500">{opportunity.description}</p>
 
-        {/* AMOUNT */}
-      {/* AMOUNT */}
-<div className="flex items-center justify-between">
-  <div className="flex items-center gap-2">
-    <DollarSign className="w-4 h-4 text-green-600" />
-    <span className="text-sm font-medium text-gray-600">
-      AMOUNT
-    </span>
-  </div>
+        
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <User className="w-4 h-4 text-green-600" />
+            <span className="min-w-0 max-w-[130px] truncate text-right text-sm font-semibold text-gray-900">
+              {getOpportunityAssignedMemberName(opportunity)}
+            </span>
+          </div>
 
-  <span className="font-semibold text-gray-900 text-sm">
-    {formatCurrencyDisplay(
-      opportunity.budget,
-      (opportunity as any).currency || "USD"
-    )}
-  </span>
-</div>
+          <span className="font-semibold text-gray-900 text-sm">
+            {formatCurrencyDisplay(
+              opportunity.budget,
+              (opportunity as any).currency || "USD",
+            )}
+          </span>
+        </div>
 
-{/* CLOSE DATE */}
-<div className="flex items-center justify-between">
-  <div className="flex items-center gap-2">
-    <Calendar className="w-4 h-4 text-blue-600" />
-    <span className="text-sm font-medium text-gray-600">
-      CLOSE DATE
-    </span>
-  </div>
+  
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Building2 className="w-4 h-4 text-blue-600" />
+            <span className="min-w-0 max-w-[130px] truncate rounded-full bg-indigo-100 px-2 py-1 text-right text-xs font-semibold text-indigo-600">
+              {getOpportunityAssignedCompanyName(opportunity)}
+            </span>
+          </div>
 
-  <span
-    className={`text-xs font-semibold px-2 py-1 rounded-full ${
-      opportunity.close_date &&
-      nowMs !== null &&
-      new Date(opportunity.close_date).getTime() < nowMs
-        ? "bg-red-100 text-red-600"
-        : "bg-indigo-100 text-indigo-600"
-    }`}
-  >
-    {opportunity.close_date
-      ? format(new Date(opportunity.close_date), "dd MMM yyyy")
-      : "No close date"}
-  </span>
-</div>
+          <span
+            className={`text-xs font-semibold px-2 py-1 rounded-full ${
+              opportunity.close_date &&
+              nowMs !== null &&
+              new Date(opportunity.close_date).getTime() < nowMs
+                ? "bg-red-100 text-red-600"
+                : "bg-indigo-100 text-indigo-600"
+            }`}
+          >
+            {opportunity.close_date
+              ? format(new Date(opportunity.close_date), "dd MMM yyyy")
+              : "No close date"}
+          </span>
+        </div>
       </CardContent>
 
       {/* FOOTER */}
       <CardFooter className="relative z-10 flex justify-between items-center bg-gray-50/60 px-4 py-3 rounded-b-2xl">
         {/* USER */}
         <div className="flex items-center gap-2 min-w-0">
-          <Avatar className="w-8 h-8 ring-2 ring-white shadow-sm">
-            <AvatarImage
-              src={opportunity.assigned_to_user?.avatar || "/images/nouser.png"}
-            />
-          </Avatar>
+          <button
+            type="button"
+            disabled={!assignedClientId}
+            aria-label={
+              assignedClientId
+                ? `Open assigned client ${getOpportunityAssignedClientName(
+                    opportunity,
+                    contactsById,
+                  )}`
+                : "No assigned client"
+            }
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
 
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
-            {getOpportunityClientName(opportunity) ||
-              getOpportunityDisplayName(opportunity)}
-          </span>
+              if (assignedClientId) {
+                router.push(`/crm/contacts/${assignedClientId}`);
+              }
+            }}
+            onPointerDown={(event) => event.stopPropagation()}
+            className="flex min-w-0 flex-1 items-center gap-2 text-left disabled:cursor-default"
+          >
+            <Avatar className="w-8 h-8 ring-2 ring-white shadow-sm">
+              <AvatarImage
+                src={
+                  opportunity.assigned_to_user?.avatar || "/images/nouser.png"
+                }
+              />
+            </Avatar>
+
+            <span className="min-w-0 flex-1 truncate text-sm font-medium text-gray-700">
+              {getOpportunityAssignedClientName(opportunity, contactsById)}
+            </span>
+          </button>
 
           <div className="flex shrink-0 items-center gap-1.5">
             <button
@@ -873,7 +923,7 @@ function OpportunityCard({
               onPointerDown={(event) => event.stopPropagation()}
               className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sky-700 transition hover:bg-sky-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
             >
-              <MessageSquareMore  className="h-5 w-5" />
+              <MessageSquareMore className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -1120,9 +1170,7 @@ const CRMKanban = ({
   } = crmData;
   const contactsById = useMemo(
     () =>
-      new Map(
-        (contacts as Array<any>).map((contact) => [contact.id, contact]),
-      ),
+      new Map((contacts as Array<any>).map((contact) => [contact.id, contact])),
     [contacts],
   );
 

@@ -29,6 +29,11 @@ async function loadOpportunities() {
           name: true,
         },
       },
+      assigned_account: {
+        select: {
+          name: true,
+        },
+      },
       // Include created by user (uses "created_by_user_relation")
       created_by_user: {
         select: {
