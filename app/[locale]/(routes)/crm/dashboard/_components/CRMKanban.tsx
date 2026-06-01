@@ -885,7 +885,7 @@ function OpportunityCard({
               aria-label={`Start outbound AI call for ${callTarget.memberName}`}
               title={callStatusLabel}
               disabled={!canStartCall}
-              onClick={(event) => {
+              onDoubleClick={(event) => {
                 event.preventDefault();
                 event.stopPropagation();
                 onStartPhoneCall(opportunity);
