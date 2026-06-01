@@ -43,6 +43,7 @@ import {
 export interface NavItem {
   title: string
   url?: string
+  count?: number
   external?: boolean
   target?: string
   icon?: LucideIcon
@@ -56,6 +57,7 @@ export interface NavItem {
 export interface NavSubItem {
   title: string
   url: string
+  count?: number
   external?: boolean
   target?: string
   isActive?: boolean
@@ -71,6 +73,29 @@ interface NavMainProps {
 export function NavMain({ items, dict }: NavMainProps) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
+
+  const formatCount = (count?: number) => {
+    if (typeof count !== "number") return null
+    return count > 99 ? "99+" : String(count)
+  }
+
+  const CountChip = ({ count }: { count?: number }) => {
+    const formattedCount = formatCount(count)
+
+    if (formattedCount === null) {
+      return null
+    }
+
+    return (
+      <data
+        value={count}
+        className="inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full border border-sidebar-border bg-sidebar-accent px-1.5 text-[11px] font-medium leading-none tabular-nums text-sidebar-foreground/80 group-data-[collapsible=icon]:hidden"
+        aria-label={`${formattedCount} items`}
+      >
+        {formattedCount}
+      </data>
+    )
+  }
 
   const isExternalLink = (url?: string, external?: boolean) => {
     return !!external || (!!url && /^https?:\/\//.test(url))
@@ -134,8 +159,9 @@ export function NavMain({ items, dict }: NavMainProps) {
               <div className={cn("w-full", depth > 0 && "pl-2")}>
                 <CollapsibleTrigger asChild>
                   <SidebarMenuSubButton isActive={isActive || hasActiveNestedChild}>
-                    <span>{subItem.title}</span>
-                    <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                    <span className="min-w-0 flex-1 truncate">{subItem.title}</span>
+                    <CountChip count={subItem.count} />
+                    <ChevronRight className="shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90" />
                   </SidebarMenuSubButton>
                 </CollapsibleTrigger>
                 <CollapsibleContent>
@@ -158,12 +184,14 @@ export function NavMain({ items, dict }: NavMainProps) {
             >
               {isExternalLink(subItem.url, subItem.external) ? (
                 <a href={subItem.url} target={subItem.target ?? "_blank"} rel="noopener noreferrer">
-                  <span>{subItem.title}</span>
-                  <ExternalLink className="ml-auto size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                  <span className="min-w-0 flex-1 truncate">{subItem.title}</span>
+                  <CountChip count={subItem.count} />
+                  <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                 </a>
               ) : (
                 <Link href={subItem.url} prefetch={false}>
-                  <span>{subItem.title}</span>
+                  <span className="min-w-0 flex-1 truncate">{subItem.title}</span>
+                  <CountChip count={subItem.count} />
                 </Link>
               )}
             </SidebarMenuSubButton>
@@ -194,19 +222,22 @@ export function NavMain({ items, dict }: NavMainProps) {
                       isExternalLink(item.url, item.external) ? (
                         <a href={item.url} target={item.target ?? "_blank"} rel="noopener noreferrer">
                           {item.icon && <item.icon />}
-                          <span>{item.title}</span>
-                          <ExternalLink className="ml-auto size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                          <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                          <CountChip count={item.count} />
+                          <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                         </a>
                       ) : (
                         <Link href={item.url} prefetch={false}>
                           {item.icon && <item.icon />}
-                          <span>{item.title}</span>
+                          <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                          <CountChip count={item.count} />
                         </Link>
                       )
                     ) : (
                       <>
                         {item.icon && <item.icon />}
-                        <span>{item.title}</span>
+                        <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                        <CountChip count={item.count} />
                       </>
                     )}
                   </SidebarMenuButton>
@@ -231,8 +262,9 @@ export function NavMain({ items, dict }: NavMainProps) {
                       isActive={hasActive}
                     >
                       {item.icon && <item.icon />}
-                      <span>{item.title}</span>
-                      <ChevronRight className="ml-auto transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                      <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                      <CountChip count={item.count} />
+                      <ChevronRight className="shrink-0 transition-transform group-data-[state=open]/collapsible:rotate-90" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
                   <CollapsibleContent>
@@ -258,13 +290,15 @@ export function NavMain({ items, dict }: NavMainProps) {
                 {isExternalLink(item.url, item.external) ? (
                   <a href={item.url} target={item.target ?? "_blank"} rel="noopener noreferrer">
                     {item.icon && <item.icon />}
-                    <span>{item.title}</span>
-                    <ExternalLink className="ml-auto size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
+                    <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                    <CountChip count={item.count} />
+                    <ExternalLink className="size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
                   </a>
                 ) : (
                   <Link href={item.url} prefetch={false}>
                     {item.icon && <item.icon />}
-                    <span>{item.title}</span>
+                    <span className="min-w-0 flex-1 truncate">{item.title}</span>
+                    <CountChip count={item.count} />
                   </Link>
                 )}
               </SidebarMenuButton>

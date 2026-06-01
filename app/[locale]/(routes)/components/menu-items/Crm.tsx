@@ -1,4 +1,5 @@
 import { Coins } from "lucide-react";
+import type { CrmSidebarCounts } from "@/actions/crm/sidebar/get-sidebar-counts";
 import { NavItem } from "../nav-main";
 
 type Props = {
@@ -10,9 +11,10 @@ type Props = {
     contracts: string;
     products: string;
   };
+  counts?: CrmSidebarCounts;
 };
 
-export const getCrmMenuItem = ({ localizations }: Props): NavItem => {
+export const getCrmMenuItem = ({ localizations, counts }: Props): NavItem => {
   return {
     title: localizations.title,
     url: "/crm",
@@ -22,18 +24,22 @@ export const getCrmMenuItem = ({ localizations }: Props): NavItem => {
       {
         title: "Dashboard",
         url: "/crm/dashboard",
+        count: counts?.dashboard,
       },
       {
         title: localizations.opportunities,
         url: "/crm/opportunities",
+        count: counts?.opportunities,
       },
       {
         title: localizations.accounts,
         url: "/crm/accounts",
+        count: counts?.company,
       },
       {
         title: localizations.products,
         url: "/crm/products",
+        count: counts?.products,
       },
       // {
       //   title: "Overview",

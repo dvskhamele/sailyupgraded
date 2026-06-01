@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { CrmSidebarCounts } from "@/actions/crm/sidebar/get-sidebar-counts";
 import {
   Sidebar,
   SidebarContent,
@@ -85,24 +86,27 @@ interface Session {
 interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
   dict: any;
   session: Session;
+  counts: CrmSidebarCounts;
 }
 
 export function AppSidebar({
   dict,
   session,
+  counts,
   ...props
 }: AppSidebarProps) {
   const { state } = useSidebar();
   const isExpanded = state === "expanded";
 
   const navItems = [
-    getCrmMenuItem({ localizations: dict.crm }),
-    getContactsMenuItem(),
+    getCrmMenuItem({ localizations: dict.crm, counts }),
+    getContactsMenuItem(counts),
     getReportsMenuItem({ title: dict?.reports || "Reports" }),
-    getActivitiesMenuItem(),
-    getRetailAIActivitiesMenuItem(),
+    getActivitiesMenuItem({ counts }),
+    getRetailAIActivitiesMenuItem(counts),
     getTemplatesMenuItem({
       localizations: dict.campaigns,
+      counts,
     }),
   ];
 

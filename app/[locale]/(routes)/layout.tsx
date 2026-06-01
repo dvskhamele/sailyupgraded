@@ -12,6 +12,7 @@ import { getTranslations } from "next-intl/server";
 import { AvatarProvider } from "@/context/avatar-context";
 import { CurrencyProvider } from "@/context/currency-context";
 import { getEnabledCurrencies, getDefaultCurrency } from "@/lib/currency";
+import { getCrmSidebarCounts } from "@/actions/crm/sidebar/get-sidebar-counts";
 
 export const metadata: Metadata = {
   metadataBase: new URL(
@@ -95,11 +96,14 @@ export default async function AppLayout({
     settings: dict("settings"),
   };
 
-  const cookieStore = await cookies();
+  const [cookieStore, sidebarCounts, enabledCurrencies, defaultCurrency] =
+    await Promise.all([
+      cookies(),
+      getCrmSidebarCounts(),
+      getEnabledCurrencies(),
+      getDefaultCurrency(),
+    ]);
   const sidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
-
-  const enabledCurrencies = await getEnabledCurrencies();
-  const defaultCurrency = await getDefaultCurrency();
   const cookieCurrency = cookieStore.get("display_currency")?.value;
   const displayCurrency = cookieCurrency && enabledCurrencies.some((c: { code: string }) => c.code === cookieCurrency)
     ? cookieCurrency
@@ -114,6 +118,7 @@ export default async function AppLayout({
       <AppSidebar
         dict={translations}
         session={session}
+        counts={sidebarCounts}
       />
       <SidebarInset>
         <Header
