@@ -551,7 +551,7 @@ export function ActivityEntry({
                 </Button>
               )}
 
-              {activity.publicLogUrl && (
+              {/* {activity.publicLogUrl && (
                 <Button 
                   variant="ghost" 
                   size="sm" 
@@ -561,7 +561,7 @@ export function ActivityEntry({
                   <ExternalLink className="h-3.5 w-3.5" />
                   Logs
                 </Button>
-              )}
+              )} */}
             </div>
           </div>
         )}

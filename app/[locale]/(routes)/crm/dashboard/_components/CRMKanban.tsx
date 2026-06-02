@@ -203,14 +203,14 @@ function StageStats({ opportunities }: { opportunities: crm_Opportunities[] }) {
   return (
     <div className="flex items-center px-1 py-2 justify-between mb-2 bg-white border rounded shadow-sm">
       <div className="flex flex-col gap-1">
-        <div className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-green-700 bg-green-100 rounded-full">
+        <div className="inline-flex items-center px-2.5 py-1 text-xs text-green-700 bg-green-100 rounded-full">
           {formatCurrencyDisplay(totalRevenue, "USD")}
         </div>
       </div>
       {/* <div className="h-6 w-px bg-gray-200 mx-3" /> */}
 
       <div className="flex flex-col items-end gap-1">
-        <div className="inline-flex items-center px-2.5 py-1 text-xs font-semibold text-slate-700 bg-slate-100 rounded-full">
+        <div className="inline-flex items-center px-2.5 py-1 text-xs text-slate-700 bg-slate-100 rounded-full">
           {totalCards}
         </div>
       </div>
@@ -772,7 +772,7 @@ function OpportunityCard({
       <CardHeader className="relative z-10 p-4 pb-2">
         <div className="flex justify-between items-start gap-2">
           <h3
-            className="cursor-pointer text-sm font-semibold text-gray-800 leading-snug transition group-hover:text-indigo-600"
+            className="cursor-pointer text-sm text-gray-800 leading-snug transition font-semibold group-hover:text-indigo-600"
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
@@ -802,12 +802,12 @@ function OpportunityCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-green-600" />
-            <span className="min-w-0 max-w-[130px] truncate text-right text-sm font-semibold text-gray-900">
+            <span className="min-w-0 max-w-[130px] truncate text-right text-sm text-gray-900">
               {getOpportunityAssignedMemberName(opportunity)}
             </span>
           </div>
 
-          <span className="font-semibold text-gray-900 text-sm">
+          <span className=" text-gray-900 text-sm">
             {formatCurrencyDisplay(
               opportunity.budget,
               (opportunity as any).currency || "USD",
@@ -819,13 +819,13 @@ function OpportunityCard({
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-blue-600" />
-            <span className="min-w-0 max-w-[130px] truncate rounded-full bg-indigo-100 px-2 py-1 text-right text-xs font-semibold text-indigo-600">
+            <span className="min-w-0 max-w-[130px] truncate rounded-full bg-indigo-100 px-2 py-1 text-right text-xs text-indigo-600">
               {getOpportunityAssignedCompanyName(opportunity)}
             </span>
           </div>
 
           <span
-            className={`text-xs font-semibold px-2 py-1 rounded-full ${
+            className={`text-xs px-2 py-1 rounded-full ${
               opportunity.close_date &&
               nowMs !== null &&
               new Date(opportunity.close_date).getTime() < nowMs
@@ -984,7 +984,7 @@ function OpportunityCardStatic({
           </div>
           <div className="space-x-1">
             <span className="font-medium text-amber-800">Amount:</span>
-            <span className="font-semibold text-emerald-700">
+            <span className=" text-emerald-700">
               {formatCurrencyDisplay(
                 opportunity.budget,
                 (opportunity as any).currency || "USD",
@@ -1000,8 +1000,8 @@ function OpportunityCardStatic({
                 opportunity.close_date &&
                 nowMs !== null &&
                 new Date(opportunity.close_date).getTime() < nowMs
-                  ? "font-semibold text-rose-500"
-                  : "font-semibold text-violet-700"
+                  ? "text-rose-500"
+                  : "text-violet-700"
               }
             >
               {opportunity.close_date
@@ -1665,7 +1665,7 @@ const CRMKanban = ({
             >
               {/* Header */}
               <CardTitle className="flex items-center justify-between px-4 py-3 border-b">
-                <span className="text-sm font-semibold text-foreground">
+                <span className="text-sm text-foreground">
                   {col.name}
                 </span>
 
@@ -1700,7 +1700,7 @@ const CRMKanban = ({
           {/* Lost Column */}
           <Card className="flex flex-col w-full min-w-[300px] max-w-[320px] bg-background border rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
             <CardTitle className="flex items-center justify-between px-4 py-3 border-b">
-              <span className="text-sm font-semibold text-red-500">
+              <span className="text-sm text-red-500">
                 {lostStage?.name ?? "Lost"}
               </span>
             </CardTitle>
