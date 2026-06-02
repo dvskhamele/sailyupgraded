@@ -13,9 +13,12 @@ type TxClient = Prisma.TransactionClient | PrismaClient;
 export async function consumeNextNumber(
   tx: TxClient,
   seriesId: string,
+  organizationId: string,
   now: Date = new Date(),
 ): Promise<{ number: string; seriesId: string }> {
-  const series = await tx.invoice_Series.findUniqueOrThrow({ where: { id: seriesId } });
+  const series = await tx.invoice_Series.findFirstOrThrow({
+    where: { id: seriesId, organizationId },
+  });
   const year = now.getUTCFullYear();
   let counter = series.counter;
   if (series.resetPolicy === "YEARLY" && series.currentYear !== year) {
@@ -23,7 +26,7 @@ export async function consumeNextNumber(
   }
   counter += 1;
   await tx.invoice_Series.update({
-    where: { id: seriesId },
+    where: { id: seriesId, organizationId },
     data: { counter, currentYear: year },
   });
   return { number: formatNumber(series.prefixTemplate, year, counter), seriesId };

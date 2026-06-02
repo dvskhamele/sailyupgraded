@@ -484,6 +484,7 @@ function headerToColumnHasValue(headerToColumn: Map<string, string>, column: str
 
 async function updateImportedContactColumns(
   contactId: string,
+  organizationId: string,
   values: Record<string, string>,
 ) {
   const entries = Object.entries(values).filter(([, value]) => value.trim().length > 0);
@@ -493,9 +494,10 @@ async function updateImportedContactColumns(
     .map(([column]) => `${quoteIdentifier(column)} = ?`)
     .join(", ");
   await prismadb.$executeRawUnsafe(
-    `UPDATE ${quoteIdentifier("crm_Contacts")} SET ${assignments} WHERE ${quoteIdentifier("id")} = ?`,
+    `UPDATE ${quoteIdentifier("crm_Contacts")} SET ${assignments} WHERE ${quoteIdentifier("id")} = ? AND ${quoteIdentifier("organizationId")} = ?`,
     ...entries.map(([, value]) => value),
     contactId,
+    organizationId,
   );
 }
 
@@ -534,6 +536,9 @@ export async function POST(request: NextRequest) {
   const session = await getSession();
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  if (!session.user.organizationId) {
+    return NextResponse.json({ error: "Organization context is required" }, { status: 403 });
   }
   console.log("[CONTACT CREATE DEBUG] Entry point", {
     path: "app/api/crm/contacts/import/route.ts:POST",
@@ -950,6 +955,7 @@ export async function POST(request: NextRequest) {
     const account = await prismadb.crm_Accounts.create({
       data: {
         v: 0,
+        organizationId: session.user.organizationId,
         name: accountName,
         status: "Active",
         createdBy: userId,
@@ -1123,19 +1129,20 @@ export async function POST(request: NextRequest) {
     try {
       if (existingMatch) {
         await prismadb.crm_Contacts.update({
-          where: { id: existingMatch.id },
+          where: { id: existingMatch.id, organizationId: session.user.organizationId },
           data: {
             updatedBy: userId,
             ...contactPayload,
           } as any,
           select: { id: true },
         });
-        await updateImportedContactColumns(existingMatch.id, importedColumnValues);
+        await updateImportedContactColumns(existingMatch.id, session.user.organizationId, importedColumnValues);
         updated += 1;
       } else {
         const created = await prismadb.crm_Contacts.create({
           data: {
             v: 1,
+            organizationId: session.user.organizationId,
             createdBy: userId,
             updatedBy: userId,
             ...contactPayload,
@@ -1148,10 +1155,10 @@ export async function POST(request: NextRequest) {
         console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: created.id });
 
         const verificationContact = await prismadb.crm_Contacts.findUnique({
-          where: { id: created.id },
+          where: { id: created.id, organizationId: session.user.organizationId },
         });
         console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
-        await updateImportedContactColumns(created.id, importedColumnValues);
+        await updateImportedContactColumns(created.id, session.user.organizationId, importedColumnValues);
 
         if (candidate.normalizedEmail) {
           existingByEmail.set(candidate.normalizedEmail, {

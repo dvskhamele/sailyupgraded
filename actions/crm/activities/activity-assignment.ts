@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import { getOrganizationContext } from "@/lib/organization-context";
 
 type ActivityAssigneeRow = {
   id: string;
@@ -18,10 +19,16 @@ export async function setActivityAssignment(
   activityId: string,
   assignedTo?: string | null
 ) {
+  const organizationId = getOrganizationContext();
+  if (!organizationId) {
+    throw new Error("Organization context is required");
+  }
+
   await prismaClient.$executeRaw`
     UPDATE crm_Activities
     SET assignedTo = ${assignedTo || null}
     WHERE id = ${activityId}
+      AND organizationId = ${organizationId}
   `;
 }
 
@@ -31,6 +38,10 @@ export async function getActivityAssignees(
 ): Promise<Map<string, ActivityAssignee>> {
   if (activityIds.length === 0) {
     return new Map();
+  }
+  const organizationId = getOrganizationContext();
+  if (!organizationId) {
+    throw new Error("Organization context is required");
   }
 
   const rows = await prismaClient.$queryRaw<ActivityAssigneeRow[]>`
@@ -43,6 +54,7 @@ export async function getActivityAssignees(
     FROM crm_Activities a
     LEFT JOIN Users u ON u.id = a.assignedTo
     WHERE a.id IN (${Prisma.join(activityIds)})
+      AND a.organizationId = ${organizationId}
   `;
 
   return new Map(
@@ -66,10 +78,16 @@ export async function getActivityIdsAssignedTo(
   prismaClient: any,
   assignedTo: string
 ): Promise<string[]> {
+  const organizationId = getOrganizationContext();
+  if (!organizationId) {
+    throw new Error("Organization context is required");
+  }
+
   const rows = await prismaClient.$queryRaw<Array<{ id: string }>>`
     SELECT id
     FROM crm_Activities
     WHERE assignedTo = ${assignedTo}
+      AND organizationId = ${organizationId}
       AND deletedAt IS NULL
   `;
 

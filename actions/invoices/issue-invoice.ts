@@ -18,8 +18,8 @@ export async function issueInvoice(raw: unknown) {
   const input = issueInvoiceSchema.parse(raw);
 
   // Read invoice and settings outside the transaction to avoid holding locks during network calls
-  const invoice = await prismadb.invoices.findUniqueOrThrow({
-    where: { id: input.invoiceId },
+  const invoice = await prismadb.invoices.findFirstOrThrow({
+    where: { id: input.invoiceId, organizationId: user.organizationId },
     include: {
       lineItems: { include: { taxRate: true } },
       account: true,
@@ -39,7 +39,9 @@ export async function issueInvoice(raw: unknown) {
     throw new Error("Invoice must have at least one line item");
   }
 
-  const settings = await prismadb.invoice_Settings.findFirst();
+  const settings = await prismadb.invoice_Settings.findFirst({
+    where: { organizationId: user.organizationId },
+  });
   if (!settings) {
     throw new Error("Invoice settings not configured. Please configure in Admin > Invoices.");
   }
@@ -54,7 +56,7 @@ export async function issueInvoice(raw: unknown) {
 
   const result = await prismadb.$transaction(
     async (tx) => {
-      const { number } = await consumeNextNumber(tx, seriesId);
+      const { number } = await consumeNextNumber(tx, seriesId, user.organizationId);
 
       // Snapshot account billing info (customer)
       const acct = invoice.account;
@@ -82,7 +84,7 @@ export async function issueInvoice(raw: unknown) {
       for (const li of invoice.lineItems) {
         const snapshotRate = li.taxRate ? li.taxRate.rate : null;
         await tx.invoice_LineItems.update({
-          where: { id: li.id },
+          where: { id: li.id, organizationId: user.organizationId },
           data: { taxRateSnapshot: snapshotRate },
         });
       }
@@ -96,7 +98,7 @@ export async function issueInvoice(raw: unknown) {
 
       // Update invoice
       const updated = await tx.invoices.update({
-        where: { id: invoice.id },
+        where: { id: invoice.id, organizationId: user.organizationId },
         data: {
           status: "ISSUED",
           number,
@@ -140,7 +142,9 @@ export async function issueInvoice(raw: unknown) {
     };
 
     // Supplier info — use settings bank info as a basic supplier reference
-    const settings = await prismadb.invoice_Settings.findFirst();
+    const settings = await prismadb.invoice_Settings.findFirst({
+      where: { organizationId: user.organizationId },
+    });
     const supplier: PdfParty = {
       name: process.env.NEXT_PUBLIC_APP_NAME ?? "NextCRM",
     };
@@ -188,7 +192,7 @@ export async function issueInvoice(raw: unknown) {
     const storageKey = await uploadInvoicePdf(result.id, pdfBuffer);
 
     await prismadb.invoices.update({
-      where: { id: result.id },
+      where: { id: result.id, organizationId: user.organizationId },
       data: { pdfStorageKey: storageKey, pdfGeneratedAt: new Date() },
     });
   } catch (err) {

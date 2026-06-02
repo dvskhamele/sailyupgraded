@@ -9,27 +9,34 @@ export const assignDocumentToTask = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) return { error: "Organization context is required" };
 
   const { documentId, taskId } = data;
   if (!documentId) return { error: "Missing document ID" };
   if (!taskId) return { error: "Missing task ID" };
 
   try {
-    const task = await prismadb.tasks.findUnique({
-      where: { id: taskId },
+    const task = await prismadb.tasks.findFirst({
+      where: { id: taskId, organizationId: session.user.organizationId },
     });
 
     if (!task) return { error: "Task not found" };
+    const document = await prismadb.documents.findFirst({
+      where: { id: documentId, organizationId: session.user.organizationId },
+      select: { id: true },
+    });
+    if (!document) return { error: "Document not found" };
 
     await prismadb.documentsToTasks.create({
       data: {
+        organizationId: session.user.organizationId,
         document_id: documentId,
         task_id: taskId,
       },
     });
 
     await prismadb.tasks.update({
-      where: { id: taskId },
+      where: { id: taskId, organizationId: session.user.organizationId },
       data: { updatedBy: session.user.id },
     });
 
@@ -47,29 +54,34 @@ export const disconnectDocumentFromTask = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) return { error: "Organization context is required" };
 
   const { documentId, taskId } = data;
   if (!documentId) return { error: "Missing document ID" };
   if (!taskId) return { error: "Missing task ID" };
 
   try {
-    const task = await prismadb.tasks.findUnique({
-      where: { id: taskId },
+    const task = await prismadb.tasks.findFirst({
+      where: { id: taskId, organizationId: session.user.organizationId },
     });
 
     if (!task) return { error: "Task not found" };
+    const document = await prismadb.documents.findFirst({
+      where: { id: documentId, organizationId: session.user.organizationId },
+      select: { id: true },
+    });
+    if (!document) return { error: "Document not found" };
 
-    await prismadb.documentsToTasks.delete({
+    await prismadb.documentsToTasks.deleteMany({
       where: {
-        document_id_task_id: {
-          document_id: documentId,
-          task_id: taskId,
-        },
+        document_id: documentId,
+        task_id: taskId,
+        organizationId: session.user.organizationId,
       },
     });
 
     const updatedTask = await prismadb.tasks.update({
-      where: { id: taskId },
+      where: { id: taskId, organizationId: session.user.organizationId },
       data: { updatedBy: session.user.id },
     });
 

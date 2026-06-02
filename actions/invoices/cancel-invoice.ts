@@ -8,8 +8,8 @@ import { serializeDecimals } from "@/lib/serialize-decimals";
 export async function cancelInvoice(invoiceId: string) {
   const user = await getUser();
 
-  const invoice = await prismadb.invoices.findUniqueOrThrow({
-    where: { id: invoiceId },
+  const invoice = await prismadb.invoices.findFirstOrThrow({
+    where: { id: invoiceId, organizationId: user.organizationId },
     select: { status: true, createdBy: true },
   });
 
@@ -23,11 +23,11 @@ export async function cancelInvoice(invoiceId: string) {
   }
 
   const updated = await prismadb.invoices.update({
-    where: { id: invoiceId },
+    where: { id: invoiceId, organizationId: user.organizationId },
     data: {
       status: "CANCELLED",
       activity: {
-        create: { actorId: user.id, action: "CANCELLED" },
+        create: { organizationId: user.organizationId, actorId: user.id, action: "CANCELLED" },
       },
     },
   });

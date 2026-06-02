@@ -50,7 +50,11 @@ function getContactModelColumnNames() {
   );
 }
 
-async function updateImportedContactColumns(contactId: string, values?: ImportedColumnValue[]) {
+async function updateImportedContactColumns(
+  contactId: string,
+  organizationId: string,
+  values?: ImportedColumnValue[],
+) {
   if (!Array.isArray(values) || values.length === 0) return;
 
   const modelColumns = getContactModelColumnNames();
@@ -71,10 +75,10 @@ async function updateImportedContactColumns(contactId: string, values?: Imported
   const assignments = Array.from(updates.keys())
     .map((column) => `${quoteIdentifier(column)} = ?`)
     .join(", ");
-  const params = [...updates.values(), contactId];
+  const params = [...updates.values(), contactId, organizationId];
 
   await prismadb.$executeRawUnsafe(
-    `UPDATE ${quoteIdentifier("crm_Contacts")} SET ${assignments} WHERE ${quoteIdentifier("id")} = ?`,
+    `UPDATE ${quoteIdentifier("crm_Contacts")} SET ${assignments} WHERE ${quoteIdentifier("id")} = ? AND ${quoteIdentifier("organizationId")} = ?`,
     ...params,
   );
 }
@@ -157,6 +161,7 @@ export const updateContact = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) return { error: "Organization context is required" };
 
   const userId = session.user.id;
   const {
@@ -274,7 +279,7 @@ export const updateContact = async (data: {
       });
     }
 
-    await updateImportedContactColumns(id, imported_columns_data);
+    await updateImportedContactColumns(id, session.user.organizationId, imported_columns_data);
 
     const existingOpportunity = (before as any)?.opportunities
       ?.map((item: any) => item?.opportunity)

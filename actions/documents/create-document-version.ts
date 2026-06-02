@@ -16,9 +16,10 @@ interface CreateVersionInput {
 export async function createDocumentVersion(input: CreateVersionInput) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  if (!session.user.organizationId) throw new Error("Organization context is required");
 
-  const parent = await prismadb.documents.findUnique({
-    where: { id: input.parentDocumentId },
+  const parent = await prismadb.documents.findFirst({
+    where: { id: input.parentDocumentId, organizationId: session.user.organizationId },
     select: { id: true, document_name: true, version: true, accounts: { select: { account_id: true } } },
   });
   if (!parent) throw new Error("Parent document not found");
@@ -29,6 +30,7 @@ export async function createDocumentVersion(input: CreateVersionInput) {
     prismadb.documents.create({
       data: {
         v: 0,
+        organizationId: session.user.organizationId,
         document_name: parent.document_name,
         description: `Version ${newVersion}`,
         document_file_url: input.url,
@@ -45,7 +47,7 @@ export async function createDocumentVersion(input: CreateVersionInput) {
       },
     }),
     prismadb.documents.update({
-      where: { id: input.parentDocumentId },
+      where: { id: input.parentDocumentId, organizationId: session.user.organizationId },
       data: {
         document_file_url: input.url,
         key: input.key,

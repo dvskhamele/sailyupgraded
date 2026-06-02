@@ -7,14 +7,15 @@ import { serializeDecimals } from "@/lib/serialize-decimals";
 export async function duplicateInvoice(invoiceId: string) {
   const user = await getUser();
 
-  const source = await prismadb.invoices.findUniqueOrThrow({
-    where: { id: invoiceId },
+  const source = await prismadb.invoices.findFirstOrThrow({
+    where: { id: invoiceId, organizationId: user.organizationId },
     include: { lineItems: { orderBy: { position: "asc" } } },
   });
 
   const invoice = await prismadb.invoices.create({
     data: {
       type: source.type,
+      organizationId: user.organizationId,
       status: "DRAFT",
       createdBy: user.id,
       accountId: source.accountId,
@@ -37,6 +38,7 @@ export async function duplicateInvoice(invoiceId: string) {
       lineItems: {
         create: source.lineItems.map((li) => ({
           position: li.position,
+          organizationId: user.organizationId,
           productId: li.productId,
           description: li.description,
           quantity: li.quantity,
@@ -51,6 +53,7 @@ export async function duplicateInvoice(invoiceId: string) {
       activity: {
         create: {
           actorId: user.id,
+          organizationId: user.organizationId,
           action: "DUPLICATED",
           meta: { sourceInvoiceId: invoiceId },
         },

@@ -1,4 +1,6 @@
 import { auth } from "@/lib/auth";
+import { setOrganizationContext } from "@/lib/organization-context";
+import { findCurrentOrganizationForUser } from "@/lib/organization-queries";
 import { isTransientPrismaConnectionError, resetPrisma } from "@/lib/prisma";
 import { headers } from "next/headers";
 
@@ -8,6 +10,15 @@ import { headers } from "next/headers";
 const bypassLogin =
   process.env.BYPASS_LOGIN === "true" ||
   process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";
+
+type BaseSession = Awaited<ReturnType<typeof auth.api.getSession>>;
+
+export type AppSession = NonNullable<BaseSession> & {
+  user: NonNullable<BaseSession>["user"] & {
+    organizationId: string | null;
+    organizationRole: "admin" | "member" | "viewer" | null;
+  };
+};
 
 function createGuestSession() {
   const now = new Date();
@@ -31,22 +42,55 @@ function createGuestSession() {
       role: "admin",
       userStatus: "ACTIVE",
       userLanguage: "en",
+      organizationId: null,
+      organizationRole: null,
       image: null,
       avatar: null,
       banned: false,
       emailVerified: true,
     },
-  } as unknown as Awaited<ReturnType<typeof auth.api.getSession>>;
+  } as unknown as AppSession;
 }
 
-export async function getSession() {
+async function enrichSessionWithOrganization(
+  session: BaseSession | AppSession,
+): Promise<AppSession | null> {
+  if (!session?.user?.id) {
+    return null;
+  }
+
+  let organization = null;
+  try {
+    organization = await findCurrentOrganizationForUser(session.user.id);
+  } catch (error) {
+    console.warn(
+      "[AUTH_ORGANIZATION_SESSION]",
+      error instanceof Error ? error.message : error,
+    );
+  }
+
+  setOrganizationContext(organization?.id ?? null);
+
+  return {
+    ...session,
+    user: {
+      ...session.user,
+      organizationId: organization?.id ?? null,
+      organizationRole: organization?.role ?? null,
+    },
+  } as AppSession;
+}
+
+export async function getSession(): Promise<AppSession | null> {
   const requestHeaders = await headers();
 
   try {
     const session = await auth.api.getSession({
       headers: requestHeaders,
     });
-    return session ?? (bypassLogin ? createGuestSession() : null);
+    return enrichSessionWithOrganization(
+      session ?? (bypassLogin ? createGuestSession() : null),
+    );
   } catch (error) {
     if (!isTransientPrismaConnectionError(error)) {
       console.warn(
@@ -63,7 +107,9 @@ export async function getSession() {
       const session = await auth.api.getSession({
         headers: requestHeaders,
       });
-      return session ?? (bypassLogin ? createGuestSession() : null);
+      return enrichSessionWithOrganization(
+        session ?? (bypassLogin ? createGuestSession() : null),
+      );
     } catch {
       console.warn(
         "[AUTH_GET_SESSION] database pool timeout after retry; continuing without session.",

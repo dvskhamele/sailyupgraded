@@ -66,6 +66,10 @@ export default async function AppLayout({
     return redirect("/inactive");
   }
 
+  if (!user?.organizationId) {
+    return redirect("/create-organization");
+  }
+
   // Fetch localization dictionary
   const dict = await getTranslations("ModuleMenu");
 

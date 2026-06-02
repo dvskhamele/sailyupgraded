@@ -12,27 +12,28 @@ export const addCommentToTask = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) return { error: "Organization context is required" };
 
   const { taskId, comment } = data;
   if (!taskId) return { error: "Missing task ID" };
   if (!comment) return { error: "Missing comment" };
 
   try {
-    const task = await prismadb.tasks.findUnique({
-      where: { id: taskId },
+    const task = await prismadb.tasks.findFirst({
+      where: { id: taskId, organizationId: session.user.organizationId },
     });
 
     if (!task) return { error: "Task not found" };
     if (!task.section) return { error: "Task section not found" };
 
-    const section = await prismadb.sections.findUnique({
-      where: { id: task.section },
+      const section = await prismadb.sections.findFirst({
+        where: { id: task.section, organizationId: session.user.organizationId },
     });
 
     if (section) {
       // Task from Projects module - add user as board watcher
       await prismadb.boards.update({
-        where: { id: section.board },
+        where: { id: section.board, organizationId: session.user.organizationId },
         data: {
           watchers: junctionTableHelpers.addWatcher(session.user.id),
         },
@@ -41,6 +42,7 @@ export const addCommentToTask = async (data: {
       const newComment = await prismadb.tasksComments.create({
         data: {
           v: 0,
+          organizationId: session.user.organizationId,
           comment,
           task: taskId,
           user: session.user.id,
@@ -113,6 +115,7 @@ export const addCommentToTask = async (data: {
       const newComment = await prismadb.tasksComments.create({
         data: {
           v: 0,
+          organizationId: session.user.organizationId,
           comment,
           task: taskId,
           user: session.user.id,

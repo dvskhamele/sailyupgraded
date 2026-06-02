@@ -1,4 +1,5 @@
 import { Prisma, PrismaClient } from "@prisma/client";
+import { getOrganizationContext } from "@/lib/organization-context";
 import { createMariaDbAdapter } from "./prisma-mariadb";
 
 declare global {
@@ -15,6 +16,170 @@ const prismaRuntimeVersion = "mariadb-adapter-singleton-v3";
 const slowQueryThresholdMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 1000);
 const transactionMaxWaitMs = Number(process.env.PRISMA_TRANSACTION_MAX_WAIT_MS ?? 10_000);
 const transactionTimeoutMs = Number(process.env.PRISMA_TRANSACTION_TIMEOUT_MS ?? 30_000);
+
+const organizationScopedModels = new Set([
+  "crm_Accounts",
+  "crm_Leads",
+  "crm_Contact_Enrichment",
+  "crm_Target_Enrichment",
+  "crm_Target_Contact",
+  "crm_Opportunities",
+  "crm_LeadCallTracking",
+  "crm_LeadCallWebhookEvent",
+  "crm_campaigns",
+  "crm_campaign_templates",
+  "crm_campaign_steps",
+  "crm_campaign_sends",
+  "crm_Contacts",
+  "crm_Contracts",
+  "crm_SystemSettings",
+  "crm_Activities",
+  "crm_ActivityLinks",
+  "crm_RetailAIActivities",
+  "crm_RetailAIActivityLinks",
+  "Boards",
+  "Documents",
+  "Documents_Types",
+  "Sections",
+  "Tasks",
+  "crm_Accounts_Tasks",
+  "tasksComments",
+  "crm_AuditLog",
+  "crm_Report_Config",
+  "crm_Report_Schedule",
+  "DocumentsToOpportunities",
+  "DocumentsToContacts",
+  "DocumentsToTasks",
+  "DocumentsToCrmAccountsTasks",
+  "DocumentsToLeads",
+  "DocumentsToAccounts",
+  "ContactsToOpportunities",
+  "crm_Targets",
+  "crm_TargetLists",
+  "TargetsToTargetLists",
+  "EmailAccount",
+  "Email",
+  "EmailsToContacts",
+  "EmailsToAccounts",
+  "crm_ProductCategories",
+  "crm_Products",
+  "crm_AccountProducts",
+  "crm_OpportunityLineItems",
+  "crm_ContractLineItems",
+  "Invoices",
+  "Invoice_LineItems",
+  "Invoice_Payments",
+  "Invoice_Attachments",
+  "Invoice_Activity",
+  "Invoice_TaxRates",
+  "Invoice_Series",
+  "Invoice_Settings",
+  "crm_SMSLog",
+]);
+
+const whereOperations = new Set([
+  "findFirst",
+  "findFirstOrThrow",
+  "findMany",
+  "findUnique",
+  "findUniqueOrThrow",
+  "count",
+  "aggregate",
+  "groupBy",
+  "update",
+  "updateMany",
+  "delete",
+  "deleteMany",
+  "upsert",
+]);
+
+const createOperations = new Set([
+  "create",
+  "createMany",
+  "createManyAndReturn",
+  "upsert",
+]);
+
+function addOrganizationWhere(args: Record<string, any>, organizationId: string) {
+  args.where = {
+    ...(args.where ?? {}),
+    organizationId,
+  };
+}
+
+function addOrganizationToCreateData(data: unknown, organizationId: string) {
+  if (Array.isArray(data)) {
+    for (const item of data) {
+      addOrganizationToCreateData(item, organizationId);
+    }
+    return;
+  }
+
+  if (!data || typeof data !== "object") {
+    return;
+  }
+
+  const record = data as Record<string, unknown>;
+  if (record.organizationId === undefined || record.organizationId === null) {
+    record.organizationId = organizationId;
+  }
+
+  for (const value of Object.values(record)) {
+    if (!value || typeof value !== "object") {
+      continue;
+    }
+
+    const nested = value as Record<string, unknown>;
+    if ("create" in nested) {
+      addOrganizationToCreateData(nested.create, organizationId);
+    }
+
+    if ("createMany" in nested && nested.createMany && typeof nested.createMany === "object") {
+      const createMany = nested.createMany as Record<string, unknown>;
+      addOrganizationToCreateData(createMany.data, organizationId);
+    }
+
+    if ("upsert" in nested) {
+      const upserts = Array.isArray(nested.upsert) ? nested.upsert : [nested.upsert];
+      for (const upsert of upserts) {
+        if (upsert && typeof upsert === "object") {
+          addOrganizationToCreateData((upsert as Record<string, unknown>).create, organizationId);
+        }
+      }
+    }
+  }
+}
+
+function scopeOrganizationArgs(
+  model: string | undefined,
+  operation: string,
+  args: Record<string, any> | undefined,
+) {
+  if (!model || !organizationScopedModels.has(model)) {
+    return args ?? {};
+  }
+
+  const organizationId = getOrganizationContext();
+  if (!organizationId) {
+    return args ?? {};
+  }
+
+  const nextArgs = args ?? {};
+
+  if (whereOperations.has(operation)) {
+    addOrganizationWhere(nextArgs, organizationId);
+  }
+
+  if (createOperations.has(operation)) {
+    if (operation === "upsert") {
+      addOrganizationToCreateData(nextArgs.create, organizationId);
+    } else {
+      addOrganizationToCreateData(nextArgs.data, organizationId);
+    }
+  }
+
+  return nextArgs;
+}
 
 export function getDatabaseUrlDiagnostics() {
   if (!databaseUrl) {
@@ -87,7 +252,9 @@ const prismaClientSingleton = () => {
           stats.activeQueries += 1;
 
           try {
-            return await query(args ?? {});
+            return await query(
+              scopeOrganizationArgs(model, operation, args as Record<string, any>),
+            );
           } finally {
             const elapsedMs = Date.now() - startedAt;
             stats.activeQueries = Math.max(0, stats.activeQueries - 1);

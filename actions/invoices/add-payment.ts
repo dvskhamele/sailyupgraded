@@ -12,8 +12,8 @@ export async function addPayment(raw: unknown) {
   const input = addPaymentSchema.parse(raw);
 
   return prismadb.$transaction(async (tx) => {
-    const invoice = await tx.invoices.findUniqueOrThrow({
-      where: { id: input.invoiceId },
+    const invoice = await tx.invoices.findFirstOrThrow({
+      where: { id: input.invoiceId, organizationId: user.organizationId },
       select: { status: true, createdBy: true, grandTotal: true, paidTotal: true },
     });
 
@@ -29,6 +29,7 @@ export async function addPayment(raw: unknown) {
     await tx.invoice_Payments.create({
       data: {
         invoiceId: input.invoiceId,
+        organizationId: user.organizationId,
         amount: input.amount,
         paidAt: input.paidAt,
         method: input.method,
@@ -46,13 +47,14 @@ export async function addPayment(raw: unknown) {
     const newStatus = newBalanceDue.lte(0) ? "PAID" : "PARTIALLY_PAID";
 
     const updated = await tx.invoices.update({
-      where: { id: input.invoiceId },
+      where: { id: input.invoiceId, organizationId: user.organizationId },
       data: {
         paidTotal: newPaidTotal.toString(),
         balanceDue: Decimal.max(newBalanceDue, new Decimal(0)).toString(),
         status: newStatus,
         activity: {
           create: {
+            organizationId: user.organizationId,
             actorId: user.id,
             action: "PAYMENT_ADDED",
             meta: { amount: input.amount, method: input.method },

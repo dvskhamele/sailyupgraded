@@ -31,7 +31,7 @@ function formatImportedColumnLabel(column: string) {
     .join(" ");
 }
 
-async function getImportedContactColumnData(contactId: string) {
+async function getImportedContactColumnData(contactId: string, organizationId: string) {
   const knownColumns = getContactModelColumnNames();
   const columns = await getExistingDbColumnNames("crm_Contacts");
   const importedColumns = Array.from(columns)
@@ -43,8 +43,9 @@ async function getImportedContactColumnData(contactId: string) {
 
   const selectedColumns = importedColumns.map(quoteIdentifier).join(", ");
   const rows = await prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
-    `SELECT ${selectedColumns} FROM ${quoteIdentifier("crm_Contacts")} WHERE ${quoteIdentifier("id")} = ? LIMIT 1`,
+    `SELECT ${selectedColumns} FROM ${quoteIdentifier("crm_Contacts")} WHERE ${quoteIdentifier("id")} = ? AND ${quoteIdentifier("organizationId")} = ? LIMIT 1`,
     contactId,
+    organizationId,
   );
   const row = rows[0] ?? {};
 
@@ -66,7 +67,7 @@ async function getImportedContactColumnData(contactId: string) {
 export const getContact = async (contactId: string) => {
   return withPrismaRetry(async () => {
     const session = await getSession();
-    if (!session) return null;
+    if (!session?.user.organizationId) return null;
 
     const select = await getCrmContactDetailSelect();
     const data = await prismadb.crm_Contacts.findFirst({
@@ -82,7 +83,7 @@ export const getContact = async (contactId: string) => {
       return data;
     }
 
-    const importedColumns = await getImportedContactColumnData(contactId);
+    const importedColumns = await getImportedContactColumnData(contactId, session.user.organizationId);
 
     return serializeDecimals({
       ...data,

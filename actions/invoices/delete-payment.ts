@@ -12,15 +12,17 @@ export async function deletePayment(paymentId: string) {
   }
 
   return prismadb.$transaction(async (tx) => {
-    const payment = await tx.invoice_Payments.findUniqueOrThrow({
-      where: { id: paymentId },
+    const payment = await tx.invoice_Payments.findFirstOrThrow({
+      where: { id: paymentId, organizationId: user.organizationId },
       select: { invoiceId: true, amount: true },
     });
 
-    await tx.invoice_Payments.delete({ where: { id: paymentId } });
+    await tx.invoice_Payments.delete({
+      where: { id: paymentId, organizationId: user.organizationId },
+    });
 
-    const invoice = await tx.invoices.findUniqueOrThrow({
-      where: { id: payment.invoiceId },
+    const invoice = await tx.invoices.findFirstOrThrow({
+      where: { id: payment.invoiceId, organizationId: user.organizationId },
       select: { grandTotal: true, paidTotal: true, status: true },
     });
 
@@ -42,13 +44,14 @@ export async function deletePayment(paymentId: string) {
     }
 
     const updated = await tx.invoices.update({
-      where: { id: payment.invoiceId },
+      where: { id: payment.invoiceId, organizationId: user.organizationId },
       data: {
         paidTotal: Decimal.max(newPaidTotal, new Decimal(0)).toString(),
         balanceDue: Decimal.max(newBalanceDue, new Decimal(0)).toString(),
         status: newStatus,
         activity: {
           create: {
+            organizationId: user.organizationId,
             actorId: user.id,
             action: "PAYMENT_DELETED",
             meta: { paymentId, amount: payment.amount.toString() },

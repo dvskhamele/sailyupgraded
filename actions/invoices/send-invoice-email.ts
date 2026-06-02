@@ -18,8 +18,8 @@ interface SendInvoiceEmailInput {
 export async function sendInvoiceEmail(input: SendInvoiceEmailInput) {
   const user = await getUser();
 
-  const invoice = await prismadb.invoices.findUniqueOrThrow({
-    where: { id: input.invoiceId },
+  const invoice = await prismadb.invoices.findFirstOrThrow({
+    where: { id: input.invoiceId, organizationId: user.organizationId },
     select: {
       id: true,
       number: true,
@@ -89,11 +89,12 @@ export async function sendInvoiceEmail(input: SendInvoiceEmailInput) {
   // Update status to SENT only if currently ISSUED
   if (invoice.status === "ISSUED") {
     await prismadb.invoices.update({
-      where: { id: invoice.id },
+      where: { id: invoice.id, organizationId: user.organizationId },
       data: {
         status: "SENT",
         activity: {
           create: {
+            organizationId: user.organizationId,
             actorId: user.id,
             action: "SENT",
             meta: { to: input.to, subject },
@@ -106,6 +107,7 @@ export async function sendInvoiceEmail(input: SendInvoiceEmailInput) {
     await prismadb.invoice_Activity.create({
       data: {
         invoiceId: invoice.id,
+        organizationId: user.organizationId,
         actorId: user.id,
         action: "EMAIL_SENT",
         meta: { to: input.to, subject },

@@ -12,8 +12,8 @@ export async function updateInvoice(invoiceId: string, raw: unknown) {
   const user = await getUser();
   const input = updateInvoiceSchema.parse(raw);
 
-  const existing = await prismadb.invoices.findUniqueOrThrow({
-    where: { id: invoiceId },
+  const existing = await prismadb.invoices.findFirstOrThrow({
+    where: { id: invoiceId, organizationId: user.organizationId },
     select: { status: true, createdBy: true, paidTotal: true },
   });
 
@@ -30,6 +30,7 @@ export async function updateInvoice(invoiceId: string, raw: unknown) {
   if (input.lineItems) {
     const taxRates = await prismadb.invoice_TaxRates.findMany({
       where: {
+        organizationId: user.organizationId,
         id: {
           in: input.lineItems
             .map((l) => l.taxRateId)
@@ -53,11 +54,13 @@ export async function updateInvoice(invoiceId: string, raw: unknown) {
 
     return prismadb.$transaction(async (tx) => {
       // Delete existing line items
-      await tx.invoice_LineItems.deleteMany({ where: { invoiceId } });
+      await tx.invoice_LineItems.deleteMany({
+        where: { invoiceId, organizationId: user.organizationId },
+      });
 
       // Update invoice with new totals and recreate line items
       const updated = await tx.invoices.update({
-        where: { id: invoiceId },
+        where: { id: invoiceId, organizationId: user.organizationId },
         data: {
           ...buildUpdateData(input),
           subtotal: totals.subtotal.toString(),
@@ -72,6 +75,7 @@ export async function updateInvoice(invoiceId: string, raw: unknown) {
               const lt = computeLineTotal(lineInputs[i]);
               return {
                 position: l.position ?? i,
+                organizationId: user.organizationId,
                 productId: l.productId ?? null,
                 description: l.description,
                 quantity: l.quantity,
@@ -85,7 +89,7 @@ export async function updateInvoice(invoiceId: string, raw: unknown) {
             }),
           },
           activity: {
-            create: { actorId: user.id, action: "UPDATED" },
+            create: { organizationId: user.organizationId, actorId: user.id, action: "UPDATED" },
           },
         },
       });
@@ -96,11 +100,11 @@ export async function updateInvoice(invoiceId: string, raw: unknown) {
 
   // No line items change — simple field update
   const updated = await prismadb.invoices.update({
-    where: { id: invoiceId },
+    where: { id: invoiceId, organizationId: user.organizationId },
     data: {
       ...buildUpdateData(input),
       activity: {
-        create: { actorId: user.id, action: "UPDATED" },
+        create: { organizationId: user.organizationId, actorId: user.id, action: "UPDATED" },
       },
     },
   });
