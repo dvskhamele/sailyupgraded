@@ -28,7 +28,13 @@ import { getContactRoleView, matchesContactRoleFilter } from "@/lib/contact-opti
 
 import type { ContactsViewProps } from "./ContactsView";
 
-const ContactsViewClient = ({ data, crmData, activeRole, labels: providedLabels }: ContactsViewProps) => {
+const ContactsViewClient = ({
+  data,
+  crmData,
+  activeRole,
+  defaultEmailFrom,
+  labels: providedLabels,
+}: ContactsViewProps) => {
   const [open, setOpen] = useState(false);
 
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
@@ -97,6 +103,7 @@ const ContactsViewClient = ({ data, crmData, activeRole, labels: providedLabels 
           <ContactsDataTable
             data={filteredData}
             columns={createColumns(contactTypes, accounts, leadSources, leadStatuses, leadTypes, products, saleStages)}
+            defaultEmailFrom={defaultEmailFrom}
           />
         )}
       </CardContent>

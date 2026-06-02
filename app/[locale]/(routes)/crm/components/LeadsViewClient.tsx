@@ -29,7 +29,13 @@ import { createColumns } from "../leads/table-components/columns";
 import { localLeadRepository, type LocalLeadEntity } from "@/lib/offline-first/storage";
 import type { LeadsViewProps } from "./LeadsView";
 
-const LeadsViewClient = ({ data, crmData, products = [], sourceFilter }: LeadsViewProps) => {
+const LeadsViewClient = ({
+  data,
+  crmData,
+  products = [],
+  sourceFilter,
+  defaultEmailFrom,
+}: LeadsViewProps) => {
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, saleStages } = crmData;
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -139,6 +145,7 @@ const LeadsViewClient = ({ data, crmData, products = [], sourceFilter }: LeadsVi
                 label: product.name,
                 value: product.id,
               }))}
+              defaultEmailFrom={defaultEmailFrom}
               onDataChange={loadLocalLeads}
             />
           ))}

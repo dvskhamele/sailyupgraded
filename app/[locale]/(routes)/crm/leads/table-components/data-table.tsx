@@ -27,7 +27,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Trash2, UserCheck } from "lucide-react";
+import { Mail, Trash2, UserCheck } from "lucide-react";
 import { createColumns } from "./columns";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
@@ -36,6 +36,7 @@ import AlertModal from "@/components/modals/alert-modal";
 import { toast } from "sonner";
 import { localLeadRepository } from "@/lib/offline-first/storage";
 import { convertLeadsToContacts } from "@/actions/crm/leads/convert-leads";
+import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 
 type ConfigItem = { id: string; name: string };
 type FilterOption = { label: string; value: string };
@@ -56,6 +57,7 @@ interface DataTableProps<TData, TValue> {
   leadTypes?: ConfigItem[];
   products?: ProductItem[];
   productOptions?: FilterOption[];
+  defaultEmailFrom?: string;
   onDataChange?: () => void | Promise<void>;
 }
 
@@ -68,6 +70,7 @@ export function LeadDataTable<TData, TValue>({
   leadTypes = [],
   products = [],
   productOptions = [],
+  defaultEmailFrom,
   onDataChange,
 }: DataTableProps<TData, TValue>) {
   const router = useRouter();
@@ -89,6 +92,7 @@ export function LeadDataTable<TData, TValue>({
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
   const [bulkConvertLoading, setBulkConvertLoading] = React.useState(false);
 
@@ -118,6 +122,9 @@ export function LeadDataTable<TData, TValue>({
   const selectedLeadIds = selectedRows.map(
     (row) => (row.original as { id: string }).id
   );
+  const selectedLeadEmails = selectedRows
+    .map((row) => (row.original as { email?: string | null }).email?.trim())
+    .filter((email): email is string => Boolean(email));
   const selectedCount = selectedLeadIds.length;
 
   const onBulkDelete = async () => {
@@ -169,11 +176,33 @@ export function LeadDataTable<TData, TValue>({
         title={`Delete ${selectedCount} lead(s)?`}
         description="Selected leads will be moved to deleted records."
       />
+      <SendEmailDialog
+        open={sendEmailOpen}
+        onOpenChange={setSendEmailOpen}
+        recipients={selectedLeadEmails}
+        defaultFrom={defaultEmailFrom}
+        onSent={() => table.toggleAllRowsSelected(false)}
+      />
       <div className="flex justify-between items-start gap-3">
         <div />
         <div className="flex justify-end items-center gap-2">
           {selectedCount > 0 && (
             <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (selectedLeadEmails.length === 0) {
+                    toast.error("Selected lead(s) do not have email addresses.");
+                    return;
+                  }
+                  setSendEmailOpen(true);
+                }}
+                disabled={bulkConvertLoading || bulkDeleteLoading}
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Send Email
+              </Button>
               <Button
                 size="sm"
                 variant="outline"

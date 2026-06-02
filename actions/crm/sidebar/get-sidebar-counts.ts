@@ -3,7 +3,11 @@ import type { Prisma } from "@prisma/client";
 import { getSession } from "@/lib/auth-server";
 import { buildContactRoleFilter } from "@/lib/contact-options";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
-import { prismadb } from "@/lib/prisma";
+import {
+  isTransientPrismaConnectionError,
+  prismadb,
+  withPrismaRetry,
+} from "@/lib/prisma";
 
 export type CrmSidebarCounts = {
   dashboard: number;
@@ -55,6 +59,24 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
     session.user,
   );
 
+  let counts: Awaited<ReturnType<typeof loadSidebarCounts>>;
+
+  try {
+    counts = await withPrismaRetry(() =>
+      loadSidebarCounts(contactVisibilityFilter),
+    );
+  } catch (error) {
+    if (!isTransientPrismaConnectionError(error)) {
+      throw error;
+    }
+
+    console.warn(
+      "[CRM sidebar counts] database pool timeout after retry; using empty counts.",
+      error instanceof Error ? error.message : error,
+    );
+    return emptyCounts;
+  }
+
   const [
     opportunities,
     company,
@@ -67,29 +89,7 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
     activities,
     aiActivities,
     templates,
-  ] = await Promise.all([
-    prismadb.crm_Opportunities.count({ where: { deletedAt: null } }),
-    prismadb.crm_Accounts.count({ where: { deletedAt: null } }),
-    prismadb.crm_Products.count({ where: { deletedAt: null } }),
-    prismadb.crm_Contacts.count({
-      where: contactCountWhere(contactVisibilityFilter),
-    }),
-    prismadb.crm_Leads.count({ where: { deletedAt: null } }),
-    prismadb.crm_Contacts.count({
-      where: contactCountWhere(contactVisibilityFilter, "customer"),
-    }),
-    prismadb.crm_Contacts.count({
-      where: contactCountWhere(contactVisibilityFilter, "agent"),
-    }),
-    prismadb.crm_Contacts.count({
-      where: contactCountWhere(contactVisibilityFilter, "others"),
-    }),
-    prismadb.crm_Activities.count({ where: { deletedAt: null } }),
-    prismadb.crm_RetailAIActivities.count({
-      where: { deletedAt: null },
-    }),
-    prismadb.crm_campaign_templates.count({ where: { deletedAt: null } }),
-  ]);
+  ] = counts;
 
   return {
     dashboard: opportunities + company + products + contacts + leads,
@@ -105,4 +105,30 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
     aiActivities,
     templates,
   };
+}
+
+function loadSidebarCounts(visibilityFilter: Prisma.crm_ContactsWhereInput) {
+  return prismadb.$transaction([
+    prismadb.crm_Opportunities.count({ where: { deletedAt: null } }),
+    prismadb.crm_Accounts.count({ where: { deletedAt: null } }),
+    prismadb.crm_Products.count({ where: { deletedAt: null } }),
+    prismadb.crm_Contacts.count({
+      where: contactCountWhere(visibilityFilter),
+    }),
+    prismadb.crm_Leads.count({ where: { deletedAt: null } }),
+    prismadb.crm_Contacts.count({
+      where: contactCountWhere(visibilityFilter, "customer"),
+    }),
+    prismadb.crm_Contacts.count({
+      where: contactCountWhere(visibilityFilter, "agent"),
+    }),
+    prismadb.crm_Contacts.count({
+      where: contactCountWhere(visibilityFilter, "others"),
+    }),
+    prismadb.crm_Activities.count({ where: { deletedAt: null } }),
+    prismadb.crm_RetailAIActivities.count({
+      where: { deletedAt: null },
+    }),
+    prismadb.crm_campaign_templates.count({ where: { deletedAt: null } }),
+  ]);
 }

@@ -27,7 +27,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { PanelTopClose, PanelTopOpen, Sparkles, Trash2 } from "lucide-react";
+import { Mail, PanelTopClose, PanelTopOpen, Sparkles, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BulkEnrichModal } from "../components/BulkEnrichModal";
 import AlertModal from "@/components/modals/alert-modal";
@@ -35,15 +35,18 @@ import { bulkDeleteContacts } from "@/actions/crm/contacts/delete-contact";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
+import { SendEmailDialog } from "../components/SendEmailDialog";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
+  defaultEmailFrom?: string;
 }
 
 export function ContactsDataTable<TData, TValue>({
   columns,
   data,
+  defaultEmailFrom,
 }: DataTableProps<TData, TValue>) {
   const router = useRouter();
   const [rowSelection, setRowSelection] = React.useState({});
@@ -57,6 +60,7 @@ export function ContactsDataTable<TData, TValue>({
   const [hide, setHide] = React.useState(false);
   const [bulkEnrichOpen, setBulkEnrichOpen] = React.useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
+  const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
 
   const table = useReactTable({
@@ -85,6 +89,9 @@ export function ContactsDataTable<TData, TValue>({
   const selectedContactIds = selectedRows.map(
     (row) => (row.original as { id: string }).id
   );
+  const selectedContactEmails = selectedRows
+    .map((row) => (row.original as { email?: string | null }).email?.trim())
+    .filter((email): email is string => Boolean(email));
   const selectedCount = selectedContactIds.length;
 
   const onBulkDelete = async () => {
@@ -117,19 +124,43 @@ export function ContactsDataTable<TData, TValue>({
         title={`Delete ${selectedCount} contact(s)?`}
         description="Selected contacts will be moved to deleted records."
       />
+      <SendEmailDialog
+        open={sendEmailOpen}
+        onOpenChange={setSendEmailOpen}
+        recipients={selectedContactEmails}
+        defaultFrom={defaultEmailFrom}
+        onSent={() => table.toggleAllRowsSelected(false)}
+      />
       <div className="flex justify-between items-start gap-3">
         {/* <div></div> */}
         <div className="flex justify-end items-center gap-2">
           {selectedCount > 0 && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => setBulkDeleteOpen(true)}
-              disabled={bulkDeleteLoading}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete selected
-            </Button>
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => {
+                  if (selectedContactEmails.length === 0) {
+                    toast.error("Selected contact(s) do not have email addresses.");
+                    return;
+                  }
+                  setSendEmailOpen(true);
+                }}
+                disabled={bulkDeleteLoading}
+              >
+                <Mail className="h-4 w-4 mr-1" />
+                Send Email
+              </Button>
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={bulkDeleteLoading}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete selected
+              </Button>
+            </>
           )}
           {/* {hide ? (
             <PanelTopOpen
