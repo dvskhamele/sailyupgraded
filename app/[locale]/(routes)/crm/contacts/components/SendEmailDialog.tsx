@@ -47,24 +47,27 @@ export function SendEmailDialog({
   defaultFrom = "",
   onSent,
 }: SendEmailDialogProps) {
-  const [from, setFrom] = React.useState(defaultFrom);
+  const [fromOverride, setFromOverride] = React.useState<string | null>(null);
   const [subject, setSubject] = React.useState("");
   const [message, setMessage] = React.useState("");
   const [isSending, setIsSending] = React.useState(false);
+  const from = fromOverride ?? defaultFrom;
 
   const uniqueRecipients = React.useMemo(
     () => Array.from(new Set(recipients.filter(Boolean))),
     [recipients]
   );
 
-  React.useEffect(() => {
-    if (open) {
-      setFrom(defaultFrom);
-    }
-  }, [defaultFrom, open]);
-
   const recipientPreview = uniqueRecipients.slice(0, 5).join(", ");
   const hiddenRecipientCount = Math.max(uniqueRecipients.length - 5, 0);
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    if (isSending) return;
+    if (!nextOpen) {
+      setFromOverride(null);
+    }
+    onOpenChange(nextOpen);
+  };
 
   const handleSend = async () => {
     if (uniqueRecipients.length === 0) {
@@ -121,6 +124,7 @@ export function SendEmailDialog({
       }
 
       if (result.sent > 0) {
+        setFromOverride(null);
         setSubject("");
         setMessage("");
         onSent?.();
@@ -134,7 +138,7 @@ export function SendEmailDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(nextOpen) => !isSending && onOpenChange(nextOpen)}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle>Send Email</DialogTitle>
@@ -149,7 +153,7 @@ export function SendEmailDialog({
             <Input
               id="bulk-email-from"
               value={from}
-              onChange={(event) => setFrom(event.target.value)}
+              onChange={(event) => setFromOverride(event.target.value)}
               placeholder="support@example.com"
               disabled={isSending}
             />
@@ -195,7 +199,7 @@ export function SendEmailDialog({
           <Button
             type="button"
             variant="outline"
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
             disabled={isSending}
           >
             Cancel

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
 
 import {
   Card,
@@ -35,12 +34,12 @@ const LeadsViewClient = ({
   products = [],
   sourceFilter,
   defaultEmailFrom,
+  labels,
 }: LeadsViewProps) => {
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, saleStages } = crmData;
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [localLeads, setLocalLeads] = useState<LocalLeadEntity[]>(data);
-  const t = useTranslations("CrmPage");
 
   const loadLocalLeads = useCallback(async () => {
     try {
@@ -91,19 +90,19 @@ const LeadsViewClient = ({
           <div>
             <CardTitle>
               <Link href="/crm/leads" className="hover:underline">
-                {t("leads.viewTitle")}
+                {labels?.viewTitle}
               </Link>
             </CardTitle>
           </div>
           <div className="flex space-x-2">
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
-                <Button size="sm" aria-label={t("leads.addNew")} data-testid="add-lead-btn">+</Button>
+                <Button size="sm" aria-label={labels?.addNew} data-testid="add-lead-btn">+</Button>
               </SheetTrigger>
               <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
                 <SheetHeader>
-                  <SheetTitle>{t("leads.sheetTitle")}</SheetTitle>
-                  <SheetDescription>{t("leads.sheetDescription")}</SheetDescription>
+                  <SheetTitle>{labels?.sheetTitle}</SheetTitle>
+                  <SheetDescription>{labels?.sheetDescription}</SheetDescription>
                 </SheetHeader>
                 <div className="mt-6 space-y-4">
                   <NewLeadForm
@@ -130,7 +129,7 @@ const LeadsViewClient = ({
       <CardContent>
         {!visibleLeads ||
           (visibleLeads.length === 0 ? (
-            t("leads.empty")
+            labels?.empty
           ) : (
             <LeadDataTable
               data={visibleLeads}

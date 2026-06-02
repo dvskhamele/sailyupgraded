@@ -27,9 +27,8 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Mail, PanelTopClose, PanelTopOpen, Sparkles, Trash2 } from "lucide-react";
+import { Mail, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { BulkEnrichModal } from "../components/BulkEnrichModal";
 import AlertModal from "@/components/modals/alert-modal";
 import { bulkDeleteContacts } from "@/actions/crm/contacts/delete-contact";
 import { toast } from "sonner";
@@ -57,8 +56,6 @@ export function ContactsDataTable<TData, TValue>({
   );
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
-  const [hide, setHide] = React.useState(false);
-  const [bulkEnrichOpen, setBulkEnrichOpen] = React.useState(false);
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
@@ -132,7 +129,6 @@ export function ContactsDataTable<TData, TValue>({
         onSent={() => table.toggleAllRowsSelected(false)}
       />
       <div className="flex justify-between items-start gap-3">
-        {/* <div></div> */}
         <div className="flex justify-end items-center gap-2">
           {selectedCount > 0 && (
             <>
@@ -162,114 +158,81 @@ export function ContactsDataTable<TData, TValue>({
               </Button>
             </>
           )}
-          {/* {hide ? (
-            <PanelTopOpen
-              onClick={() => setHide(!hide)}
-              className="text-muted-foreground"
-            />
-          ) : (
-            <PanelTopClose
-              onClick={() => setHide(!hide)}
-              className="text-muted-foreground"
-            />
-          )} */}
         </div>
       </div>
 
-      {/* {hide ? (
-        <div className="flex gap-2">
-          This content is hidden now. Click on <PanelTopOpen /> to show content
+      <DataTableToolbar table={table} />
+      {selectedCount > 0 && (
+        <div className="flex items-center gap-2 py-2 px-1 bg-muted/50 rounded-md border">
+          <span className="text-sm text-muted-foreground">
+            {selectedCount} selected
+          </span>
         </div>
-      ) : (
-        <> */}
-          <DataTableToolbar table={table} />
-          {selectedCount > 0 && (
-            <>
-              <div className="flex items-center gap-2 py-2 px-1 bg-muted/50 rounded-md border">
-                <span className="text-sm text-muted-foreground">
-                  {selectedCount} selected
-                </span>
-                {/* <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => setBulkEnrichOpen(true)}
-                >
-                  <Sparkles className="h-4 w-4 mr-1 text-orange-500" />
-                  Enrich {selectedCount} contacts
-                </Button> */}
-              </div>
-              <BulkEnrichModal
-                contactIds={selectedContactIds}
-                open={bulkEnrichOpen}
-                onOpenChange={setBulkEnrichOpen}
-              />
-            </>
-          )}
-          <div className="rounded-md border overflow-x-auto w-full">
-            <Table data-testid="contacts-table">
-              <TableHeader>
-                {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id}>
-                    {headerGroup.headers.map((header) => {
-                      return (
-                        <TableHead key={header.id}>
-                          {header.isPlaceholder
-                            ? null
-                            : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
-                        </TableHead>
-                      );
-                    })}
-                  </TableRow>
-                ))}
-              </TableHeader>
-              <TableBody>
-                {table.getRowModel().rows?.length ? (
-                  table.getRowModel().rows.map((row) => (
-                    <TableRow
-                      key={row.id}
-                      data-state={row.getIsSelected() && "selected"}
-                      role="link"
-                      tabIndex={0}
-                      className="cursor-pointer"
-                      onClick={(event) =>
-                        handleRowClick(event, () =>
-                          router.push(`/crm/contacts/${(row.original as { id: string }).id}`)
-                        )
-                      }
-                      onKeyDown={(event) =>
-                        handleRowKeyDown(event, () =>
-                          router.push(`/crm/contacts/${(row.original as { id: string }).id}`)
-                        )
-                      }
-                    >
-                      {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
-                          {flexRender(
-                            cell.column.columnDef.cell,
-                            cell.getContext()
+      )}
+      <div className="rounded-md border overflow-x-auto w-full">
+        <Table data-testid="contacts-table">
+          <TableHeader>
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id}>
+                {headerGroup.headers.map((header) => {
+                  return (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
                           )}
-                        </TableCell>
-                      ))}
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell
-                      colSpan={columns.length}
-                      className="h-24 text-center"
-                    >
-                      No results.
+                    </TableHead>
+                  );
+                })}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {table.getRowModel().rows?.length ? (
+              table.getRowModel().rows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() && "selected"}
+                  role="link"
+                  tabIndex={0}
+                  className="cursor-pointer"
+                  onClick={(event) =>
+                    handleRowClick(event, () =>
+                      router.push(`/crm/contacts/${(row.original as { id: string }).id}`)
+                    )
+                  }
+                  onKeyDown={(event) =>
+                    handleRowKeyDown(event, () =>
+                      router.push(`/crm/contacts/${(row.original as { id: string }).id}`)
+                    )
+                  }
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
                     </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
-          <DataTablePagination table={table} />
-        {/* </> */}
+                  ))}
+                </TableRow>
+              ))
+            ) : (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-24 text-center"
+                >
+                  No results.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+      <DataTablePagination table={table} />
     </div>
   );
 }

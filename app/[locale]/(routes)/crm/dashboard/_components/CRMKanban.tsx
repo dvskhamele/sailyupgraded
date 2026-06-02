@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { ThumbsDown } from "lucide-react";
 import { RetellWebClient } from "retell-client-js-sdk";
+import { IoMdMail } from "react-icons/io";
 import {
   DndContext,
   DragOverlay,
@@ -96,11 +97,13 @@ import { sendSMS } from "@/actions/crm/sms/send-sms";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { formatCurrencyDisplay } from "@/lib/currency-input";
 import { stopRowNavigation } from "../../components/table-row-navigation";
+import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
   opportunities: crm_Opportunities[];
   crmData: any;
+  defaultEmailFrom?: string;
 }
 
 type Column = crm_Opportunities_Sales_Stages & {
@@ -232,18 +235,15 @@ function RetellAssistantDialog({
   const [error, setError] = useState<string | null>(null);
   const [agentName, setAgentName] = useState("Voice AI Retail");
   const [agents, setAgents] = useState<RetellAgentOption[]>([]);
-  const [selectedAgentId, setSelectedAgentId] = useState(currentAgentId || "");
+  const [selectedAgentIdOverride, setSelectedAgentIdOverride] = useState<
+    string | null
+  >(null);
   const [isLoadingAgents, setIsLoadingAgents] = useState(false);
   const [isLoadingScript, setIsLoadingScript] = useState(false);
   const [selectedAgentScript, setSelectedAgentScript] = useState("");
 
+  const selectedAgentId = selectedAgentIdOverride ?? currentAgentId ?? "";
   const selectedAgent = agents.find((agent) => agent.id === selectedAgentId);
-
-  useEffect(() => {
-    if (currentAgentId) {
-      setSelectedAgentId(currentAgentId);
-    }
-  }, [currentAgentId]);
 
   useEffect(() => {
     if (!open || agents.length > 0) {
@@ -280,7 +280,7 @@ function RetellAssistantDialog({
             payload.agents.find((agent) => agent.isPublished) ??
             payload.agents[0];
           if (firstAgent) {
-            setSelectedAgentId(firstAgent.id);
+            setSelectedAgentIdOverride(firstAgent.id);
             setAgentName(firstAgent.name);
           }
         }
@@ -380,7 +380,7 @@ function RetellAssistantDialog({
             value={selectedAgentId}
             onValueChange={(agentId) => {
               const nextAgent = agents.find((agent) => agent.id === agentId);
-              setSelectedAgentId(agentId);
+              setSelectedAgentIdOverride(agentId);
               setAgentName(nextAgent?.name ?? "Voice AI Retail");
               setError(null);
             }}
@@ -705,6 +705,7 @@ function OpportunityCard({
   onThumbsDown,
   onOpenEdit,
   onOpenAiMessage,
+  onOpenEmail,
   stage,
   salesStages,
   nowMs,
@@ -837,6 +838,23 @@ function OpportunityCard({
               ? format(new Date(opportunity.close_date), "dd MMM yyyy")
               : "No close date"}
           </span>
+
+          
+        </div>
+        <div>
+           {/* PRODUCTS */}
+        {opportunityProducts.length > 0 && (
+          <div className="flex gap-1 flex-wrap justify-end">
+            {opportunityProducts.map((product) => (
+              <Badge
+                key={product}
+                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm"
+              >
+                {product}
+              </Badge>
+            ))}
+          </div>
+        )}
         </div>
       </CardContent>
 
@@ -925,11 +943,26 @@ function OpportunityCard({
             >
               <MessageSquareMore className="h-5 w-5" />
             </button>
+
+            <button
+              type="button"
+              aria-label={`Send email to ${callTarget.memberName}`}
+              title="Send email"
+              onClick={(event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                onOpenEmail(opportunity);
+              }}
+              onPointerDown={(event) => event.stopPropagation()}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-700 transition hover:bg-indigo-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            >
+              <IoMdMail className="h-5 w-5" />
+            </button>
           </div>
         </div>
 
-        {/* PRODUCTS */}
-        {opportunityProducts.length > 0 && (
+     {/* RODUCTS */}
+        {/* {opportunityProducts.length > 0 && (
           <div className="flex gap-1 flex-wrap justify-end">
             {opportunityProducts.map((product) => (
               <Badge
@@ -940,7 +973,7 @@ function OpportunityCard({
               </Badge>
             ))}
           </div>
-        )}
+        )} */}
       </CardFooter>
     </Card>
   );
@@ -1067,6 +1100,7 @@ const CRMKanban = ({
   salesStages,
   opportunities: data,
   crmData,
+  defaultEmailFrom,
 }: CRMKanbanProps) => {
   const router = useRouter();
 
@@ -1100,6 +1134,8 @@ const CRMKanban = ({
     useState<crm_Opportunities | null>(null);
   const [aiMessageText, setAiMessageText] = useState("");
   const [isSendingAiMessage, setIsSendingAiMessage] = useState(false);
+  const [emailRecipients, setEmailRecipients] = useState<string[]>([]);
+  const [isEmailDialogOpen, setIsEmailDialogOpen] = useState(false);
   const [opportunityCallStates, setOpportunityCallStates] = useState<
     Record<string, OpportunityPhoneCallState>
   >({});
@@ -1182,6 +1218,17 @@ const CRMKanban = ({
   const openAiMessageDialog = (opportunity: crm_Opportunities) => {
     setAiMessageOpportunity(opportunity);
     setAiMessageText("");
+  };
+
+  const openEmailDialog = (opportunity: crm_Opportunities) => {
+    const target = getOpportunityCallTarget(opportunity, contactsById);
+    if (!target.email) {
+      toast.error("This opportunity does not have a linked contact email address.");
+      return;
+    }
+
+    setEmailRecipients([target.email]);
+    setIsEmailDialogOpen(true);
   };
 
   const closeAiMessageDialog = (open: boolean) => {
@@ -1622,6 +1669,14 @@ const CRMKanban = ({
         isSending={isSendingAiMessage}
       />
 
+      <SendEmailDialog
+        open={isEmailDialogOpen}
+        onOpenChange={setIsEmailDialogOpen}
+        recipients={emailRecipients}
+        defaultFrom={defaultEmailFrom}
+        onSent={() => setEmailRecipients([])}
+      />
+
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent
           className="w-full md:max-w-[771px] overflow-y-auto"
@@ -1772,6 +1827,7 @@ const CRMKanban = ({
                           onThumbsDown={onThumbsDown}
                           onOpenEdit={openEditOpportunity}
                           onOpenAiMessage={openAiMessageDialog}
+                          onOpenEmail={openEmailDialog}
                           stage={col}
                           salesStages={salesStages}
                           nowMs={nowMs}
@@ -1807,6 +1863,7 @@ const CRMKanban = ({
                         onThumbsDown={onThumbsDown}
                         onOpenEdit={openEditOpportunity}
                         onOpenAiMessage={openAiMessageDialog}
+                        onOpenEmail={openEmailDialog}
                         stage={{ probability: null }}
                         salesStages={salesStages}
                         nowMs={nowMs}
