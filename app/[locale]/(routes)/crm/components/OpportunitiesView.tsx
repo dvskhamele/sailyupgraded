@@ -151,9 +151,9 @@ const OpportunitiesView = ({
           </div>
           <div className="flex flex-wrap items-end justify-end gap-2">
             <div className="min-w-44 space-y-1">
-              <Label className="text-xs font-medium text-muted-foreground">
+              {/* <Label className="text-xs font-medium text-muted-foreground">
                 Assigned Member
-              </Label>
+              </Label> */}
               <Select
                 value={selectedAssignedMemberId}
                 onValueChange={setSelectedAssignedMemberId}
