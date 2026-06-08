@@ -4824,7 +4824,7 @@ Add to the `"ReportsPage"` section of `locales/en.json`. The existing keys shoul
       "leadSources": "Lead Sources",
       "conversionRate": "Lead to Opportunity Conversion",
       "newContactsByMonth": "New Contacts by Month",
-      "contactsByAccount": "Contacts by Account",
+      "contactsByAccount": "Contacts by Conpany",
       "newAccountsByMonth": "New Accounts by Month",
       "accountsByIndustry": "Accounts by Industry",
       "topAccountsByRevenue": "Top Accounts by Revenue",

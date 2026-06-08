@@ -305,15 +305,14 @@ export async function POST(request: Request) {
     }
 
     console.log(`[RETELL_CREATE_PHONE_CALL] Initiating fetch to Retell API: ${RETELL_API_BASE_URL}/v2/create-phone-call`);
-    console.log("[RETELL_CREATE_PHONE_CALL] Safe request summary", {
-      fromNumberFingerprint: fingerprintSecret(fromNumber),
-      toNumberFingerprint: fingerprintSecret(finalResolvedPhone),
+    console.log("[RETELL_CREATE_PHONE_CALL] Request Details", {
+      from_number: fromNumber,
+      to_number: finalResolvedPhone,
       overrideAgentId: agentId,
       overrideAgentVersion: agentVersion ?? null,
-      metadataKeys: Object.keys((retellBody.metadata as Record<string, unknown>) ?? {}),
-      dynamicVariableKeys: Object.keys(
-        (retellBody.retell_llm_dynamic_variables as Record<string, unknown>) ?? {},
-      ),
+      metadata: retellBody.metadata,
+      apiKeySource: getRetellApiKeySource(),
+      apiKeyFingerprint: fingerprintSecret(apiKey),
     });
     const startTime = Date.now();
     
