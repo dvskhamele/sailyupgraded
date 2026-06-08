@@ -11,6 +11,7 @@ import { useTranslations } from "next-intl";
 type FilterOption = {
   key: string;
   labelKey: string;
+  allLabelKey?: string;
   options: { value: string; label: string }[];
 };
 
@@ -62,7 +63,7 @@ export function FilterBar({ category, filterOptions = [] }: FilterBarProps) {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">{t("all")}</SelectItem>
+                  <SelectItem value="all">{t(filter.allLabelKey ?? "all")}</SelectItem>
                   {filter.options.map((opt) => (
                     <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
                   ))}

@@ -485,6 +485,7 @@
     "to": "To",
     "filters": "Filters",
     "all": "All",
+    "assignedMember": "Assigned Member",
     "salesTitle": "Sales Reports",
     "salesDescription": "Revenue, pipeline, and deal analytics",
     "leadsTitle": "Leads & Contacts Reports",
@@ -505,6 +506,9 @@
       "avgDeal": "Average Deal Size",
       "winRate": "Win Rate",
       "cycleLength": "Avg. Sales Cycle",
+      "assignedMember": "Assigned Member",
+      "revenueByAssignedMember": "Revenue by Assigned Member",
+      "boundRevenueOnly": "Policy Issued & Paid (Bound) only",
       "days": "days"
     },
     "leads": {
@@ -553,6 +557,7 @@
       "avgDealSize": "Average Deal Size",
       "winRate": "Win Rate",
       "salesCycleLength": "Avg. Sales Cycle",
+      "revenueByAssignedMember": "Revenue by Assigned Member",
       "oppsBySalesStage": "Opportunities by Sales Stage",
       "oppsByMonth": "Opportunities by Month",
       "newLeadsByMonth": "New Leads by Month",

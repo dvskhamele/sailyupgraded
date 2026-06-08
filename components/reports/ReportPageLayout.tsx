@@ -11,7 +11,12 @@ type ReportPageLayoutProps = {
   description: string;
   category: ReportCategory;
   currentFilters: string;
-  filterOptions?: { key: string; labelKey: string; options: { value: string; label: string }[] }[];
+  filterOptions?: {
+    key: string;
+    labelKey: string;
+    allLabelKey?: string;
+    options: { value: string; label: string }[];
+  }[];
   children: React.ReactNode;
 };
 
