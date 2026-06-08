@@ -1,10 +1,8 @@
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import type { PoolConfig } from "mariadb";
 
-const DEFAULT_CONNECT_TIMEOUT_MS =
-  process.env.NODE_ENV === "development" ? 5_000 : 10_000;
-const DEFAULT_ACQUIRE_TIMEOUT_MS =
-  process.env.NODE_ENV === "development" ? 5_000 : 30_000;
+const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
+const DEFAULT_ACQUIRE_TIMEOUT_MS = 30_000;
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 300;
 const DEFAULT_CONNECTION_LIMIT = 10;
 
@@ -15,6 +13,17 @@ function parseNumber(value: string | null) {
 
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : undefined;
+}
+
+function parseUrlNumber(url: URL, ...keys: string[]) {
+  for (const key of keys) {
+    const parsed = parseNumber(url.searchParams.get(key));
+    if (parsed !== undefined) {
+      return parsed;
+    }
+  }
+
+  return undefined;
 }
 
 function parseSslOption(url: URL): PoolConfig["ssl"] {
@@ -57,19 +66,19 @@ export function createMariaDbConfigFromUrl(databaseUrl: string): PoolConfig {
     password: decodeURIComponent(url.password),
     database: url.pathname.replace(/^\/+/, "") || undefined,
     connectTimeout:
-      parseNumber(url.searchParams.get("connect_timeout")) ??
+      parseUrlNumber(url, "connect_timeout", "connectTimeout") ??
       DEFAULT_CONNECT_TIMEOUT_MS,
     acquireTimeout:
-      parseNumber(url.searchParams.get("acquire_timeout")) ??
+      parseUrlNumber(url, "acquire_timeout", "acquireTimeout", "pool_timeout") ??
       DEFAULT_ACQUIRE_TIMEOUT_MS,
     initializationTimeout:
-      parseNumber(url.searchParams.get("initialization_timeout")) ??
+      parseUrlNumber(url, "initialization_timeout", "initializationTimeout") ??
       DEFAULT_ACQUIRE_TIMEOUT_MS - 100,
     idleTimeout:
-      parseNumber(url.searchParams.get("max_idle_connection_lifetime")) ??
+      parseUrlNumber(url, "max_idle_connection_lifetime", "idle_timeout", "idleTimeout") ??
       DEFAULT_IDLE_TIMEOUT_SECONDS,
     connectionLimit:
-      parseNumber(url.searchParams.get("connection_limit")) ??
+      parseUrlNumber(url, "connection_limit", "connectionLimit") ??
       DEFAULT_CONNECTION_LIMIT,
     ssl: parseSslOption(url),
   };

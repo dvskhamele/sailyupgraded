@@ -93,6 +93,11 @@ import {
 import { useHydrated } from "@/hooks/use-hydrated";
 import { CategoryFilter } from "./CategoryFilter";
 import { filterOpportunitiesByCategory } from "@/lib/opportunity-categories";
+import {
+  ALL_ASSIGNED_MEMBERS_VALUE,
+  filterOpportunitiesByAssignedMember,
+  getAssignedMemberOptions,
+} from "@/lib/opportunity-assigned-members";
 import { sendSMS } from "@/actions/crm/sms/send-sms";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { formatCurrencyDisplay } from "@/lib/currency-input";
@@ -1106,7 +1111,15 @@ const CRMKanban = ({
 
   const [selectedStage, setSelectedStage] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
+  const [selectedAssignedMemberId, setSelectedAssignedMemberId] = useState(
+    ALL_ASSIGNED_MEMBERS_VALUE,
+  );
   const [customProducts, setCustomProducts] = useState<string[]>([]);
+  const assignedMembers = useMemo(() => getAssignedMemberOptions(data), [data]);
+  const filteredOpportunities = useMemo(
+    () => filterOpportunitiesByAssignedMember(data, selectedAssignedMemberId),
+    [data, selectedAssignedMemberId],
+  );
   const categoryList = useMemo(
     () =>
       Array.from(
@@ -1181,12 +1194,12 @@ const CRMKanban = ({
     };
   }, []);
 
-  const serverDataRef = useRef(data);
+  const serverDataRef = useRef(filteredOpportunities);
   const [columns, setColumns] = useState<Column[]>(() =>
-    initColumns(data, salesStages, selectedCategories),
+    initColumns(filteredOpportunities, salesStages, selectedCategories),
   );
   const [lostCards, setLostCards] = useState<crm_Opportunities[]>(() =>
-    getLostOpportunities(data, selectedCategories),
+    getLostOpportunities(filteredOpportunities, selectedCategories),
   );
   const columnsRef = useRef<Column[]>(columns);
 
@@ -1421,21 +1434,21 @@ const CRMKanban = ({
   }, [columns]);
 
   useEffect(() => {
-    if (serverDataRef.current !== data && !isDraggingRef.current) {
-      serverDataRef.current = data;
-      setColumns(initColumns(data, salesStages, selectedCategories));
-      setLostCards(getLostOpportunities(data, selectedCategories));
+    if (serverDataRef.current !== filteredOpportunities && !isDraggingRef.current) {
+      serverDataRef.current = filteredOpportunities;
+      setColumns(initColumns(filteredOpportunities, salesStages, selectedCategories));
+      setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
     }
-  }, [data, salesStages, selectedCategories]);
+  }, [filteredOpportunities, salesStages, selectedCategories]);
 
   useEffect(() => {
     if (!isDraggingRef.current) {
-      const nextColumns = initColumns(data, salesStages, selectedCategories);
+      const nextColumns = initColumns(filteredOpportunities, salesStages, selectedCategories);
       columnsRef.current = nextColumns;
       setColumns(nextColumns);
-      setLostCards(getLostOpportunities(data, selectedCategories));
+      setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
     }
-  }, [data, salesStages, selectedCategories]);
+  }, [filteredOpportunities, salesStages, selectedCategories]);
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
@@ -1582,9 +1595,9 @@ const CRMKanban = ({
       });
       if (result?.error) {
         toast.error(result.error);
-        columnsRef.current = initColumns(data, salesStages, selectedCategories);
-        setColumns(initColumns(data, salesStages, selectedCategories));
-        setLostCards(getLostOpportunities(data, selectedCategories));
+        columnsRef.current = initColumns(filteredOpportunities, salesStages, selectedCategories);
+        setColumns(initColumns(filteredOpportunities, salesStages, selectedCategories));
+        setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
       } else {
         toast.success("Opportunity stage changed");
       }
@@ -1593,9 +1606,9 @@ const CRMKanban = ({
       toast.error(
         error instanceof Error ? error.message : "Something went wrong",
       );
-      columnsRef.current = initColumns(data, salesStages, selectedCategories);
-      setColumns(initColumns(data, salesStages, selectedCategories));
-      setLostCards(getLostOpportunities(data, selectedCategories));
+      columnsRef.current = initColumns(filteredOpportunities, salesStages, selectedCategories);
+      setColumns(initColumns(filteredOpportunities, salesStages, selectedCategories));
+      setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
     }
   };
 
@@ -1620,6 +1633,9 @@ const CRMKanban = ({
           categories={categoryList}
           selectedCategories={selectedCategories}
           onCategoryChange={setSelectedCategories}
+          assignedMembers={assignedMembers}
+          selectedAssignedMemberId={selectedAssignedMemberId}
+          onAssignedMemberChange={setSelectedAssignedMemberId}
           onAddCategory={handleAddProduct}
           allowCreate
         />

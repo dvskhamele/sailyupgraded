@@ -11,10 +11,12 @@ declare global {
 }
 
 const databaseUrl = process.env.DATABASE_URL;
-const prismaRuntimeVersion = "mariadb-adapter-singleton-v3";
+const prismaRuntimeVersion = "mariadb-adapter-singleton-v4";
 const slowQueryThresholdMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 1000);
 const transactionMaxWaitMs = Number(process.env.PRISMA_TRANSACTION_MAX_WAIT_MS ?? 10_000);
 const transactionTimeoutMs = Number(process.env.PRISMA_TRANSACTION_TIMEOUT_MS ?? 30_000);
+const prismaLogLevels =
+  process.env.NODE_ENV === "development" ? ["warn"] : ["error"];
 
 export function getDatabaseUrlDiagnostics() {
   if (!databaseUrl) {
@@ -71,7 +73,7 @@ const prismaClientSingleton = () => {
 
   const client = new PrismaClient({
     adapter: createMariaDbAdapter(databaseUrl),
-    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+    log: prismaLogLevels as Prisma.LogLevel[],
     transactionOptions: {
       maxWait: transactionMaxWaitMs,
       timeout: transactionTimeoutMs,

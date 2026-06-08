@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { prismadb } from "@/lib/prisma";
+import { prismadb, withPrismaRetry } from "@/lib/prisma";
 import { sendSMS } from "@/actions/crm/sms/send-sms";
 import { createRetailAIActivityFromWebhook } from "@/lib/retail-ai/service";
 
@@ -134,6 +134,26 @@ function getCustomAnalysisValue(
   return undefined;
 }
 
+async function saveWebhookEventLog(
+  callId: string,
+  event: string,
+  payload: unknown,
+) {
+  try {
+    await withPrismaRetry(() =>
+      prismadb.crm_LeadCallWebhookEvent.create({
+        data: {
+          callId,
+          event,
+          payload: payload as any,
+        },
+      }),
+    );
+  } catch (error) {
+    console.error("[RETELL WEBHOOK] Failed to save event log:", error);
+  }
+}
+
 export async function POST(request: Request) {
   const startTime = Date.now();
   console.log("[RETELL WEBHOOK] >>>>> WEBHOOK HIT START <<<<<");
@@ -171,13 +191,7 @@ export async function POST(request: Request) {
     
     // Attempt to save raw event for debugging anyway
     try {
-      await prismadb.crm_LeadCallWebhookEvent.create({
-        data: {
-          callId: callId || "unknown",
-          event: event || "unknown",
-          payload: payload as any,
-        },
-      });
+      await saveWebhookEventLog(callId || "unknown", event || "unknown", payload);
       console.log("[RETELL WEBHOOK] Saved raw event for debugging despite missing fields");
     } catch (e) {
       console.error("[RETELL WEBHOOK] Could not even save raw event log:", e);
@@ -208,13 +222,7 @@ export async function POST(request: Request) {
   if (!handledEvents.has(event)) {
     console.warn(`[RETELL WEBHOOK] UNSUPPORTED EVENT: ${event}. Saving as raw event log.`);
     try {
-      await prismadb.crm_LeadCallWebhookEvent.create({
-        data: {
-          callId,
-          event,
-          payload: payload as any,
-        },
-      });
+      await saveWebhookEventLog(callId, event, payload);
     } catch (e) {
       console.error("[RETELL WEBHOOK] Failed to save unsupported event log:", e);
     }
@@ -252,17 +260,10 @@ export async function POST(request: Request) {
   const pipelineStart = Date.now();
 
   try {
-    // 1. Transactional Call Tracking Update
+    // 1. Call Tracking Update
     console.log(`[RETELL WEBHOOK] Step 1: Upserting Call Tracking for: ${callId}`);
     const step1Start = Date.now();
-    await prismadb.$transaction([
-      prismadb.crm_LeadCallWebhookEvent.create({
-        data: {
-          callId,
-          event,
-          payload: payload as any,
-        },
-      }),
+    await withPrismaRetry(() =>
       prismadb.crm_LeadCallTracking.upsert({
         where: { callId },
         create: {
@@ -308,7 +309,8 @@ export async function POST(request: Request) {
           lastWebhookEvent: event,
         },
       }),
-    ]);
+    );
+    await saveWebhookEventLog(callId, event, payload);
     console.log(`[RETELL WEBHOOK] Step 1 SUCCESS in ${Date.now() - step1Start}ms: Call Tracking updated for: ${callId}`);
 
     // 2. Retail AI Activity Creation (Step 1-13)

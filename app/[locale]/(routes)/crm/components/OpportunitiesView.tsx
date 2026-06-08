@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 
@@ -19,22 +19,36 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { createColumns } from "../opportunities/table-components/columns";
 import { ImportOpportunitiesDialog } from "../opportunities/components/ImportOpportunitiesDialog";
 import { NewOpportunityForm } from "../opportunities/components/NewOpportunityForm";
 import { OpportunitiesDataTable } from "../opportunities/table-components/data-table";
+import type { Opportunity } from "../opportunities/table-data/schema";
 
 import { useCurrency } from "@/context/currency-context";
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 import Decimal from "decimal.js";
 import { formatCurrencyAmount } from "@/lib/currency-input";
+import {
+  ALL_ASSIGNED_MEMBERS_VALUE,
+  filterOpportunitiesByAssignedMember,
+  getAssignedMemberOptions,
+} from "@/lib/opportunity-assigned-members";
 
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 
 interface OpportunitiesViewProps {
-  data: any[];
+  data: Opportunity[];
   crmData: CrmData;
   accountId?: string;
 }
@@ -55,8 +69,16 @@ const OpportunitiesView = ({
   accountId,
 }: OpportunitiesViewProps) => {
   const [open, setOpen] = useState(false);
+  const [selectedAssignedMemberId, setSelectedAssignedMemberId] = useState(
+    ALL_ASSIGNED_MEMBERS_VALUE,
+  );
   const t = useTranslations("CrmPage");
   const { displayCurrency } = useCurrency();
+  const assignedMembers = useMemo(() => getAssignedMemberOptions(data), [data]);
+  const filteredData = useMemo(
+    () => filterOpportunitiesByAssignedMember(data, selectedAssignedMemberId),
+    [data, selectedAssignedMemberId],
+  );
 
   const {
     accounts,
@@ -127,7 +149,30 @@ const OpportunitiesView = ({
               </Link>
             </CardTitle>
           </div>
-          <div className="flex space-x-2">
+          <div className="flex flex-wrap items-end justify-end gap-2">
+            <div className="min-w-44 space-y-1">
+              <Label className="text-xs font-medium text-muted-foreground">
+                Assigned Member
+              </Label>
+              <Select
+                value={selectedAssignedMemberId}
+                onValueChange={setSelectedAssignedMemberId}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="All Members" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={ALL_ASSIGNED_MEMBERS_VALUE}>
+                    All Members
+                  </SelectItem>
+                  {assignedMembers.map((member) => (
+                    <SelectItem key={member.id} value={member.id}>
+                      {member.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
             <ImportOpportunitiesDialog />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
@@ -160,11 +205,11 @@ const OpportunitiesView = ({
         <Separator />
       </CardHeader>
       <CardContent>
-        {!data ||
-          (data.length === 0 ? (
+        {!filteredData ||
+          (filteredData.length === 0 ? (
             t("opportunities.empty")
           ) : (
-            <OpportunitiesDataTable data={data} columns={opportunityColumns} />
+            <OpportunitiesDataTable data={filteredData} columns={opportunityColumns} />
           ))}
       </CardContent>
     </Card>
