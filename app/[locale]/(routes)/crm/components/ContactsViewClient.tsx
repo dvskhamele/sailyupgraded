@@ -10,6 +10,13 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 import { createColumns } from "../contacts/table-components/columns";
 import { ImportContactsDialog } from "../contacts/components/ImportContactsDialog";
@@ -26,7 +33,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { getContactRoleView, matchesContactRoleFilter } from "@/lib/contact-options";
 
-import type { ContactsViewProps } from "./ContactsView";
+import type { ContactListItem, ContactsViewProps } from "./ContactsView";
+
+type AssignedMemberOption = {
+  id: string;
+  name: string;
+};
 
 const ContactsViewClient = ({
   data,
@@ -36,9 +48,10 @@ const ContactsViewClient = ({
   labels: providedLabels,
 }: ContactsViewProps) => {
   const [open, setOpen] = useState(false);
+  const [selectedAssignedMember, setSelectedAssignedMember] = useState("all");
 
   const { accounts, contactTypes, leadSources, leadStatuses, leadTypes, products } = crmData;
-  const saleStages = (crmData as any).saleStages ?? [];
+  const saleStages = crmData.saleStages ?? [];
   const labels = {
     addNew: "Add new",
     sheetDescription: "Add or update contact details",
@@ -50,6 +63,54 @@ const ContactsViewClient = ({
   const filteredData = useMemo(
     () => data.filter((contact) => matchesContactRoleFilter(currentRole, contact.role)),
     [currentRole, data]
+  );
+  const assignedMembers = useMemo<AssignedMemberOption[]>(() => {
+    const membersById = new Map<string, AssignedMemberOption>();
+
+    for (const contact of filteredData) {
+      if (!contact.assigned_to) {
+        continue;
+      }
+
+      membersById.set(contact.assigned_to, {
+        id: contact.assigned_to,
+        name: contact.assigned_to_user?.name?.trim() || contact.assigned_to,
+      });
+    }
+
+    return Array.from(membersById.values()).sort((first, second) =>
+      first.name.localeCompare(second.name)
+    );
+  }, [filteredData]);
+  const finalFilteredContacts = useMemo<ContactListItem[]>(() => {
+    if (selectedAssignedMember === "all") {
+      return filteredData;
+    }
+
+    return filteredData.filter(
+      (contact) => contact.assigned_to === selectedAssignedMember
+    );
+  }, [filteredData, selectedAssignedMember]);
+  const assignedMemberFilter = (
+    <Select
+      value={selectedAssignedMember}
+      onValueChange={setSelectedAssignedMember}
+    >
+      <SelectTrigger
+        className="h-8 w-[180px] lg:w-[220px]"
+        aria-label="Filter by assigned member"
+      >
+        <SelectValue placeholder="Assigned Member" />
+      </SelectTrigger>
+      <SelectContent>
+        <SelectItem value="all">All Members</SelectItem>
+        {assignedMembers.map((member) => (
+          <SelectItem key={member.id} value={member.id}>
+            {member.name}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
   );
 
   return (
@@ -97,13 +158,14 @@ const ContactsViewClient = ({
       </CardHeader>
 
       <CardContent>
-        {!filteredData || filteredData.length === 0 ? (
+        {filteredData.length === 0 ? (
           labels.empty
         ) : (
           <ContactsDataTable
-            data={filteredData}
+            data={finalFilteredContacts}
             columns={createColumns(contactTypes, accounts, leadSources, leadStatuses, leadTypes, products, saleStages)}
             defaultEmailFrom={defaultEmailFrom}
+            assignedMemberFilter={assignedMemberFilter}
           />
         )}
       </CardContent>

@@ -40,12 +40,14 @@ interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
   data: TData[];
   defaultEmailFrom?: string;
+  assignedMemberFilter?: React.ReactNode;
 }
 
 export function ContactsDataTable<TData, TValue>({
   columns,
   data,
   defaultEmailFrom,
+  assignedMemberFilter,
 }: DataTableProps<TData, TValue>) {
   const router = useRouter();
   const [rowSelection, setRowSelection] = React.useState({});
@@ -161,7 +163,10 @@ export function ContactsDataTable<TData, TValue>({
         </div>
       </div>
 
-      <DataTableToolbar table={table} />
+      <DataTableToolbar
+        table={table}
+        assignedMemberFilter={assignedMemberFilter}
+      />
       {selectedCount > 0 && (
         <div className="flex items-center gap-2 py-2 px-1 bg-muted/50 rounded-md border">
           <span className="text-sm text-muted-foreground">

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { Table } from "@tanstack/react-table";
 
@@ -9,10 +10,12 @@ import { DataTableViewOptions } from "./data-table-view-options";
 
 interface DataTableToolbarProps<TData> {
   table: Table<TData>;
+  assignedMemberFilter?: ReactNode;
 }
 
 export function DataTableToolbar<TData>({
   table,
+  assignedMemberFilter,
 }: DataTableToolbarProps<TData>) {
   const isFiltered = table.getState().columnFilters.length > 0;
 
@@ -29,6 +32,7 @@ export function DataTableToolbar<TData>({
           }
           className="h-8 w-[150px] lg:w-[250px]"
         />
+        {assignedMemberFilter}
         {isFiltered && (
           <Button
             variant="ghost"

@@ -14,17 +14,37 @@ type ContactOption = {
   accountProducts?: { product?: { id: string; name: string } | null }[];
 };
 
+export type ContactListItem = {
+  id: string;
+  first_name: string | null;
+  last_name: string;
+  email: string | null;
+  personal_email: string | null;
+  office_phone: string | null;
+  mobile_phone: string | null;
+  website: string | null;
+  position: string | null;
+  status: boolean;
+  type?: string | null;
+  role?: string | null;
+  assigned_to?: string | null;
+  assigned_to_user?: {
+    name?: string | null;
+  } | null;
+};
+
 type CrmData = {
   accounts: ContactOption[];
   contactTypes?: ContactOption[];
   leadSources?: ContactOption[];
   leadStatuses?: ContactOption[];
   leadTypes?: ContactOption[];
+  saleStages?: ContactOption[];
   products?: ContactOption[];
 };
 
 export interface ContactsViewProps {
-  data: any[];
+  data: ContactListItem[];
   crmData: CrmData;
   accountId?: string;
   activeRole?: string;
