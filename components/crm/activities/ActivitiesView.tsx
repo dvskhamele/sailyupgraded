@@ -74,7 +74,7 @@ const STATUS_FILTERS = [
 ] as const;
 
 const AI_STATUS_FILTERS = [
-  { value: "all", label: "All AI statuses" },
+  { value: "all", label: "All AI status" },
   { value: "accepted", label: "Accepted" },
   { value: "reviewed", label: "Reviewed" },
 ] as const;
