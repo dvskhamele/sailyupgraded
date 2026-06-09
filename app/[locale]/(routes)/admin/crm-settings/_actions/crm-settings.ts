@@ -14,9 +14,36 @@ export type CrmConfigType =
   | "opportunityType"
   | "salesStage";
 
-export type ConfigValue = { id: string; name: string; usageCount: number; isProtected?: boolean };
+export type ConfigValue = {
+  id: string;
+  name: string;
+  usageCount: number;
+  position?: number;
+  isProtected?: boolean;
+};
+
+export type ReorderSalesStageInput = {
+  id: string;
+  position: number;
+};
 
 const nameSchema = z.string().trim().min(1, "Name is required").max(100, "Max 100 characters");
+const reorderSalesStagesSchema = z
+  .array(
+    z.object({
+      id: z.string().trim().min(1, "Stage id is required"),
+      position: z.number().int().min(0, "Position must be zero or greater"),
+    })
+  )
+  .min(1, "At least one sales stage is required");
+
+async function requireCrmSettingsAccess() {
+  const { getSession } = await import("@/lib/auth-server");
+  const session = await getSession();
+  if (!session) throw new Error("Unauthorized");
+  if (session.user.role !== "admin") throw new Error("Forbidden");
+  return session;
+}
 
 const configMap = {
   industry:        { model: () => prisma.crm_Industry_Type,               countRelation: "accounts",                              updateMany: null, hasOrder: true },
@@ -42,8 +69,13 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
   if (configType === "salesStage") {
     const { regularStages, firstStage, lostStage } = await getSalesStageCollections();
     const rows = await prisma.crm_Opportunities_Sales_Stages.findMany({
-      include: { _count: { select: { assigned_opportunities_sales_stage: true } } },
-      orderBy: { order: "asc" },
+      select: {
+        id: true,
+        name: true,
+        order: true,
+        _count: { select: { assigned_opportunities_sales_stage: true } }
+      },
+      orderBy: [{ order: "asc" }, { name: "asc" }],
     });
 
     const byId = new Map(rows.map((row: any) => [row.id, row]));
@@ -53,6 +85,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         id: stage.id,
         name: stage.name,
         usageCount: row?._count?.assigned_opportunities_sales_stage ?? 0,
+        position: stage.order ?? 0,
         isProtected: stage.id === firstStage?.id,
       };
     });
@@ -63,6 +96,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         id: lostStage.id,
         name: lostStage.name,
         usageCount: 0,
+        position: lostStage.order ?? 0,
         isProtected: true,
       });
     }
@@ -72,7 +106,12 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
 
   const { model, countRelation, hasOrder } = configMap[configType];
   const rows = await (model() as any).findMany({
-    include: { _count: { select: { [countRelation]: true } } },
+    select: {
+      id: true,
+      name: true,
+      order: hasOrder ? true : false,
+      _count: { select: { [countRelation]: true } }
+    },
     orderBy: hasOrder ? { order: "asc" } : { name: "asc" },
   });
   return rows.map((r: any) => ({
@@ -89,9 +128,13 @@ export async function createConfigValue(configType: CrmConfigType, name: string)
   let orderData = {};
   if (hasOrder) {
     const lastItem = await (model() as any).findFirst({
+      select: { order: true },
       orderBy: { order: "desc" },
     });
-    orderData = { order: lastItem ? (lastItem.order || 0) + 1 : 0 };
+    const nextPosition = lastItem
+          ? (lastItem.order || 0) + 1
+          : 0;
+    orderData = { order: nextPosition };
   }
 
   await (model() as any).create({
@@ -99,7 +142,8 @@ export async function createConfigValue(configType: CrmConfigType, name: string)
       name: parsed,
       v: 0,
       ...orderData,
-    }
+    },
+    select: { id: true }
   });
   revalidatePath("/", "layout");
 }
@@ -111,7 +155,11 @@ export async function updateConfigValue(
 ): Promise<void> {
   const parsed = nameSchema.parse(name);
   const { model } = configMap[configType];
-  await (model() as any).update({ where: { id }, data: { name: parsed } });
+  await (model() as any).update({ 
+    where: { id }, 
+    data: { name: parsed },
+    select: { id: true }
+  });
   revalidatePath("/", "layout");
 }
 
@@ -151,4 +199,44 @@ export async function deleteConfigValue(
   }
 
   revalidatePath("/", "layout");
+}
+
+export async function reorderSalesStages(
+  stages: ReorderSalesStageInput[]
+): Promise<{ success: true }> {
+  await requireCrmSettingsAccess();
+
+  const parsed = reorderSalesStagesSchema.parse(stages);
+  const uniqueIds = new Set(parsed.map((stage) => stage.id));
+
+  if (uniqueIds.size !== parsed.length) {
+    throw new Error("Sales stages must be unique");
+  }
+
+  const protectedStageIds = await prisma.crm_Opportunities_Sales_Stages.findMany({
+    where: { order: -1 },
+    select: { id: true },
+  });
+  const protectedIds = new Set(protectedStageIds.map((stage) => stage.id));
+
+  if (parsed.some((stage) => protectedIds.has(stage.id))) {
+    throw new Error("Protected sales stages cannot be reordered");
+  }
+
+  await prisma.$transaction(
+    parsed.map((stage) =>
+      prisma.crm_Opportunities_Sales_Stages.update({
+        where: {
+          id: stage.id,
+        },
+        data: {
+          order: stage.position,
+        },
+        select: { id: true }
+      })
+    )
+  );
+
+  revalidatePath("/", "layout");
+  return { success: true };
 }

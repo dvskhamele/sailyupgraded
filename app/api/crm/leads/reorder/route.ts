@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prisma";
 import { revalidateTag } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { getSession } from "@/lib/auth-server";
 
 const configTypeSupportsOrder: Record<string, boolean> = {
   salesStage: true,
@@ -16,6 +17,14 @@ const configTypeSupportsOrder: Record<string, boolean> = {
 
 export async function POST(req: Request) {
   try {
+    const session = await getSession();
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    if (session.user.role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { searchParams } = new URL(req.url);
     const body = await req.json();
     
@@ -48,6 +57,7 @@ export async function POST(req: Request) {
           updatePromises.push(prismadb.crm_Opportunities_Sales_Stages.update({
             where: { id: item.id },
             data: { order: index },
+            select: { id: true },
           }));
           return;
         case "leadStatus":

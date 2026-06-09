@@ -15,21 +15,29 @@ type SalesStageRow = {
 
 function sortRegularStages<T extends SalesStageRow>(stages: T[]) {
   return [...stages].sort((a, b) => {
-    // Manual order takes absolute precedence
-    const aOrder = a.order ?? 0;
-    const bOrder = b.order ?? 0;
-    return aOrder - bOrder;
+    return (a.order ?? 0) - (b.order ?? 0) || a.name.localeCompare(b.name);
   });
 }
 
 export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[]) {
   const stages =
     existingStages ?? (await prismadb.crm_Opportunities_Sales_Stages.findMany({
-      orderBy: { order: "asc" }
+      select: {
+        id: true,
+        v: true,
+        name: true,
+        probability: true,
+        order: true
+      },
+      orderBy: [{ order: "asc" }, { name: "asc" }]
     }));
 
-  const lostStageExists = stages.some((stage) => stage.order === LOST_STAGE_ORDER);
-  const hasRegularStages = stages.some((stage) => stage.order !== LOST_STAGE_ORDER);
+  const lostStageExists = stages.some(
+    (stage) => stage.order === LOST_STAGE_ORDER
+  );
+  const hasRegularStages = stages.some(
+    (stage) => stage.order !== LOST_STAGE_ORDER
+  );
   const writes: Promise<unknown>[] = [];
 
   if (!lostStageExists) {
@@ -63,16 +71,27 @@ export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[
 
   await Promise.all(writes);
   return prismadb.crm_Opportunities_Sales_Stages.findMany({
-    orderBy: { order: "asc" }
+    select: {
+      id: true,
+      v: true,
+      name: true,
+      probability: true,
+      order: true
+    },
+    orderBy: [{ order: "asc" }, { name: "asc" }]
   });
 }
 
 async function loadSalesStageCollections() {
   const allStages = await ensureProtectedSalesStages();
   const lostStage =
-    allStages.find((stage) => stage.order === LOST_STAGE_ORDER) ?? null;
+    allStages.find(
+      (stage) => stage.order === LOST_STAGE_ORDER
+    ) ?? null;
   const regularStages = sortRegularStages(
-    allStages.filter((stage) => stage.order !== LOST_STAGE_ORDER)
+    allStages.filter(
+      (stage) => stage.order !== LOST_STAGE_ORDER
+    )
   );
   const firstStage = regularStages[0] ?? null;
 

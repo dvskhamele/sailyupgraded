@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useId } from "react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 import {
@@ -1107,6 +1107,7 @@ const CRMKanban = ({
   crmData,
   defaultEmailFrom,
 }: CRMKanbanProps) => {
+  const id = useId();
   const router = useRouter();
 
   const [selectedStage, setSelectedStage] = useState("");
@@ -1795,7 +1796,7 @@ const CRMKanban = ({
         </div>
       ) : (
         <DndContext
-          id="crm-dashboard-kanban"
+          id={id}
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}

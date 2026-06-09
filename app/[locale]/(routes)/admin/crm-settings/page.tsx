@@ -1,7 +1,18 @@
 import { getConfigValues } from "./_actions/crm-settings";
 import { CrmSettingsTabs } from "./_components/CrmSettingsTabs";
+import { getSession } from "@/lib/auth-server";
 
 export default async function CrmSettingsPage() {
+  const session = await getSession();
+
+  if (session?.user?.role !== "admin") {
+    return (
+      <div className="flex h-full items-center justify-center p-6 text-sm text-muted-foreground">
+        Access not allowed
+      </div>
+    );
+  }
+
   const salesStages = await getConfigValues("salesStage");
 
   const tabs = [

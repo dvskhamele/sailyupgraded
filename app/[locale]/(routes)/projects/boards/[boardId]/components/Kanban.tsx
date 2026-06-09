@@ -2,7 +2,7 @@
 
 import moment from "moment";
 import { useRouter } from "next/navigation";
-import React, { ChangeEvent, useEffect, useRef, useState } from "react";
+import React, { ChangeEvent, useEffect, useRef, useState, useId } from "react";
 import { Check, EyeIcon, Pencil, PlusCircle, PlusIcon } from "lucide-react";
 
 import {
@@ -65,6 +65,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 
+import { useHydrated } from "@/hooks/use-hydrated";
 import NewSectionForm from "../forms/NewSection";
 import UpdateTaskDialog from "../../../dialogs/UpdateTask";
 import { markTaskDone } from "@/actions/projects/mark-task-done";
@@ -257,6 +258,8 @@ const Kanban = (props: any) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isLoadingSection, setIsLoadingSection] = useState(false);
 
+  const isHydrated = useHydrated();
+  const id = useId();
   const router = useRouter();
 
   const sensors = useSensors(
@@ -499,6 +502,8 @@ const Kanban = (props: any) => {
     </div>
   );
 
+  if (!isHydrated) return null;
+
   return (
     <>
       <AlertModal
@@ -559,6 +564,7 @@ const Kanban = (props: any) => {
         </div>
 
         <DndContext
+          id={id}
           sensors={sensors}
           collisionDetection={closestCorners}
           onDragStart={handleDragStart}
