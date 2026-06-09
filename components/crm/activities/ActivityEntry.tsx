@@ -482,7 +482,7 @@ export function ActivityEntry({
                 </div>
               )}
               {activity.aiInsights && (
-                <div className="rounded-lg bg-purple-50/50 border border-purple-100/50 px-3 py-2 sm:col-span-2">
+                <div className="rounded-lg bg-purple-50/50 border border-purple-100/50 px-3 py-2 sm:col-span-2 text-black">
                   <span className="font-medium text-purple-700">AI insights:</span>{" "}
                   {activity.aiInsights}
                 </div>
