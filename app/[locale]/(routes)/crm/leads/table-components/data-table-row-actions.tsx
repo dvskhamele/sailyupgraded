@@ -33,6 +33,7 @@ import {
 } from "@/components/ui/sheet";
 import { stopRowNavigation } from "../../components/table-row-navigation";
 import { localLeadRepository } from "@/lib/offline-first/storage";
+import { deleteLead } from "@/actions/crm/leads/delete-lead";
 
 type ConfigItem = { id: string; name: string };
 type AccountItem = {
@@ -74,10 +75,22 @@ export function DataTableRowActions<TData>({
   const onDelete = async () => {
     setLoading(true);
     try {
+      // 1. Delete from server (MariaDB)
+      const result = await deleteLead(lead.id);
+      
+      if (result?.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      // 2. Delete from local (IndexedDB) to update UI immediately
       await localLeadRepository.delete(lead.id);
+      
       toast.success("Lead has been deleted");
       await onDataChange?.();
+      router.refresh();
     } catch (error) {
+      console.error("[onDelete]", error);
       toast.error("Something went wrong while deleting lead. Please try again.");
     } finally {
       setLoading(false);

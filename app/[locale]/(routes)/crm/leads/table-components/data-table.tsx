@@ -36,6 +36,7 @@ import AlertModal from "@/components/modals/alert-modal";
 import { toast } from "sonner";
 import { localLeadRepository } from "@/lib/offline-first/storage";
 import { convertLeadsToContacts } from "@/actions/crm/leads/convert-leads";
+import { bulkDeleteLeads } from "@/actions/crm/leads/delete-lead";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 
 type ConfigItem = { id: string; name: string };
@@ -130,11 +131,23 @@ export function LeadDataTable<TData, TValue>({
   const onBulkDelete = async () => {
     setBulkDeleteLoading(true);
     try {
+      // 1. Delete from server (MariaDB)
+      const result = await bulkDeleteLeads(selectedLeadIds);
+      
+      if ("error" in result) {
+        toast.error(result.error as string);
+        return;
+      }
+
+      // 2. Delete from local (IndexedDB) to update UI immediately
       await Promise.all(selectedLeadIds.map((id) => localLeadRepository.delete(id)));
+      
       table.toggleAllRowsSelected(false);
       toast.success(`${selectedCount} lead(s) deleted`);
       await onDataChange?.();
-    } catch {
+      router.refresh();
+    } catch (error) {
+      console.error("[onBulkDelete]", error);
       toast.error("Something went wrong while deleting leads. Please try again.");
     } finally {
       setBulkDeleteLoading(false);
