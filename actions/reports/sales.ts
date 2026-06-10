@@ -60,7 +60,11 @@ export async function getRevenue(filters: ReportFilters, displayCurrency: string
 
 export async function getPipelineValue(filters: ReportFilters, displayCurrency: string): Promise<number> {
   const opps = await prismadb.crm_Opportunities.findMany({
-    where: { ...dateRangeWhere(filters), ...assigneeWhere(filters), status: "ACTIVE" },
+    where: { 
+      ...dateRangeWhere(filters), 
+      ...assigneeWhere(filters), 
+      assigned_sales_stage: { is: { countInPipeline: true } } 
+    },
     select: { budget: true, currency: true },
   });
   const rates = await getExchangeRates();

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useId, type ReactNode } from "react";
+import { useMemo, useState, useId, type ReactNode } from "react";
 import {
   closestCenter,
   DndContext,
@@ -103,6 +103,11 @@ function SortableSalesStageRow({
               Revenue
             </Badge>
           )}
+          {stage.countInPipeline && (
+            <Badge variant="secondary" className="bg-blue-50 text-blue-700 border-blue-200">
+              Pipeline
+            </Badge>
+          )}
           {stage.usageCount > 0 && (
             <Badge variant="secondary">{stage.usageCount} in use</Badge>
           )}
@@ -121,11 +126,7 @@ export function SalesStagesSortableList({
   const isHydrated = useHydrated();
   const id = useId();
   const router = useRouter();
-  const [items, setItems] = useState(stages);
-
-  useEffect(() => {
-    setItems(stages);
-  }, [stages]);
+  const [orderedIds, setOrderedIds] = useState<string[] | null>(null);
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
@@ -139,6 +140,20 @@ export function SalesStagesSortableList({
     })
   );
 
+  const items = useMemo(() => {
+    if (!orderedIds) return stages;
+
+    const stagesById = new Map(stages.map((stage) => [stage.id, stage]));
+    const orderedStages = orderedIds
+      .map((stageId) => stagesById.get(stageId))
+      .filter((stage): stage is ConfigValue => Boolean(stage));
+
+    if (orderedStages.length !== stages.length) {
+      return stages;
+    }
+
+    return orderedStages;
+  }, [orderedIds, stages]);
   const itemIds = useMemo(() => items.map((item) => item.id), [items]);
 
   async function handleDragEnd(event: DragEndEvent) {
@@ -153,7 +168,7 @@ export function SalesStagesSortableList({
     const targetStage = items[newIndex];
     if (!isRegularStage(activeStage) || !isRegularStage(targetStage)) return;
 
-    const previousItems = items;
+    const previousOrderedIds = orderedIds;
     const nextItems = arrayMove(items, oldIndex, newIndex);
     const regularIds = nextItems.filter(isRegularStage).map((stage) => stage.id);
     const nextItemsWithPositions = nextItems.map((stage) => {
@@ -165,14 +180,14 @@ export function SalesStagesSortableList({
       position,
     }));
 
-    setItems(nextItemsWithPositions);
+    setOrderedIds(nextItemsWithPositions.map((stage) => stage.id));
 
     try {
       await reorderSalesStages(payload);
       toast.success("Sales stages reordered successfully");
       router.refresh();
     } catch (error) {
-      setItems(previousItems);
+      setOrderedIds(previousOrderedIds);
       toast.error("Failed to save stage order");
       console.error("[REORDER_SALES_STAGES]", error);
     }

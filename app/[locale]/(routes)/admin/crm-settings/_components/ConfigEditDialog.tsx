@@ -14,21 +14,24 @@ interface Props {
   id: string;
   currentName: string;
   currentCountInRevenue?: boolean;
+  currentCountInPipeline?: boolean;
   open: boolean;
   onOpenChange: (v: boolean) => void;
 }
 
-export function ConfigEditDialog({ configType, id, currentName, currentCountInRevenue, open, onOpenChange }: Props) {
+export function ConfigEditDialog({ configType, id, currentName, currentCountInRevenue, currentCountInPipeline, open, onOpenChange }: Props) {
   const [name, setName] = useState(currentName);
   const [countInRevenue, setCountInRevenue] = useState(currentCountInRevenue ?? false);
+  const [countInPipeline, setCountInPipeline] = useState(currentCountInPipeline ?? true);
   const [loading, setLoading] = useState(false);
   const { clearDraft } = useAutoSaveForm({
     key: `crm-config-${configType}-${id}-edit-draft`,
-    data: { name, countInRevenue },
+    data: { name, countInRevenue, countInPipeline },
     setData: (value) => {
-      const next = typeof value === "function" ? value({ name, countInRevenue }) : value;
+      const next = typeof value === "function" ? value({ name, countInRevenue, countInPipeline }) : value;
       setName(next.name ?? currentName);
       setCountInRevenue(next.countInRevenue ?? (currentCountInRevenue ?? false));
+      setCountInPipeline(next.countInPipeline ?? (currentCountInPipeline ?? true));
     },
     enabled: open,
   });
@@ -37,7 +40,7 @@ export function ConfigEditDialog({ configType, id, currentName, currentCountInRe
     e.preventDefault();
     setLoading(true);
     try {
-      await updateConfigValue(configType, id, name, countInRevenue);
+      await updateConfigValue(configType, id, name, countInRevenue, countInPipeline);
       clearDraft();
       toast.success("Updated");
       onOpenChange(false);
@@ -58,22 +61,42 @@ export function ConfigEditDialog({ configType, id, currentName, currentCountInRe
             <Input id="edit-name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required />
           </div>
           {configType === "salesStage" && (
-            <div className="flex items-center space-x-2 rounded-md border p-3">
-              <Checkbox 
-                id="edit-revenue" 
-                checked={countInRevenue} 
-                onCheckedChange={(val) => setCountInRevenue(!!val)} 
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="edit-revenue"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Include in Revenue
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  Include this stage in revenue reports and dashboards.
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 rounded-md border p-3">
+                <Checkbox 
+                  id="edit-revenue" 
+                  checked={countInRevenue} 
+                  onCheckedChange={(val) => setCountInRevenue(!!val)} 
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="edit-revenue"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Include in Revenue
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Include this stage in revenue reports and dashboards.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 rounded-md border p-3">
+                <Checkbox 
+                  id="edit-pipeline" 
+                  checked={countInPipeline} 
+                  onCheckedChange={(val) => setCountInPipeline(!!val)} 
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="edit-pipeline"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Include in Pipeline
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Include this stage in pipeline value calculations.
+                  </p>
+                </div>
               </div>
             </div>
           )}

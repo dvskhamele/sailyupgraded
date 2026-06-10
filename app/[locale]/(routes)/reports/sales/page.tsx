@@ -64,6 +64,12 @@ export default async function SalesReportPage({ searchParams }: Props) {
     orderBy: { order: "asc" },
   });
 
+  const pipelineStages = await prismadb.crm_Opportunities_Sales_Stages.findMany({
+    where: { countInPipeline: true },
+    select: { name: true },
+    orderBy: { order: "asc" },
+  });
+
   return (
     <ReportPageLayout
       title={t("sales.title")}
@@ -84,17 +90,29 @@ export default async function SalesReportPage({ searchParams }: Props) {
           Revenue Calculation Basis
         </div>
         <p className="text-xs text-emerald-700/80">
-          Revenue is calculated from stages marked as <strong>"Include in Revenue"</strong> in Sales Stage settings.
+          Revenue is calculated from stages marked as <strong>&quot;Include in Revenue&quot;</strong>. 
+          Pipeline value is calculated from stages marked as <strong>&quot;Include in Pipeline&quot;</strong>.
         </p>
-        <div className="mt-1 flex flex-wrap gap-2">
+        <div className="flex flex-wrap gap-2">
           {revenueStages.length > 0 ? (
             revenueStages.map((s) => (
-              <div key={s.name} className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-emerald-600 border border-emerald-100 shadow-sm">
+              <div key={s.name} className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-emerald-600 border border-emerald-100 shadow-sm" title="Revenue Stage">
                 {s.name}
               </div>
             ))
           ) : (
             <span className="text-xs text-muted-foreground italic">No stages currently marked for revenue.</span>
+          )}
+        </div>
+        <div className="mt-2 flex flex-wrap gap-2 border-t pt-2 border-emerald-100/50">
+          {pipelineStages.length > 0 ? (
+            pipelineStages.map((s) => (
+              <div key={s.name} className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-blue-600 border border-blue-100 shadow-sm" title="Pipeline Stage">
+                {s.name}
+              </div>
+            ))
+          ) : (
+            <span className="text-xs text-muted-foreground italic">No stages currently marked for pipeline.</span>
           )}
         </div>
       </div>

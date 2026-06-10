@@ -19,14 +19,16 @@ export function ConfigAddDialog({ configType, label }: Props) {
   const [open, setOpen] = useState(false);
   const [name, setName] = useState("");
   const [countInRevenue, setCountInRevenue] = useState(false);
+  const [countInPipeline, setCountInPipeline] = useState(true);
   const [loading, setLoading] = useState(false);
   const { clearDraft } = useAutoSaveForm({
     key: `crm-config-${configType}-add-draft`,
-    data: { name, countInRevenue },
+    data: { name, countInRevenue, countInPipeline },
     setData: (value) => {
-      const next = typeof value === "function" ? value({ name, countInRevenue }) : value;
+      const next = typeof value === "function" ? value({ name, countInRevenue, countInPipeline }) : value;
       setName(next.name ?? "");
       setCountInRevenue(next.countInRevenue ?? false);
+      setCountInPipeline(next.countInPipeline ?? true);
     },
     enabled: open,
   });
@@ -35,11 +37,12 @@ export function ConfigAddDialog({ configType, label }: Props) {
     e.preventDefault();
     setLoading(true);
     try {
-      await createConfigValue(configType, name, countInRevenue);
+      await createConfigValue(configType, name, countInRevenue, countInPipeline);
       clearDraft();
       toast.success(`${label} added`);
       setName("");
       setCountInRevenue(false);
+      setCountInPipeline(true);
       setOpen(false);
     } catch (err: any) {
       toast.error(err.message ?? "Failed to add");
@@ -65,22 +68,42 @@ export function ConfigAddDialog({ configType, label }: Props) {
             <Input id="name" value={name} onChange={(e) => setName(e.target.value)} maxLength={100} required />
           </div>
           {configType === "salesStage" && (
-            <div className="flex items-center space-x-2 rounded-md border p-3">
-              <Checkbox 
-                id="revenue" 
-                checked={countInRevenue} 
-                onCheckedChange={(val) => setCountInRevenue(!!val)} 
-              />
-              <div className="grid gap-1.5 leading-none">
-                <label
-                  htmlFor="revenue"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Include in Revenue
-                </label>
-                <p className="text-xs text-muted-foreground">
-                  Include this stage in revenue reports and dashboards.
-                </p>
+            <div className="space-y-3">
+              <div className="flex items-center space-x-2 rounded-md border p-3">
+                <Checkbox 
+                  id="revenue" 
+                  checked={countInRevenue} 
+                  onCheckedChange={(val) => setCountInRevenue(!!val)} 
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="revenue"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Include in Revenue
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Include this stage in revenue reports and dashboards.
+                  </p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-2 rounded-md border p-3">
+                <Checkbox 
+                  id="pipeline" 
+                  checked={countInPipeline} 
+                  onCheckedChange={(val) => setCountInPipeline(!!val)} 
+                />
+                <div className="grid gap-1.5 leading-none">
+                  <label
+                    htmlFor="pipeline"
+                    className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  >
+                    Include in Pipeline
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Include this stage in pipeline value calculations.
+                  </p>
+                </div>
               </div>
             </div>
           )}

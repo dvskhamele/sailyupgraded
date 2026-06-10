@@ -11,6 +11,8 @@ type SalesStageRow = {
   name: string;
   probability: number | null;
   order: number | null;
+  countInRevenue: boolean;
+  countInPipeline: boolean;
 };
 
 function sortRegularStages<T extends SalesStageRow>(stages: T[]) {
@@ -27,7 +29,9 @@ export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[
         v: true,
         name: true,
         probability: true,
-        order: true
+        order: true,
+        countInRevenue: true,
+        countInPipeline: true
       },
       orderBy: [{ order: "asc" }, { name: "asc" }]
     }));
@@ -47,6 +51,7 @@ export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[
           v: 0,
           name: DEFAULT_LOST_STAGE_NAME,
           order: LOST_STAGE_ORDER,
+          countInPipeline: false,
         },
       })
     );
@@ -76,7 +81,9 @@ export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[
       v: true,
       name: true,
       probability: true,
-      order: true
+      order: true,
+      countInRevenue: true,
+      countInPipeline: true
     },
     orderBy: [{ order: "asc" }, { name: "asc" }]
   });

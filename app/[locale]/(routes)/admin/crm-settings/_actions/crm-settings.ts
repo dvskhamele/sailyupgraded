@@ -21,6 +21,7 @@ export type ConfigValue = {
   position?: number;
   isProtected?: boolean;
   countInRevenue?: boolean;
+  countInPipeline?: boolean;
 };
 
 export type ReorderSalesStageInput = {
@@ -75,6 +76,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         name: true,
         order: true,
         countInRevenue: true,
+        countInPipeline: true,
         _count: { select: { assigned_opportunities_sales_stage: true } }
       },
       orderBy: [{ order: "asc" }, { name: "asc" }],
@@ -90,6 +92,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         position: stage.order ?? 0,
         isProtected: stage.id === firstStage?.id,
         countInRevenue: row?.countInRevenue ?? false,
+        countInPipeline: row?.countInPipeline ?? true,
       };
     });
 
@@ -102,6 +105,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         position: lostStage.order ?? 0,
         isProtected: true,
         countInRevenue: row?.countInRevenue ?? false,
+        countInPipeline: row?.countInPipeline ?? true,
       });
     }
 
@@ -128,7 +132,8 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
 export async function createConfigValue(
   configType: CrmConfigType, 
   name: string,
-  countInRevenue?: boolean
+  countInRevenue?: boolean,
+  countInPipeline?: boolean
 ): Promise<void> {
   const parsed = nameSchema.parse(name);
   const { model, hasOrder } = configMap[configType];
@@ -146,8 +151,9 @@ export async function createConfigValue(
   }
 
   const extraData: Record<string, any> = {};
-  if (configType === "salesStage" && countInRevenue !== undefined) {
-    extraData.countInRevenue = countInRevenue;
+  if (configType === "salesStage") {
+    if (countInRevenue !== undefined) extraData.countInRevenue = countInRevenue;
+    if (countInPipeline !== undefined) extraData.countInPipeline = countInPipeline;
   }
 
   await (model() as any).create({
@@ -166,14 +172,16 @@ export async function updateConfigValue(
   configType: CrmConfigType,
   id: string,
   name: string,
-  countInRevenue?: boolean
+  countInRevenue?: boolean,
+  countInPipeline?: boolean
 ): Promise<void> {
   const parsed = nameSchema.parse(name);
   const { model } = configMap[configType];
   
   const data: Record<string, any> = { name: parsed };
-  if (configType === "salesStage" && countInRevenue !== undefined) {
-    data.countInRevenue = countInRevenue;
+  if (configType === "salesStage") {
+    if (countInRevenue !== undefined) data.countInRevenue = countInRevenue;
+    if (countInPipeline !== undefined) data.countInPipeline = countInPipeline;
   }
 
   await (model() as any).update({ 
@@ -193,7 +201,7 @@ export async function deleteConfigValue(
     throw new Error("replacementId must differ from id");
   }
 
-  const { model, updateMany } = configMap[configType];
+  const { model, updateMany, countRelation } = configMap[configType];
 
   if (configType === "salesStage") {
     const { firstStage, lostStage } = await getSalesStageCollections();
@@ -216,8 +224,34 @@ export async function deleteConfigValue(
       (model() as any).delete({ where: { id } }),
     ]);
   } else {
+    const item = await (model() as any).findUnique({
+      where: { id },
+      include: { _count: { select: { [countRelation]: true } } },
+    });
+
+    if (item?._count?.[countRelation] > 0) {
+      throw new Error(`Cannot delete because it is in use by ${item._count[countRelation]} items`);
+    }
     await (model() as any).delete({ where: { id } });
   }
+
+  revalidatePath("/", "layout");
+}
+
+export async function updateSalesStagesForPipeline() {
+  await requireCrmSettingsAccess();
+  const lostStageKeywords = ["lost", "cancelled", "rejected"];
+  
+  await prisma.crm_Opportunities_Sales_Stages.updateMany({
+    where: {
+      OR: lostStageKeywords.map(keyword => ({
+        name: { contains: keyword }
+      }))
+    },
+    data: {
+      countInPipeline: false
+    }
+  });
 
   revalidatePath("/", "layout");
 }

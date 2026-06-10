@@ -63,11 +63,19 @@ export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: 
     }),
     // pipelineValue
     prismadb.crm_Opportunities.findMany({
-      where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null, status: "ACTIVE" },
+      where: { 
+        created_on: { gte: filters.dateFrom, lte: filters.dateTo }, 
+        deletedAt: null, 
+        assigned_sales_stage: { is: { countInPipeline: true } } 
+      },
       select: { budget: true, currency: true },
     }),
     prismadb.crm_Opportunities.findMany({
-      where: { created_on: { gte: prev.dateFrom, lte: prev.dateTo }, deletedAt: null, status: "ACTIVE" },
+      where: { 
+        created_on: { gte: prev.dateFrom, lte: prev.dateTo }, 
+        deletedAt: null, 
+        assigned_sales_stage: { is: { countInPipeline: true } } 
+      },
       select: { budget: true, currency: true },
     }),
     // newLeads
