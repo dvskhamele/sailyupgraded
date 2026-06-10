@@ -20,6 +20,7 @@ export type ConfigValue = {
   usageCount: number;
   position?: number;
   isProtected?: boolean;
+  countInRevenue?: boolean;
 };
 
 export type ReorderSalesStageInput = {
@@ -73,6 +74,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         id: true,
         name: true,
         order: true,
+        countInRevenue: true,
         _count: { select: { assigned_opportunities_sales_stage: true } }
       },
       orderBy: [{ order: "asc" }, { name: "asc" }],
@@ -87,6 +89,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         usageCount: row?._count?.assigned_opportunities_sales_stage ?? 0,
         position: stage.order ?? 0,
         isProtected: stage.id === firstStage?.id,
+        countInRevenue: row?.countInRevenue ?? false,
       };
     });
 
@@ -98,6 +101,7 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         usageCount: 0,
         position: lostStage.order ?? 0,
         isProtected: true,
+        countInRevenue: row?.countInRevenue ?? false,
       });
     }
 
@@ -121,7 +125,11 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
   }));
 }
 
-export async function createConfigValue(configType: CrmConfigType, name: string): Promise<void> {
+export async function createConfigValue(
+  configType: CrmConfigType, 
+  name: string,
+  countInRevenue?: boolean
+): Promise<void> {
   const parsed = nameSchema.parse(name);
   const { model, hasOrder } = configMap[configType];
 
@@ -137,11 +145,17 @@ export async function createConfigValue(configType: CrmConfigType, name: string)
     orderData = { order: nextPosition };
   }
 
+  const extraData: Record<string, any> = {};
+  if (configType === "salesStage" && countInRevenue !== undefined) {
+    extraData.countInRevenue = countInRevenue;
+  }
+
   await (model() as any).create({
     data: {
       name: parsed,
       v: 0,
       ...orderData,
+      ...extraData,
     },
     select: { id: true }
   });
@@ -151,13 +165,20 @@ export async function createConfigValue(configType: CrmConfigType, name: string)
 export async function updateConfigValue(
   configType: CrmConfigType,
   id: string,
-  name: string
+  name: string,
+  countInRevenue?: boolean
 ): Promise<void> {
   const parsed = nameSchema.parse(name);
   const { model } = configMap[configType];
+  
+  const data: Record<string, any> = { name: parsed };
+  if (configType === "salesStage" && countInRevenue !== undefined) {
+    data.countInRevenue = countInRevenue;
+  }
+
   await (model() as any).update({ 
     where: { id }, 
-    data: { name: parsed },
+    data,
     select: { id: true }
   });
   revalidatePath("/", "layout");

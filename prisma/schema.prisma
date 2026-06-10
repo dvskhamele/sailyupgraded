@@ -434,6 +434,7 @@ model crm_Opportunities_Sales_Stages {
   name                               String
   probability                        Int?
   order                              Int?
+  countInRevenue                     Boolean             @default(false)
   assigned_opportunities_sales_stage crm_Opportunities[] @relation("assinged_sales_stage")
 }
 

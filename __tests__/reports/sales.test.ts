@@ -13,7 +13,6 @@ jest.mock("@/lib/prisma", () => ({
 
 import { prismadb } from "@/lib/prisma";
 import {
-  BOUND_REVENUE_STAGE_NAME,
   getRevenue,
   getPipelineValue,
   getOppsByStage,
@@ -45,7 +44,7 @@ const boundRevenueWhere = {
   ...baseDateWhere,
   assigned_sales_stage: {
     is: {
-      name: BOUND_REVENUE_STAGE_NAME,
+      countInRevenue: true,
     },
   },
 };

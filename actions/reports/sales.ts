@@ -4,8 +4,6 @@ import { groupedToChartData } from "./types";
 import { getExchangeRates, convertAmount } from "@/lib/currency";
 import { Decimal } from "@prisma/client/runtime/client";
 
-const BOUND_REVENUE_STAGE_NAME = "Policy Issued & Paid (Bound)";
-
 function dateRangeWhere(filters: ReportFilters) {
   return {
     created_on: { gte: filters.dateFrom, lte: filters.dateTo },
@@ -23,7 +21,7 @@ function boundRevenueWhere(filters: ReportFilters) {
     ...assigneeWhere(filters),
     assigned_sales_stage: {
       is: {
-        name: BOUND_REVENUE_STAGE_NAME,
+        countInRevenue: true,
       },
     },
   };
@@ -205,5 +203,3 @@ export async function getSalesAssignedMemberOptions(filters: ReportFilters) {
     .map(([value, label]) => ({ value, label }))
     .sort((first, second) => first.label.localeCompare(second.label));
 }
-
-export { BOUND_REVENUE_STAGE_NAME };

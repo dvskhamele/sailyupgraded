@@ -76,6 +76,7 @@ export function ConfigList({ configType, label, values }: ConfigListProps) {
           configType={configType}
           id={editItem.id}
           currentName={editItem.name}
+          currentCountInRevenue={editItem.countInRevenue}
           open={!!editItem}
           onOpenChange={(open) => !open && setEditItem(null)}
         />

@@ -1,5 +1,6 @@
 import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
+import { prismadb } from "@/lib/prisma";
 import { getDefaultCurrency, formatCurrency as formatCurrencyUtil } from "@/lib/currency";
 import { Decimal } from "@prisma/client/runtime/client";
 import { Card, CardContent } from "@/components/ui/card";
@@ -57,6 +58,12 @@ export default async function SalesReportPage({ searchParams }: Props) {
       getSalesAssignedMemberOptions(filters),
     ]);
 
+  const revenueStages = await prismadb.crm_Opportunities_Sales_Stages.findMany({
+    where: { countInRevenue: true },
+    select: { name: true },
+    orderBy: { order: "asc" },
+  });
+
   return (
     <ReportPageLayout
       title={t("sales.title")}
@@ -71,6 +78,27 @@ export default async function SalesReportPage({ searchParams }: Props) {
         },
       ]}
     >
+      <div className="mb-6 flex flex-col gap-2 rounded-lg border bg-emerald-50/50 p-4">
+        <div className="flex items-center gap-2 text-sm font-semibold text-emerald-800">
+          <div className="h-2 w-2 rounded-full bg-emerald-500" />
+          Revenue Calculation Basis
+        </div>
+        <p className="text-xs text-emerald-700/80">
+          Revenue is calculated from stages marked as <strong>"Include in Revenue"</strong> in Sales Stage settings.
+        </p>
+        <div className="mt-1 flex flex-wrap gap-2">
+          {revenueStages.length > 0 ? (
+            revenueStages.map((s) => (
+              <div key={s.name} className="flex items-center gap-1.5 rounded-full bg-white px-2.5 py-1 text-[10px] font-medium text-emerald-600 border border-emerald-100 shadow-sm">
+                {s.name}
+              </div>
+            ))
+          ) : (
+            <span className="text-xs text-muted-foreground italic">No stages currently marked for revenue.</span>
+          )}
+        </div>
+      </div>
+
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Card><CardContent className="p-4">
           <p className="text-sm text-muted-foreground">{t("sales.revenue")}</p>
@@ -106,7 +134,7 @@ export default async function SalesReportPage({ searchParams }: Props) {
           <div className="mb-3 flex items-center justify-between gap-3">
             <p className="text-sm font-medium">{t("sales.revenueByAssignedMember")}</p>
             <p className="text-xs text-muted-foreground">
-              {t("sales.boundRevenueOnly")}
+              Calculated from revenue-marked stages only
             </p>
           </div>
           <div className="overflow-x-auto rounded-md border">

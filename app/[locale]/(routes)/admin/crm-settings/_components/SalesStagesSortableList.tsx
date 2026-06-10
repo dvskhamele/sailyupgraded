@@ -24,6 +24,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useHydrated } from "@/hooks/use-hydrated";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import {
   reorderSalesStages,
@@ -97,6 +98,11 @@ function SortableSalesStageRow({
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           <span className="truncate text-sm font-medium">{stage.name}</span>
           {stage.isProtected && <Badge variant="outline">System</Badge>}
+          {stage.countInRevenue && (
+            <Badge variant="secondary" className="bg-emerald-50 text-emerald-700 border-emerald-200">
+              Revenue
+            </Badge>
+          )}
           {stage.usageCount > 0 && (
             <Badge variant="secondary">{stage.usageCount} in use</Badge>
           )}

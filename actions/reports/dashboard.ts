@@ -46,11 +46,19 @@ export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: 
   ] = await prismadb.$transaction([
     // totalRevenue
     prismadb.crm_Opportunities.findMany({
-      where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null, status: "CLOSED" },
+      where: { 
+        created_on: { gte: filters.dateFrom, lte: filters.dateTo }, 
+        deletedAt: null, 
+        assigned_sales_stage: { is: { countInRevenue: true } } 
+      },
       select: { budget: true, currency: true },
     }),
     prismadb.crm_Opportunities.findMany({
-      where: { created_on: { gte: prev.dateFrom, lte: prev.dateTo }, deletedAt: null, status: "CLOSED" },
+      where: { 
+        created_on: { gte: prev.dateFrom, lte: prev.dateTo }, 
+        deletedAt: null, 
+        assigned_sales_stage: { is: { countInRevenue: true } } 
+      },
       select: { budget: true, currency: true },
     }),
     // pipelineValue
