@@ -16,6 +16,7 @@ type RightSheetProps = {
   title: string;
   description: string;
   children: React.ReactNode;
+  headerActions?: React.ReactNode;
 };
 
 const FormSheetNoTrigger = ({
@@ -25,6 +26,7 @@ const FormSheetNoTrigger = ({
   title,
   description,
   children,
+  headerActions,
 }: RightSheetProps) => {
   return (
     <Sheet open={open} onOpenChange={setOpen}>
@@ -35,7 +37,12 @@ const FormSheetNoTrigger = ({
         onKeyDown={(event) => event.stopPropagation()}
       >
         <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle>{title}</SheetTitle>
+            <div className="flex items-center gap-1 mr-8">
+              {headerActions}
+            </div>
+          </div>
           <SheetDescription>{description}</SheetDescription>
         </SheetHeader>
         <div className="mt-6 space-y-4">

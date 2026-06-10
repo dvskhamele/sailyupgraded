@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/sheet";
 import { deleteContact } from "@/actions/crm/contacts/delete-contact";
 import { stopRowNavigation } from "../../components/table-row-navigation";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 type ConfigItem = { id: string; name: string };
 type AccountItem = {
@@ -98,7 +99,16 @@ export function DataTableRowActions<TData>({
           onKeyDown={stopRowNavigation}
         >
           <SheetHeader>
-            <SheetTitle>Update Contact - {contact?.first_name} {contact?.last_name}</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Update Contact - {contact?.first_name} {contact?.last_name}</SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="contact"
+                  entityId={contact.id}
+                  detailRoute={`/crm/contacts/${contact.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update contact details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

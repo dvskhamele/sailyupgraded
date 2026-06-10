@@ -17,6 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { UpdateAccountForm } from "../../components/UpdateAccountForm";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 interface AccountDetailActionsProps {
   account: any;
@@ -30,7 +31,16 @@ export function AccountDetailActions({ account }: AccountDetailActionsProps) {
       <Sheet open={updateOpen} onOpenChange={setUpdateOpen}>
         <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Update Company - {account?.name}</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Update Company - {account?.name}</SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="account"
+                  entityId={account.id}
+                  detailRoute={`/crm/accounts/${account.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update Company details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

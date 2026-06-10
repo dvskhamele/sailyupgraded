@@ -45,6 +45,7 @@ import { createContact } from "@/actions/crm/contacts/create-contact";
 import useDebounce from "@/hooks/useDebounce";
 import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 import { cn } from "@/lib/utils";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 type ActivityType = "call" | "meeting" | "note" | "email";
 type ActivityStatus = "scheduled" | "completed" | "cancelled";
@@ -605,9 +606,20 @@ export function ActivityForm({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="sm:max-w-[480px] overflow-y-auto">
+      <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>{isEdit ? "Edit Activity" : "Log Activity"}</SheetTitle>
+          <div className="flex items-center justify-between">
+            <SheetTitle>{isEdit ? `Update ${isRetailAI ? "Retail AI " : ""}activity` : `Log ${isRetailAI ? "Retail AI " : ""}activity`}</SheetTitle>
+            <div className="flex items-center gap-1 mr-8">
+              {isEdit && activity?.id && (
+                <ViewDetailsButton
+                  entityType={isRetailAI ? "retail-ai-activity" : "activity"}
+                  entityId={activity.id}
+                  detailRoute={isRetailAI ? `/crm/retail-ai-activities/${activity.id}` : `/crm/activities/${activity.id}`}
+                />
+              )}
+            </div>
+          </div>
         </SheetHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-4">
           <div className="space-y-1">

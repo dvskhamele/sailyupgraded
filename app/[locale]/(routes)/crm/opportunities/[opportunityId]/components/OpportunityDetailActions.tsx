@@ -17,6 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { UpdateOpportunityForm } from "../../components/UpdateOpportunityForm";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 type ConfigItem = { id: string; name: string };
 
@@ -51,7 +52,16 @@ export function OpportunityDetailActions({
       <Sheet open={updateOpen} onOpenChange={setUpdateOpen}>
         <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Update Opportunity - {opportunity?.name}</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Update Opportunity - {opportunity?.name}</SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="opportunity"
+                  entityId={opportunity.id}
+                  detailRoute={`/crm/opportunities/${opportunity.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update opportunity details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

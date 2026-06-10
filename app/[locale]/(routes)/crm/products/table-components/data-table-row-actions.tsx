@@ -21,6 +21,15 @@ import { toast } from "sonner";
 
 import { deleteProduct } from "@/actions/crm/products/delete-product";
 import { stopRowNavigation } from "../../components/table-row-navigation";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
+import UpdateProductForm from "../_forms/update-product";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -34,6 +43,7 @@ export function DataTableRowActions<TData>({
 
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [updateOpen, setUpdateOpen] = useState(false);
 
   const onDelete = async () => {
     setLoading(true);
@@ -60,6 +70,40 @@ export function DataTableRowActions<TData>({
         loading={loading}
       />
 
+      <Sheet open={updateOpen} onOpenChange={setUpdateOpen}>
+        <SheetContent
+          className="w-full md:max-w-[771px] overflow-y-auto"
+          onClick={stopRowNavigation}
+          onKeyDown={stopRowNavigation}
+        >
+          <SheetHeader>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Update Product - {product.name}</SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="product"
+                  entityId={product.id}
+                  detailRoute={`/crm/products/${product.id}`}
+                />
+              </div>
+            </div>
+            <SheetDescription>Update product details</SheetDescription>
+          </SheetHeader>
+          <div className="mt-6 space-y-4">
+            {/* 
+              Note: UpdateProductForm usually expects categories and currencies. 
+              In this context we might need to pass them if available or the form needs to handle it.
+            */}
+            <UpdateProductForm
+              product={product as any}
+              categories={[]} // This might need actual data if available in props
+              onOpen={updateOpen}
+              setOpen={setUpdateOpen}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
       <div data-row-action onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
@@ -76,10 +120,10 @@ export function DataTableRowActions<TData>({
           <DropdownMenuItem
             onClick={(event) => {
               event.stopPropagation();
-              router.push(`/crm/products/${product.id}`);
+              setUpdateOpen(true);
             }}
           >
-           View
+            Update
           </DropdownMenuItem>
           <DropdownMenuItem
             onClick={(event) => {
@@ -87,7 +131,7 @@ export function DataTableRowActions<TData>({
               router.push(`/crm/products/${product.id}`);
             }}
           >
-            Edit
+            View Details
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem onClick={(event) => {

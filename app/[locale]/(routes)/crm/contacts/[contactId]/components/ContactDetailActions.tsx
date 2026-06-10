@@ -17,6 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { UpdateContactForm } from "../../components/UpdateContactForm";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 type ConfigItem = { id: string; name: string };
 
@@ -48,9 +49,18 @@ export function ContactDetailActions({
       <Sheet open={updateOpen} onOpenChange={setUpdateOpen}>
         <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>
-              Update Contact - {contact?.first_name} {contact?.last_name}
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>
+                Update Contact - {contact?.first_name} {contact?.last_name}
+              </SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="contact"
+                  entityId={contact.id}
+                  detailRoute={`/crm/contacts/${contact.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update contact details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

@@ -27,10 +27,12 @@ const UpdateContractForm = ({
   onOpen,
   setOpen,
   data,
+  viewDetailsButton,
 }: {
   onOpen: boolean;
   setOpen: (open: boolean) => void;
   data: any;
+  viewDetailsButton?: React.ReactNode;
 }) => {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
@@ -121,6 +123,7 @@ const UpdateContractForm = ({
       description="Update contract details, dates, status, and assignments"
       open={onOpen}
       setOpen={setOpen}
+      headerActions={viewDetailsButton}
     >
       {isLoadingData ? (
         <div className="flex items-center justify-center py-8">

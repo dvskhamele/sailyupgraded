@@ -34,6 +34,7 @@ import {
 import { stopRowNavigation } from "../../components/table-row-navigation";
 import { localLeadRepository } from "@/lib/offline-first/storage";
 import { deleteLead } from "@/actions/crm/leads/delete-lead";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 type ConfigItem = { id: string; name: string };
 type AccountItem = {
@@ -113,7 +114,16 @@ export function DataTableRowActions<TData>({
           onKeyDown={stopRowNavigation}
         >
           <SheetHeader>
-            <SheetTitle>Update lead - {lead?.firstName} {lead?.lastName}</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Update lead - {lead?.firstName} {lead?.lastName}</SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="lead"
+                  entityId={lead.id}
+                  detailRoute={`/crm/leads/${lead.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update lead details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

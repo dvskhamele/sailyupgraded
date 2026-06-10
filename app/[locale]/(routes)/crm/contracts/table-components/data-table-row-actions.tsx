@@ -22,6 +22,7 @@ import { toast } from "sonner";
 import { deleteContract } from "@/actions/crm/contracts/delete-contract";
 import UpdateContractForm from "../_forms/update-contract";
 import { stopRowNavigation } from "../../components/table-row-navigation";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -64,6 +65,13 @@ export function DataTableRowActions<TData>({
         onOpen={updateOpen}
         setOpen={setUpdateOpen}
         data={contract}
+        viewDetailsButton={
+          <ViewDetailsButton
+            entityType="contract"
+            entityId={contract.id}
+            detailRoute={`/crm/contracts/${contract.id}`}
+          />
+        }
       />
 
       <div data-row-action onClick={stopRowNavigation} onKeyDown={stopRowNavigation}>

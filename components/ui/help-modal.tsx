@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import { Eye } from "lucide-react";
+import { Info } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -31,7 +31,7 @@ export function HelpModal({ module }: HelpModalProps) {
           className="h-8 w-8 text-muted-foreground hover:text-primary transition-colors"
           title="Module Help"
         >
-          <Eye className="h-4 w-4" />
+          <Info className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[500px]">

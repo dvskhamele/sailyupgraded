@@ -30,6 +30,7 @@ import { deleteOpportunity } from "@/actions/crm/opportunities/delete-opportunit
 
 import type { OpportunityConfig } from "./columns";
 import { stopRowNavigation } from "../../components/table-row-navigation";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -81,7 +82,16 @@ export function DataTableRowActions<TData>({
           onKeyDown={stopRowNavigation}
         >
           <SheetHeader>
-            <SheetTitle>Update Opportunity - {opportunity?.name}</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Update Opportunity - {opportunity?.name}</SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="opportunity"
+                  entityId={opportunity.id}
+                  detailRoute={`/crm/opportunities/${opportunity.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update opportunity details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

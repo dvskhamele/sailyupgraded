@@ -17,6 +17,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { UpdateLeadForm } from "../../components/UpdateLeadForm";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 type ConfigItem = { id: string; name: string };
 type AccountItem = {
@@ -52,9 +53,18 @@ export function LeadDetailActions({
       <Sheet open={updateOpen} onOpenChange={setUpdateOpen}>
         <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>
-              Update lead - {lead?.firstName} {lead?.lastName}
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>
+                Update lead - {lead?.firstName} {lead?.lastName}
+              </SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="lead"
+                  entityId={lead.id}
+                  detailRoute={`/crm/leads/${lead.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update lead details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

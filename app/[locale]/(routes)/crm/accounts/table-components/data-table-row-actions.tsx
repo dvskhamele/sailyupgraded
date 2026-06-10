@@ -31,6 +31,7 @@ import { deleteAccount } from "@/actions/crm/accounts/delete-account";
 import { watchAccount } from "@/actions/crm/accounts/watch-account";
 import { unwatchAccount } from "@/actions/crm/accounts/unwatch-account";
 import { stopRowNavigation } from "../../components/table-row-navigation";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>;
@@ -114,7 +115,16 @@ export function DataTableRowActions<TData>({
           onKeyDown={stopRowNavigation}
         >
           <SheetHeader>
-            <SheetTitle>Update Account - {account?.name}</SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>Update Account - {account?.name}</SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                <ViewDetailsButton
+                  entityType="account"
+                  entityId={account.id}
+                  detailRoute={`/crm/accounts/${account.id}`}
+                />
+              </div>
+            </div>
             <SheetDescription>Update account details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">

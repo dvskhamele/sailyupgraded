@@ -103,6 +103,7 @@ import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { formatCurrencyDisplay } from "@/lib/currency-input";
 import { stopRowNavigation } from "../../components/table-row-navigation";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
+import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -1730,10 +1731,21 @@ const CRMKanban = ({
           onKeyDown={stopRowNavigation}
         >
           <SheetHeader>
-            <SheetTitle>
-              Update Opportunity
-              {editingOpportunity?.name ? ` - ${editingOpportunity.name}` : ""}
-            </SheetTitle>
+            <div className="flex items-center justify-between">
+              <SheetTitle>
+                Update Opportunity
+                {editingOpportunity?.name ? ` - ${editingOpportunity.name}` : ""}
+              </SheetTitle>
+              <div className="flex items-center gap-1 mr-8">
+                {editingOpportunity && (
+                  <ViewDetailsButton
+                    entityType="opportunity"
+                    entityId={editingOpportunity.id}
+                    detailRoute={`/crm/opportunities/${editingOpportunity.id}`}
+                  />
+                )}
+              </div>
+            </div>
             <SheetDescription>Update opportunity details</SheetDescription>
           </SheetHeader>
           {editingOpportunity ? (
