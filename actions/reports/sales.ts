@@ -177,33 +177,24 @@ export async function getRevenueByAssignedMember(
 }
 
 export async function getSalesAssignedMemberOptions(filters: ReportFilters) {
-  const opportunities = await prismadb.crm_Opportunities.findMany({
-    where: dateRangeWhere(filters),
-    select: {
-      assigned_to: true,
-      assigned_to_user: {
-        select: {
-          name: true,
-        },
-      },
+  // Get all active users instead of just parsing old opportunity data
+  const users = await prismadb.users.findMany({
+    where: { 
+      userStatus: "ACTIVE"
     },
-  });
-  const membersById = new Map<string, string>();
-
-  for (const opportunity of opportunities) {
-    const memberId = opportunity.assigned_to?.trim();
-
-    if (!memberId || membersById.has(memberId)) {
-      continue;
+    select: {
+      id: true,
+      name: true
+    },
+    orderBy: {
+      name: "asc"
     }
+  });
 
-    membersById.set(
-      memberId,
-      opportunity.assigned_to_user?.name?.trim() || memberId
-    );
-  }
-
-  return Array.from(membersById.entries())
-    .map(([value, label]) => ({ value, label }))
-    .sort((first, second) => first.label.localeCompare(second.label));
+  return [
+    ...users.map(user => ({
+      value: user.id,
+      label: user.name || "Unnamed User"
+    }))
+  ];
 }

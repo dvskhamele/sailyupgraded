@@ -800,11 +800,12 @@ function OpportunityCard({
       </CardHeader>
 
       {/* CONTENT */}
-      <CardContent className="relative z-10 px-4 pb-3 text-xs text-gray-600 space-y-3">
+      <CardContent 
+      onClick={() => onOpenEdit(opportunity)}
+      className="relative z-10 px-4 pb-3 text-xs text-gray-600 space-y-3">
         {/* DESCRIPTION */}
         <p className="line-clamp-2 text-gray-500">{opportunity.description}</p>
 
-        
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <User className="w-4 h-4 text-green-600" />
@@ -821,7 +822,6 @@ function OpportunityCard({
           </span>
         </div>
 
-  
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Building2 className="w-4 h-4 text-blue-600" />
@@ -843,23 +843,21 @@ function OpportunityCard({
               ? format(new Date(opportunity.close_date), "dd MMM yyyy")
               : "No close date"}
           </span>
-
-          
         </div>
         <div>
-           {/* PRODUCTS */}
-        {opportunityProducts.length > 0 && (
-          <div className="flex gap-1 flex-wrap justify-end">
-            {opportunityProducts.map((product) => (
-              <Badge
-                key={product}
-                className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm"
-              >
-                {product}
-              </Badge>
-            ))}
-          </div>
-        )}
+          {/* PRODUCTS */}
+          {opportunityProducts.length > 0 && (
+            <div className="flex gap-1 flex-wrap justify-end">
+              {opportunityProducts.map((product) => (
+                <Badge
+                  key={product}
+                  className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white text-[10px] px-2 py-0.5 rounded-full shadow-sm"
+                >
+                  {product}
+                </Badge>
+              ))}
+            </div>
+          )}
         </div>
       </CardContent>
 
@@ -966,7 +964,7 @@ function OpportunityCard({
           </div>
         </div>
 
-     {/* RODUCTS */}
+        {/* RODUCTS */}
         {/* {opportunityProducts.length > 0 && (
           <div className="flex gap-1 flex-wrap justify-end">
             {opportunityProducts.map((product) => (
@@ -1237,7 +1235,9 @@ const CRMKanban = ({
   const openEmailDialog = (opportunity: crm_Opportunities) => {
     const target = getOpportunityCallTarget(opportunity, contactsById);
     if (!target.email) {
-      toast.error("This opportunity does not have a linked contact email address.");
+      toast.error(
+        "This opportunity does not have a linked contact email address.",
+      );
       return;
     }
 
@@ -1435,19 +1435,32 @@ const CRMKanban = ({
   }, [columns]);
 
   useEffect(() => {
-    if (serverDataRef.current !== filteredOpportunities && !isDraggingRef.current) {
+    if (
+      serverDataRef.current !== filteredOpportunities &&
+      !isDraggingRef.current
+    ) {
       serverDataRef.current = filteredOpportunities;
-      setColumns(initColumns(filteredOpportunities, salesStages, selectedCategories));
-      setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
+      setColumns(
+        initColumns(filteredOpportunities, salesStages, selectedCategories),
+      );
+      setLostCards(
+        getLostOpportunities(filteredOpportunities, selectedCategories),
+      );
     }
   }, [filteredOpportunities, salesStages, selectedCategories]);
 
   useEffect(() => {
     if (!isDraggingRef.current) {
-      const nextColumns = initColumns(filteredOpportunities, salesStages, selectedCategories);
+      const nextColumns = initColumns(
+        filteredOpportunities,
+        salesStages,
+        selectedCategories,
+      );
       columnsRef.current = nextColumns;
       setColumns(nextColumns);
-      setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
+      setLostCards(
+        getLostOpportunities(filteredOpportunities, selectedCategories),
+      );
     }
   }, [filteredOpportunities, salesStages, selectedCategories]);
 
@@ -1596,9 +1609,17 @@ const CRMKanban = ({
       });
       if (result?.error) {
         toast.error(result.error);
-        columnsRef.current = initColumns(filteredOpportunities, salesStages, selectedCategories);
-        setColumns(initColumns(filteredOpportunities, salesStages, selectedCategories));
-        setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
+        columnsRef.current = initColumns(
+          filteredOpportunities,
+          salesStages,
+          selectedCategories,
+        );
+        setColumns(
+          initColumns(filteredOpportunities, salesStages, selectedCategories),
+        );
+        setLostCards(
+          getLostOpportunities(filteredOpportunities, selectedCategories),
+        );
       } else {
         toast.success("Opportunity stage changed");
       }
@@ -1607,9 +1628,17 @@ const CRMKanban = ({
       toast.error(
         error instanceof Error ? error.message : "Something went wrong",
       );
-      columnsRef.current = initColumns(filteredOpportunities, salesStages, selectedCategories);
-      setColumns(initColumns(filteredOpportunities, salesStages, selectedCategories));
-      setLostCards(getLostOpportunities(filteredOpportunities, selectedCategories));
+      columnsRef.current = initColumns(
+        filteredOpportunities,
+        salesStages,
+        selectedCategories,
+      );
+      setColumns(
+        initColumns(filteredOpportunities, salesStages, selectedCategories),
+      );
+      setLostCards(
+        getLostOpportunities(filteredOpportunities, selectedCategories),
+      );
     }
   };
 
@@ -1737,9 +1766,7 @@ const CRMKanban = ({
             >
               {/* Header */}
               <CardTitle className="flex items-center justify-between px-4 py-3 border-b">
-                <span className="text-sm text-foreground">
-                  {col.name}
-                </span>
+                <span className="text-sm text-foreground">{col.name}</span>
 
                 <PlusCircledIcon
                   className="w-5 h-5 cursor-pointer text-muted-foreground hover:text-primary transition"
