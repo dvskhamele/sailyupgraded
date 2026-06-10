@@ -6,11 +6,14 @@ import { ReportToolbar } from "./ReportToolbar";
 import { SavedReportsDropdown } from "./SavedReportsDropdown";
 import type { ReportCategory } from "@/actions/reports/types";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 type ReportPageLayoutProps = {
   title: string;
   description: string;
   category: ReportCategory;
   currentFilters: string;
+  helpModule?: "reports";
   filterOptions?: {
     key: string;
     labelKey: string;
@@ -20,12 +23,16 @@ type ReportPageLayoutProps = {
   children: React.ReactNode;
 };
 
-export function ReportPageLayout({ title, description, category, currentFilters, filterOptions, children }: ReportPageLayoutProps) {
+export function ReportPageLayout({ title, description, category, currentFilters, helpModule, filterOptions, children }: ReportPageLayoutProps) {
   return (
     <Container title={title} description={description}>
       <div className="space-y-4 pt-4">
         <div className="flex items-center justify-between flex-wrap gap-4">
           <div className="flex items-center gap-4">
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              {title}
+              {helpModule && <HelpModal module={helpModule} />}
+            </h1>
             <Suspense><DateRangePicker /></Suspense>
             <Suspense><SavedReportsDropdown category={category} /></Suspense>
           </div>

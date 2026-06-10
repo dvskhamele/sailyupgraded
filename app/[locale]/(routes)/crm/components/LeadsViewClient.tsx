@@ -25,6 +25,8 @@ import { NewLeadForm } from "../leads/components/NewLeadForm";
 import { LeadDataTable } from "../leads/table-components/data-table";
 import { createColumns } from "../leads/table-components/columns";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 import { localLeadRepository, type LocalLeadEntity } from "@/lib/offline-first/storage";
 import type { LeadsViewProps } from "./LeadsView";
 
@@ -88,10 +90,11 @@ const LeadsViewClient = ({
       <CardHeader className="pb-3">
         <div className="flex justify-between">
           <div>
-            <CardTitle>
+            <CardTitle className="flex items-center gap-2">
               <Link href="/crm/leads" className="hover:underline">
                 {labels?.viewTitle}
               </Link>
+              <HelpModal module="leads" />
             </CardTitle>
           </div>
           <div className="flex space-x-2">

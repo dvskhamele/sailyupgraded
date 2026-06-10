@@ -75,6 +75,7 @@ export default async function SalesReportPage({ searchParams }: Props) {
       title={t("sales.title")}
       description={t("sales.description")}
       category="sales"
+      helpModule="reports"
       currentFilters={params.toString()}
       filterOptions={[
         {

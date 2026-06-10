@@ -47,6 +47,8 @@ import {
 
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 interface OpportunitiesViewProps {
   data: Opportunity[];
   crmData: CrmData;
@@ -143,10 +145,11 @@ const OpportunitiesView = ({
       <CardHeader className="pb-3">
         <div className="flex justify-between">
           <div>
-            <CardTitle>
+            <CardTitle className="flex items-center gap-2">
               <Link href="/crm/opportunities" className="hover:underline">
                 {t("opportunities.viewTitle")}
               </Link>
+              <HelpModal module="opportunities" />
             </CardTitle>
           </div>
           <div className="flex flex-wrap items-end justify-end gap-2">

@@ -34,6 +34,7 @@ export default async function AccountsReportPage({ searchParams }: Props) {
       title={t("accounts.title")}
       description={t("accounts.description")}
       category="accounts"
+      helpModule="reports"
       currentFilters={params.toString()}
     >
       <ReportChart data={newAccounts} titleKey="newAccounts" type="area" />

@@ -33,6 +33,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { getContactRoleView, matchesContactRoleFilter } from "@/lib/contact-options";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 import type { ContactListItem, ContactsViewProps } from "./ContactsView";
 
 type AssignedMemberOption = {
@@ -118,10 +120,17 @@ const ContactsViewClient = ({
       <CardHeader className="pb-3">
         <div className="flex justify-between">
           <div>
-            <CardTitle>
+            <CardTitle className="flex items-center gap-2">
               <Link href="/crm/contacts" prefetch={false} className="hover:underline">
                 {roleView.heading}
               </Link>
+              <HelpModal 
+                module={
+                  activeRole === "CUSTOMER" ? "customers" : 
+                  activeRole === "AGENT" ? "agents" : 
+                  "contacts"
+                } 
+              />
             </CardTitle>
           </div>
           <div className="flex space-x-2">

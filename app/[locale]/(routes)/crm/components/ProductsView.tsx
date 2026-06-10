@@ -15,6 +15,8 @@ import { ProductsDataTable } from "../products/table-components/data-table";
 import CreateProductForm from "../products/_forms/create-product";
 import { ImportProductsDialog } from "../products/components/ImportProductsDialog";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 import type { crm_ProductCategories } from "@prisma/client";
 
 interface ProductsViewProps {
@@ -28,10 +30,11 @@ const ProductsView = ({ data, categories, currencies }: ProductsViewProps) => {
     <Card>
       <CardHeader className="pb-3">
         <div className="flex justify-between">
-          <CardTitle>
+          <CardTitle className="flex items-center gap-2">
             <Link href="/crm/products" className="hover:underline">
               Product Catalog
             </Link>
+            <HelpModal module="products" />
           </CardTitle>
 
           <div className="flex space-x-2">

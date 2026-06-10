@@ -28,6 +28,8 @@ import { Button } from "@/components/ui/button";
 
 import type { getAllCrmData } from "@/actions/crm/get-crm-data";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 type CrmData = Awaited<ReturnType<typeof getAllCrmData>>;
 
 interface AccountsViewProps {
@@ -46,10 +48,11 @@ const AccountsView = ({ data, crmData }: AccountsViewProps) => {
       <CardHeader className="pb-3">
         <div className="flex justify-between">
           <div>
-            <CardTitle>
+            <CardTitle className="flex items-center gap-2">
               <Link href="/crm/accounts" className="hover:underline">
                 {t("accounts.viewTitle")}
               </Link>
+              <HelpModal module="companies" />
             </CardTitle>
           </div>
           <div className="flex space-x-2">

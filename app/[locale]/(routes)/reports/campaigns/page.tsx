@@ -34,6 +34,7 @@ export default async function CampaignsReportPage({ searchParams }: Props) {
       title={t("campaigns.title")}
       description={t("campaigns.description")}
       category="campaigns"
+      helpModule="reports"
       currentFilters={params.toString()}
     >
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

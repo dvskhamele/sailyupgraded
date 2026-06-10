@@ -8,6 +8,8 @@ import { getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import { getDefaultCurrency } from "@/lib/currency";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 type Props = {
   searchParams: Promise<Record<string, string | undefined>>;
 };
@@ -30,6 +32,10 @@ export default async function ReportsPage({ searchParams }: Props) {
   return (
     <Container title={t("title")} description={t("description")}>
       <div className="space-y-6 pt-4">
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
+          <HelpModal module="reports" />
+        </div>
         <Suspense>
           <DateRangePicker />
         </Suspense>

@@ -48,6 +48,8 @@ import {
 import useDebounce from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 interface Props {
   entityType?: string;
   entityId?: string;
@@ -341,8 +343,9 @@ export function ActivitiesView({
         <CardHeader className="flex flex-col gap-4 border-b bg-muted/30 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           {/* Title */}
           <div>
-            <CardTitle className="text-xl font-semibold tracking-tight">
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold tracking-tight">
               {title}
+              <HelpModal module={activityModule === "retail-ai" ? "ai_templates" : "activities"} />
             </CardTitle>
 
             <p className="mt-1 text-sm text-muted-foreground">

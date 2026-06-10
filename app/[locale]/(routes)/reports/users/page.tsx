@@ -34,6 +34,7 @@ export default async function UsersReportPage({ searchParams }: Props) {
       title={t("users.title")}
       description={t("users.description")}
       category="users"
+      helpModule="reports"
       currentFilters={params.toString()}
     >
       <Card><CardContent className="p-4">

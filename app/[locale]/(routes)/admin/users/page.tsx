@@ -12,6 +12,8 @@ import { Button } from "@/components/ui/button";
 import SendMailToAll from "./components/send-mail-to-all";
 import { getTranslations } from "next-intl/server";
 
+import { HelpModal } from "@/components/ui/help-modal";
+
 const AdminUsersPage = async () => {
   const users: Users[] = await getUsers();
   const t = await getTranslations("AdminPage");
@@ -36,6 +38,10 @@ const AdminUsersPage = async () => {
       title={t("users.title")}
       description={t("users.description")}
     >
+      <div className="mb-6 flex items-center gap-2">
+        <h1 className="text-2xl font-bold">{t("users.title")}</h1>
+        <HelpModal module="agents" />
+      </div>
       <div className="flex-col1">
         <h4 className="scroll-m-20 text-xl font-semibold tracking-tight">
           {t("users.inviteHeading")}

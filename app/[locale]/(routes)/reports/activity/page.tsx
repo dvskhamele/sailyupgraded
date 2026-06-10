@@ -40,6 +40,7 @@ export default async function ActivityReportPage({ searchParams }: Props) {
       title={t("activity.title")}
       description={t("activity.description")}
       category="activity"
+      helpModule="reports"
       currentFilters={params.toString()}
     >
       <Card><CardContent className="p-4">
