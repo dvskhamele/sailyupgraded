@@ -801,9 +801,10 @@ function OpportunityCard({
       </CardHeader>
 
       {/* CONTENT */}
-      <CardContent 
-      onClick={() => onOpenEdit(opportunity)}
-      className="relative z-10 px-4 pb-3 text-xs text-gray-600 space-y-3">
+      <CardContent
+        onClick={() => onOpenEdit(opportunity)}
+        className="relative z-10 px-4 pb-3 text-xs text-gray-600 space-y-3"
+      >
         {/* DESCRIPTION */}
         <p className="line-clamp-2 text-gray-500">{opportunity.description}</p>
 
@@ -1734,7 +1735,9 @@ const CRMKanban = ({
             <div className="flex items-center justify-between">
               <SheetTitle>
                 Update Opportunity
-                {editingOpportunity?.name ? ` - ${editingOpportunity.name}` : ""}
+                {editingOpportunity?.name
+                  ? ` - ${editingOpportunity.name}`
+                  : ""}
               </SheetTitle>
               <div className="flex items-center gap-1 mr-8">
                 {editingOpportunity && (
@@ -1769,183 +1772,195 @@ const CRMKanban = ({
         </SheetContent>
       </Sheet>
 
-      {!isHydrated ? (
-        <div className="flex w-full h-full overflow-x-auto h-[500px] gap-4 px-2 pb-2">
-          {columns.map((col) => (
-            <Card
-              key={col.id}
-              className="flex flex-col w-full min-w-[300px] max-w-[320px] bg-background border rounded-xl shadow-sm hover:shadow-md transition-all duration-200"
+    {!isHydrated ? (
+  /* --- MASTER CLEAN LOADING KANBAN UI --- */
+  <div className="flex w-full h-[calc(100vh-8rem)] min-h-[500px] overflow-x-auto gap-4 px-4 pb-4 select-none scroll-smooth">
+    {columns.map((col) => (
+      <Card
+        key={col.id}
+        className="flex flex-col w-full min-w-[310px] max-w-[320px] bg-card border-muted/50 rounded-2xl shadow-sm border"
+      >
+        {/* Header: Soft Gradient & Clean Alignment */}
+        <CardTitle className="flex items-center justify-between px-5 py-4 border-b border-muted/50 bg-muted/20">
+          <span className="text-[15px] font-semibold text-foreground tracking-tight">{col.name}</span>
+          <PlusCircledIcon
+            className="w-4.5 h-4.5 cursor-pointer text-muted-foreground hover:text-primary transition-colors duration-150"
+            onClick={() => {
+              setSelectedStage(col.id);
+              setIsDialogOpen(true);
+            }}
+          />
+        </CardTitle>
+
+        {/* Content: Clean Spacing & Hidden Scroll */}
+        <CardContent className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
+          <StageStats opportunities={col.opportunities} />
+          <div className="min-h-[50px] space-y-2">
+            {col.opportunities.map((opportunity) => (
+              <OpportunityCardStatic
+                key={opportunity.id}
+                opportunity={opportunity}
+                onOpenEdit={openEditOpportunity}
+                stage={col}
+                salesStages={salesStages}
+                nowMs={nowMs}
+              />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    ))}
+
+    {/* Lost Column (Static) - Subtly Muted Destructive Tone */}
+    <Card className="flex flex-col w-full min-w-[310px] max-w-[320px] bg-card border-muted/50 rounded-2xl shadow-sm border border-destructive/20">
+      <CardTitle className="flex items-center justify-between px-5 py-4 border-b border-destructive/10 bg-destructive/5">
+        <span className="text-[15px] font-semibold text-destructive/90 tracking-tight">
+          {lostStage?.name ?? "Lost"}
+        </span>
+      </CardTitle>
+
+      <CardContent className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
+        <StageStats opportunities={lostOpportunities} />
+        <div className="min-h-[50px] space-y-2">
+          {lostOpportunities.map((opportunity: any) => (
+            <OpportunityCardStatic
+              key={opportunity.id}
+              opportunity={opportunity}
+              onOpenEdit={openEditOpportunity}
+              stage={{ probability: null }}
+              salesStages={salesStages}
+              nowMs={nowMs}
+            />
+          ))}
+        </div>
+      </CardContent>
+    </Card>
+  </div>
+) : (
+  /* --- MASTER CLEAN INTERACTIVE KANBAN UI --- */
+  <DndContext
+    id={id}
+    sensors={sensors}
+    collisionDetection={closestCorners}
+    onDragStart={handleDragStart}
+    onDragOver={handleDragOver}
+    onDragEnd={handleDragEnd}
+  >
+    <div className="flex w-full h-[calc(100vh-8rem)] min-h-[500px] overflow-x-auto gap-4 px-4 pb-4 scroll-smooth">
+      {columns.map((col) => (
+        <Card
+          key={col.id}
+          className="flex flex-col w-full min-w-[310px] max-w-[320px] bg-card border-muted/50 rounded-2xl shadow-sm border transition-shadow duration-200 hover:shadow-md"
+        >
+          {/* Header */}
+          <CardTitle className="flex items-center justify-between px-5 py-4 border-b border-muted/50 bg-muted/20">
+            <span className="text-[15px] font-semibold text-foreground tracking-tight">{col.name}</span>
+            <div className="flex items-center gap-2.5">
+              <button
+                type="button"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                aria-label="Open voice AI retail assistant"
+                onClick={() => setIsRetellDialogOpen(true)}
+              >
+                <Mic className="h-4.5 w-4.5" />
+              </button>
+              <PlusCircledIcon
+                className="w-4.5 h-4.5 cursor-pointer text-muted-foreground hover:text-primary transition-colors duration-150"
+                onClick={() => {
+                  setSelectedStage(col.id);
+                  setIsDialogOpen(true);
+                }}
+              />
+            </div>
+          </CardTitle>
+
+          {/* Content */}
+          <CardContent className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
+            <StageStats opportunities={col.opportunities} />
+            <SortableContext
+              items={col.opportunities.map((o) => o.id)}
+              strategy={verticalListSortingStrategy}
             >
-              {/* Header */}
-              <CardTitle className="flex items-center justify-between px-4 py-3 border-b">
-                <span className="text-sm text-foreground">{col.name}</span>
-
-                <PlusCircledIcon
-                  className="w-5 h-5 cursor-pointer text-muted-foreground hover:text-primary transition"
-                  onClick={() => {
-                    setSelectedStage(col.id);
-                    setIsDialogOpen(true);
-                  }}
-                />
-              </CardTitle>
-
-              {/* Content */}
-              <CardContent className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
-                <StageStats opportunities={col.opportunities} />
-                <div className="min-h-[50px] space-y-2">
+              <DroppableStage id={col.id}>
+                <div className="min-h-[150px] space-y-2.5">
                   {col.opportunities.map((opportunity) => (
-                    <OpportunityCardStatic
+                    <OpportunityCard
                       key={opportunity.id}
                       opportunity={opportunity}
+                      contactsById={contactsById}
+                      onThumbsDown={onThumbsDown}
                       onOpenEdit={openEditOpportunity}
+                      onOpenAiMessage={openAiMessageDialog}
+                      onOpenEmail={openEmailDialog}
                       stage={col}
                       salesStages={salesStages}
                       nowMs={nowMs}
+                      phoneCallState={opportunityCallStates[opportunity.id]}
+                      onStartPhoneCall={handleStartPhoneCall}
                     />
                   ))}
                 </div>
-              </CardContent>
-            </Card>
-          ))}
+              </DroppableStage>
+            </SortableContext>
+          </CardContent>
+        </Card>
+      ))}
 
-          {/* Lost Column */}
-          <Card className="flex flex-col w-full min-w-[300px] max-w-[320px] bg-background border rounded-xl shadow-sm hover:shadow-md transition-all duration-200">
-            <CardTitle className="flex items-center justify-between px-4 py-3 border-b">
-              <span className="text-sm text-red-500">
-                {lostStage?.name ?? "Lost"}
-              </span>
-            </CardTitle>
-
-            <CardContent className="flex-1 overflow-y-auto px-3 py-2 space-y-2">
-              <StageStats opportunities={lostOpportunities} />
-              <div className="min-h-[50px] space-y-2">
+      {/* Lost Opportunities Column (Interactive) */}
+      <Card className="flex flex-col w-full min-w-[310px] max-w-[320px] bg-card border-muted/50 rounded-2xl shadow-sm border border-destructive/20 transition-shadow duration-200 hover:shadow-md">
+        <CardTitle className="flex items-center justify-between px-5 py-4 border-b border-destructive/10 bg-destructive/5">
+          <span className="text-[15px] font-semibold text-destructive/90 tracking-tight">
+            {lostStage?.name ?? "Lost"}
+          </span>
+        </CardTitle>
+        
+        <CardContent className="flex-1 overflow-y-auto px-4 py-4 space-y-3 custom-scrollbar">
+          <StageStats opportunities={lostOpportunities} />
+          <DroppableStage id={LOST_DROP_ID}>
+            <div className="min-h-[150px] space-y-2.5">
+              <SortableContext
+                items={lostOpportunities.map((o) => o.id)}
+                strategy={verticalListSortingStrategy}
+              >
                 {lostOpportunities.map((opportunity: any) => (
-                  <OpportunityCardStatic
+                  <OpportunityCard
                     key={opportunity.id}
                     opportunity={opportunity}
+                    contactsById={contactsById}
+                    onThumbsDown={onThumbsDown}
                     onOpenEdit={openEditOpportunity}
+                    onOpenAiMessage={openAiMessageDialog}
+                    onOpenEmail={openEmailDialog}
                     stage={{ probability: null }}
                     salesStages={salesStages}
                     nowMs={nowMs}
+                    phoneCallState={opportunityCallStates[opportunity.id]}
+                    onStartPhoneCall={handleStartPhoneCall}
                   />
                 ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      ) : (
-        <DndContext
-          id={id}
-          sensors={sensors}
-          collisionDetection={closestCorners}
-          onDragStart={handleDragStart}
-          onDragOver={handleDragOver}
-          onDragEnd={handleDragEnd}
-        >
-          <div className="flex w-full h-full overflow-x-auto">
-            {columns.map((col) => (
-              <Card
-                key={col.id}
-                className="mx-1 w-full min-w-[300px] overflow-hidden pb-10"
-              >
-                <CardTitle className="flex gap-2 p-3 justify-between">
-                  <span className="text-sm  font-bold">{col.name}</span>
-                  <div className="flex">
-                    <button
-                      type="button"
-                      className="mr-[10px] inline-flex h-5 w-5 items-center justify-center rounded-sm text-muted-foreground transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                      aria-label="Open voice AI retail assistant"
-                      onClick={() => setIsRetellDialogOpen(true)}
-                    >
-                      <Mic className="h-5 w-5" />
-                    </button>
-                    <PlusCircledIcon
-                      className="w-5 h-5 cursor-pointer"
-                      onClick={() => {
-                        setSelectedStage(col.id);
-                        setIsDialogOpen(true);
-                      }}
-                    />{" "}
-                  </div>
-                </CardTitle>
-                <CardContent className="w-full h-full overflow-y-auto">
-                  <StageStats opportunities={col.opportunities} />
-                  <SortableContext
-                    items={col.opportunities.map((o) => o.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    <DroppableStage id={col.id}>
-                      {col.opportunities.map((opportunity) => (
-                        <OpportunityCard
-                          key={opportunity.id}
-                          opportunity={opportunity}
-                          contactsById={contactsById}
-                          onThumbsDown={onThumbsDown}
-                          onOpenEdit={openEditOpportunity}
-                          onOpenAiMessage={openAiMessageDialog}
-                          onOpenEmail={openEmailDialog}
-                          stage={col}
-                          salesStages={salesStages}
-                          nowMs={nowMs}
-                          phoneCallState={opportunityCallStates[opportunity.id]}
-                          onStartPhoneCall={handleStartPhoneCall}
-                        />
-                      ))}
-                    </DroppableStage>
-                  </SortableContext>
-                </CardContent>
-              </Card>
-            ))}
+              </SortableContext>
+            </div>
+          </DroppableStage>
+        </CardContent>
+      </Card>
+    </div>
 
-            {/* Lost Opportunities Column */}
-            <Card className="mx-1 w-full min-w-[300px] overflow-hidden pb-10">
-              <CardTitle className="flex gap-2 p-3 justify-between">
-                <span className="text-sm font-bold">
-                  {lostStage?.name ?? "Lost"}
-                </span>
-              </CardTitle>
-              <CardContent className="w-full h-full overflow-y-scroll space-y-2">
-                <StageStats opportunities={lostOpportunities} />
-                <DroppableStage id={LOST_DROP_ID}>
-                  <SortableContext
-                    items={lostOpportunities.map((o) => o.id)}
-                    strategy={verticalListSortingStrategy}
-                  >
-                    {lostOpportunities.map((opportunity: any) => (
-                      <OpportunityCard
-                        key={opportunity.id}
-                        opportunity={opportunity}
-                        contactsById={contactsById}
-                        onThumbsDown={onThumbsDown}
-                        onOpenEdit={openEditOpportunity}
-                        onOpenAiMessage={openAiMessageDialog}
-                        onOpenEmail={openEmailDialog}
-                        stage={{ probability: null }}
-                        salesStages={salesStages}
-                        nowMs={nowMs}
-                        phoneCallState={opportunityCallStates[opportunity.id]}
-                        onStartPhoneCall={handleStartPhoneCall}
-                      />
-                    ))}
-                  </SortableContext>
-                </DroppableStage>
-              </CardContent>
-            </Card>
-          </div>
-
-          <DragOverlay>
-            {activeOpportunity ? (
-              <Card className="my-2 w-[280px] opacity-80 bg-white shadow-lg">
-                <CardTitle className="p-2 text-sm">
-                  <div className="flex justify-between p-2">
-                    <span className="font-bold">{activeOpportunity.name}</span>
-                  </div>
-                </CardTitle>
-              </Card>
-            ) : null}
-          </DragOverlay>
-        </DndContext>
-      )}
+    {/* Drag Overlay: The "Mast" Floating Effect */}
+    <DragOverlay dropAnimation={null}>
+      {activeOpportunity ? (
+        <Card className="w-[300px] border border-primary bg-background/95 backdrop-blur-sm shadow-2xl cursor-grabbing pointer-events-none rotate-[3deg] transition-all duration-300 ease-out">
+          <CardTitle className="px-5 py-4 border-b border-muted/50 bg-muted/10">
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-semibold text-foreground tracking-tight">
+                {activeOpportunity.name}
+              </span>
+            </div>
+          </CardTitle>
+        </Card>
+      ) : null}
+    </DragOverlay>
+  </DndContext>
+)}
     </>
   );
 };
