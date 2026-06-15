@@ -41,6 +41,10 @@ export const getCrmMenuItem = ({ localizations, counts }: Props): NavItem => {
         url: "/crm/products",
         count: counts?.products,
       },
+      {
+        title: "Teams",
+        url: "/crm/teams",
+      },
       // {
       //   title: "Overview",
       //   url: "/crm",

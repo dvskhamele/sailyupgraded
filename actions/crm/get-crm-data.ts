@@ -90,6 +90,7 @@ function getFallbackCrmData() {
     productCategories: [],
     products: [],
     exchangeRates: [],
+    teams: [],
   });
 }
 
@@ -264,6 +265,15 @@ async function loadAllCrmData() {
     orderBy: { name: "asc" },
   });
 
+  const teams = await prismadb.crm_Teams.findMany({
+    where: { deletedAt: null },
+    include: {
+      _count: {
+        select: { members: true },
+      },
+    },
+  });
+
   return serializeDecimals({
     accounts,
     opportunities: serializeDecimalsList(opportunities),
@@ -282,6 +292,7 @@ async function loadAllCrmData() {
     currencies,
     productCategories,
     products,
+    teams,
     exchangeRates: exchangeRates.map((rate: any) => ({
       fromCurrency: rate.fromCurrency,
       toCurrency: rate.toCurrency,

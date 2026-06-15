@@ -1031,6 +1031,7 @@ model Users {
   banned                        Boolean                  @default(false)
   banReason                     String?
   banExpires                    DateTime?
+  teamId                        String? // Future-ready: Add organizationId later if needed
   watching_accounts             AccountWatchers[]
   apiKeys                       ApiKeys[]
   apiTokens                     ApiToken[]
@@ -1072,6 +1073,7 @@ model Users {
   created_campaigns             crm_campaigns[]          @relation("created_campaigns")
   sessions                      Session[]
   tasksComment                  tasksComments[]
+  team                          crm_Teams?               @relation(fields: [teamId], references: [id])
 
   @@index([email])
   @@index([userStatus])
@@ -1080,6 +1082,25 @@ model Users {
   @@index([is_account_admin])
   @@index([created_on])
   @@index([lastLoginAt])
+  @@index([teamId])
+}
+
+model crm_Teams {
+  id          String   @id @default(uuid())
+  v           Int      @default(0) @map("__v")
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+  createdBy   String?
+  updatedAt   DateTime? @updatedAt
+  updatedBy   String?
+  deletedAt   DateTime?
+  deletedBy   String?
+  members     Users[]
+
+  @@index([name])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model crm_AuditLog {
