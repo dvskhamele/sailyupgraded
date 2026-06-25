@@ -39,7 +39,7 @@ export async function POST(request: Request) {
   try {
     if (!agentId) {
       const agent = await getFirstRetellVoiceAgent(apiKey);
-      agentId = agent?.agent_id;
+      agentId = agent?.agent_id ?? null;
       agentVersion = agentVersion ?? agent?.version;
       agentName = agent?.agent_name ?? undefined;
     }

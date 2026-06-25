@@ -77,7 +77,7 @@ export async function DELETE(request: NextRequest) {
     return NextResponse.json({ error: "Invalid file metadata" }, { status: 400 });
   }
 
-  const key = getR2KeyFromPublicUrl(metadata.url);
+  const key = await getR2KeyFromPublicUrl(metadata.url);
   if (!key) {
     return NextResponse.json({ error: "Invalid file url" }, { status: 400 });
   }

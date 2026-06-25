@@ -104,8 +104,8 @@ export async function GET() {
 
   return NextResponse.json({
     webhookUrl: webhookUrl || null,
-    apiKey: fingerprintSecret(apiKey),
-    phoneNumber: fingerprintSecret(configuredPhone),
+    apiKey: maskPhone(apiKey),
+    phoneNumber: maskPhone(configuredPhone),
     agentId: configuredAgentId || null,
     environment: process.env.NODE_ENV,
     vercelEnv: process.env.VERCEL_ENV ?? null,

@@ -239,7 +239,7 @@ export async function POST(request: Request) {
 
     if (!agentId) {
       const agent = await getFirstRetellVoiceAgent(apiKey);
-      agentId = agent?.agent_id;
+      agentId = agent?.agent_id ?? null;
       agentVersion = agentVersion ?? agent?.version;
       console.log("[RETELL_CREATE_PHONE_CALL] Selected first Retell voice agent", {
         agentId,

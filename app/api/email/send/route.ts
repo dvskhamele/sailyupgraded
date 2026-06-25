@@ -73,7 +73,7 @@ export async function POST(request: Request) {
 
   const results = [];
   for (const recipient of uniqueRecipients) {
-    results.push(await sendSmtp2GoEmail({ from, recipient, subject, message }));
+    results.push(await sendSmtp2GoEmail({ userId: session.user.id, from, recipient, subject, message }));
   }
 
   const failed = results.filter((result) => !result.success);

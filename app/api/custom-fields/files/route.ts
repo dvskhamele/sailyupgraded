@@ -158,7 +158,7 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
-  const key = getR2KeyFromPublicUrl(file.url);
+  const key = await getR2KeyFromPublicUrl(file.url);
   if (!key) {
     return NextResponse.json({ error: "Invalid file url" }, { status: 400 });
   }
