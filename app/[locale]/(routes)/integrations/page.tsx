@@ -75,7 +75,7 @@ type OpenAccordion =
 type Integration = {
   id: OpenAccordion;
   name: string;
-  render: () => JSX.Element;
+  render: () => React.ReactElement;
 };
 
 export default function IntegrationsPage() {
