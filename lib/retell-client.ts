@@ -1,10 +1,3 @@
-// This file contains ONLY type definitions, utility helpers, and constants
-// No server-side logic here!
-
-export const RETELL_API_BASE_URL = "https://api.retellai.com";
-export const RETELL_FETCH_TIMEOUT_MS = 10000;
-export const RETELL_PRODUCTION_WEBHOOK_URL = "https://sailyupgraded.vercel.app/api/retell/webhook";
-
 export type RetellResponseEngine = {
   type?: string;
   llm_id?: string;
@@ -28,30 +21,6 @@ export type RetellPhoneNumber = {
   outbound_agent_id?: string | null;
 };
 
-type RetellLlmState = {
-  name?: string;
-  state_prompt?: string | null;
-};
-
-type RetellLlm = {
-  begin_message?: string | null;
-  general_prompt?: string | null;
-  states?: RetellLlmState[] | null;
-};
-
-type RetellConversationFlowNode = {
-  id?: string;
-  instruction?: {
-    text?: string | null;
-    prompt?: string | null;
-  } | null;
-};
-
-type RetellConversationFlow = {
-  global_prompt?: string | null;
-  nodes?: RetellConversationFlowNode[] | null;
-};
-
 export function isE164PhoneNumber(phone: string) {
   return /^\+[1-9]\d{1,14}$/.test(phone);
 }
@@ -69,16 +38,12 @@ export function normalizeE164PhoneNumber(phone: string) {
     result = `+${trimmed.slice(2).replace(/\D/g, "")}`;
   } else {
     result = trimmed.replace(/\D/g, "");
+    // If it doesn't have a plus, we assume it's a full number without prefix or needs one.
+    // Retell strictly requires + for E.164.
     if (result.length >= 10) {
       result = `+${result}`;
     }
   }
 
   return result;
-}
-
-export function fingerprintSecret(value: string | undefined) {
-  if (value === undefined) return "missing";
-  if (!value.trim()) return "empty";
-  return `prefix=${value.slice(0, 6)} len=${value.length}`;
 }

@@ -1,5 +1,3 @@
-import { logRetellWebhookUrl } from "@/lib/retell";
-
 export async function register() {
-  logRetellWebhookUrl();
+  // Retell webhook URL logging is now handled in API routes/server actions
 }

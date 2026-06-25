@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/auth-server";
-import { getRetellApiKey, listRetellAgents } from "@/lib/retell";
+import { getRetellApiKey, listRetellAgents } from "@/lib/retell-server";
 
 export async function GET() {
   const session = await getSession();
@@ -9,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = getRetellApiKey();
+  const apiKey = await getRetellApiKey();
   if (!apiKey) {
     return NextResponse.json(
       { error: "Retell API key is not configured" },

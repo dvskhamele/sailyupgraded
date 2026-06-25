@@ -12,7 +12,7 @@ export const restoreTeam = async (data: z.infer<typeof RestoreTeamSchema>) => {
 
   const validated = RestoreTeamSchema.safeParse(data);
   if (!validated.success) {
-    return { error: validated.error.errors.map((e) => e.message).join(", ") };
+    return { error: validated.error.issues.map((e) => e.message).join(", ") };
   }
 
   const { teamId } = validated.data;

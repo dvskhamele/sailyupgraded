@@ -1,22 +1,20 @@
+import "server-only";
 import { Resend } from "resend";
-import { prismadb } from "./prisma";
-import { getResendApiKey } from "./env";
+import { getResendIntegration } from "./integrations/resend";
 
-export default async function resendHelper() {
-  const resendKey = await prismadb.systemServices.findFirst({
-    where: {
-      name: "resend_smtp",
-    },
-  });
+export default async function resendHelper(teamId?: string) {
+  const integration = await getResendIntegration(teamId);
 
-  const apiKey = getResendApiKey() || resendKey?.serviceKey;
-
-  // For development with dummy key, return null to trigger fallback
-  if (!apiKey || (process.env.NODE_ENV !== "production" && apiKey === "dummy-key-for-development")) {
+  if (!integration) {
+    console.warn("Resend integration not configured");
     return null;
   }
 
-  const resend = new Resend(apiKey);
+  return new Resend(integration.apiKey);
+}
 
-  return resend;
+export async function getResendEmailFrom(teamId?: string) {
+  const integration = await getResendIntegration(teamId);
+  if (!integration) return null;
+  return integration.emailFrom;
 }

@@ -2,13 +2,14 @@ import { NextResponse } from "next/server";
 
 import { getSession } from "@/lib/auth-server";
 import {
-  RETELL_API_BASE_URL,
   ensureRetellAgentWebhookUrl,
   getConfiguredAgentId,
   getConfiguredAgentVersion,
   getFirstRetellVoiceAgent,
   getRetellApiKey,
-} from "@/lib/retell";
+} from "@/lib/retell-server";
+
+const RETELL_API_BASE_URL = "https://api.retellai.com";
 
 type CreateWebCallRequest = {
   agentId?: string;
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = getRetellApiKey();
+  const apiKey = await getRetellApiKey();
   if (!apiKey) {
     return NextResponse.json(
       { error: "Retell API key is not configured" },

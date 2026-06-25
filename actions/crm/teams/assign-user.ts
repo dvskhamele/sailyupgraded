@@ -14,12 +14,18 @@ export const assignUserToTeam = async (
 
   const validated = AssignUserSchema.safeParse(data);
   if (!validated.success) {
-    return { error: validated.error.errors.map((e) => e.message).join(", ") };
+    return { error: validated.error.issues.map((e) => e.message).join(", ") };
   }
 
   const { userId, teamId } = validated.data;
 
   try {
+    // First get the user to get the old teamId
+    const existingUser = await prismadb.users.findUnique({
+      where: { id: userId },
+      select: { teamId: true }
+    });
+
     const user = await prismadb.users.update({
       where: { id: userId },
       data: {
@@ -31,7 +37,11 @@ export const assignUserToTeam = async (
       entityType: "user",
       entityId: user.id,
       action: "updated",
-      changes: { teamId },
+      changes: [{
+        field: "teamId",
+        old: existingUser?.teamId ?? null,
+        new: teamId
+      }],
       userId: session.user.id,
     });
 
@@ -51,24 +61,34 @@ export const bulkAssignUsersToTeam = async (
 
   const validated = BulkAssignUsersSchema.safeParse(data);
   if (!validated.success) {
-    return { error: validated.error.errors.map((e) => e.message).join(", ") };
+    return { error: validated.error.issues.map((e) => e.message).join(", ") };
   }
 
   const { userIds, teamId } = validated.data;
 
   try {
+    // First get all users to get their old teamIds
+    const existingUsers = await prismadb.users.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, teamId: true }
+    });
+
     await prismadb.users.updateMany({
       where: { id: { in: userIds } },
       data: { teamId },
     });
 
     // Write audit log for bulk action
-    for (const userId of userIds) {
+    for (const existingUser of existingUsers) {
       await writeAuditLog({
         entityType: "user",
-        entityId: userId,
+        entityId: existingUser.id,
         action: "updated",
-        changes: { teamId },
+        changes: [{
+          field: "teamId",
+          old: existingUser.teamId ?? null,
+          new: teamId
+        }],
         userId: session.user.id,
       });
     }
@@ -89,12 +109,18 @@ export const removeUserFromTeam = async (
 
   const validated = RemoveUserFromTeamSchema.safeParse(data);
   if (!validated.success) {
-    return { error: validated.error.errors.map((e) => e.message).join(", ") };
+    return { error: validated.error.issues.map((e) => e.message).join(", ") };
   }
 
   const { userId } = validated.data;
 
   try {
+    // First get the user to get the old teamId
+    const existingUser = await prismadb.users.findUnique({
+      where: { id: userId },
+      select: { teamId: true }
+    });
+
     const user = await prismadb.users.update({
       where: { id: userId },
       data: { teamId: null },
@@ -104,7 +130,11 @@ export const removeUserFromTeam = async (
       entityType: "user",
       entityId: user.id,
       action: "updated",
-      changes: { teamId: null },
+      changes: [{
+        field: "teamId",
+        old: existingUser?.teamId ?? null,
+        new: null
+      }],
       userId: session.user.id,
     });
 

@@ -5,7 +5,7 @@ import {
   getRetellAgentScript,
   getRetellApiKey,
   listRetellAgents,
-} from "@/lib/retell";
+} from "@/lib/retell-server";
 
 export async function GET(
   _request: Request,
@@ -16,7 +16,7 @@ export async function GET(
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = getRetellApiKey();
+  const apiKey = await getRetellApiKey();
   if (!apiKey) {
     return NextResponse.json(
       { error: "Retell API key is not configured" },

@@ -12,7 +12,7 @@ export const deleteTeam = async (data: z.infer<typeof DeleteTeamSchema>) => {
 
   const validated = DeleteTeamSchema.safeParse(data);
   if (!validated.success) {
-    return { error: validated.error.errors.map((e) => e.message).join(", ") };
+    return { error: validated.error.issues.map((e) => e.message).join(", ") };
   }
 
   const { id } = validated.data;

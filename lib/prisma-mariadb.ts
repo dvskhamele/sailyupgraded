@@ -1,3 +1,4 @@
+import "server-only";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import type { PoolConfig } from "mariadb";
 

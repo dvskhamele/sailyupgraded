@@ -1,7 +1,7 @@
 "use server";
 
-import { twilioClient, twilioPhoneNumber } from "@/lib/twilio";
-import { prisma } from "@/lib/prisma";
+import { getTwilioClient, getTwilioPhoneNumber } from "@/lib/twilio";
+import { prismadb } from "@/lib/prisma";
 
 export async function sendSMS({
   to,
@@ -14,15 +14,18 @@ export async function sendSMS({
   opportunityId?: string;
   contactId?: string;
 }) {
-  if (!twilioClient) {
-    return { error: "Twilio client is not configured" };
+  const twilioClient = await getTwilioClient();
+  const twilioPhoneNumber = await getTwilioPhoneNumber();
+
+  if (!twilioClient || !twilioPhoneNumber) {
+    return { error: "Twilio integration not configured" };
   }
 
   try {
     // 1. Create a log entry in the database
-    const logEntry = await prisma.crm_SMSLog.create({
+    const logEntry = await prismadb.crm_SMSLog.create({
       data: {
-        from: twilioPhoneNumber!,
+        from: twilioPhoneNumber,
         to,
         message,
         opportunityId,
@@ -43,7 +46,7 @@ export async function sendSMS({
     });
 
     // 3. Update the log entry with Twilio SID and status
-    await prisma.crm_SMSLog.update({
+    await prismadb.crm_SMSLog.update({
       where: { id: logEntry.id },
       data: {
         twilioSid: twilioResponse.sid,

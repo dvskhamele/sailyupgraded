@@ -99,7 +99,7 @@ export function DataTableRowActions<TData>({
             <SheetDescription>Update team details</SheetDescription>
           </SheetHeader>
           <div className="mt-6 space-y-4">
-            <UpdateTeamForm initialData={row.original} onFinish={() => setUpdateOpen(false)} />
+            <UpdateTeamForm initialData={row.original as any} onFinish={() => setUpdateOpen(false)} />
           </div>
         </SheetContent>
       </Sheet>

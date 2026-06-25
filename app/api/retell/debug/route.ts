@@ -9,17 +9,17 @@ import {
   listRetellAgents,
   listRetellPhoneNumbers,
   fingerprintSecret,
-} from "@/lib/retell";
+} from "@/lib/retell-server";
 
 function maskPhone(value: string | null | undefined) {
   return fingerprintSecret(value ?? undefined);
 }
 
 export async function GET() {
-  const { webhookUrl } = getRetellWebhookConfig();
-  const apiKey = getRetellApiKey();
+  const { webhookUrl } = await getRetellWebhookConfig();
+  const apiKey = await getRetellApiKey();
   const configuredAgentId = getConfiguredAgentId();
-  const configuredPhone = getConfiguredRetellPhoneNumber();
+  const configuredPhone = await getConfiguredRetellPhoneNumber();
   let retellWorkspaceProbe:
     | {
         ok: true;
@@ -110,7 +110,7 @@ export async function GET() {
     environment: process.env.NODE_ENV,
     vercelEnv: process.env.VERCEL_ENV ?? null,
     productionModeActive: process.env.NODE_ENV === "production",
-    diagnostics: getRetellRuntimeDiagnostics(apiKey),
+    diagnostics: await getRetellRuntimeDiagnostics(),
     retellWorkspaceProbe,
   }, {
     headers: {

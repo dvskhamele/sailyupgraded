@@ -1074,7 +1074,8 @@ model Users {
   sessions                      Session[]
   tasksComment                  tasksComments[]
   team                          crm_Teams?               @relation(fields: [teamId], references: [id])
-
+ integrations                  Integration[]
+ 
   @@index([email])
   @@index([userStatus])
   @@index([userLanguage])
@@ -1083,6 +1084,32 @@ model Users {
   @@index([created_on])
   @@index([lastLoginAt])
   @@index([teamId])
+}
+
+enum IntegrationProvider {
+  TWILIO
+  RESEND
+  RETELL
+  R2
+  SMTP2GO
+}
+
+model Integration {
+  id         String @id @default(uuid())
+  userId     String
+  provider   IntegrationProvider
+  settings   Json
+  isActive   Boolean @default(true)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  user       Users @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, provider])
+  @@index([provider])
+  @@index([isActive])
+  @@index([userId])
 }
 
 model crm_Teams {

@@ -26,8 +26,9 @@ import getAdministrationMenuItem from "./menu-items/Administration";
 import getTemplatesMenuItem from "./menu-items/Campaigns";
 import getRetailAIActivitiesMenuItem from "./menu-items/RetailAIActivities";
 import getSocialPlatformMenuItems from "./menu-items/SocialPlatforms";
-import getMailerSendMenuItem from "./menu-items/MailerSend";
+// import getMailerSendMenuItem from "./menu-items/MailerSend";
 import getZenithMenuItem from "./menu-items/Zenith";
+import getIntegrationsApiMenuItem from "./menu-items/IntegrationsApi";
 
 /**
  * AppSidebar Component - Task Groups 1.2, 2.2-2.7, 3.1, 5.3, 5.4
@@ -119,7 +120,8 @@ export function AppSidebar({
 
   navItems.push(
     ...getSocialPlatformMenuItems(),
-    getMailerSendMenuItem(),
+    // getMailerSendMenuItem(),
+    getIntegrationsApiMenuItem(),
     getZenithMenuItem(),
    
   );

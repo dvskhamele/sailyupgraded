@@ -4,7 +4,10 @@ import {
   SMTP2GO_SENDER_DOMAIN_ERROR,
 } from "@/lib/email/sender-policy";
 
+import { getSmtp2goSettings } from "@/lib/integrations/smtp2go";
+
 type Smtp2GoSendInput = {
+    userId: string;
   from: string;
   recipient: string;
   subject: string;
@@ -78,6 +81,7 @@ function isSmtp2GoSuccess(response: Response, payload: unknown) {
 }
 
 export async function sendSmtp2GoEmail({
+    userId,
   from,
   recipient,
   subject,
@@ -94,7 +98,18 @@ export async function sendSmtp2GoEmail({
     };
   }
 
-  const apiKey = process.env.SMTP2GO_API_KEY;
+  const smtp = await getSmtp2goSettings(userId);
+
+  if (!smtp) {
+  return {
+    recipient,
+    success: false,
+    error: "SMTP2GO settings not found",
+  };
+}
+
+const apiKey = smtp?.apiKey;
+
   console.log("SMTP2GO API KEY PRESENT:", Boolean(apiKey));
 
   if (!apiKey) {

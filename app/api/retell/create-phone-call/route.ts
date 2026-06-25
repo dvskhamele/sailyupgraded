@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import {
-  RETELL_API_BASE_URL,
   getConfiguredAgentId,
   getConfiguredAgentVersion,
   getConfiguredRetellPhoneNumber,
@@ -13,9 +12,10 @@ import {
   getRetellRuntimeDiagnostics,
   ensureRetellAgentWebhookUrl,
   fingerprintSecret,
-  isE164PhoneNumber,
-  normalizeE164PhoneNumber,
-} from "@/lib/retell";
+} from "@/lib/retell-server";
+import { isE164PhoneNumber, normalizeE164PhoneNumber } from "@/lib/retell-client";
+
+const RETELL_API_BASE_URL = "https://api.retellai.com";
 
 type CreatePhoneCallRequest = {
   opportunityId?: string;
@@ -86,10 +86,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const apiKey = getRetellApiKey();
+  const apiKey = await getRetellApiKey();
   console.log(
     "[RETELL_CREATE_PHONE_CALL] Env diagnostics",
-    getRetellRuntimeDiagnostics(apiKey),
+    await getRetellRuntimeDiagnostics(),
   );
 
   if (!apiKey) {
@@ -100,7 +100,7 @@ export async function POST(request: Request) {
   }
 
   const fromNumber = normalizeE164PhoneNumber(
-    getConfiguredRetellPhoneNumber() ?? "",
+    (await getConfiguredRetellPhoneNumber()) ?? "",
   );
   if (!fromNumber) {
     return NextResponse.json(

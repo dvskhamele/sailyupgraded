@@ -12,7 +12,7 @@ export const createTeam = async (data: z.infer<typeof CreateTeamSchema>) => {
 
   const validated = CreateTeamSchema.safeParse(data);
   if (!validated.success) {
-    return { error: validated.error.errors.map((e) => e.message).join(", ") };
+    return { error: validated.error.issues.map((e) => e.message).join(", ") };
   }
 
   const { name, description } = validated.data;

@@ -10,7 +10,9 @@ export type AuditEntityType =
   | "product"
   | "account_product"
   | "opportunity_line_item"
-  | "contract_line_item";
+  | "contract_line_item"
+  | "team"
+  | "user";
 
 export type AuditAction =
   | "created"

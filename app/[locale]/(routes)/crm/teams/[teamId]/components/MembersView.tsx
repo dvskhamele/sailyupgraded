@@ -57,7 +57,7 @@ export const MembersView: React.FC<MembersViewProps> = ({
     setSearchQuery(query);
     if (query.length > 0) {
       const results = await searchUsers({ search: query });
-      setSearchResults(results);
+      setSearchResults(results.users);
     } else {
       setSearchResults([]);
     }

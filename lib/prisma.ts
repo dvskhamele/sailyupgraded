@@ -1,3 +1,4 @@
+import "server-only";
 import { Prisma, PrismaClient } from "@prisma/client";
 import { createMariaDbAdapter } from "./prisma-mariadb";
 

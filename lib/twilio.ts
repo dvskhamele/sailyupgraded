@@ -1,12 +1,24 @@
+import "server-only";
 import twilio from "twilio";
+import { getTwilioIntegration } from "./integrations/twilio";
 
-const accountSid = process.env.TWILIO_ACCOUNT_SID;
-const authToken = process.env.TWILIO_AUTH_TOKEN;
-const phoneNumber = process.env.TWILIO_PHONE_NUMBER;
+export async function getTwilioClient(teamId?: string) {
+  const integration = await getTwilioIntegration(teamId);
 
-if (!accountSid || !authToken || !phoneNumber) {
-  console.warn("Twilio credentials are missing in environment variables.");
+  if (!integration) {
+    console.warn("Twilio integration not configured");
+    return null;
+  }
+
+  return twilio(integration.accountSid, integration.authToken);
 }
 
-export const twilioClient = accountSid && authToken ? twilio(accountSid, authToken) : null;
-export const twilioPhoneNumber = phoneNumber;
+export async function getTwilioPhoneNumber(teamId?: string) {
+  const integration = await getTwilioIntegration(teamId);
+
+  if (!integration) {
+    return null;
+  }
+
+  return integration.phoneNumber;
+}
