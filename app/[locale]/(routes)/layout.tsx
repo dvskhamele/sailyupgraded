@@ -56,7 +56,12 @@ export default async function AppLayout({
     return redirect("/sign-in");
   }
 
-  const user = session?.user;
+  // If guest session, we can proceed (demo mode)
+  // If user session, check user status
+  let user = null;
+  if (session.type === "user") {
+    user = session.user;
+  }
 
   if (user?.userStatus === "PENDING") {
     return redirect("/pending");
@@ -110,20 +115,32 @@ export default async function AppLayout({
     : defaultCurrency;
   const currencyList = enabledCurrencies.map((c: { code: string; name: string; symbol: string }) => ({ code: c.code, name: c.name, symbol: c.symbol }));
 
+  // For guest session, create mock user
+  const effectiveUser = user || {
+    id: "guest-user",
+    email: "guest@example.com",
+    name: "Guest User",
+    role: "admin",
+    userStatus: "ACTIVE",
+    userLanguage: "en",
+    image: null,
+    avatar: null,
+  };
+
   //console.log(typeof build, "build");
   return (
-    <AvatarProvider initialAvatar={user?.image}>
+    <AvatarProvider initialAvatar={effectiveUser?.image}>
     <CurrencyProvider initialCurrency={displayCurrency} currencies={currencyList}>
     <SidebarProvider defaultOpen={sidebarOpen}>
       <AppSidebar
         dict={translations}
-        session={session}
+        session={session.type === "user" ? session : { user: effectiveUser, session: { id: "guest-session" } }}
         counts={sidebarCounts}
       />
       <SidebarInset>
         <Header
-          id={session.user.id as string}
-          lang={session.user.userLanguage as string}
+          id={effectiveUser.id as string}
+          lang={effectiveUser.userLanguage as string}
         />
         {/*
           Task Group 3.3: Footer Relocation

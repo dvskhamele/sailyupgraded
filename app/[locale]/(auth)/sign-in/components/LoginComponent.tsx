@@ -16,6 +16,7 @@ import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { MailIcon } from "lucide-react";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
+import { markAuthenticatedSession } from "@/lib/demo-mode";
 
 type Step = "email" | "otp";
 const DASHBOARD_PATH = "/crm/dashboard";
@@ -106,6 +107,7 @@ export function LoginComponent({
         toast.error(error.message || "Invalid or expired code.");
         return;
       }
+      markAuthenticatedSession();
       toast.success("Login successful.");
       window.location.href = getLocalizedPath(DASHBOARD_PATH, locale);
     } catch (error) {

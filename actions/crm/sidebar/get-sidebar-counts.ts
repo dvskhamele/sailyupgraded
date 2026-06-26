@@ -55,6 +55,11 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
     return emptyCounts;
   }
 
+  // For guest session, return sample counts or empty? Let's return empty for now
+  if (session.type === "guest") {
+    return emptyCounts;
+  }
+
   const contactVisibilityFilter = await buildExistingDbContactVisibilityFilter(
     session.user,
   );

@@ -2,6 +2,7 @@ import React from "react";
 
 import Container from "../../components/ui/Container";
 import CRMKanban from "./_components/CRMKanban";
+import { DemoModeGate } from "./_components/DemoModeGate";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { getOpportunities } from "@/actions/crm/get-opportunities";
 import {
@@ -26,6 +27,7 @@ const CrmDashboardPage = async () => {
       description=""   
     >
       <div className="h-full w-full overflow-hidden">
+        <DemoModeGate />
         <CRMKanban
           salesStages={crmData.saleStages}
           opportunities={opportunities}

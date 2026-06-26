@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { markAuthenticatedSession } from "@/lib/demo-mode";
 
 type GoogleCredentialResponse = {
   credential?: string;
@@ -113,6 +114,7 @@ export function GoogleLoginButton({
         }
 
         toast.success("Login successful.");
+        markAuthenticatedSession();
         window.location.href = dashboardPath;
       } catch {
         toast.error("Something went wrong with Google login.");

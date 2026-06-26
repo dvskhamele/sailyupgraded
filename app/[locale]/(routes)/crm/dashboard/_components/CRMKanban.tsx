@@ -104,6 +104,7 @@ import { formatCurrencyDisplay } from "@/lib/currency-input";
 import { stopRowNavigation } from "../../components/table-row-navigation";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
+import { guardDemoAction, useDemoMode } from "@/lib/demo-mode";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -1109,6 +1110,7 @@ const CRMKanban = ({
 }: CRMKanbanProps) => {
   const id = useId();
   const router = useRouter();
+  const isDemoMode = useDemoMode();
 
   const [selectedStage, setSelectedStage] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -1225,16 +1227,19 @@ const CRMKanban = ({
   );
 
   const openEditOpportunity = (opportunity: crm_Opportunities) => {
+    if (!guardDemoAction()) return;
     setEditingOpportunity(opportunity);
     setIsEditOpen(true);
   };
 
   const openAiMessageDialog = (opportunity: crm_Opportunities) => {
+    if (!guardDemoAction()) return;
     setAiMessageOpportunity(opportunity);
     setAiMessageText("");
   };
 
   const openEmailDialog = (opportunity: crm_Opportunities) => {
+    if (!guardDemoAction()) return;
     const target = getOpportunityCallTarget(opportunity, contactsById);
     if (!target.email) {
       toast.error(
@@ -1254,7 +1259,22 @@ const CRMKanban = ({
     }
   };
 
+  const openCreateOpportunity = (stageId: string) => {
+    if (!guardDemoAction()) return;
+    setSelectedStage(stageId);
+    setIsDialogOpen(true);
+  };
+
+  const openRetellAssistant = () => {
+    if (!guardDemoAction()) return;
+    setIsRetellDialogOpen(true);
+  };
+
   const handleAddProduct = async (product: string) => {
+    if (!guardDemoAction()) {
+      return false;
+    }
+
     const normalizedProduct = product.trim();
     if (!normalizedProduct) {
       return false;
@@ -1317,6 +1337,8 @@ const CRMKanban = ({
 
   // Sync from server (e.g. after onThumbsDown router.refresh()) — only when not dragging
   const handleStartPhoneCall = async (opportunity: crm_Opportunities) => {
+    if (!guardDemoAction()) return;
+
     const target = getOpportunityCallTarget(opportunity, contactsById);
 
     if (!target.phone) {
@@ -1389,6 +1411,8 @@ const CRMKanban = ({
   };
 
   const handleSendAiMessage = async () => {
+    if (!guardDemoAction()) return;
+
     if (!aiMessageOpportunity) {
       return;
     }
@@ -1474,6 +1498,7 @@ const CRMKanban = ({
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    if (!guardDemoAction()) return;
     isDraggingRef.current = true;
     const { active } = event;
     const activeId = active.id as string;
@@ -1567,6 +1592,8 @@ const CRMKanban = ({
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    if (!guardDemoAction()) return;
+
     isDraggingRef.current = false;
     const { active, over } = event;
     setActiveOpportunity(null);
@@ -1645,6 +1672,8 @@ const CRMKanban = ({
   };
 
   const onThumbsDown = async (opportunityId: string) => {
+    if (!guardDemoAction()) return;
+
     try {
       await setInactiveOpportunity(opportunityId);
       toast.success("Opportunity has been set to inactive");
@@ -1669,9 +1698,9 @@ const CRMKanban = ({
           selectedAssignedMemberId={selectedAssignedMemberId}
           onAssignedMemberChange={setSelectedAssignedMemberId}
           onAddCategory={handleAddProduct}
-          allowCreate
+          allowCreate={!isDemoMode}
         />
-        <ImportOpportunitiesDialog />
+        {!isDemoMode ? <ImportOpportunitiesDialog /> : null}
       </div>
 
       <Dialog open={isDialogOpen} onOpenChange={() => setIsDialogOpen(false)}>
@@ -1785,10 +1814,7 @@ const CRMKanban = ({
           <span className="text-[15px] font-semibold text-foreground tracking-tight">{col.name}</span>
           <PlusCircledIcon
             className="w-4.5 h-4.5 cursor-pointer text-muted-foreground hover:text-primary transition-colors duration-150"
-            onClick={() => {
-              setSelectedStage(col.id);
-              setIsDialogOpen(true);
-            }}
+            onClick={() => openCreateOpportunity(col.id)}
           />
         </CardTitle>
 
@@ -1840,7 +1866,7 @@ const CRMKanban = ({
   /* --- MASTER CLEAN INTERACTIVE KANBAN UI --- */
   <DndContext
     id={id}
-    sensors={sensors}
+    sensors={isDemoMode ? [] : sensors}
     collisionDetection={closestCorners}
     onDragStart={handleDragStart}
     onDragOver={handleDragOver}
@@ -1860,16 +1886,14 @@ const CRMKanban = ({
                 type="button"
                 className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-all duration-150 hover:bg-muted hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 aria-label="Open voice AI retail assistant"
-                onClick={() => setIsRetellDialogOpen(true)}
+                disabled={isDemoMode}
+                onClick={openRetellAssistant}
               >
                 <Mic className="h-4.5 w-4.5" />
               </button>
               <PlusCircledIcon
                 className="w-4.5 h-4.5 cursor-pointer text-muted-foreground hover:text-primary transition-colors duration-150"
-                onClick={() => {
-                  setSelectedStage(col.id);
-                  setIsDialogOpen(true);
-                }}
+                onClick={() => openCreateOpportunity(col.id)}
               />
             </div>
           </CardTitle>
