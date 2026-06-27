@@ -1,4 +1,5 @@
 import { cache } from "react";
+import type { Prisma } from "@prisma/client";
 import {
   isPrismaAccessDeniedError,
   isTransientPrismaConnectionError,
@@ -29,6 +30,42 @@ const fallbackCurrencies = [
   { code: "EUR", name: "Euro", symbol: "EUR" },
   { code: "INR", name: "Indian Rupee", symbol: "INR" },
 ];
+
+const crmDashboardAccountSelectValues = {
+  id: true,
+  v: true,
+  createdAt: true,
+  createdBy: true,
+  updatedAt: true,
+  updatedBy: true,
+  annual_revenue: true,
+  assigned_to: true,
+  billing_city: true,
+  billing_country: true,
+  billing_postal_code: true,
+  billing_state: true,
+  billing_street: true,
+  company_id: true,
+  description: true,
+  email: true,
+  employees: true,
+  fax: true,
+  industry: true,
+  member_of: true,
+  name: true,
+  office_phone: true,
+  shipping_city: true,
+  shipping_country: true,
+  shipping_postal_code: true,
+  shipping_state: true,
+  shipping_street: true,
+  status: true,
+  type: true,
+  vat: true,
+  website: true,
+  deletedAt: true,
+  deletedBy: true,
+} as const;
 
 function getFallbackCrmData() {
   const now = new Date();
@@ -167,10 +204,15 @@ const crmDashboardContactSelectValues = pickSupportedModelFields("crm_Contacts",
 
 async function loadAllCrmData() {
   const session = await getSession();
+  const crmDashboardAccountSelect = await pickExistingDbModelFields(
+    "crm_Accounts",
+    crmDashboardAccountSelectValues
+  );
 
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { deletedAt: null },
-    include: {
+    select: {
+      ...crmDashboardAccountSelect,
       accountProducts: {
         where: { status: "ACTIVE" },
         include: {
@@ -182,7 +224,7 @@ async function loadAllCrmData() {
           },
         },
       },
-    },
+    } satisfies Prisma.crm_AccountsSelect,
   });
 
   const opportunities = await prismadb.crm_Opportunities.findMany({

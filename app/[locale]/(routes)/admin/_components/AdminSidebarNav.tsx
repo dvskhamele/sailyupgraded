@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { Link, usePathname } from "@/i18n/navigation";
 import { cn } from "@/lib/utils";
 import { Users, ClipboardList, Coins, SlidersHorizontal } from "lucide-react";
 // import { Key, Settings } from "lucide-react";
@@ -24,7 +23,7 @@ export function AdminSidebarNav() {
         Admin
       </p>
       {navItems.map(({ label, href, icon: Icon }) => {
-        const isActive = pathname.includes(href);
+        const isActive = pathname === href || pathname.startsWith(`${href}/`);
         return (
           <Link
             key={href}

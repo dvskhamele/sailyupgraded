@@ -1,5 +1,10 @@
 import { redirect } from "next/navigation";
 
-export default function AdminPage() {
-  redirect("/profile?tab=administration");
+export default async function AdminPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  redirect(`/${locale}/profile?tab=administration`);
 }
