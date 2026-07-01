@@ -175,17 +175,31 @@ const Select = (selectProps: SelectProps) => {
     () => options.filter((option) => !option.disabled),
     [options]
   )
+  const singleSelectableValue =
+    selectableOptions.length === 1 ? selectableOptions[0].value : undefined
   const isControlled = Object.prototype.hasOwnProperty.call(selectProps, "value")
+  const lastAutoSelectedValueRef = React.useRef<string | undefined>(undefined)
 
   React.useEffect(() => {
     if (!autoSelectSingleOption || disabled || !isControlled || !onValueChange || !isEmptySelectValue(value)) {
+      if (!isEmptySelectValue(value)) {
+        lastAutoSelectedValueRef.current = undefined
+      }
       return
     }
 
-    if (selectableOptions.length === 1) {
-      onValueChange(selectableOptions[0].value)
+    if (!singleSelectableValue) {
+      lastAutoSelectedValueRef.current = undefined
+      return
     }
-  }, [autoSelectSingleOption, disabled, isControlled, onValueChange, selectableOptions, value])
+
+    if (lastAutoSelectedValueRef.current === singleSelectableValue) {
+      return
+    }
+
+    lastAutoSelectedValueRef.current = singleSelectableValue
+    onValueChange(singleSelectableValue)
+  }, [autoSelectSingleOption, disabled, isControlled, onValueChange, singleSelectableValue, value])
 
   return (
     <SelectPrimitive.Root

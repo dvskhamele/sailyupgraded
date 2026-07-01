@@ -107,6 +107,7 @@ export function CategoryFilter({
             <Select
               value={selectedAssignedMemberId}
               onValueChange={onAssignedMemberChange}
+              autoSelectSingleOption={false}
             >
               <SelectTrigger className="h-9 border-slate-200 bg-white text-slate-700">
                 <SelectValue placeholder="All Memberss" />
