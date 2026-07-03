@@ -13,8 +13,12 @@ export const copyLineItemsFromOpportunity = async (
   if (!session?.user?.id) {
     return { error: "Unauthorized" };
   }
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const userId = session.user.id;
+  const organizationId = session.user.organizationId;
 
   try {
     const [contract, opportunity] = await Promise.all([
@@ -51,6 +55,7 @@ export const copyLineItemsFromOpportunity = async (
 
     await prismadb.crm_ContractLineItems.createMany({
       data: sourceItems.map((item, index) => ({
+        organizationId,
         contractId,
         productId: item.productId,
         name: item.name,

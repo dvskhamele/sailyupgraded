@@ -1594,6 +1594,9 @@ model Verification {
   createdAt  DateTime? @default(now())
   updatedAt  DateTime? @updatedAt
 
+  @@index([identifier])
+  @@index([identifier, createdAt])
+  @@index([expiresAt])
   @@map("verification")
 }
 

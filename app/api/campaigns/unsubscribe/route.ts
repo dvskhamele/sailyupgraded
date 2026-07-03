@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismadb } from "@/lib/prisma";
+import { setOrganizationContext } from "@/lib/organization-context";
 
 export async function GET(req: NextRequest) {
   const token = req.nextUrl.searchParams.get("token");
@@ -8,17 +9,25 @@ export async function GET(req: NextRequest) {
     return new NextResponse("Invalid unsubscribe link.", { status: 400 });
   }
 
-  const send = await prismadb.crm_campaign_sends.findUnique({
-    where: { unsubscribe_token: token },
-  });
+  const sendRows = await prismadb.$queryRaw<
+    Array<{ id: string; organizationId: string; unsubscribed_at: Date | null }>
+  >`
+    SELECT id, organizationId, unsubscribed_at
+    FROM crm_campaign_sends
+    WHERE unsubscribe_token = ${token}
+    LIMIT 1
+  `;
+  const send = sendRows[0];
 
   if (!send) {
     return new NextResponse("Unsubscribe link not found.", { status: 404 });
   }
 
+  setOrganizationContext(send.organizationId);
+
   if (!send.unsubscribed_at) {
     await prismadb.crm_campaign_sends.update({
-      where: { unsubscribe_token: token },
+      where: { id: send.id },
       data: { unsubscribed_at: new Date() },
     });
   }

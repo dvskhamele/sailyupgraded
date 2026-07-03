@@ -1,4 +1,5 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import type { ReportFilters, KPIData } from "./types";
 import { getExchangeRates, convertAmount } from "@/lib/currency";
 import { Decimal } from "@prisma/client/runtime/client";
@@ -17,6 +18,7 @@ function prevPeriod(filters: ReportFilters): { dateFrom: Date; dateTo: Date } {
 }
 
 export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: string = "USD"): Promise<KPIData[]> {
+  await requireOrganizationId();
   const prev = prevPeriod(filters);
   const rates = await getExchangeRates();
 

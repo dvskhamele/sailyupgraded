@@ -1,5 +1,5 @@
 "use server";
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import {
   buildCampaignStepSchedule,
@@ -30,6 +30,7 @@ export const createCampaign = async (data: {
   scheduled_at?: Date;
 }) => {
   const session = await getSession();
+  const organizationId = await requireOrganizationId();
   const { target_list_ids, steps, ...campaignData } = data;
   const scheduledAt = data.scheduled_at ? normalizeUtcDate(data.scheduled_at) : null;
 
@@ -64,6 +65,7 @@ export const createCampaign = async (data: {
   return prismadb.crm_campaigns.create({
     data: {
       ...campaignData,
+      organizationId,
       scheduled_at: scheduledAt,
       v: 0,
       status: scheduledAt ? "scheduled" : "draft",
@@ -73,6 +75,7 @@ export const createCampaign = async (data: {
       },
       steps: {
         create: stepsToCreate.map((s) => ({
+          organizationId,
           order: s.order,
           subject: s.subject,
           delay_days: s.delay_days,

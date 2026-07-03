@@ -1,12 +1,14 @@
 "use server";
 
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import {
   appendSocialLeadSourceOptions,
   ensureDefaultContactTypes,
 } from "@/lib/crm/contact-form-options";
 
 export const getContactFormOptions = async () => {
+  await requireOrganizationId();
   const contactTypes = await ensureDefaultContactTypes();
   const [accounts, leadSources, leadStatuses, leadTypes, products] = await prismadb.$transaction([
     prismadb.crm_Accounts.findMany({ 

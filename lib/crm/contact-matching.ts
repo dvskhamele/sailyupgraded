@@ -1,4 +1,5 @@
 import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
+import { requireOrganizationContext } from "@/lib/organization-context";
 
 export async function findOrCreateContact(data: {
   phone?: string;
@@ -6,6 +7,8 @@ export async function findOrCreateContact(data: {
   name?: string;
   source?: string;
 }) {
+  requireOrganizationContext();
+
   // 1. Match by phone
   if (data.phone) {
     const contactByPhone = await prismadb.crm_Contacts.findFirst({

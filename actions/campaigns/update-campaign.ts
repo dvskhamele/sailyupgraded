@@ -1,5 +1,6 @@
 "use server";
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import { normalizeUtcDate } from "@/lib/campaigns/scheduling";
 
 export const updateCampaign = async (
@@ -13,6 +14,7 @@ export const updateCampaign = async (
     scheduled_at: Date;
   }>
 ) => {
+  await requireOrganizationId();
   return prismadb.crm_campaigns.update({
     where: { id },
     data: {

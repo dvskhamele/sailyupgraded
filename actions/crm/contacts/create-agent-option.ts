@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { getSession } from "@/lib/auth-server";
-import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
+import { prismadb } from "@/lib/prisma";
 
 function splitAgentName(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
@@ -27,11 +27,9 @@ function getAgentDisplayName(agent: {
 export async function createAgentOption(name: string) {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
-  console.log("[CONTACT CREATE DEBUG] Entry point", {
-    path: "actions/crm/contacts/create-agent-option.ts:createAgentOption",
-    database: getDatabaseUrlDiagnostics(),
-  });
-  console.log("[CONTACT CREATE DEBUG] Incoming payload", { name });
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const trimmedName = name.trim();
   if (!trimmedName) return { error: "Agent name is required" };
@@ -71,6 +69,7 @@ export async function createAgentOption(name: string) {
 
   const { first_name, last_name } = splitAgentName(trimmedName);
   const createPayload = {
+    organizationId: session.user.organizationId,
     v: 1,
     first_name: first_name || undefined,
     last_name,
@@ -80,8 +79,6 @@ export async function createAgentOption(name: string) {
     updatedBy: session.user.id,
     tags: [],
   };
-  console.log("[CONTACT CREATE DEBUG] Prisma create payload", createPayload);
-  console.log("[CONTACT CREATE DEBUG] Executing prismadb.crm_Contacts.create()");
   const createdAgent = await prismadb.crm_Contacts.create({
     data: createPayload,
     select: {
@@ -91,13 +88,6 @@ export async function createAgentOption(name: string) {
       email: true,
     },
   });
-  console.log("[CONTACT CREATE DEBUG] Create result", createdAgent);
-  console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: createdAgent.id });
-
-  const verificationContact = await prismadb.crm_Contacts.findUnique({
-    where: { id: createdAgent.id },
-  });
-  console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
 
   revalidatePath("/crm/contacts");
 

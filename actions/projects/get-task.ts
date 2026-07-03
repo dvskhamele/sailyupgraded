@@ -1,7 +1,9 @@
 import { prismadb } from "@/lib/prisma";
 import { junctionTableHelpers } from "@/lib/junction-helpers";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getTask = async (taskId: string) => {
+  await requireOrganizationId();
   const data = await prismadb.tasks.findFirst({
     where: {
       id: taskId,

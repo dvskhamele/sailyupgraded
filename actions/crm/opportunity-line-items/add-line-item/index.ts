@@ -14,8 +14,12 @@ const handler = async (data: InputType): Promise<ReturnType> => {
   if (!session?.user?.id) {
     return { error: "Unauthorized" };
   }
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const userId = session.user.id;
+  const organizationId = session.user.organizationId;
   const {
     opportunityId, productId, name, sku, description,
     quantity, unit_price, discount_type, discount_value, sort_order,
@@ -55,6 +59,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
 
     const lineItem = await prismadb.crm_OpportunityLineItems.create({
       data: {
+        organizationId,
         opportunityId,
         productId: productId || undefined,
         name: snapshotName,

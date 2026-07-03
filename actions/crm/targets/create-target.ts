@@ -21,6 +21,9 @@ export const createTarget = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { last_name, email, mobile_phone, ...rest } = data;
   if (!last_name && !data.company) return { error: "last_name or company is required" };
@@ -28,6 +31,7 @@ export const createTarget = async (data: {
   try {
     const target = await prismadb.crm_Targets.create({
       data: {
+        organizationId: session.user.organizationId,
         last_name: last_name ?? "",
         email,
         mobile_phone,

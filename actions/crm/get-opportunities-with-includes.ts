@@ -3,7 +3,9 @@
 import { cache } from "react";
 import { prismadb, withPrismaRetry } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 async function loadOpportunitiesFull() {
+  await requireOrganizationId();
   return prismadb.crm_Opportunities.findMany({
     where: { deletedAt: null },
     include: {

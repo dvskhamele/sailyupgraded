@@ -62,6 +62,7 @@ export async function PATCH(request: NextRequest) {
 
   const settings = await prismadb.invoice_Settings.create({
     data: {
+      organizationId: user.organizationId,
       baseCurrency: body.baseCurrency,
       defaultSeriesId: body.defaultSeriesId ?? null,
       defaultTaxRateId: body.defaultTaxRateId ?? null,

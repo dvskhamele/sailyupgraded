@@ -1,6 +1,8 @@
 import { prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getCrMTask = async (taskId: string) => {
+  await requireOrganizationId();
   const data = await prismadb.crm_Accounts_Tasks.findFirst({
     where: {
       id: taskId,

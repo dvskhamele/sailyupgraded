@@ -2,6 +2,7 @@ import React from "react";
 
 import Container from "../../components/ui/Container";
 import CRMKanban from "./_components/CRMKanban";
+
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { getOpportunities } from "@/actions/crm/get-opportunities";
 import { serializeDecimalsList } from "@/lib/serialize-decimals";
@@ -12,10 +13,7 @@ const CrmDashboardPage = async () => {
   const opportunities = serializeDecimalsList(rawOpportunities);
 
   return (
-    <Container
-      title=""
-      description=""   
-    >
+    <Container title="" description="">
       <div className="h-full w-full overflow-hidden">
         <CRMKanban
           salesStages={crmData.saleStages}

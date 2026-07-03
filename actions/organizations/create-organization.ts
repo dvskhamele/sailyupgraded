@@ -21,14 +21,9 @@ async function createUniqueSlug(name: string) {
   let slug = baseSlug;
   let suffix = 1;
 
-  try {
-    while (await prismadb.Organization.findUnique({ where: { slug } })) {
-      suffix += 1;
-      slug = `${baseSlug}-${suffix}`;
-    }
-  } catch (e) {
-    // If Organization table doesn't exist, just return slug
-    console.warn("[createUniqueSlug] Error checking slug uniqueness:", e);
+  while (await prismadb.organization.findUnique({ where: { slug } })) {
+    suffix += 1;
+    slug = `${baseSlug}-${suffix}`;
   }
 
   return slug;
@@ -36,25 +31,20 @@ async function createUniqueSlug(name: string) {
 
 export async function createOrganization(formData: FormData) {
   const session = await getSession();
+  const locale = String(formData.get("locale") || "en");
+  const name = String(formData.get("name") ?? "").trim();
 
   if (!session?.user?.id) {
-    redirect("/sign-in");
+    redirect(`/${locale}/sign-in`);
   }
 
-  let existingOrganization = null;
-  try {
-    existingOrganization = await findCurrentOrganizationForUser(
-      session.user.id,
-    );
-  } catch (e) {
-    console.warn("[createOrganization] Error finding existing org:", e);
-  }
+  const existingOrganization = await findCurrentOrganizationForUser(
+    session.user.id,
+  );
 
   if (existingOrganization) {
-    redirect("/crm/dashboard");
+    redirect(`/${locale}/crm/dashboard`);
   }
-
-  const name = String(formData.get("name") ?? "").trim();
 
   if (name.length < 2) {
     throw new Error("Organization name must be at least 2 characters.");
@@ -62,82 +52,35 @@ export async function createOrganization(formData: FormData) {
 
   const slug = await createUniqueSlug(name);
 
-  let organizationId: string;
-  try {
-    organizationId = await prismadb.$transaction(async (tx) => {
-      const organization = await tx.Organization.create({
-        data: {
-          name,
-          slug,
-        },
-      });
-
-      await tx.OrganizationMember.create({
-        data: {
-          organizationId: organization.id,
-          userId: session.user.id,
-          role: "admin",
-        },
-      });
-
-      return organization.id;
+  const organizationId = await prismadb.$transaction(async (tx) => {
+    const organization = await tx.organization.create({
+      data: {
+        name,
+        slug,
+      },
     });
-  } catch (e) {
-    console.warn("[createOrganization] Creating org failed, trying to create tables first...", e);
-    // Try to create the tables manually
-    const createTablesSql = [
-      `
-        CREATE TABLE IF NOT EXISTS \`organizations\` (
-          \`id\` VARCHAR(191) NOT NULL,
-          \`name\` VARCHAR(191) NOT NULL,
-          \`slug\` VARCHAR(191) NOT NULL,
-          \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-          \`updatedAt\` DATETIME(3) NOT NULL,
-          UNIQUE INDEX \`organizations_slug_key\`(\`slug\`),
-          PRIMARY KEY (\`id\`)
-        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-      `,
-      `
-        CREATE TABLE IF NOT EXISTS \`organization_members\` (
-          \`id\` VARCHAR(191) NOT NULL,
-          \`organizationId\` VARCHAR(191) NOT NULL,
-          \`userId\` VARCHAR(191) NOT NULL,
-          \`role\` ENUM('admin', 'member', 'viewer') NOT NULL DEFAULT 'member',
-          \`createdAt\` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
-          UNIQUE INDEX \`organization_members_organizationId_userId_key\`(\`organizationId\`, \`userId\`),
-          INDEX \`organization_members_organizationId_idx\`(\`organizationId\`),
-          INDEX \`organization_members_userId_idx\`(\`userId\`),
-          PRIMARY KEY (\`id\`)
-        ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-      `
-    ];
 
-    for (const sql of createTablesSql) {
-      await prismadb.$executeRawUnsafe(sql);
-    }
-
-    // Retry transaction
-    organizationId = await prismadb.$transaction(async (tx) => {
-      const organization = await tx.Organization.create({
-        data: {
-          name,
-          slug,
-        },
-      });
-
-      await tx.OrganizationMember.create({
-        data: {
-          organizationId: organization.id,
-          userId: session.user.id,
-          role: "admin",
-        },
-      });
-
-      return organization.id;
+    await tx.organizationMember.create({
+      data: {
+        organizationId: organization.id,
+        userId: session.user.id,
+        role: "admin",
+      },
     });
-  }
+
+    await tx.users.update({
+      where: {
+        id: session.user.id,
+      },
+      data: {
+        userStatus: "ACTIVE",
+      },
+    });
+
+    return organization.id;
+  });
 
   setOrganizationContext(organizationId);
 
-  redirect("/crm/dashboard");
+  redirect(`/${locale}/crm/dashboard`);
 }

@@ -2,6 +2,7 @@
 
 import { prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 const PAGE_SIZE_MAX = 100;
 
 export async function searchAccounts({
@@ -13,6 +14,7 @@ export async function searchAccounts({
   skip?: number;
   take?: number;
 } = {}) {
+  await requireOrganizationId();
   const safeTake = Math.min(PAGE_SIZE_MAX, Math.max(1, take));
   const safeSkip = Math.max(0, skip);
 

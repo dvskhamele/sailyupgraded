@@ -1,6 +1,6 @@
 "use server";
 import { getSession } from "@/lib/auth-server";
-import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
+import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import sendEmail from "@/lib/sendmail";
 import { inngest } from "@/inngest/client";
@@ -101,6 +101,7 @@ async function findExistingContactForLead(data: {
 
 async function getOrCreateContactForLead(data: {
   userId: string;
+  organizationId: string;
   assignedTo?: string | null;
   accountId?: string | null;
   firstName?: string | null;
@@ -122,6 +123,7 @@ async function getOrCreateContactForLead(data: {
 
   const resolvedAssignedTo = await resolveExistingUserId(data.assignedTo, data.userId);
   const contactPayload = await pickExistingDbModelFields("crm_Contacts", {
+    organizationId: data.organizationId,
     v: 0,
     first_name: data.firstName || "",
     last_name:
@@ -170,6 +172,7 @@ async function linkContactToOpportunity(data: {
   contactId: string;
   opportunityId: string;
   userId: string;
+  organizationId: string;
 }) {
   await prismadb.contactsToOpportunities.upsert({
     where: {
@@ -180,6 +183,7 @@ async function linkContactToOpportunity(data: {
     },
     update: {},
     create: {
+      organizationId: data.organizationId,
       contact_id: data.contactId,
       opportunity_id: data.opportunityId,
     },
@@ -199,6 +203,7 @@ async function linkContactToOpportunity(data: {
 async function createPipelineOpportunityForLead(data: {
   leadId: string;
   userId: string;
+  organizationId: string;
   assignedTo?: string | null;
   accountId?: string | null;
   firstName?: string | null;
@@ -231,6 +236,7 @@ async function createPipelineOpportunityForLead(data: {
       contactId: contact.id,
       opportunityId: existingOpportunity.id,
       userId: data.userId,
+      organizationId: data.organizationId,
     });
     return existingOpportunity;
   }
@@ -255,6 +261,7 @@ async function createPipelineOpportunityForLead(data: {
 
   const opportunity = await prismadb.crm_Opportunities.create({
     data: {
+      organizationId: data.organizationId,
       assigned_account: assignedAccount
         ? { connect: { id: assignedAccount.id } }
         : undefined,
@@ -266,6 +273,7 @@ async function createPipelineOpportunityForLead(data: {
       contact: contact.id,
       contacts: {
         create: {
+          organizationId: data.organizationId,
           contact: { connect: { id: contact.id } },
         },
       },
@@ -344,14 +352,12 @@ export const createLead = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
-
-  console.log("[LEAD CREATE DEBUG] Entry point", {
-    path: "actions/crm/leads/create-lead.ts:createLead",
-    database: getDatabaseUrlDiagnostics(),
-  });
-  console.log("[LEAD CREATE DEBUG] Incoming lead payload", data);
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const userId = session.user.id;
+  const organizationId = session.user.organizationId;
   const {
     serial,
     birthday_day,
@@ -412,6 +418,7 @@ export const createLead = async (data: {
     leadCustomFields.filter((field) => fieldAppliesToEntity(field, "Lead")),
   );
   const supportedFields = await pickExistingDbModelFields("crm_Leads", {
+    organizationId,
     v: 1,
     serial: serial?.trim() || undefined,
     createdBy: userId,
@@ -458,26 +465,10 @@ export const createLead = async (data: {
     social_youtube,
     social_tiktok,
   });
-  console.log("[LEAD CREATE DEBUG] Prisma create payload", supportedFields);
   try {
-    console.log("[LEAD CREATE DEBUG] Executing prismadb.crm_Leads.create()");
     const lead = await prismadb.crm_Leads.create({
       data: supportedFields as any,
     });
-    console.log("[LEAD CREATE DEBUG] Create result", lead);
-    console.log("[LEAD CREATE DEBUG] Created lead ID", { id: lead.id });
-
-    const verificationLead = await prismadb.crm_Leads.findUnique({
-      where: { id: lead.id },
-    });
-    console.log("[LEAD CREATE DEBUG] Verification query result", verificationLead);
-
-    if (!verificationLead) {
-      console.error("[LEAD CREATE DEBUG] Verification query did not find created lead", {
-        id: lead.id,
-        database: getDatabaseUrlDiagnostics(),
-      });
-    }
 
     if (assigned_to && assigned_to !== userId) {
       const notifyRecipient = await prismadb.users.findFirst({
@@ -510,6 +501,7 @@ export const createLead = async (data: {
     const pipelineOpportunity = await createPipelineOpportunityForLead({
       leadId: lead.id,
       userId,
+      organizationId,
       assignedTo: lead.assigned_to || assigned_to || userId,
       accountId: lead.accountsIDs || assigned_account || accountIDs,
       firstName: lead.firstName || first_name,

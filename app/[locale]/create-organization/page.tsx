@@ -14,23 +14,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { getSession } from "@/lib/auth-server";
 
-export default async function CreateOrganizationPage() {
+export default async function CreateOrganizationPage({
+  params,
+}: {
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
   const session = await getSession();
 
   if (!session) {
-    redirect("/sign-in");
-  }
-
-  if (session.user.userStatus === "PENDING") {
-    redirect("/pending");
+    redirect(`/${locale}/sign-in`);
   }
 
   if (session.user.userStatus === "INACTIVE") {
-    redirect("/inactive");
+    redirect(`/${locale}/inactive`);
   }
 
   if (session.user.organizationId) {
-    redirect("/crm/dashboard");
+    redirect(`/${locale}/crm/dashboard`);
   }
 
   return (
@@ -47,6 +48,7 @@ export default async function CreateOrganizationPage() {
         </CardHeader>
         <CardContent>
           <form action={createOrganization} className="space-y-4">
+            <input type="hidden" name="locale" value={locale} />
             <div className="space-y-2">
               <Label htmlFor="name">Organization Name</Label>
               <Input

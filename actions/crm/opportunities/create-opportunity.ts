@@ -37,8 +37,12 @@ export const createOpportunity = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const userId = session.user.id;
+  const organizationId = session.user.organizationId;
   const {
     account,
     assigned_to,
@@ -89,6 +93,7 @@ export const createOpportunity = async (data: {
 
     const opportunity = await prismadb.crm_Opportunities.create({
       data: {
+        organizationId,
         assigned_account: account ? { connect: { id: account } } : undefined,
         assigned_to_user: connectUserById(resolvedAssignedTo),
         budget: budgetAmount,

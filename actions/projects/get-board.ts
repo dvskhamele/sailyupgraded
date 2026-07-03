@@ -1,7 +1,9 @@
 import { prismadb } from "@/lib/prisma";
 import { junctionTableHelpers, extractWatcherUsers } from "@/lib/junction-helpers";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getBoard = async (id: string) => {
+  await requireOrganizationId();
   const board = await prismadb.boards.findFirst({
     where: {
       id: id,

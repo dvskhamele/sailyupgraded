@@ -18,6 +18,9 @@ export async function POST(request: NextRequest) {
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  if (!session.user.organizationId) {
+    return NextResponse.json({ error: "Organization context is required" }, { status: 400 });
+  }
 
   const firecrawlApiKey = await getApiKey("FIRECRAWL", session.user.id);
   const openaiApiKey = await getApiKey("OPENAI", session.user.id);
@@ -49,6 +52,7 @@ export async function POST(request: NextRequest) {
 
   const enrichmentRecord = await prismadb.crm_Contact_Enrichment.create({
     data: {
+      organizationId: session.user.organizationId,
       contactId,
       status: "RUNNING",
       fields: fields.map((f) => f.name),

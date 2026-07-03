@@ -1,4 +1,5 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import type { ReportFilters, ChartDataPoint } from "./types";
 import { groupedToChartData } from "./types";
 import { getExchangeRates, convertAmount } from "@/lib/currency";
@@ -12,6 +13,7 @@ function dateRangeWhere(filters: ReportFilters) {
 }
 
 export async function getRevenue(filters: ReportFilters, displayCurrency: string): Promise<number> {
+  await requireOrganizationId();
   const opps = await prismadb.crm_Opportunities.findMany({
     where: { ...dateRangeWhere(filters), status: "CLOSED" },
     select: { budget: true, currency: true },
@@ -28,6 +30,7 @@ export async function getRevenue(filters: ReportFilters, displayCurrency: string
 }
 
 export async function getPipelineValue(filters: ReportFilters, displayCurrency: string): Promise<number> {
+  await requireOrganizationId();
   const opps = await prismadb.crm_Opportunities.findMany({
     where: { ...dateRangeWhere(filters), status: "ACTIVE" },
     select: { budget: true, currency: true },
@@ -44,6 +47,7 @@ export async function getPipelineValue(filters: ReportFilters, displayCurrency: 
 }
 
 export async function getOppsByStage(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const opps = await prismadb.crm_Opportunities.findMany({
     where: dateRangeWhere(filters),
     select: { assigned_sales_stage: { select: { name: true } } },
@@ -57,6 +61,7 @@ export async function getOppsByStage(filters: ReportFilters): Promise<ChartDataP
 }
 
 export async function getOppsByMonth(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const opps = await prismadb.crm_Opportunities.findMany({
     where: dateRangeWhere(filters),
     select: { created_on: true },
@@ -74,6 +79,7 @@ export async function getOppsByMonth(filters: ReportFilters): Promise<ChartDataP
 export async function getWinLossRate(
   filters: ReportFilters
 ): Promise<{ won: number; total: number; rate: number }> {
+  await requireOrganizationId();
   const won = await prismadb.crm_Opportunities.count({
     where: { ...dateRangeWhere(filters), status: "CLOSED" },
   });
@@ -84,6 +90,7 @@ export async function getWinLossRate(
 }
 
 export async function getAvgDealSize(filters: ReportFilters, displayCurrency: string): Promise<number> {
+  await requireOrganizationId();
   const opps = await prismadb.crm_Opportunities.findMany({
     where: { ...dateRangeWhere(filters), status: "CLOSED" },
     select: { budget: true, currency: true },
@@ -101,6 +108,7 @@ export async function getAvgDealSize(filters: ReportFilters, displayCurrency: st
 }
 
 export async function getSalesCycleLength(filters: ReportFilters): Promise<number> {
+  await requireOrganizationId();
   const opps = await prismadb.crm_Opportunities.findMany({
     where: { ...dateRangeWhere(filters), status: "CLOSED", close_date: { not: null } },
     select: { created_on: true, close_date: true },

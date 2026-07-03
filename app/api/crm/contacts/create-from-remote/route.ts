@@ -1,13 +1,10 @@
-import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
+import { prismadb } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { normalizeContactRole } from "@/lib/contact-options";
 import { pickSupportedModelFields } from "@/lib/prisma-model-fields";
+import { setOrganizationContext } from "@/lib/organization-context";
 
 export async function POST(req: Request) {
-  console.log("[CONTACT CREATE DEBUG] Entry point", {
-    path: "app/api/crm/contacts/create-from-remote/route.ts:POST",
-    database: getDatabaseUrlDiagnostics(),
-  });
   const apiKey = req.headers.get("NEXTCRM_TOKEN");
 
   // Get API key from headers
@@ -22,9 +19,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 403 });
   }
 
-  const body = await req.json();
+  const organizationId = process.env.NEXTCRM_REMOTE_ORGANIZATION_ID;
+  if (!organizationId) {
+    return NextResponse.json(
+      { error: "NEXTCRM_REMOTE_ORGANIZATION_ID is required" },
+      { status: 500 },
+    );
+  }
+  setOrganizationContext(organizationId);
 
-  console.log("[CONTACT CREATE DEBUG] Incoming payload", body);
+  const body = await req.json();
 
   const { name, surname, email, phone, company, message, tag } = body;
   if (!name || !surname || !email || !phone || !company || !message || !tag) {
@@ -37,6 +41,7 @@ export async function POST(req: Request) {
   try {
     const created = await prismadb.crm_Contacts.create({
       data: {
+        organizationId,
         first_name: name,
         last_name: surname,
         email,
@@ -50,13 +55,6 @@ export async function POST(req: Request) {
       },
       select: { id: true },
     });
-    console.log("[CONTACT CREATE DEBUG] Create result", created);
-    console.log("[CONTACT CREATE DEBUG] Created contact ID", { id: created.id });
-
-    const verificationContact = await prismadb.crm_Contacts.findUnique({
-      where: { id: created.id },
-    });
-    console.log("[CONTACT CREATE DEBUG] Verification query result", verificationContact);
     return NextResponse.json({ message: "Contact created" });
   } catch (error) {
     console.log("Error creating contact:", error);

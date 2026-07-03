@@ -1,7 +1,9 @@
 import { prismadb } from "@/lib/prisma";
 import { junctionTableHelpers } from "@/lib/junction-helpers";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getBoards = async (userId: string) => {
+  await requireOrganizationId();
   if (!userId) {
     return null;
   }

@@ -1,6 +1,8 @@
 import { prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getDocumentsByAccountId = async (accountId: string) => {
+  await requireOrganizationId();
   // Query through DocumentsToAccounts junction table
   const data = await prismadb.documents.findMany({
     where: {

@@ -1,7 +1,9 @@
 "use server";
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 
 export const getTasksCount = async () => {
+  await requireOrganizationId();
   const data = await prismadb.tasks.count();
   return data;
 };

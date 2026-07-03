@@ -1,6 +1,9 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 
 export async function getInvoices() {
+  await requireOrganizationId();
+
   return prismadb.invoices.findMany({
     orderBy: { createdAt: "desc" },
     take: 100,
@@ -12,6 +15,8 @@ export async function getInvoices() {
 }
 
 export async function getInvoiceById(id: string) {
+  await requireOrganizationId();
+
   return prismadb.invoices.findUnique({
     where: { id },
     include: {

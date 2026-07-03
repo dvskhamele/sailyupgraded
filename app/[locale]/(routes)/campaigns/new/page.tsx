@@ -1,8 +1,11 @@
 import { WizardShell } from "./components/WizardShell";
 import { getTemplates } from "@/actions/campaigns/templates/get-templates";
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 
 export default async function NewCampaignPage() {
+  await requireOrganizationId();
+
   const [templates, targetLists] = await Promise.all([
     getTemplates(),
     prismadb.crm_TargetLists.findMany({

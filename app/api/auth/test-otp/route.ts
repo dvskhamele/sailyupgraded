@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
       where: {
         identifier: {
           in: [
+            `sign-in-otp-${normalizedEmail}`,
             `test-otp-${normalizedEmail}`,
             `fallback-otp-${normalizedEmail}`,
           ],
@@ -44,10 +45,12 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      otp: verification.value,
-      source: verification.identifier.startsWith("fallback-otp-")
-        ? "fallback"
-        : "test",
+      otp: verification.value.split(":")[0],
+      source: verification.identifier.startsWith("sign-in-otp-")
+        ? "sign-in"
+        : verification.identifier.startsWith("fallback-otp-")
+          ? "fallback"
+          : "test",
     });
   } catch (error) {
     console.error("[Test-OTP] Failed to fetch OTP", error);

@@ -2,6 +2,7 @@
 
 import { z } from "zod";
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import { revalidatePath } from "next/cache";
 import { ExchangeRateSource } from "@prisma/client";
 
@@ -73,13 +74,15 @@ export async function toggleCurrency(code: string, isEnabled: boolean) {
 }
 
 export async function setDefaultCurrency(code: string) {
+  const organizationId = await requireOrganizationId();
+
   await prismadb.$transaction([
     prismadb.currency.updateMany({ data: { isDefault: false } }),
     prismadb.currency.update({ where: { code }, data: { isDefault: true, isEnabled: true } }),
     prismadb.crm_SystemSettings.upsert({
       where: { key: "default_currency" },
       update: { value: code },
-      create: { key: "default_currency", value: code },
+      create: { organizationId, key: "default_currency", value: code },
     }),
   ]);
   revalidatePath("/", "layout");
@@ -115,6 +118,8 @@ export async function updateExchangeRate(data: {
 }
 
 export async function getEcbAutoUpdate(): Promise<boolean> {
+  await requireOrganizationId();
+
   const setting = await prismadb.crm_SystemSettings.findUnique({
     where: { key: "ecb_auto_update" },
   });
@@ -122,10 +127,12 @@ export async function getEcbAutoUpdate(): Promise<boolean> {
 }
 
 export async function setEcbAutoUpdate(enabled: boolean) {
+  const organizationId = await requireOrganizationId();
+
   await prismadb.crm_SystemSettings.upsert({
     where: { key: "ecb_auto_update" },
     update: { value: enabled ? "true" : "false" },
-    create: { key: "ecb_auto_update", value: enabled ? "true" : "false" },
+    create: { organizationId, key: "ecb_auto_update", value: enabled ? "true" : "false" },
   });
   revalidatePath("/", "layout");
 }

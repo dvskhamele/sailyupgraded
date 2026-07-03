@@ -1,7 +1,9 @@
 "use server";
 import { prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getContract = async (contractId: string) => {
+  await requireOrganizationId();
   return prismadb.crm_Contracts.findUnique({
     where: { id: contractId, deletedAt: null },
     include: {

@@ -9,6 +9,9 @@ export const assignDocumentToCrmTask = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { documentId, taskId } = data;
   if (!documentId) return { error: "Missing document ID" };
@@ -23,6 +26,7 @@ export const assignDocumentToCrmTask = async (data: {
 
     await prismadb.documentsToCrmAccountsTasks.create({
       data: {
+        organizationId: session.user.organizationId,
         document_id: documentId,
         crm_accounts_task_id: taskId,
       },

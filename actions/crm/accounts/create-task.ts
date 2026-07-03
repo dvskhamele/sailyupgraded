@@ -16,6 +16,9 @@ export const createTask = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { title, user, priority, content, account, dueDateAt } = data;
 
@@ -33,6 +36,7 @@ export const createTask = async (data: {
   try {
     const task = await prismadb.crm_Accounts_Tasks.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         priority,
         title,

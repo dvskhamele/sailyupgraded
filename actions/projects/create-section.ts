@@ -9,6 +9,9 @@ export const createSection = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { boardId, title } = data;
   if (!title) return { error: "Missing section title" };
@@ -21,6 +24,7 @@ export const createSection = async (data: {
 
     const newSection = await prismadb.sections.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         board: boardId,
         title,

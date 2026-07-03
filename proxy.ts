@@ -1,6 +1,6 @@
 import { routing } from "./i18n/routing";
 import { NextRequest, NextResponse } from "next/server";
-const AUTH_PATHS = ["/sign-in", "/register", "/pending", "/inactive"];
+const AUTH_PATHS = ["/sign-in", "/register", "/pending", "/inactive","/create-organization"];
 const bypassLogin =
   process.env.BYPASS_LOGIN === "true" ||
   process.env.NEXT_PUBLIC_BYPASS_LOGIN === "true";

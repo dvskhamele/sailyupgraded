@@ -1,10 +1,12 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import type { ReportFilters, ChartDataPoint } from "./types";
 import { groupedToChartData } from "./types";
 
 export async function getCampaignPerformance(filters: ReportFilters): Promise<{
   sent: number; opened: number; clicked: number; openRate: number; clickRate: number;
 }> {
+  await requireOrganizationId();
   const dateFilter = { sent_at: { gte: filters.dateFrom, lte: filters.dateTo }, status: "sent" };
   const sent = await prismadb.crm_campaign_sends.count({ where: dateFilter });
   const opened = await prismadb.crm_campaign_sends.count({ where: { ...dateFilter, opened_at: { not: null } } });
@@ -17,6 +19,7 @@ export async function getCampaignPerformance(filters: ReportFilters): Promise<{
 }
 
 export async function getCampaignROI(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const campaigns = await prismadb.crm_campaigns.findMany({
     where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo }, status: { in: ["sent", "sending"] } },
     select: { name: true, _count: { select: { sends: true } } },
@@ -25,6 +28,7 @@ export async function getCampaignROI(filters: ReportFilters): Promise<ChartDataP
 }
 
 export async function getTopTemplates(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const campaigns = await prismadb.crm_campaigns.findMany({
     where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
     select: { template: { select: { name: true } }, _count: { select: { sends: true } } },
@@ -39,6 +43,7 @@ export async function getTopTemplates(filters: ReportFilters): Promise<ChartData
 }
 
 export async function getTargetListGrowth(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const lists = await prismadb.crm_TargetLists.findMany({
     where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
     select: { created_on: true, _count: { select: { targets: true } } },

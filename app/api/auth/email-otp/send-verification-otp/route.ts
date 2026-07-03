@@ -5,6 +5,11 @@ import { sendOtpEmail } from "@/lib/email/sendOtpEmail";
 
 const testOtpIdentifier = (email: string) => `test-otp-${email.toLowerCase()}`;
 const signInOtpIdentifier = (email: string) => `sign-in-otp-${email.toLowerCase()}`;
+const otpIdentifiers = (email: string) => [
+  testOtpIdentifier(email),
+  `fallback-otp-${email.toLowerCase()}`,
+  signInOtpIdentifier(email),
+];
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
 
 function generateOtp() {
@@ -33,12 +38,12 @@ export async function POST(request: NextRequest) {
 
     const otp = generateOtp();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
-    const identifier = testOtpIdentifier(email);
+    const identifier = signInOtpIdentifier(email);
 
     await prismadb.verification.deleteMany({
       where: {
         identifier: {
-          in: [identifier, signInOtpIdentifier(email)],
+          in: otpIdentifiers(email),
         },
       },
     });
@@ -46,7 +51,7 @@ export async function POST(request: NextRequest) {
     await prismadb.verification.create({
       data: {
         identifier,
-        value: otp,
+        value: `${otp}:0`,
         expiresAt,
       },
     });
@@ -60,7 +65,11 @@ export async function POST(request: NextRequest) {
       });
     } catch (error) {
       await prismadb.verification.deleteMany({
-        where: { identifier },
+        where: {
+          identifier: {
+            in: otpIdentifiers(email),
+          },
+        },
       });
 
       console.error("[OTP Send] Failed to send verification OTP email", {

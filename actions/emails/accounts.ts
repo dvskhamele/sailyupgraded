@@ -8,11 +8,15 @@ import Imap from "imap";
 async function requireSession() {
   const session = await getSession();
   if (!session?.user?.id) throw new Error("Unauthorized");
-  return session.user.id as string;
+  if (!session.user.organizationId) throw new Error("Organization context is required");
+  return {
+    userId: session.user.id as string,
+    organizationId: session.user.organizationId,
+  };
 }
 
 export async function getEmailAccounts() {
-  const userId = await requireSession();
+  const { userId } = await requireSession();
   return prismadb.emailAccount.findMany({
     where: { userId },
     select: {
@@ -48,7 +52,7 @@ type CreateInput = {
 };
 
 export async function createEmailAccount(input: CreateInput) {
-  const userId = await requireSession();
+  const { userId, organizationId } = await requireSession();
 
   // Validate required string fields
   if (!input.label?.trim()) throw new Error("Label is required");
@@ -62,6 +66,7 @@ export async function createEmailAccount(input: CreateInput) {
   const passwordEncrypted = encrypt(input.password);
   return prismadb.emailAccount.create({
     data: {
+      organizationId,
       userId,
       label: input.label,
       imapHost: input.imapHost,
@@ -79,14 +84,14 @@ export async function createEmailAccount(input: CreateInput) {
 }
 
 export async function deleteEmailAccount(id: string) {
-  const userId = await requireSession();
+  const { userId } = await requireSession();
   const account = await prismadb.emailAccount.findFirst({ where: { id, userId } });
   if (!account) throw new Error("Not found");
   await prismadb.emailAccount.delete({ where: { id } });
 }
 
 export async function setEmailAccountActive(id: string, isActive: boolean) {
-  const userId = await requireSession();
+  const { userId } = await requireSession();
   const account = await prismadb.emailAccount.findFirst({ where: { id, userId } });
   if (!account) throw new Error("Not found");
   return prismadb.emailAccount.update({ where: { id }, data: { isActive } });

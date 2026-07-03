@@ -32,6 +32,9 @@ export const createAccount = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { name } = data;
   if (!name) return { error: "name is required" };
@@ -47,6 +50,7 @@ export const createAccount = async (data: {
 
     const account = await prismadb.crm_Accounts.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         createdBy: session.user.id,
         updatedBy: session.user.id,

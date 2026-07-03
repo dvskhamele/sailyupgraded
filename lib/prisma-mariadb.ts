@@ -2,11 +2,12 @@ import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import type { PoolConfig } from "mariadb";
 
 const DEFAULT_CONNECT_TIMEOUT_MS =
-  process.env.NODE_ENV === "development" ? 5_000 : 10_000;
+  process.env.NODE_ENV === "development" ? 10_000 : 10_000;
 const DEFAULT_ACQUIRE_TIMEOUT_MS =
-  process.env.NODE_ENV === "development" ? 5_000 : 30_000;
+  process.env.NODE_ENV === "development" ? 15_000 : 30_000;
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 300;
 const DEFAULT_CONNECTION_LIMIT = 10;
+const MIN_CONNECTION_LIMIT = 5;
 
 function parseNumber(value: string | null) {
   if (!value) {
@@ -68,9 +69,11 @@ export function createMariaDbConfigFromUrl(databaseUrl: string): PoolConfig {
     idleTimeout:
       parseNumber(url.searchParams.get("max_idle_connection_lifetime")) ??
       DEFAULT_IDLE_TIMEOUT_SECONDS,
-    connectionLimit:
+    connectionLimit: Math.max(
       parseNumber(url.searchParams.get("connection_limit")) ??
-      DEFAULT_CONNECTION_LIMIT,
+        DEFAULT_CONNECTION_LIMIT,
+      MIN_CONNECTION_LIMIT,
+    ),
     ssl: parseSslOption(url),
   };
 }

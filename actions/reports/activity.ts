@@ -1,10 +1,12 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import type { ReportFilters, ChartDataPoint } from "./types";
 import { groupedToChartData } from "./types";
 
 export async function getTasksCreatedCompleted(
   filters: ReportFilters
 ): Promise<{ name: string; created: number; completed: number }[]> {
+  await requireOrganizationId();
   const tasks = await prismadb.tasks.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo } },
     select: { createdAt: true, taskStatus: true },
@@ -26,12 +28,14 @@ export async function getTasksCreatedCompleted(
 }
 
 export async function getOverdueTasks(filters: ReportFilters): Promise<number> {
+  await requireOrganizationId();
   return prismadb.tasks.count({
     where: { dueDateAt: { lt: new Date(), gte: filters.dateFrom }, taskStatus: "ACTIVE" },
   });
 }
 
 export async function getTasksByAssignee(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const tasks = await prismadb.tasks.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo } },
     select: { assigned_user: { select: { name: true } } },
@@ -45,6 +49,7 @@ export async function getTasksByAssignee(filters: ReportFilters): Promise<ChartD
 }
 
 export async function getActivitiesByType(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const activities = await prismadb.crm_Activities.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo } },
     select: { type: true },

@@ -1,7 +1,9 @@
 import { cache } from "react";
 import { prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getProductsFull = cache(async () => {
+  await requireOrganizationId();
   const products = await prismadb.crm_Products.findMany({
     where: { deletedAt: null },
     include: {

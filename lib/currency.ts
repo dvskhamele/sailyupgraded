@@ -1,6 +1,8 @@
 import { Decimal } from "@prisma/client/runtime/client";
 import { isPrismaAccessDeniedError, isTransientPrismaConnectionError, prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 // Re-export pure functions so existing server-side imports still work
 export { findRate, convertAmount, formatCurrency } from "@/lib/currency-format";
 export type { Rate } from "@/lib/currency-format";
@@ -102,19 +104,23 @@ export async function getSnapshotRate(
 }
 
 export async function getDefaultCurrency(): Promise<string> {
-  try {
-    const setting = await prismadb.crm_SystemSettings.findUnique({
-      where: { key: "default_currency" },
-    });
-    return setting?.value || "USD";
-  } catch (error) {
-    if (!shouldUseCurrencyFallback(error)) {
-      throw error;
-    }
+  const organizationId = await requireOrganizationId();
 
-    warnCurrencyFallback("getDefaultCurrency", error);
-    return "USD";
-  }
+  return runWithOrganizationContext(organizationId, async () => {
+    try {
+      const setting = await prismadb.crm_SystemSettings.findUnique({
+        where: { key: "default_currency", organizationId },
+      });
+      return setting?.value || "USD";
+    } catch (error) {
+      if (!shouldUseCurrencyFallback(error)) {
+        throw error;
+      }
+
+      warnCurrencyFallback("getDefaultCurrency", error);
+      return "USD";
+    }
+  });
 }
 
 export async function getEnabledCurrencies() {

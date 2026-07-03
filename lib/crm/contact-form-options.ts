@@ -4,6 +4,7 @@ import {
   prismadb,
   withPrismaRetry,
 } from "@/lib/prisma";
+import { requireOrganizationContext } from "@/lib/organization-context";
 
 export type NamedOption = { id: string; name: string };
 
@@ -177,6 +178,8 @@ function shouldUseContactOptionsFallback(error: unknown) {
 }
 
 export async function getContactFormOptionsData() {
+  requireOrganizationContext();
+
   try {
     return await withPrismaRetry(async () => {
       const accounts = await prismadb.crm_Accounts.findMany({

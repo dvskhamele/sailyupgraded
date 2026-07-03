@@ -18,8 +18,9 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  let user;
   try {
-    const user = await getUser();
+    user = await getUser();
     if (!user.is_admin) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   } catch {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -37,6 +38,7 @@ export async function POST(request: NextRequest) {
 
   const series = await prismadb.invoice_Series.create({
     data: {
+      organizationId: user.organizationId,
       name,
       prefixTemplate,
       resetPolicy: resetPolicy ?? "YEARLY",

@@ -12,33 +12,29 @@ export type CurrentOrganization = {
 export async function findCurrentOrganizationForUser(
   userId: string,
 ): Promise<CurrentOrganization | null> {
-  try {
-    const membership = await prismadb.OrganizationMember.findFirst({
-      where: { userId },
-      orderBy: { createdAt: "asc" },
-      select: {
-        role: true,
-        organization: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-          },
+  const membership = await prismadb.organizationMember.findFirst({
+    where: { userId },
+    orderBy: { createdAt: "asc" },
+    select: {
+      role: true,
+      organization: {
+        select: {
+          id: true,
+          name: true,
+          slug: true,
         },
       },
-    });
+    },
+  });
 
-    if (!membership) {
-      return null;
-    }
-
-    return {
-      ...membership.organization,
-      role: membership.role,
-    };
-  } catch (e) {
-    // If tables don't exist (P2021) or other errors, return null
-    console.warn("[findCurrentOrganizationForUser] Error:", e);
+  if (!membership) {
     return null;
   }
+
+  return {
+    id: membership.organization.id,
+    name: membership.organization.name,
+    slug: membership.organization.slug,
+    role: membership.role as OrganizationRole,
+  };
 }

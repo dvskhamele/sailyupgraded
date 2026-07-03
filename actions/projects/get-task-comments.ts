@@ -1,5 +1,6 @@
 import { prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 /**
  * Fetch comments for a Projects task (`Tasks` model).
  *
@@ -8,6 +9,7 @@ import { prismadb } from "@/lib/prisma";
  * through this function.
  */
 export const getTaskComments = async (taskId: string) => {
+  await requireOrganizationId();
   const data = await prismadb.tasksComments.findMany({
     where: {
       task: taskId,

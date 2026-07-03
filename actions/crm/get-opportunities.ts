@@ -1,9 +1,11 @@
+import { requireOrganizationId } from "@/lib/auth-server";
 import {
   isPrismaAccessDeniedError,
   isTransientPrismaConnectionError,
   prismadb,
   resetPrisma,
 } from "@/lib/prisma";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 const bypassLogin =
   process.env.BYPASS_LOGIN === "true" ||
@@ -115,32 +117,38 @@ async function loadOpportunities() {
 }
 
 export const getOpportunities = async () => {
-  if (bypassLogin) {
-    return [];
-  }
+  const organizationId = await requireOrganizationId();
 
-  try {
-    return await loadOpportunities();
-  } catch (error) {
-    if (shouldUseFallback(error)) {
-      console.warn(
-        "[CRM] getOpportunities failed; using local fallback data.",
-        error instanceof Error ? error.message : error
-      );
+  return runWithOrganizationContext(organizationId, async () => {
+    if (bypassLogin) {
       return [];
     }
 
-    if (!isEndedPoolError(error)) {
-      throw error;
-    }
+    try {
+      return await loadOpportunities();
+    } catch (error) {
+      if (shouldUseFallback(error)) {
+        console.warn(
+          "[CRM] getOpportunities failed; using local fallback data.",
+          error instanceof Error ? error.message : error,
+        );
 
-    await resetPrisma();
-    return loadOpportunities();
-  }
+        return [];
+      }
+
+      if (!isEndedPoolError(error)) {
+        throw error;
+      }
+
+      await resetPrisma();
+      return loadOpportunities();
+    }
+  });
 };
 
 //Get opportunities by month for chart
 export const getOpportunitiesByMonth = async () => {
+  await requireOrganizationId();
   const opportunities = await prismadb.crm_Opportunities.findMany({
     where: { deletedAt: null },
     select: {
@@ -175,6 +183,7 @@ export const getOpportunitiesByMonth = async () => {
 
 //Get opportunities by sales_stage name for chart
 export const getOpportunitiesByStage = async () => {
+  await requireOrganizationId();
   const opportunities = await prismadb.crm_Opportunities.findMany({
     where: { deletedAt: null },
     select: {

@@ -2,6 +2,7 @@
 
 import { twilioClient, twilioPhoneNumber } from "@/lib/twilio";
 import { prisma } from "@/lib/prisma";
+import { getSession } from "@/lib/auth-server";
 
 export async function sendSMS({
   to,
@@ -19,9 +20,15 @@ export async function sendSMS({
   }
 
   try {
+    const session = await getSession();
+    if (!session?.user.organizationId) {
+      return { error: "Organization context is required" };
+    }
+
     // 1. Create a log entry in the database
     const logEntry = await prisma.crm_SMSLog.create({
       data: {
+        organizationId: session.user.organizationId,
         from: twilioPhoneNumber!,
         to,
         message,

@@ -6,6 +6,9 @@ import { revalidatePath } from "next/cache";
 export const addTargetsToList = async (targetListId: string, targetIds: string[]) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   if (!Array.isArray(targetIds) || targetIds.length === 0) {
     return { error: "targetIds must be a non-empty array" };
@@ -14,6 +17,7 @@ export const addTargetsToList = async (targetListId: string, targetIds: string[]
   try {
     const result = await prismadb.targetsToTargetLists.createMany({
       data: targetIds.map((id: string) => ({
+        organizationId: session.user.organizationId!,
         target_id: id,
         target_list_id: targetListId,
       })),

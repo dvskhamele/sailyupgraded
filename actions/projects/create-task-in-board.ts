@@ -16,6 +16,9 @@ export const createTaskInBoard = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { boardId, section, title, priority, content, user, dueDateAt } = data;
 
@@ -30,6 +33,7 @@ export const createTaskInBoard = async (data: {
 
       await prismadb.tasks.create({
         data: {
+          organizationId: session.user.organizationId,
           v: 0,
           priority: "normal",
           title: "New task",
@@ -64,6 +68,7 @@ export const createTaskInBoard = async (data: {
 
     const task = await prismadb.tasks.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         priority,
         title,

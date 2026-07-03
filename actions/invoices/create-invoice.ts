@@ -36,6 +36,7 @@ export async function createInvoice(raw: unknown) {
 
   const invoice = await prismadb.invoices.create({
     data: {
+      organizationId: user.organizationId,
       type: input.type,
       status: "DRAFT",
       createdBy: user.id,
@@ -60,6 +61,7 @@ export async function createInvoice(raw: unknown) {
         create: input.lineItems.map((l, i) => {
           const lt = computeLineTotal(lineInputs[i]);
           return {
+            organizationId: user.organizationId,
             position: l.position ?? i,
             productId: l.productId ?? null,
             description: l.description,
@@ -74,7 +76,7 @@ export async function createInvoice(raw: unknown) {
         }),
       },
       activity: {
-        create: { actorId: user.id, action: "CREATED" },
+        create: { organizationId: user.organizationId, actorId: user.id, action: "CREATED" },
       },
     },
   });

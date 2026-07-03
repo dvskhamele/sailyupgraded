@@ -1,6 +1,7 @@
 "use server";
 
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import {
   findNextAvailableSlot,
   getCampaignSlotWindow,
@@ -14,6 +15,7 @@ export async function getCampaignScheduleAvailability(
   scheduledAt: Date | string,
   excludeCampaignId?: string
 ) {
+  await requireOrganizationId();
   const normalizedScheduledAt = normalizeUtcDate(scheduledAt);
 
   if (!isFutureSchedule(normalizedScheduledAt)) {

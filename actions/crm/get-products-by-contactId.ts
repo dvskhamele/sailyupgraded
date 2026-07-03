@@ -1,9 +1,11 @@
 import { cache } from "react";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 import { prismadb, withPrismaRetry } from "@/lib/prisma";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 
 export const getProductsByContactId = cache(async (contactId: string) => {
+  await requireOrganizationId();
   return withPrismaRetry(async () => {
     const assignments = await prismadb.crm_AccountProducts.findMany({
       where: {

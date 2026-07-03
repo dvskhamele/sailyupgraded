@@ -1,8 +1,11 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationContext } from "@/lib/organization-context";
 import { createActivityFromRetailAIActivity } from "./activity-sync";
 import type { RetailAIActivityCreateInput } from "./types";
 
 export async function findRetailAIActivityByConversationId(conversationId: string) {
+  requireOrganizationContext();
+
   return prismadb.crm_RetailAIActivities.findFirst({
     where: {
       conversationId,
@@ -16,6 +19,8 @@ export async function findRetailAIActivityByConversationId(conversationId: strin
 }
 
 export async function upsertRetailAIActivityRecord(data: RetailAIActivityCreateInput) {
+  requireOrganizationContext();
+
   const upsertId = data.call_id || data.conversationId;
   
   console.log("[RETAIL AI REPOSITORY] Prisma upsert starting", {

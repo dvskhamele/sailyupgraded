@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prismadb } from "@/lib/prisma";
 import { revalidateTag } from "next/cache";
 import type { Prisma } from "@prisma/client";
+import { requireOrganizationId } from "@/lib/auth-server";
 
 const configTypeSupportsOrder: Record<string, boolean> = {
   salesStage: true,
@@ -16,6 +17,7 @@ const configTypeSupportsOrder: Record<string, boolean> = {
 
 export async function POST(req: Request) {
   try {
+    await requireOrganizationId();
     const { searchParams } = new URL(req.url);
     const body = await req.json();
     

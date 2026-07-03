@@ -164,6 +164,7 @@ export const updateContact = async (data: {
   if (!session.user.organizationId) return { error: "Organization context is required" };
 
   const userId = session.user.id;
+  const organizationId = session.user.organizationId;
   const {
     id,
     serial,
@@ -359,6 +360,7 @@ export const updateContact = async (data: {
 
       const opportunity = await prismadb.crm_Opportunities.create({
         data: {
+          organizationId,
           assigned_account: assigned_account
             ? { connect: { id: assigned_account } }
             : undefined,
@@ -369,6 +371,7 @@ export const updateContact = async (data: {
           contact: contact.id,
           contacts: {
             create: {
+              organizationId,
               contact: { connect: { id: contact.id } },
             },
           },

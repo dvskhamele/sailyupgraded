@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prismadb } from "@/lib/prisma";
+import { setOrganizationContext } from "@/lib/organization-context";
 import { sendSMS } from "@/actions/crm/sms/send-sms";
 import { createRetailAIActivityFromWebhook } from "@/lib/retail-ai/service";
 
@@ -155,6 +156,16 @@ export async function POST(request: Request) {
 
   const event = stringValue(payload.event);
   const call = payload.call || {};
+  const organizationId = process.env.NEXTCRM_REMOTE_ORGANIZATION_ID;
+
+  if (!organizationId) {
+    return NextResponse.json(
+      { error: "Remote organization is not configured" },
+      { status: 500 },
+    );
+  }
+
+  setOrganizationContext(organizationId);
   
   // Flexible Call ID Extraction
   const callId = stringValue(call.call_id) || 

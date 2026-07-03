@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import Container from "@/app/[locale]/(routes)/components/ui/Container";
 import { InvoiceForm } from "../../components/invoice-form";
 import { getInvoiceById } from "../../data/get-invoices";
@@ -10,6 +11,7 @@ interface Props {
 }
 
 export default async function EditInvoicePage({ params }: Props) {
+  await requireOrganizationId();
   const { invoiceId } = await params;
   const t = await getTranslations("InvoicesPage");
   const invoice = await getInvoiceById(invoiceId);

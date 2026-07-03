@@ -100,6 +100,11 @@ const createOperations = new Set([
   "upsert",
 ]);
 
+const unscopedNestedCreateRelationKeys = new Set([
+  "target_lists",
+  "watchers",
+]);
+
 function addOrganizationWhere(args: Record<string, any>, organizationId: string) {
   args.where = {
     ...(args.where ?? {}),
@@ -120,11 +125,13 @@ function addOrganizationToCreateData(data: unknown, organizationId: string) {
   }
 
   const record = data as Record<string, unknown>;
-  if (record.organizationId === undefined || record.organizationId === null) {
-    record.organizationId = organizationId;
-  }
+  record.organizationId = organizationId;
 
-  for (const value of Object.values(record)) {
+  for (const [key, value] of Object.entries(record)) {
+    if (unscopedNestedCreateRelationKeys.has(key)) {
+      continue;
+    }
+
     if (!value || typeof value !== "object") {
       continue;
     }
@@ -150,6 +157,19 @@ function addOrganizationToCreateData(data: unknown, organizationId: string) {
   }
 }
 
+function getExplicitOrganizationId(args: Record<string, any> | undefined) {
+  const candidates = [
+    args?.where?.organizationId,
+    args?.data?.organizationId,
+    args?.create?.organizationId,
+    args?.update?.organizationId,
+  ];
+
+  return candidates.find(
+    (candidate): candidate is string => typeof candidate === "string" && candidate.length > 0,
+  ) ?? null;
+}
+
 function scopeOrganizationArgs(
   model: string | undefined,
   operation: string,
@@ -159,9 +179,17 @@ function scopeOrganizationArgs(
     return args ?? {};
   }
 
-  const organizationId = getOrganizationContext();
+  const organizationId = getOrganizationContext() ?? getExplicitOrganizationId(args);
   if (!organizationId) {
-    return args ?? {};
+    console.error("[ORG_CONTEXT_MISSING]", {
+      model,
+      operation,
+      args,
+    });
+
+    throw new Error(
+      `Organization context is required for ${String(model)}.${String(operation)}`,
+    );
   }
 
   const nextArgs = args ?? {};
@@ -173,6 +201,7 @@ function scopeOrganizationArgs(
   if (createOperations.has(operation)) {
     if (operation === "upsert") {
       addOrganizationToCreateData(nextArgs.create, organizationId);
+      addOrganizationToCreateData(nextArgs.update, organizationId);
     } else {
       addOrganizationToCreateData(nextArgs.data, organizationId);
     }
@@ -295,20 +324,15 @@ const getPrisma = (): PrismaClient => {
     return _prisma;
   }
 
-  const shouldRefreshClient =
-    !global.cachedPrisma ||
-    global.cachedPrismaUrl !== databaseUrl ||
-    global.cachedPrismaSchemaSignature !== schemaSignature ||
-    global.cachedPrismaRuntimeVersion !== prismaRuntimeVersion;
-
-  if (shouldRefreshClient) {
-    const previousClient = global.cachedPrisma;
+  // Keep one pool per dev process. Recreating the client on HMR without fully
+  // awaiting disconnect leaves orphaned pools that exhaust connection limits.
+  if (!global.cachedPrisma) {
     global.cachedPrisma = prismaClientSingleton();
     global.cachedPrismaUrl = databaseUrl;
     global.cachedPrismaSchemaSignature = schemaSignature;
     global.cachedPrismaRuntimeVersion = prismaRuntimeVersion;
-    void disconnectClient(previousClient);
   }
+
   return global.cachedPrisma!;
 };
 

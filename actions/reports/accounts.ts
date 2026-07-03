@@ -1,8 +1,10 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import type { ReportFilters, ChartDataPoint } from "./types";
 import { groupedToChartData } from "./types";
 
 export async function getNewAccounts(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
     select: { createdAt: true },
@@ -17,6 +19,7 @@ export async function getNewAccounts(filters: ReportFilters): Promise<ChartDataP
 }
 
 export async function getAccountsByIndustry(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
     select: { industry_type: { select: { name: true } } },
@@ -30,6 +33,7 @@ export async function getAccountsByIndustry(filters: ReportFilters): Promise<Cha
 }
 
 export async function getTopAccountsByRevenue(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null, annual_revenue: { not: null } },
     select: { name: true, annual_revenue: true },
@@ -40,6 +44,7 @@ export async function getTopAccountsByRevenue(filters: ReportFilters): Promise<C
 }
 
 export async function getAccountsBySize(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const accounts = await prismadb.crm_Accounts.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
     select: { employees: true },

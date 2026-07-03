@@ -2,7 +2,9 @@ import { prismadb } from "@/lib/prisma";
 import { getExchangeRates, convertAmount } from "@/lib/currency";
 import { Decimal } from "@prisma/client/runtime/client";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getExpectedRevenue = async (displayCurrency: string) => {
+  await requireOrganizationId();
   const activeOpportunities = await prismadb.crm_Opportunities.findMany({
     where: {
       status: "ACTIVE",

@@ -1,10 +1,47 @@
 import { NextRequest, NextResponse } from "next/server";
-import { POST as authPost } from "@/app/api/auth/[...all]/route";
-import { isPrismaAccessDeniedError, prismadb } from "@/lib/prisma";
+import { makeSignature } from "better-auth/crypto";
+import { findCurrentOrganizationForUser } from "@/lib/organization-queries";
+import {
+  isPrismaAccessDeniedError,
+  prismadb,
+  withPrismaRetry,
+} from "@/lib/prisma";
 
-const testOtpIdentifier = (email: string) => `test-otp-${email.toLowerCase()}`;
-const fallbackOtpIdentifier = (email: string) => `fallback-otp-${email.toLowerCase()}`;
-const signInOtpIdentifier = (email: string) => `sign-in-otp-${email.toLowerCase()}`;
+const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
+const USER_NOT_REGISTERED_MESSAGE =
+  "Your account is not registered. Please contact administrator.";
+
+const otpIdentifiers = (email: string) => [
+  `sign-in-otp-${email}`,
+  `test-otp-${email}`,
+  `fallback-otp-${email}`,
+];
+
+function getAuthSecret() {
+  return process.env.BETTER_AUTH_SECRET || "development-secret-must-change";
+}
+
+function shouldUseSecureCookie() {
+  const authUrl =
+    process.env.BETTER_AUTH_URL ||
+    process.env.NEXT_PUBLIC_APP_URL ||
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined);
+
+  return authUrl?.startsWith("https://") || process.env.NODE_ENV === "production";
+}
+
+function getSessionCookieName() {
+  const prefix = shouldUseSecureCookie() ? "__Secure-" : "";
+  return `${prefix}better-auth.session_token`;
+}
+
+async function signSessionToken(token: string) {
+  return `${token}.${await makeSignature(token, getAuthSecret())}`;
+}
+
+function getOtpValueCandidates(otp: string) {
+  return [otp, `${otp}:0`];
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,45 +57,136 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const verification = await prismadb.verification.findFirst({
-      where: {
-        identifier: {
-          in: [testOtpIdentifier(email), fallbackOtpIdentifier(email)],
+    const normalizedEmail = email.trim().toLowerCase();
+
+    const result = await withPrismaRetry(async () => {
+      const verification = await prismadb.verification.findFirst({
+        where: {
+          identifier: {
+            in: otpIdentifiers(normalizedEmail),
+          },
+          value: {
+            in: getOtpValueCandidates(otp),
+          },
+          expiresAt: { gt: new Date() },
         },
-        value: otp,
-        expiresAt: { gt: new Date() },
-      },
-      orderBy: { createdAt: "desc" },
+        orderBy: { createdAt: "desc" },
+      });
+
+      if (!verification) {
+        return {
+          error: "Invalid or expired OTP",
+          status: 401,
+        } as const;
+      }
+
+      const user = await prismadb.users.findUnique({
+        where: { email: normalizedEmail },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          image: true,
+          role: true,
+          userStatus: true,
+          userLanguage: true,
+        },
+      });
+
+      if (!user) {
+        return {
+          error: USER_NOT_REGISTERED_MESSAGE,
+          status: 401,
+        } as const;
+      }
+
+      const organization = await findCurrentOrganizationForUser(user.id);
+      if (!organization) {
+        return {
+          error: "No organization is assigned to this user.",
+          status: 403,
+        } as const;
+      }
+
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + SESSION_MAX_AGE_SECONDS * 1000);
+      const sessionToken = crypto.randomUUID();
+
+      const [session] = await prismadb.$transaction([
+        prismadb.session.create({
+          data: {
+            token: sessionToken,
+            userId: user.id,
+            expiresAt,
+            ipAddress:
+              request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+              request.headers.get("x-real-ip"),
+            userAgent: request.headers.get("user-agent"),
+          },
+        }),
+        prismadb.users.update({
+          where: { id: user.id },
+          data: {
+            lastLoginAt: now,
+            emailVerified: true,
+          },
+        }),
+        prismadb.verification.deleteMany({
+          where: {
+            identifier: {
+              in: otpIdentifiers(normalizedEmail),
+            },
+          },
+        }),
+      ]);
+
+      return {
+        session,
+        sessionToken,
+        user,
+        organization,
+        expiresAt,
+      } as const;
     });
 
-    if (!verification) {
+    if ("error" in result) {
       return NextResponse.json(
-        { success: false, error: "Invalid or expired OTP" },
-        { status: 401 }
+        { success: false, error: result.error },
+        { status: result.status },
       );
     }
 
-    await prismadb.verification.deleteMany({
-      where: {
-        identifier: signInOtpIdentifier(email),
+    const response = NextResponse.json({
+      success: true,
+      user: {
+        id: result.user.id,
+        email: result.user.email,
+        name: result.user.name,
+        image: result.user.image,
+        role: result.user.role,
+        userStatus: result.user.userStatus,
+        userLanguage: result.user.userLanguage,
+        organizationId: result.organization.id,
+        organizationRole: result.organization.role,
+      },
+      organization: result.organization,
+      session: {
+        expiresAt: result.session.expiresAt,
       },
     });
 
-    await prismadb.verification.create({
-      data: {
-        identifier: signInOtpIdentifier(email),
-        value: `${otp}:0`,
-        expiresAt: verification.expiresAt,
-      },
+    response.cookies.set({
+      name: getSessionCookieName(),
+      value: await signSessionToken(result.sessionToken),
+      httpOnly: true,
+      secure: shouldUseSecureCookie(),
+      sameSite: "lax",
+      path: "/",
+      maxAge: SESSION_MAX_AGE_SECONDS,
+      expires: result.expiresAt,
     });
 
-    const forwardedRequest = new Request(request.url, {
-      method: "POST",
-      headers: request.headers,
-      body: JSON.stringify({ email, otp }),
-    });
-
-    return await authPost(forwardedRequest);
+    return response;
   } catch (error) {
     console.error("[OTP Sign-In] Failed to sign in with OTP", error);
 

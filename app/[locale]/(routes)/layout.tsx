@@ -1,22 +1,25 @@
-import { getSession } from "@/lib/auth-server";
+import { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-
-import Header from "./components/Header";
-import Footer from "./components/Footer";
-
-import { Metadata } from "next";
-import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
-import { AppSidebar } from "./components/app-sidebar";
 import { getTranslations } from "next-intl/server";
+
+import { getSession } from "@/lib/auth-server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
+
+import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AvatarProvider } from "@/context/avatar-context";
 import { CurrencyProvider } from "@/context/currency-context";
+
 import { getEnabledCurrencies, getDefaultCurrency } from "@/lib/currency";
 import { getCrmSidebarCounts } from "@/actions/crm/sidebar/get-sidebar-counts";
 
+import Header from "./components/Header";
+import Footer from "./components/Footer";
+import { AppSidebar } from "./components/app-sidebar";
+
 export const metadata: Metadata = {
   metadataBase: new URL(
-    process.env.NEXT_PUBLIC_APP_URL! || "http://localhost:3000"
+    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000",
   ),
   title: "",
   description: "",
@@ -43,109 +46,119 @@ export const metadata: Metadata = {
   },
 };
 
-export default async function AppLayout({
-  children,
-}: {
+type AppLayoutProps = {
   children: React.ReactNode;
-}) {
+  params: Promise<{
+    locale: string;
+  }>;
+};
+
+export default async function AppLayout({ children, params }: AppLayoutProps) {
+  const { locale } = await params;
+
   const session = await getSession();
 
-  //console.log(session, "session");
-
   if (!session) {
-    return redirect("/sign-in");
+    redirect(`/${locale}/sign-in`);
   }
 
-  const user = session?.user;
+  const user = session.user;
 
-  if (user?.userStatus === "PENDING") {
-    return redirect("/pending");
+  if (user.userStatus === "INACTIVE") {
+    redirect(`/${locale}/inactive`);
   }
 
-  if (user?.userStatus === "INACTIVE") {
-    return redirect("/inactive");
+  if (!user.organizationId) {
+    redirect(`/${locale}/create-organization`);
   }
 
-  if (!user?.organizationId) {
-    return redirect("/create-organization");
+  if (user.userStatus === "PENDING") {
+    redirect(`/${locale}/pending`);
   }
 
-  // Fetch localization dictionary
-  const dict = await getTranslations("ModuleMenu");
+  return runWithOrganizationContext(user.organizationId, async () => {
+    const dict = await getTranslations("ModuleMenu");
 
-  // Extract translations as plain object for client component
-  const translations = {
-    dashboard: dict("dashboard"),
-    crm: {
-      title: dict("crm.title"),
-      accounts: dict("crm.accounts"),
-      opportunities: dict("crm.opportunities"),
-      contacts: dict("crm.contacts"),
-      leads: dict("crm.leads"),
-      contracts: dict("crm.contracts"),
-      products: dict("crm.products"),
-    },
-    campaigns: {
-      title: dict("campaigns.title"),
-      // campaigns: dict("campaigns.campaigns"),
-      templates: dict("campaigns.templates"),
-      // targets: dict("campaigns.targets"),
-      // targetLists: dict("campaigns.targetLists"),
-    },
-    projects: dict("projects"),
-    emails: dict("emails"),
-    reports: dict("reports"),
-    documents: dict("documents"),
-    invoices: dict("invoices"),
-    settings: dict("settings"),
-  };
+    const translations = {
+      dashboard: dict("dashboard"),
+      crm: {
+        title: dict("crm.title"),
+        accounts: dict("crm.accounts"),
+        opportunities: dict("crm.opportunities"),
+        contacts: dict("crm.contacts"),
+        leads: dict("crm.leads"),
+        contracts: dict("crm.contracts"),
+        products: dict("crm.products"),
+      },
+      campaigns: {
+        title: dict("campaigns.title"),
+        templates: dict("campaigns.templates"),
+      },
+      projects: dict("projects"),
+      emails: dict("emails"),
+      reports: dict("reports"),
+      documents: dict("documents"),
+      invoices: dict("invoices"),
+      settings: dict("settings"),
+    };
 
-  const [cookieStore, sidebarCounts, enabledCurrencies, defaultCurrency] =
-    await Promise.all([
-      cookies(),
-      getCrmSidebarCounts(),
-      getEnabledCurrencies(),
-      getDefaultCurrency(),
-    ]);
-  const sidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
-  const cookieCurrency = cookieStore.get("display_currency")?.value;
-  const displayCurrency = cookieCurrency && enabledCurrencies.some((c: { code: string }) => c.code === cookieCurrency)
-    ? cookieCurrency
-    : defaultCurrency;
-  const currencyList = enabledCurrencies.map((c: { code: string; name: string; symbol: string }) => ({ code: c.code, name: c.name, symbol: c.symbol }));
+    const [cookieStore, sidebarCounts, enabledCurrencies, defaultCurrency] =
+      await Promise.all([
+        cookies(),
+        getCrmSidebarCounts(),
+        getEnabledCurrencies(),
+        getDefaultCurrency(),
+      ]);
 
-  //console.log(typeof build, "build");
-  return (
-    <AvatarProvider initialAvatar={user?.image}>
-    <CurrencyProvider initialCurrency={displayCurrency} currencies={currencyList}>
-    <SidebarProvider defaultOpen={sidebarOpen}>
-      <AppSidebar
-        dict={translations}
-        session={session}
-        counts={sidebarCounts}
-      />
-      <SidebarInset>
-        <Header
-          id={session.user.id as string}
-          lang={session.user.userLanguage as string}
-        />
-        {/*
-          Task Group 3.3: Footer Relocation
-          - Footer has been moved inside the scrollable content area
-          - This allows the footer to scroll with the page content
-          - Footer will appear at the bottom of the content, not fixed at viewport bottom
-        */}
-        <div className="flex flex-col flex-grow overflow-y-auto h-full w-full min-w-0">
-          <div className="flex-grow w-full min-w-0">
-            <div className="w-full px-4 min-w-0">
-              {children}
-            </div>
-          </div>
-          <Footer />
-        </div>
-      </SidebarInset>
-    </SidebarProvider>
-    </CurrencyProvider>
-    </AvatarProvider>
-  );
+    const sidebarOpen = cookieStore.get("sidebar_state")?.value !== "false";
+    const cookieCurrency = cookieStore.get("display_currency")?.value;
+
+    const displayCurrency =
+      cookieCurrency &&
+      enabledCurrencies.some(
+        (currency: { code: string }) => currency.code === cookieCurrency,
+      )
+        ? cookieCurrency
+        : defaultCurrency;
+
+    const currencyList = enabledCurrencies.map(
+      (currency: { code: string; name: string; symbol: string }) => ({
+        code: currency.code,
+        name: currency.name,
+        symbol: currency.symbol,
+      }),
+    );
+
+    return (
+      <AvatarProvider initialAvatar={user.image}>
+        <CurrencyProvider
+          initialCurrency={displayCurrency}
+          currencies={currencyList}
+        >
+          <SidebarProvider defaultOpen={sidebarOpen}>
+            <AppSidebar
+              dict={translations}
+              session={session}
+              counts={sidebarCounts}
+            />
+
+            <SidebarInset>
+              <Header
+                id={user.id as string}
+                lang={user.userLanguage as string}
+              />
+
+              <div className="flex h-full w-full min-w-0 flex-grow flex-col overflow-y-auto">
+                <div className="w-full min-w-0 flex-grow">
+                  <div className="w-full min-w-0 px-4">{children}</div>
+                </div>
+
+                <Footer />
+              </div>
+            </SidebarInset>
+          </SidebarProvider>
+        </CurrencyProvider>
+      </AvatarProvider>
+    );
+  });
 }

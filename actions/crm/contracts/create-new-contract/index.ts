@@ -17,6 +17,9 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       error: "User not logged in.",
     };
   }
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const user = await prismadb.users.findUnique({
     where: {
@@ -58,6 +61,7 @@ const handler = async (data: InputType): Promise<ReturnType> => {
       : null;
     const result = await prismadb.crm_Contracts.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         title,
         value: parseFloat(value),

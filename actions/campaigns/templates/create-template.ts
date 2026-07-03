@@ -1,5 +1,5 @@
 "use server";
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 
 export const createTemplate = async (data: {
@@ -10,7 +10,8 @@ export const createTemplate = async (data: {
   content_json: object;
 }) => {
   const session = await getSession();
+  const organizationId = await requireOrganizationId();
   return prismadb.crm_campaign_templates.create({
-    data: { ...data, created_by: session?.user?.id ?? null },
+    data: { ...data, organizationId, created_by: session?.user?.id ?? null },
   });
 };

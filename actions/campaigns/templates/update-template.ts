@@ -1,5 +1,6 @@
 "use server";
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 
 export const updateTemplate = async (
   id: string,
@@ -11,6 +12,7 @@ export const updateTemplate = async (
     content_json: object;
   }>
 ) => {
+  await requireOrganizationId();
   // Only update non-deleted templates
   const existing = await prismadb.crm_campaign_templates.findFirst({ where: { id, deletedAt: null } });
   if (!existing) return null;

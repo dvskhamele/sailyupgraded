@@ -1,7 +1,9 @@
+import { cache } from "react";
+
 import { auth } from "@/lib/auth";
 import { setOrganizationContext } from "@/lib/organization-context";
 import { findCurrentOrganizationForUser } from "@/lib/organization-queries";
-import { isTransientPrismaConnectionError, resetPrisma } from "@/lib/prisma";
+import { isTransientPrismaConnectionError, withPrismaRetry } from "@/lib/prisma";
 import { headers } from "next/headers";
 
 // TODO: Add requireRole() helper for viewer restriction enforcement
@@ -19,6 +21,8 @@ export type AppSession = NonNullable<BaseSession> & {
     organizationRole: "admin" | "member" | "viewer" | null;
   };
 };
+
+export type OrganizationRole = AppSession["user"]["organizationRole"];
 
 function createGuestSession() {
   const now = new Date();
@@ -81,40 +85,67 @@ async function enrichSessionWithOrganization(
   } as AppSession;
 }
 
-export async function getSession(): Promise<AppSession | null> {
+async function loadSession(): Promise<AppSession | null> {
   const requestHeaders = await headers();
 
   try {
-    const session = await auth.api.getSession({
-      headers: requestHeaders,
-    });
-    return enrichSessionWithOrganization(
-      session ?? (bypassLogin ? createGuestSession() : null),
-    );
-  } catch (error) {
-    if (!isTransientPrismaConnectionError(error)) {
-      console.warn(
-        "[AUTH_GET_SESSION]",
-        error instanceof Error ? error.message : error,
-      );
-      return bypassLogin ? createGuestSession() : null;
-    }
-
-    await resetPrisma();
-    await new Promise((resolve) => setTimeout(resolve, 150));
-
-    try {
+    return await withPrismaRetry(async () => {
       const session = await auth.api.getSession({
         headers: requestHeaders,
       });
       return enrichSessionWithOrganization(
         session ?? (bypassLogin ? createGuestSession() : null),
       );
-    } catch {
+    });
+  } catch (error) {
+    if (isTransientPrismaConnectionError(error)) {
       console.warn(
         "[AUTH_GET_SESSION] database pool timeout after retry; continuing without session.",
       );
-      return bypassLogin ? createGuestSession() : null;
+    } else {
+      console.warn(
+        "[AUTH_GET_SESSION]",
+        error instanceof Error ? error.message : error,
+      );
     }
+
+    return bypassLogin ? createGuestSession() : null;
   }
+}
+
+export const getSession = cache(loadSession);
+
+export async function requireOrganization() {
+  const session = await getSession();
+
+  if (!session?.user?.id) {
+    throw new Error("Authentication is required");
+  }
+
+  if (!session.user.organizationId) {
+    throw new Error("Organization context is required");
+  }
+
+  return {
+    session,
+    organizationId: session.user.organizationId,
+    role: session.user.organizationRole,
+  };
+}
+
+export async function requireOrganizationId() {
+  const { organizationId } = await requireOrganization();
+  return organizationId;
+}
+
+export async function requireRole(
+  allowedRoles: Exclude<OrganizationRole, null>[],
+) {
+  const organization = await requireOrganization();
+
+  if (!organization.role || !allowedRoles.includes(organization.role)) {
+    throw new Error("Insufficient organization permissions");
+  }
+
+  return organization;
 }

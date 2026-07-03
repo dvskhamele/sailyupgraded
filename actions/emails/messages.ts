@@ -12,7 +12,11 @@ const MAX_COUNT = 10_000;
 async function requireSession() {
   const session = await getSession();
   if (!session?.user?.id) throw new Error("Unauthorized");
-  return session.user.id as string;
+  if (!session.user.organizationId) throw new Error("Organization context is required");
+  return {
+    userId: session.user.id as string,
+    organizationId: session.user.organizationId,
+  };
 }
 
 export async function getEmails(
@@ -21,7 +25,7 @@ export async function getEmails(
   page: number,
   search?: string
 ) {
-  const userId = await requireSession();
+  const { userId } = await requireSession();
 
   const baseWhere = {
     userId,
@@ -67,7 +71,7 @@ export async function getEmails(
 }
 
 export async function getEmail(id: string) {
-  const userId = await requireSession();
+  const { userId } = await requireSession();
   const email = await prismadb.email.findFirst({
     where: { id, userId, isDeleted: false },
     include: {
@@ -137,7 +141,7 @@ export async function getEmail(id: string) {
 }
 
 export async function deleteEmail(id: string) {
-  const userId = await requireSession();
+  const { userId } = await requireSession();
   const email = await prismadb.email.findFirst({ where: { id, userId, isDeleted: false } });
   if (!email) throw new Error("Not found");
   await prismadb.email.update({ where: { id }, data: { isDeleted: true } });
@@ -155,7 +159,7 @@ type SendInput = {
 };
 
 export async function sendEmail(input: SendInput) {
-  const userId = await requireSession();
+  const { userId, organizationId } = await requireSession();
 
   const account = await prismadb.emailAccount.findFirst({
     where: { id: input.accountId, userId },
@@ -185,6 +189,7 @@ export async function sendEmail(input: SendInput) {
   // Write sent message to DB immediately so it appears in Sent view
   await prismadb.email.create({
     data: {
+      organizationId,
       emailAccountId: input.accountId,
       userId,
       rfcMessageId: info.messageId ?? `local-${crypto.randomUUID()}@nextcrm`,

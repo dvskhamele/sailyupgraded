@@ -17,9 +17,13 @@ interface CreateDocumentInput {
 export async function createDocument(input: CreateDocumentInput) {
   const session = await getSession();
   if (!session) throw new Error("Unauthorized");
+  if (!session.user.organizationId) {
+    throw new Error("Organization context is required");
+  }
 
   const document = await prismadb.documents.create({
     data: {
+      organizationId: session.user.organizationId,
       v: 0,
       document_name: input.name,
       description: "new document",
@@ -33,7 +37,14 @@ export async function createDocument(input: CreateDocumentInput) {
       createdBy: session.user.id,
       assigned_user: session.user.id,
       ...(input.accountId
-        ? { accounts: { create: { account_id: input.accountId } } }
+        ? {
+            accounts: {
+              create: {
+                organizationId: session.user.organizationId,
+                account_id: input.accountId,
+              },
+            },
+          }
         : {}),
     },
   });

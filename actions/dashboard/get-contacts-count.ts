@@ -1,8 +1,10 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import { getSession } from "@/lib/auth-server";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 export const getContactCount = async () => {
+  await requireOrganizationId();
   const session = await getSession();
   if (!session) return 0;
 

@@ -10,6 +10,16 @@ export function getOrganizationContext() {
   return organizationContext.getStore()?.organizationId ?? null;
 }
 
+export function requireOrganizationContext() {
+  const organizationId = getOrganizationContext();
+
+  if (!organizationId) {
+    throw new Error("Organization context is required");
+  }
+
+  return organizationId;
+}
+
 export function setOrganizationContext(organizationId: string | null) {
   organizationContext.enterWith({ organizationId });
 }

@@ -1,4 +1,5 @@
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import type { ReportFilters, ChartDataPoint } from "./types";
 import { groupedToChartData } from "./types";
 
@@ -14,6 +15,7 @@ function groupByMonth(items: { createdAt?: Date | null }[]): ChartDataPoint[] {
 }
 
 export async function getNewLeads(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const leads = await prismadb.crm_Leads.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
     select: { createdAt: true },
@@ -22,6 +24,7 @@ export async function getNewLeads(filters: ReportFilters): Promise<ChartDataPoin
 }
 
 export async function getLeadSources(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const leads = await prismadb.crm_Leads.findMany({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
     select: { lead_source: { select: { name: true } } },
@@ -35,6 +38,7 @@ export async function getLeadSources(filters: ReportFilters): Promise<ChartDataP
 }
 
 export async function getConversionRate(filters: ReportFilters): Promise<{ leads: number; converted: number; rate: number }> {
+  await requireOrganizationId();
   const leads = await prismadb.crm_Leads.count({
     where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
   });
@@ -45,6 +49,7 @@ export async function getConversionRate(filters: ReportFilters): Promise<{ leads
 }
 
 export async function getNewContacts(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const contacts = await prismadb.crm_Contacts.findMany({
     where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
     select: { created_on: true },
@@ -53,6 +58,7 @@ export async function getNewContacts(filters: ReportFilters): Promise<ChartDataP
 }
 
 export async function getContactsByAccount(filters: ReportFilters): Promise<ChartDataPoint[]> {
+  await requireOrganizationId();
   const contacts = await prismadb.crm_Contacts.findMany({
     where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
     select: { assigned_accounts: { select: { name: true } } },

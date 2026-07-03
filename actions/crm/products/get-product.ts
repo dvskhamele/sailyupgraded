@@ -1,7 +1,9 @@
 import { cache } from "react";
 import { prismadb } from "@/lib/prisma";
 
+import { requireOrganizationId } from "@/lib/auth-server";
 export const getProduct = cache(async (id: string) => {
+  await requireOrganizationId();
   const product = await prismadb.crm_Products.findUnique({
     where: { id },
     include: {

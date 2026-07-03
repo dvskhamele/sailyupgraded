@@ -10,6 +10,9 @@ export const createProject = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { title, description, visibility } = data;
   if (!title) return { error: "Missing project name" };
@@ -20,6 +23,7 @@ export const createProject = async (data: {
 
     const newBoard = await prismadb.boards.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         user: session.user.id,
         title,
@@ -33,6 +37,7 @@ export const createProject = async (data: {
 
     await prismadb.sections.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         board: newBoard.id,
         title: "Backlog",

@@ -115,7 +115,11 @@ export async function issueInvoice(raw: unknown) {
           grandTotal: totals.grandTotal.toString(),
           balanceDue: totals.grandTotal.toString(),
           activity: {
-            create: { actorId: user.id, action: "ISSUED" },
+            create: {
+              organizationId: user.organizationId,
+              actorId: user.id,
+              action: "ISSUED",
+            },
           },
         },
         include: {
@@ -127,7 +131,7 @@ export async function issueInvoice(raw: unknown) {
       return updated;
     },
     { isolationLevel: "Serializable" }
-  );
+  ) as typeof invoice;
 
   // After transaction: generate PDF (non-blocking for the legal issuance)
   try {

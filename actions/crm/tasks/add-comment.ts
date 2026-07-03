@@ -9,6 +9,9 @@ export const addComment = async (data: {
 }) => {
   const session = await getSession();
   if (!session) return { error: "Unauthorized" };
+  if (!session.user.organizationId) {
+    return { error: "Organization context is required" };
+  }
 
   const { taskId, comment } = data;
 
@@ -27,6 +30,7 @@ export const addComment = async (data: {
     // writing taskId there would violate the FK constraint.
     const newComment = await prismadb.tasksComments.create({
       data: {
+        organizationId: session.user.organizationId,
         v: 0,
         comment,
         assigned_crm_account_task: taskId,

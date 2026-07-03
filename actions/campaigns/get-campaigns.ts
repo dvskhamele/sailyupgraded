@@ -1,8 +1,10 @@
 "use server";
 import { prismadb } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import { sortCampaignQueue } from "@/lib/campaigns/scheduling";
 
 export const getCampaigns = async (filters?: { status?: string; search?: string }) => {
+  await requireOrganizationId();
   const campaigns = await prismadb.crm_campaigns.findMany({
     where: {
       status: { not: "deleted" },

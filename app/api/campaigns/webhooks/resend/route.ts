@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prismadb } from "@/lib/prisma";
 import { createHmac } from "crypto";
+import { setOrganizationContext } from "@/lib/organization-context";
 
 function verifyResendSignature(body: string, signature: string | null): boolean {
   if (!signature || !process.env.RESEND_WEBHOOK_SECRET) return false;
@@ -26,10 +27,24 @@ export async function POST(req: NextRequest) {
   const messageId = event.data.message_id ?? event.data.email_id;
   if (!messageId) return NextResponse.json({ ok: true });
 
-  const send = await prismadb.crm_campaign_sends.findFirst({
-    where: { resend_message_id: messageId },
-  });
+  const sendRows = await prismadb.$queryRaw<
+    Array<{
+      id: string;
+      organizationId: string;
+      status: string;
+      opened_at: Date | null;
+      clicked_at: Date | null;
+    }>
+  >`
+    SELECT id, organizationId, status, opened_at, clicked_at
+    FROM crm_campaign_sends
+    WHERE resend_message_id = ${messageId}
+    LIMIT 1
+  `;
+  const send = sendRows[0];
   if (!send) return NextResponse.json({ ok: true }); // unknown message
+
+  setOrganizationContext(send.organizationId);
 
   switch (event.type) {
     case "email.delivered":
