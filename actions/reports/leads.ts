@@ -1,5 +1,6 @@
 import { prismadb } from "@/lib/prisma";
 import { requireOrganizationId } from "@/lib/auth-server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 import type { ReportFilters, ChartDataPoint } from "./types";
 import { groupedToChartData } from "./types";
 
@@ -15,58 +16,68 @@ function groupByMonth(items: { createdAt?: Date | null }[]): ChartDataPoint[] {
 }
 
 export async function getNewLeads(filters: ReportFilters): Promise<ChartDataPoint[]> {
-  await requireOrganizationId();
-  const leads = await prismadb.crm_Leads.findMany({
-    where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
-    select: { createdAt: true },
+  const organizationId = await requireOrganizationId();
+  return runWithOrganizationContext(organizationId, async () => {
+    const leads = await prismadb.crm_Leads.findMany({
+      where: { organizationId, createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
+      select: { createdAt: true },
+    });
+    return groupByMonth(leads);
   });
-  return groupByMonth(leads);
 }
 
 export async function getLeadSources(filters: ReportFilters): Promise<ChartDataPoint[]> {
-  await requireOrganizationId();
-  const leads = await prismadb.crm_Leads.findMany({
-    where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
-    select: { lead_source: { select: { name: true } } },
+  const organizationId = await requireOrganizationId();
+  return runWithOrganizationContext(organizationId, async () => {
+    const leads = await prismadb.crm_Leads.findMany({
+      where: { organizationId, createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
+      select: { lead_source: { select: { name: true } } },
+    });
+    const grouped: Record<string, number> = {};
+    for (const lead of leads) {
+      const source = lead.lead_source?.name ?? "Unknown";
+      grouped[source] = (grouped[source] || 0) + 1;
+    }
+    return groupedToChartData(grouped);
   });
-  const grouped: Record<string, number> = {};
-  for (const lead of leads) {
-    const source = lead.lead_source?.name ?? "Unknown";
-    grouped[source] = (grouped[source] || 0) + 1;
-  }
-  return groupedToChartData(grouped);
 }
 
 export async function getConversionRate(filters: ReportFilters): Promise<{ leads: number; converted: number; rate: number }> {
-  await requireOrganizationId();
-  const leads = await prismadb.crm_Leads.count({
-    where: { createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
+  const organizationId = await requireOrganizationId();
+  return runWithOrganizationContext(organizationId, async () => {
+    const leads = await prismadb.crm_Leads.count({
+      where: { organizationId, createdAt: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
+    });
+    const converted = await prismadb.crm_Opportunities.count({
+      where: { organizationId, created_on: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
+    });
+    return { leads, converted, rate: leads > 0 ? Math.round((converted / leads) * 100) : 0 };
   });
-  const converted = await prismadb.crm_Opportunities.count({
-    where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo }, deletedAt: null },
-  });
-  return { leads, converted, rate: leads > 0 ? Math.round((converted / leads) * 100) : 0 };
 }
 
 export async function getNewContacts(filters: ReportFilters): Promise<ChartDataPoint[]> {
-  await requireOrganizationId();
-  const contacts = await prismadb.crm_Contacts.findMany({
-    where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
-    select: { created_on: true },
+  const organizationId = await requireOrganizationId();
+  return runWithOrganizationContext(organizationId, async () => {
+    const contacts = await prismadb.crm_Contacts.findMany({
+      where: { organizationId, created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
+      select: { created_on: true },
+    });
+    return groupByMonth(contacts.map((c) => ({ createdAt: c.created_on })));
   });
-  return groupByMonth(contacts.map((c) => ({ createdAt: c.created_on })));
 }
 
 export async function getContactsByAccount(filters: ReportFilters): Promise<ChartDataPoint[]> {
-  await requireOrganizationId();
-  const contacts = await prismadb.crm_Contacts.findMany({
-    where: { created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
-    select: { assigned_accounts: { select: { name: true } } },
+  const organizationId = await requireOrganizationId();
+  return runWithOrganizationContext(organizationId, async () => {
+    const contacts = await prismadb.crm_Contacts.findMany({
+      where: { organizationId, created_on: { gte: filters.dateFrom, lte: filters.dateTo } },
+      select: { assigned_accounts: { select: { name: true } } },
+    });
+    const grouped: Record<string, number> = {};
+    for (const c of contacts) {
+      const name = c.assigned_accounts?.name ?? "Unassigned";
+      grouped[name] = (grouped[name] || 0) + 1;
+    }
+    return groupedToChartData(grouped);
   });
-  const grouped: Record<string, number> = {};
-  for (const c of contacts) {
-    const name = c.assigned_accounts?.name ?? "Unassigned";
-    grouped[name] = (grouped[name] || 0) + 1;
-  }
-  return groupedToChartData(grouped);
 }
