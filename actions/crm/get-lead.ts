@@ -1,65 +1,70 @@
 import { prismadb } from "@/lib/prisma";
-
 import { requireOrganizationId } from "@/lib/auth-server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
+
 export const getLead = async (leadId: string) => {
-  await requireOrganizationId();
-  const data = await prismadb.crm_Leads.findFirst({
-    where: {
-      id: leadId,
-      deletedAt: null,
-    },
-    include: {
-      // Include FK relation name fields
-      contact_type: { select: { id: true, name: true } },
-      lead_source: { select: { id: true, name: true } },
-      lead_status: { select: { id: true, name: true } },
-      lead_type:   { select: { id: true, name: true } },
-      // Include assigned user (uses "LeadAssignedTo" relation)
-      assigned_to_user: {
-        select: {
-          id: true,
-          name: true,
-        },
+  const organizationId = await requireOrganizationId();
+
+  return runWithOrganizationContext(organizationId, async () => {
+    const data = await prismadb.crm_Leads.findFirst({
+      where: {
+        id: leadId,
+        organizationId,
+        deletedAt: null,
       },
-      // Include assigned accounts and their linked products
-      assigned_accounts: {
-        include: {
-          accountProducts: {
-            where: { status: "ACTIVE" },
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
+      include: {
+        // Include FK relation name fields
+        contact_type: { select: { id: true, name: true } },
+        lead_source: { select: { id: true, name: true } },
+        lead_status: { select: { id: true, name: true } },
+        lead_type:   { select: { id: true, name: true } },
+        // Include assigned user (uses "LeadAssignedTo" relation)
+        assigned_to_user: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
+        // Include assigned accounts and their linked products
+        assigned_accounts: {
+          include: {
+            accountProducts: {
+              where: { status: "ACTIVE" },
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        // Include documents through DocumentsToLeads junction table
+        documents: {
+          include: {
+            document: {
+              select: {
+                id: true,
+                document_name: true,
+                document_type: true,
+                document_file_url: true,
+                document_file_mimeType: true,
+                createdAt: true,
+                created_by: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
                 },
               },
             },
           },
         },
       },
-      // Include documents through DocumentsToLeads junction table
-      documents: {
-        include: {
-          document: {
-            select: {
-              id: true,
-              document_name: true,
-              document_type: true,
-              document_file_url: true,
-              document_file_mimeType: true,
-              createdAt: true,
-              created_by: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
-                },
-              },
-            },
-          },
-        },
-      },
-    },
+    });
+    return data;
   });
-  return data;
 };

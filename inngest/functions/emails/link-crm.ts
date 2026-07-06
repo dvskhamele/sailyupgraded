@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 import { decrypt } from "@/lib/email-crypto";
 import { fetchBodyByUid } from "@/inngest/lib/imap-utils";
 
@@ -21,9 +22,15 @@ export const emailLinkCrm = inngest.createFunction(
         imapUid: true,
         folder: true,
         emailAccountId: true,
+        emailAccount: {
+          select: { organizationId: true }
+        }
       },
     });
     if (!email) return { skipped: "not found" };
+
+    const organizationId = email.emailAccount?.organizationId;
+    if (!organizationId) return { skipped: "no organization found" };
 
     // Collect all addresses (exclude BCC — privacy)
     const addresses = [
@@ -37,28 +44,30 @@ export const emailLinkCrm = inngest.createFunction(
     if (addresses.length === 0) return { linked: 0 };
 
     const linked = await step.run("match-and-link", async () => {
-      const [contacts, accounts] = await Promise.all([
-        prismadb.crm_Contacts.findMany({
-          where: { email: { in: addresses } },
-          select: { id: true },
-        }),
-        prismadb.crm_Accounts.findMany({
-          where: { email: { in: addresses } },
-          select: { id: true },
-        }),
-      ]);
+      return runWithOrganizationContext(organizationId, async () => {
+        const [contacts, accounts] = await Promise.all([
+          prismadb.crm_Contacts.findMany({
+            where: { email: { in: addresses } },
+            select: { id: true },
+          }),
+          prismadb.crm_Accounts.findMany({
+            where: { email: { in: addresses } },
+            select: { id: true },
+          }),
+        ]);
 
-      const contactLinks = contacts.map((c) => ({ emailId, contactId: c.id }));
-      const accountLinks = accounts.map((a) => ({ emailId, accountId: a.id }));
+        const contactLinks = contacts.map((c) => ({ organizationId, emailId, contactId: c.id }));
+        const accountLinks = accounts.map((a) => ({ organizationId, emailId, accountId: a.id }));
 
-      if (contactLinks.length > 0) {
-        await prismadb.emailsToContacts.createMany({ data: contactLinks, skipDuplicates: true });
-      }
-      if (accountLinks.length > 0) {
-        await prismadb.emailsToAccounts.createMany({ data: accountLinks, skipDuplicates: true });
-      }
+        if (contactLinks.length > 0) {
+          await prismadb.emailsToContacts.createMany({ data: contactLinks, skipDuplicates: true });
+        }
+        if (accountLinks.length > 0) {
+          await prismadb.emailsToAccounts.createMany({ data: accountLinks, skipDuplicates: true });
+        }
 
-      return contactLinks.length + accountLinks.length;
+        return contactLinks.length + accountLinks.length;
+      });
     });
 
     // Only fetch body + embed for emails that are CRM-relevant
@@ -96,13 +105,15 @@ export const emailLinkCrm = inngest.createFunction(
               email.imapUid!
             );
 
-            await prismadb.email.update({
-              where: { id: emailId },
-              data: {
-                bodyText: body.bodyText ?? null,
-                bodyHtml: body.bodyHtml ?? null,
-              },
-            });
+            await runWithOrganizationContext(organizationId, () =>
+              prismadb.email.update({
+                where: { id: emailId },
+                data: {
+                  bodyText: body.bodyText ?? null,
+                  bodyHtml: body.bodyHtml ?? null,
+                },
+              })
+            );
           } catch (e) {
             console.warn(`[link-crm] Body fetch failed for email ${emailId}:`, e);
             // embed will still fire with subject-only text

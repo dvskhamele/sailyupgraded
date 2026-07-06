@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit-log";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
 import { prismadb } from "@/lib/prisma";
 import { connectUserById, resolveExistingUserId } from "@/lib/crm/resolve-user";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 type RawRow = Record<string, string>;
 type MappingKey =
@@ -117,6 +118,7 @@ export async function POST(request: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const organizationId = await requireOrganizationId();
 
   const body = await request.json();
   const rows = Array.isArray(body?.rows) ? (body.rows as RawRow[]) : [];
@@ -149,130 +151,133 @@ export async function POST(request: NextRequest) {
   const { firstStage } = await getSalesStageCollections();
   const resolvedUserId = await resolveExistingUserId(userId);
 
-  const uniqueCampaignNames = Array.from(
-    new Set(
-      rows
-        .map((row) => mappedValue(row, mapping.campaign_name))
-        .filter(Boolean),
-    ),
-  );
+  return await runWithOrganizationContext(organizationId, async () => {
+    const uniqueCampaignNames = Array.from(
+      new Set(
+        rows
+          .map((row) => mappedValue(row, mapping.campaign_name))
+          .filter(Boolean),
+      ),
+    );
 
-  const campaigns = uniqueCampaignNames.length
-    ? await prismadb.crm_campaigns.findMany({
-        where: {
-          deletedAt: null,
-          name: { in: uniqueCampaignNames },
-        },
-        select: { id: true, name: true },
-      })
-    : [];
+    const campaigns = uniqueCampaignNames.length
+      ? await prismadb.crm_campaigns.findMany({
+          where: {
+            deletedAt: null,
+            name: { in: uniqueCampaignNames },
+          },
+          select: { id: true, name: true },
+        })
+      : [];
 
-  const campaignLookup = new Map(campaigns.map((campaign) => [campaign.name, campaign.id]));
+    const campaignLookup = new Map(campaigns.map((campaign) => [campaign.name, campaign.id]));
 
-  for (const [index, row] of rows.entries()) {
-    const rowNumber = index + 2;
-    const opportunityName = mappedValue(row, mapping.opportunity_name);
+    for (const [index, row] of rows.entries()) {
+      const rowNumber = index + 2;
+      const opportunityName = mappedValue(row, mapping.opportunity_name);
 
-    if (!opportunityName) {
-      failures.push({
-        row: rowNumber,
-        name: null,
-        reason: "Skipped because ad_name is empty",
-      });
-      continue;
-    }
+      if (!opportunityName) {
+        failures.push({
+          row: rowNumber,
+          name: null,
+          reason: "Skipped because ad_name is empty",
+        });
+        continue;
+      }
 
-    const createdTime = mappedValue(row, mapping.created_time);
-    const adId = mappedValue(row, mapping.ad_id);
-    const adsetId = mappedValue(row, mapping.adset_id);
-    const adsetName = mappedValue(row, mapping.adset_name);
-    const campaignId = mappedValue(row, mapping.campaign_id);
-    const campaignName = mappedValue(row, mapping.campaign_name);
-    const formId = mappedValue(row, mapping.form_id);
-    const formName = mappedValue(row, mapping.form_name);
-    const isOrganic = mappedValue(row, mapping.is_organic);
-    const platform = mappedValue(row, mapping.platform);
-    const budgetRaw = mappedValue(row, mapping.budget);
-    const fullName = mappedValue(row, mapping.full_name);
-    const phoneNumber = normalizePhone(mappedValue(row, mapping.phone_number));
-    const leadStatus = mappedValue(row, mapping.lead_status);
-    const externalId = mappedValue(row, mapping.external_id);
+      const createdTime = mappedValue(row, mapping.created_time);
+      const adId = mappedValue(row, mapping.ad_id);
+      const adsetId = mappedValue(row, mapping.adset_id);
+      const adsetName = mappedValue(row, mapping.adset_name);
+      const campaignId = mappedValue(row, mapping.campaign_id);
+      const campaignName = mappedValue(row, mapping.campaign_name);
+      const formId = mappedValue(row, mapping.form_id);
+      const formName = mappedValue(row, mapping.form_name);
+      const isOrganic = mappedValue(row, mapping.is_organic);
+      const platform = mappedValue(row, mapping.platform);
+      const budgetRaw = mappedValue(row, mapping.budget);
+      const fullName = mappedValue(row, mapping.full_name);
+      const phoneNumber = normalizePhone(mappedValue(row, mapping.phone_number));
+      const leadStatus = mappedValue(row, mapping.lead_status);
+      const externalId = mappedValue(row, mapping.external_id);
 
-    const parsedCreatedTime = parseDate(createdTime);
-    const parsedBudget = parseBudget(budgetRaw);
-    const matchedCampaignId = campaignName ? campaignLookup.get(campaignName) : undefined;
+      const parsedCreatedTime = parseDate(createdTime);
+      const parsedBudget = parseBudget(budgetRaw);
+      const matchedCampaignId = campaignName ? campaignLookup.get(campaignName) : undefined;
 
-    try {
-      await prismadb.crm_Opportunities.create({
-        data: {
-          assigned_to_user: connectUserById(resolvedUserId),
-          assigned_campaings: matchedCampaignId
-            ? { connect: { id: matchedCampaignId } }
-            : undefined,
-          assigned_sales_stage: firstStage
-            ? { connect: { id: firstStage.id } }
-            : undefined,
-          budget: parsedBudget,
-          clientName: normalizeOptionalText(fullName) || null,
-          created_by_user: connectUserById(resolvedUserId),
-          created_on: parsedCreatedTime,
-          createdAt: parsedCreatedTime,
-          description: buildDescription({
-            externalId: normalizeOptionalText(externalId),
-            createdTime: normalizeOptionalText(createdTime),
-            adId: normalizeOptionalText(adId),
-            adsetId: normalizeOptionalText(adsetId),
-            adsetName: normalizeOptionalText(adsetName),
-            campaignId: normalizeOptionalText(campaignId),
-            campaignName: normalizeOptionalText(campaignName),
-            formId: normalizeOptionalText(formId),
-            formName: normalizeOptionalText(formName),
-            isOrganic: normalizeOptionalText(isOrganic),
-            platform: normalizeOptionalText(platform),
-            budget: normalizeOptionalText(budgetRaw),
-            fullName: normalizeOptionalText(fullName),
-            phoneNumber: normalizeOptionalText(phoneNumber),
-            leadStatus: normalizeOptionalText(leadStatus),
-          }),
-          last_activity_by: userId,
+      try {
+        await prismadb.crm_Opportunities.create({
+          data: {
+            organizationId,
+            assigned_to_user: connectUserById(resolvedUserId),
+            assigned_campaings: matchedCampaignId
+              ? { connect: { id: matchedCampaignId } }
+              : undefined,
+            assigned_sales_stage: firstStage
+              ? { connect: { id: firstStage.id } }
+              : undefined,
+            budget: parsedBudget,
+            clientName: normalizeOptionalText(fullName) || null,
+            created_by_user: connectUserById(resolvedUserId),
+            created_on: parsedCreatedTime,
+            createdAt: parsedCreatedTime,
+            description: buildDescription({
+              externalId: normalizeOptionalText(externalId),
+              createdTime: normalizeOptionalText(createdTime),
+              adId: normalizeOptionalText(adId),
+              adsetId: normalizeOptionalText(adsetId),
+              adsetName: normalizeOptionalText(adsetName),
+              campaignId: normalizeOptionalText(campaignId),
+              campaignName: normalizeOptionalText(campaignName),
+              formId: normalizeOptionalText(formId),
+              formName: normalizeOptionalText(formName),
+              isOrganic: normalizeOptionalText(isOrganic),
+              platform: normalizeOptionalText(platform),
+              budget: normalizeOptionalText(budgetRaw),
+              fullName: normalizeOptionalText(fullName),
+              phoneNumber: normalizeOptionalText(phoneNumber),
+              leadStatus: normalizeOptionalText(leadStatus),
+            }),
+            last_activity_by: userId,
+            name: opportunityName,
+            next_step: normalizeOptionalText(leadStatus) || null,
+            status: "ACTIVE",
+            updatedBy: userId,
+          },
+          select: { id: true },
+        });
+
+        imported += 1;
+      } catch (error) {
+        failures.push({
+          row: rowNumber,
           name: opportunityName,
-          next_step: normalizeOptionalText(leadStatus) || null,
-          status: "ACTIVE",
-          updatedBy: userId,
-        },
-        select: { id: true },
-      });
+          reason:
+            error instanceof Error ? error.message : "Failed to create opportunity",
+        });
+      }
+    }
 
-      imported += 1;
-    } catch (error) {
-      failures.push({
-        row: rowNumber,
-        name: opportunityName,
-        reason:
-          error instanceof Error ? error.message : "Failed to create opportunity",
+    if (imported > 0) {
+      await writeAuditLog({
+        entityType: "opportunity",
+        entityId: "bulk_import",
+        action: "imported",
+        changes: [
+          { field: "imported", old: null, new: imported },
+          { field: "failed", old: null, new: failures.length },
+        ],
+        userId,
       });
     }
-  }
 
-  if (imported > 0) {
-    await writeAuditLog({
-      entityType: "opportunity",
-      entityId: "bulk_import",
-      action: "imported",
-      changes: [
-        { field: "imported", old: null, new: imported },
-        { field: "failed", old: null, new: failures.length },
-      ],
-      userId,
+    revalidatePath("/[locale]/crm/opportunities", "page");
+    revalidatePath("/[locale]/crm/dashboard", "page");
+
+    return NextResponse.json({
+      imported,
+      failed: failures.length,
+      failures,
     });
-  }
-
-  revalidatePath("/[locale]/crm/opportunities", "page");
-  revalidatePath("/[locale]/crm/dashboard", "page");
-
-  return NextResponse.json({
-    imported,
-    failed: failures.length,
-    failures,
   });
 }

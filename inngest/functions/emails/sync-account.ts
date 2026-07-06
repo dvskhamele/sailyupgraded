@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 import { decrypt } from "@/lib/email-crypto";
 import { EmailFolder } from "@prisma/client";
 import Imap from "imap";
@@ -45,6 +46,7 @@ export const emailSyncAccount = inngest.createFunction(
     );
     if (!account) return { skipped: "account not found" };
 
+    const organizationId = account.organizationId;
     const sentFolder = account.sentFolderName || "Sent";
 
     // Step: search for new UIDs in both folders (fast — no body download)
@@ -75,10 +77,12 @@ export const emailSyncAccount = inngest.createFunction(
 
     if (inboxUids.length === 0 && sentUids.length === 0) {
       await step.run("update-synced-at", () =>
-        prismadb.emailAccount.update({
-          where: { id: accountId },
-          data: { lastSyncedAt: new Date() },
-        })
+        runWithOrganizationContext(organizationId, () =>
+          prismadb.emailAccount.update({
+            where: { id: accountId },
+            data: { lastSyncedAt: new Date() },
+          })
+        )
       );
       return { synced: 0, newMessages: 0 };
     }
@@ -116,70 +120,73 @@ export const emailSyncAccount = inngest.createFunction(
     // Uses batch queries instead of a per-message loop inside a transaction to avoid
     // interactive transaction timeout when syncing large mailboxes (e.g. Gmail initial sync).
     const insertedIds: string[] = await step.run("upsert-metadata", async () => {
-      const allMessages = [
-        ...inboxHeaders.map((m) => ({ ...m, folder: EmailFolder.INBOX })),
-        ...sentHeaders.map((m) => ({ ...m, folder: EmailFolder.SENT })),
-      ].filter((m) => !!m.rfcMessageId);
+      return runWithOrganizationContext(organizationId, async () => {
+        const allMessages = [
+          ...inboxHeaders.map((m) => ({ ...m, folder: EmailFolder.INBOX })),
+          ...sentHeaders.map((m) => ({ ...m, folder: EmailFolder.SENT })),
+        ].filter((m) => !!m.rfcMessageId);
 
-      if (allMessages.length === 0) {
+        if (allMessages.length === 0) {
+          await prismadb.emailAccount.update({
+            where: { id: accountId },
+            data: { lastSyncedAt: new Date(), inboxLastUid: newInboxHighest, sentLastUid: newSentHighest },
+          });
+          return [];
+        }
+
+        // 1. Find which rfcMessageIds already exist (one query)
+        const rfcIds = allMessages.map((m) => m.rfcMessageId);
+        const existing = await prismadb.email.findMany({
+          where: { emailAccountId: accountId, rfcMessageId: { in: rfcIds } },
+          select: { rfcMessageId: true },
+        });
+        const existingSet = new Set(existing.map((e) => e.rfcMessageId));
+
+        // 2. Filter to truly new messages
+        const newMessages = allMessages.filter((m) => !existingSet.has(m.rfcMessageId));
+
+        // 3. Bulk-insert new messages (one query); skipDuplicates is safe because of
+        //    @@unique([emailAccountId, rfcMessageId]) on the Email model.
+        if (newMessages.length > 0) {
+          await prismadb.email.createMany({
+            data: newMessages.map((msg) => ({
+              organizationId,
+              emailAccountId: accountId,
+              userId: account.userId,
+              rfcMessageId: msg.rfcMessageId,
+              imapUid: msg.uid,
+              folder: msg.folder,
+              subject: msg.subject,
+              fromName: msg.fromName,
+              fromEmail: msg.fromEmail,
+              toRecipients: msg.to,
+              ccRecipients: msg.cc,
+              bccRecipients: [],
+              sentAt: msg.sentAt,
+            })),
+            skipDuplicates: true,
+          });
+        }
+
+        // 4. Fetch IDs of newly inserted emails for fan-out (one query)
+        const newIds =
+          newMessages.length > 0
+            ? await prismadb.email
+                .findMany({
+                  where: { emailAccountId: accountId, rfcMessageId: { in: newMessages.map((m) => m.rfcMessageId) } },
+                  select: { id: true },
+                })
+                .then((rows) => rows.map((r) => r.id))
+            : [];
+
+        // 5. Update account watermarks (one query)
         await prismadb.emailAccount.update({
           where: { id: accountId },
           data: { lastSyncedAt: new Date(), inboxLastUid: newInboxHighest, sentLastUid: newSentHighest },
         });
-        return [];
-      }
 
-      // 1. Find which rfcMessageIds already exist (one query)
-      const rfcIds = allMessages.map((m) => m.rfcMessageId);
-      const existing = await prismadb.email.findMany({
-        where: { emailAccountId: accountId, rfcMessageId: { in: rfcIds } },
-        select: { rfcMessageId: true },
+        return newIds;
       });
-      const existingSet = new Set(existing.map((e) => e.rfcMessageId));
-
-      // 2. Filter to truly new messages
-      const newMessages = allMessages.filter((m) => !existingSet.has(m.rfcMessageId));
-
-      // 3. Bulk-insert new messages (one query); skipDuplicates is safe because of
-      //    @@unique([emailAccountId, rfcMessageId]) on the Email model.
-      if (newMessages.length > 0) {
-        await prismadb.email.createMany({
-          data: newMessages.map((msg) => ({
-            emailAccountId: accountId,
-            userId: account.userId,
-            rfcMessageId: msg.rfcMessageId,
-            imapUid: msg.uid,
-            folder: msg.folder,
-            subject: msg.subject,
-            fromName: msg.fromName,
-            fromEmail: msg.fromEmail,
-            toRecipients: msg.to,
-            ccRecipients: msg.cc,
-            bccRecipients: [],
-            sentAt: msg.sentAt,
-          })),
-          skipDuplicates: true,
-        });
-      }
-
-      // 4. Fetch IDs of newly inserted emails for fan-out (one query)
-      const newIds =
-        newMessages.length > 0
-          ? await prismadb.email
-              .findMany({
-                where: { emailAccountId: accountId, rfcMessageId: { in: newMessages.map((m) => m.rfcMessageId) } },
-                select: { id: true },
-              })
-              .then((rows) => rows.map((r) => r.id))
-          : [];
-
-      // 5. Update account watermarks (one query)
-      await prismadb.emailAccount.update({
-        where: { id: accountId },
-        data: { lastSyncedAt: new Date(), inboxLastUid: newInboxHighest, sentLastUid: newSentHighest },
-      });
-
-      return newIds;
     });
 
     // Fan out link-crm for each new email — use step.sendEvent for deterministic replay

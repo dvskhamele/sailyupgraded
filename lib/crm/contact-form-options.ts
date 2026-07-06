@@ -4,7 +4,8 @@ import {
   prismadb,
   withPrismaRetry,
 } from "@/lib/prisma";
-import { requireOrganizationContext } from "@/lib/organization-context";
+import { requireOrganizationId } from "@/lib/auth-server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 export type NamedOption = { id: string; name: string };
 
@@ -86,80 +87,93 @@ export function appendSocialLeadSourceOptions<T extends NamedOption>(leadSources
   return next;
 }
 
-export async function resolveLeadSourceId(value?: string | null): Promise<string | undefined> {
+export async function resolveLeadSourceId(value?: string | null, organizationId?: string): Promise<string | undefined> {
   if (!value?.trim()) return undefined;
+  const orgId = organizationId || (await requireOrganizationId());
 
-  const existing = await prismadb.crm_Lead_Sources.findFirst({
-    where: {
-      OR: [{ id: value }, { name: value }],
-    },
-    select: { id: true },
+  return runWithOrganizationContext(orgId, async () => {
+    const existing = await prismadb.crm_Lead_Sources.findFirst({
+      where: {
+        OR: [{ id: value }, { name: value }],
+      },
+      select: { id: true },
+    });
+
+    if (existing) return existing.id;
+
+    const created = await prismadb.crm_Lead_Sources.create({
+      data: { name: value.trim() },
+      select: { id: true },
+    });
+
+    return created.id;
   });
-
-  if (existing) return existing.id;
-
-  const created = await prismadb.crm_Lead_Sources.create({
-    data: { name: value.trim() },
-    select: { id: true },
-  });
-
-  return created.id;
 }
 
-export async function resolveContactTypeId(value?: string | null): Promise<string | undefined> {
+export async function resolveContactTypeId(value?: string | null, organizationId?: string): Promise<string | undefined> {
   const trimmedValue = value?.trim();
   if (!trimmedValue) return undefined;
+  const orgId = organizationId || (await requireOrganizationId());
 
-  const existing = await prismadb.crm_Contact_Types.findFirst({
-    where: {
-      OR: [{ id: trimmedValue }, { name: trimmedValue }],
-    },
-    select: { id: true },
+  return runWithOrganizationContext(orgId, async () => {
+    const existing = await prismadb.crm_Contact_Types.findFirst({
+      where: {
+        OR: [{ id: trimmedValue }, { name: trimmedValue }],
+      },
+      select: { id: true },
+    });
+
+    if (existing) return existing.id;
+
+    const created = await prismadb.crm_Contact_Types.upsert({
+      where: { name: trimmedValue },
+      update: {},
+      create: { name: trimmedValue },
+      select: { id: true },
+    });
+
+    return created.id;
   });
-
-  if (existing) return existing.id;
-
-  const created = await prismadb.crm_Contact_Types.upsert({
-    where: { name: trimmedValue },
-    update: {},
-    create: { name: trimmedValue },
-    select: { id: true },
-  });
-
-  return created.id;
 }
 
-export async function ensureDefaultContactTypes(): Promise<NamedOption[]> {
-  const existing = await prismadb.crm_Contact_Types.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
+async function ensureDefaultContactTypesInner(organizationId: string): Promise<NamedOption[]> {
+  return runWithOrganizationContext(organizationId, async () => {
+    const existing = await prismadb.crm_Contact_Types.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+
+    const existingNames = new Set(existing.map((type) => type.name.trim().toLowerCase()));
+    const missingNames = DEFAULT_CONTACT_TYPE_NAMES.filter(
+      (name) => !existingNames.has(name.toLowerCase())
+    );
+
+    if (missingNames.length === 0) {
+      return getVisibleContactTypes(existing);
+    }
+
+    await Promise.all(
+      missingNames.map((name) =>
+        prismadb.crm_Contact_Types.upsert({
+          where: { name },
+          update: {},
+          create: { name },
+        })
+      )
+    );
+
+    const updated = await prismadb.crm_Contact_Types.findMany({
+      select: { id: true, name: true },
+      orderBy: { name: "asc" },
+    });
+
+    return getVisibleContactTypes(updated);
   });
+}
 
-  const existingNames = new Set(existing.map((type) => type.name.trim().toLowerCase()));
-  const missingNames = DEFAULT_CONTACT_TYPE_NAMES.filter(
-    (name) => !existingNames.has(name.toLowerCase())
-  );
-
-  if (missingNames.length === 0) {
-    return getVisibleContactTypes(existing);
-  }
-
-  await Promise.all(
-    missingNames.map((name) =>
-      prismadb.crm_Contact_Types.upsert({
-        where: { name },
-        update: {},
-        create: { name },
-      })
-    )
-  );
-
-  const updated = await prismadb.crm_Contact_Types.findMany({
-    select: { id: true, name: true },
-    orderBy: { name: "asc" },
-  });
-
-  return getVisibleContactTypes(updated);
+export async function ensureDefaultContactTypes(organizationId?: string): Promise<NamedOption[]> {
+  const orgId = organizationId || (await requireOrganizationId());
+  return ensureDefaultContactTypesInner(orgId);
 }
 
 function getFallbackContactFormOptionsData() {
@@ -178,45 +192,48 @@ function shouldUseContactOptionsFallback(error: unknown) {
 }
 
 export async function getContactFormOptionsData() {
-  requireOrganizationContext();
+  const organizationId = await requireOrganizationId();
 
   try {
     return await withPrismaRetry(async () => {
-      const accounts = await prismadb.crm_Accounts.findMany({
-        where: { deletedAt: null },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      });
-      const contactTypes = await ensureDefaultContactTypes();
-      const leadSources = await prismadb.crm_Lead_Sources.findMany({
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      });
-      const leadStatuses = await prismadb.crm_Lead_Statuses.findMany({
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      });
-      const leadTypes = await prismadb.crm_Lead_Types.findMany({
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      });
-      const products = await prismadb.crm_Products.findMany({
-        where: {
-          deletedAt: null,
-          status: "ACTIVE",
-        },
-        select: { id: true, name: true },
-        orderBy: { name: "asc" },
-      });
+      return runWithOrganizationContext(organizationId, async () => {
+        const accounts = await prismadb.crm_Accounts.findMany({
+          where: { organizationId, deletedAt: null },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
+        const contactTypes = await ensureDefaultContactTypes(organizationId);
+        const leadSources = await prismadb.crm_Lead_Sources.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
+        const leadStatuses = await prismadb.crm_Lead_Statuses.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
+        const leadTypes = await prismadb.crm_Lead_Types.findMany({
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
+        const products = await prismadb.crm_Products.findMany({
+          where: {
+            organizationId,
+            deletedAt: null,
+            status: "ACTIVE",
+          },
+          select: { id: true, name: true },
+          orderBy: { name: "asc" },
+        });
 
-      return {
-        accounts,
-        contactTypes,
-        leadSources: appendSocialLeadSourceOptions(leadSources),
-        leadStatuses,
-        leadTypes,
-        products,
-      };
+        return {
+          accounts,
+          contactTypes,
+          leadSources: appendSocialLeadSourceOptions(leadSources),
+          leadStatuses,
+          leadTypes,
+          products,
+        };
+      });
     });
   } catch (error) {
     if (!shouldUseContactOptionsFallback(error)) {

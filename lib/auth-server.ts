@@ -73,8 +73,6 @@ async function enrichSessionWithOrganization(
     );
   }
 
-  setOrganizationContext(organization?.id ?? null);
-
   return {
     ...session,
     user: {

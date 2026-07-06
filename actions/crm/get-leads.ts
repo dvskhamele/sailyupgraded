@@ -1,54 +1,61 @@
 import { cache } from "react";
 import { prismadb } from "@/lib/prisma";
-
 import { requireOrganizationId } from "@/lib/auth-server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
+
 export const getLeads = cache(async () => {
-  await requireOrganizationId();
-  const data = await prismadb.crm_Leads.findMany({
-    where: { deletedAt: null },
-    include: {
-      // Include assigned user (uses "LeadAssignedTo" relation)
-      assigned_to_user: {
-        select: {
-          name: true,
-        },
+  const organizationId = await requireOrganizationId();
+
+  return runWithOrganizationContext(organizationId, async () => {
+    const data = await prismadb.crm_Leads.findMany({
+      where: {
+        organizationId,
+        deletedAt: null,
       },
-      // Include assigned accounts
-      assigned_accounts: {
-        include: {
-          accountProducts: {
-            where: { status: "ACTIVE" },
-            include: {
-              product: {
-                select: {
-                  id: true,
-                  name: true,
+      include: {
+        // Include assigned user (uses "LeadAssignedTo" relation)
+        assigned_to_user: {
+          select: {
+            name: true,
+          },
+        },
+        // Include assigned accounts
+        assigned_accounts: {
+          include: {
+            accountProducts: {
+              where: { status: "ACTIVE" },
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
                 },
               },
             },
           },
         },
-      },
-      // Include lead source, status, type
-      contact_type: true,
-      lead_source: true,
-      lead_status: true,
-      lead_type: true,
-      // Include documents through DocumentsToLeads junction table
-      documents: {
-        include: {
-          document: {
-            select: {
-              id: true,
-              document_name: true,
+        // Include lead source, status, type
+        contact_type: true,
+        lead_source: true,
+        lead_status: true,
+        lead_type: true,
+        // Include documents through DocumentsToLeads junction table
+        documents: {
+          include: {
+            document: {
+              select: {
+                id: true,
+                document_name: true,
+              },
             },
           },
         },
       },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+    return data;
   });
-  return data;
 });

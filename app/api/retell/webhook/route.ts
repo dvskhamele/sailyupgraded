@@ -156,16 +156,6 @@ export async function POST(request: Request) {
 
   const event = stringValue(payload.event);
   const call = payload.call || {};
-  const organizationId = process.env.NEXTCRM_REMOTE_ORGANIZATION_ID;
-
-  if (!organizationId) {
-    return NextResponse.json(
-      { error: "Remote organization is not configured" },
-      { status: 500 },
-    );
-  }
-
-  setOrganizationContext(organizationId);
   
   // Flexible Call ID Extraction
   const callId = stringValue(call.call_id) || 
@@ -180,7 +170,7 @@ export async function POST(request: Request) {
   if (!event || !callId) {
     console.error("[RETELL WEBHOOK] FAILED: Missing required fields (event or callId)", { event, callId });
     
-    // Attempt to save raw event for debugging anyway
+    // Attempt to save raw event for debugging anyway (without org for now, or use fallback?)
     try {
       await prismadb.crm_LeadCallWebhookEvent.create({
         data: {
@@ -200,7 +190,44 @@ export async function POST(request: Request) {
     );
   }
 
+  // Derive organizationId from existing records first
   const metadata = call.metadata ?? {};
+  const opportunityId = stringValue(metadata.opportunity_id);
+  
+  let organizationId: string | null = null;
+  
+  // Try to get from existing call tracking
+  const existingTracking = await prismadb.crm_LeadCallTracking.findUnique({
+    where: { callId },
+    select: { organizationId: true },
+  });
+  if (existingTracking?.organizationId) {
+    organizationId = existingTracking.organizationId;
+  } else if (opportunityId) {
+    // Try to get from opportunity
+    const opp = await prismadb.crm_Opportunities.findUnique({
+      where: { id: opportunityId },
+      select: { organizationId: true },
+    });
+    if (opp?.organizationId) {
+      organizationId = opp.organizationId;
+    }
+  }
+  
+  // If still no orgId, use fallback env var
+  if (!organizationId) {
+    organizationId = process.env.NEXTCRM_REMOTE_ORGANIZATION_ID || null;
+  }
+
+  if (!organizationId) {
+    return NextResponse.json(
+      { error: "Could not determine organization for this call" },
+      { status: 500 },
+    );
+  }
+
+  setOrganizationContext(organizationId);
+  
   const callType = getCallType(call);
   const direction = stringValue(call.direction);
   const callStatus = stringValue(call.call_status);
@@ -213,6 +240,7 @@ export async function POST(request: Request) {
     event_type: event,
     from_number: call.from_number,
     to_number: call.to_number,
+    organizationId,
   });
 
   // Support All Retell Events (Step 3)
@@ -221,6 +249,7 @@ export async function POST(request: Request) {
     try {
       await prismadb.crm_LeadCallWebhookEvent.create({
         data: {
+          organizationId,
           callId,
           event,
           payload: payload as any,
@@ -233,7 +262,6 @@ export async function POST(request: Request) {
   }
 
   const customAnalysisData = call.call_analysis?.custom_analysis_data;
-  const opportunityId = stringValue(metadata.opportunity_id);
   const memberId = stringValue(metadata.member_id);
   const email = stringValue(metadata.member_email);
   const startedAt = dateFromRetellTimestamp(call.start_timestamp);
@@ -269,6 +297,7 @@ export async function POST(request: Request) {
     await prismadb.$transaction([
       prismadb.crm_LeadCallWebhookEvent.create({
         data: {
+          organizationId,
           callId,
           event,
           payload: payload as any,
@@ -277,6 +306,7 @@ export async function POST(request: Request) {
       prismadb.crm_LeadCallTracking.upsert({
         where: { callId },
         create: {
+          organizationId,
           callId,
           opportunityId: opportunityId ?? "unknown",
           memberId,

@@ -12,7 +12,7 @@ declare global {
 }
 
 const databaseUrl = process.env.DATABASE_URL;
-const prismaRuntimeVersion = "mariadb-adapter-singleton-v3";
+const prismaRuntimeVersion = "mariadb-adapter-singleton-v4";
 const slowQueryThresholdMs = Number(process.env.PRISMA_SLOW_QUERY_MS ?? 1000);
 const transactionMaxWaitMs = Number(process.env.PRISMA_TRANSACTION_MAX_WAIT_MS ?? 10_000);
 const transactionTimeoutMs = Number(process.env.PRISMA_TRANSACTION_TIMEOUT_MS ?? 30_000);
@@ -179,14 +179,19 @@ function scopeOrganizationArgs(
     return args ?? {};
   }
 
-  const organizationId = getOrganizationContext() ?? getExplicitOrganizationId(args);
+  const explicitOrgId = getExplicitOrganizationId(args);
+  const contextOrgId = getOrganizationContext();
+  let organizationId = contextOrgId ?? explicitOrgId;
+  
+  // If we still don't have organizationId, throw an error
   if (!organizationId) {
     console.error("[ORG_CONTEXT_MISSING]", {
       model,
       operation,
       args,
+      contextOrgId,
+      explicitOrgId,
     });
-
     throw new Error(
       `Organization context is required for ${String(model)}.${String(operation)}`,
     );
@@ -326,7 +331,12 @@ const getPrisma = (): PrismaClient => {
 
   // Keep one pool per dev process. Recreating the client on HMR without fully
   // awaiting disconnect leaves orphaned pools that exhaust connection limits.
-  if (!global.cachedPrisma) {
+  if (
+    !global.cachedPrisma ||
+    global.cachedPrismaUrl !== databaseUrl ||
+    global.cachedPrismaSchemaSignature !== schemaSignature ||
+    global.cachedPrismaRuntimeVersion !== prismaRuntimeVersion
+  ) {
     global.cachedPrisma = prismaClientSingleton();
     global.cachedPrismaUrl = databaseUrl;
     global.cachedPrismaSchemaSignature = schemaSignature;

@@ -5,6 +5,7 @@ import {
   prisma,
   withPrismaRetry,
 } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import { serializeDecimalsList } from "@/lib/serialize-decimals";
 import { withActivityContactLinks } from "@/actions/crm/activities/activity-contact-links";
 import type {
@@ -12,6 +13,7 @@ import type {
   RetailAIActivityFilters,
   RetailAIActivityWithLinks,
 } from "./types";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 const PAGE_SIZE = 25;
 const VALID_ENTITY_TYPES = new Set([
@@ -23,6 +25,7 @@ const VALID_ENTITY_TYPES = new Set([
 ]);
 
 const loadRetailAIActivities = cache(async (
+  organizationId: string,
   entityType: string | null,
   entityId: string | null,
   cursorKey: string | null,
@@ -41,7 +44,7 @@ const loadRetailAIActivities = cache(async (
   }
 
   try {
-    const andClauses: Record<string, unknown>[] = [{ deletedAt: null }];
+    const andClauses: Record<string, unknown>[] = [{ organizationId, deletedAt: null }];
     const type = filters.type && filters.type !== "all" ? filters.type : null;
     const status = filters.status && filters.status !== "all" ? filters.status : null;
 
@@ -71,7 +74,7 @@ const loadRetailAIActivities = cache(async (
     if (entityType && entityId) {
       andClauses.push({
         links: {
-          some: { entityType, entityId },
+          some: { entityType, entityId, organizationId },
         },
       });
     }
@@ -79,7 +82,7 @@ const loadRetailAIActivities = cache(async (
     if (!entityType && filters.contactId) {
       andClauses.push({
         links: {
-          some: { entityType: "contact", entityId: filters.contactId },
+          some: { entityType: "contact", entityId: filters.contactId, organizationId },
         },
       });
     }
@@ -144,16 +147,22 @@ export const getRetailAIActivitiesByEntity = async (
   cursor?: RetailAIActivityCursor,
   filters?: RetailAIActivityFilters,
 ): Promise<{ data: RetailAIActivityWithLinks[]; nextCursor: RetailAIActivityCursor | null }> => {
+  const organizationId = await requireOrganizationId();
   const cursorKey = cursor ? JSON.stringify(cursor) : null;
   const filtersKey = filters ? JSON.stringify(filters) : null;
-  return loadRetailAIActivities(entityType, entityId, cursorKey, filtersKey);
+  return runWithOrganizationContext(organizationId, async () => {
+    return loadRetailAIActivities(organizationId, entityType, entityId, cursorKey, filtersKey);
+  });
 };
 
 export const getRetailAIActivities = async (
   cursor?: RetailAIActivityCursor,
   filters?: RetailAIActivityFilters,
 ): Promise<{ data: RetailAIActivityWithLinks[]; nextCursor: RetailAIActivityCursor | null }> => {
+  const organizationId = await requireOrganizationId();
   const cursorKey = cursor ? JSON.stringify(cursor) : null;
   const filtersKey = filters ? JSON.stringify(filters) : null;
-  return loadRetailAIActivities(null, null, cursorKey, filtersKey);
+  return runWithOrganizationContext(organizationId, async () => {
+    return loadRetailAIActivities(organizationId, null, null, cursorKey, filtersKey);
+  });
 };

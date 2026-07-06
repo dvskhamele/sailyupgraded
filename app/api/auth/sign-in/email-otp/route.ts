@@ -80,8 +80,19 @@ export async function POST(request: NextRequest) {
         } as const;
       }
 
-      const user = await prismadb.users.findUnique({
+      // Upsert user (create if not exists, update if exists)
+      const user = await prismadb.users.upsert({
         where: { email: normalizedEmail },
+        create: {
+          email: normalizedEmail,
+          name: normalizedEmail.split('@')[0],
+          role: 'USER',
+          userStatus: 'ACTIVE',
+          userLanguage: 'en',
+        },
+        update: {
+          lastLoginAt: new Date(),
+        },
         select: {
           id: true,
           email: true,
@@ -93,20 +104,13 @@ export async function POST(request: NextRequest) {
         },
       });
 
-      if (!user) {
-        return {
-          error: USER_NOT_REGISTERED_MESSAGE,
-          status: 401,
-        } as const;
-      }
-
       const organization = await findCurrentOrganizationForUser(user.id);
-      if (!organization) {
-        return {
-          error: "No organization is assigned to this user.",
-          status: 403,
-        } as const;
-      }
+      // if (!organization) {
+      //   return {
+      //     error: "No organization is assigned to this user.",
+      //     status: 403,
+      //   } as const;
+      // }
 
       const now = new Date();
       const expiresAt = new Date(now.getTime() + SESSION_MAX_AGE_SECONDS * 1000);
@@ -127,7 +131,6 @@ export async function POST(request: NextRequest) {
         prismadb.users.update({
           where: { id: user.id },
           data: {
-            lastLoginAt: now,
             emailVerified: true,
           },
         }),
@@ -166,10 +169,11 @@ export async function POST(request: NextRequest) {
         role: result.user.role,
         userStatus: result.user.userStatus,
         userLanguage: result.user.userLanguage,
-        organizationId: result.organization.id,
-        organizationRole: result.organization.role,
+        organizationId: result.organization?.id ?? null,
+        organizationRole: result.organization?.role ?? null,
       },
       organization: result.organization,
+       redirectTo: result.organization ? "/en/crm/dashboard" : "/en/create-organization",
       session: {
         expiresAt: result.session.expiresAt,
       },

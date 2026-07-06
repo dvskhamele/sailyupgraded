@@ -5,12 +5,14 @@ import {
   prisma,
   withPrismaRetry,
 } from "@/lib/prisma";
+import { requireOrganizationId } from "@/lib/auth-server";
 import { serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getActivityAssignees, getActivityIdsAssignedTo } from "./activity-assignment";
 import {
   type ActivityLinkWithContact,
   withActivityContactLinks,
 } from "./activity-contact-links";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 const PAGE_SIZE = 25;
 const VALID_ENTITY_TYPES = new Set([
@@ -90,6 +92,7 @@ export type ActivityFilters = {
 };
 
 const loadActivities = cache(async (
+  organizationId: string,
   entityType: string | null,
   entityId: string | null,
   cursorKey: string | null,
@@ -108,7 +111,7 @@ const loadActivities = cache(async (
   }
 
   try {
-    const andClauses: Record<string, unknown>[] = [{ deletedAt: null }];
+    const andClauses: Record<string, unknown>[] = [{ organizationId, deletedAt: null }];
     let assignedStandardActivityIds: string[] | null = null;
     
     const type = filters.type && filters.type !== "all" ? filters.type : null;
@@ -125,7 +128,7 @@ const loadActivities = cache(async (
     if (entityType && entityId) {
       andClauses.push({
         links: {
-          some: { entityType, entityId },
+          some: { entityType, entityId, organizationId },
         },
       });
     }
@@ -133,7 +136,7 @@ const loadActivities = cache(async (
     if (!entityType && filters.contactId) {
       andClauses.push({
         links: {
-          some: { entityType: "contact", entityId: filters.contactId },
+          some: { entityType: "contact", entityId: filters.contactId, organizationId },
         },
       });
     }
@@ -233,16 +236,22 @@ export const getActivitiesByEntity = async (
   cursor?: ActivityCursor,
   filters?: ActivityFilters
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
+  const organizationId = await requireOrganizationId();
   const cursorKey = cursor ? JSON.stringify(cursor) : null;
   const filtersKey = filters ? JSON.stringify(filters) : null;
-  return loadActivities(entityType, entityId, cursorKey, filtersKey);
+  return runWithOrganizationContext(organizationId, async () => {
+    return loadActivities(organizationId, entityType, entityId, cursorKey, filtersKey);
+  });
 };
 
 export const getActivities = async (
   cursor?: ActivityCursor,
   filters?: ActivityFilters
 ): Promise<{ data: ActivityWithLinks[]; nextCursor: ActivityCursor | null }> => {
+  const organizationId = await requireOrganizationId();
   const cursorKey = cursor ? JSON.stringify(cursor) : null;
   const filtersKey = filters ? JSON.stringify(filters) : null;
-  return loadActivities(null, null, cursorKey, filtersKey);
+  return runWithOrganizationContext(organizationId, async () => {
+    return loadActivities(organizationId, null, null, cursorKey, filtersKey);
+  });
 };

@@ -1,93 +1,98 @@
 import { prismadb } from "@/lib/prisma";
-
 import { requireOrganizationId } from "@/lib/auth-server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
+
 export const getOpportunity = async (opportunityId: string) => {
-  await requireOrganizationId();
-  const data = await prismadb.crm_Opportunities.findFirst({
-    where: {
-      id: opportunityId,
-      deletedAt: null,
-    },
-    include: {
-      // Include assigned account
-      assigned_account: {
-        select: {
-          name: true,
-        },
+  const organizationId = await requireOrganizationId();
+
+  return runWithOrganizationContext(organizationId, async () => {
+    const data = await prismadb.crm_Opportunities.findFirst({
+      where: {
+        id: opportunityId,
+        organizationId,
+        deletedAt: null,
       },
-      // Include sales stage
-      assigned_sales_stage: {
-        select: {
-          name: true,
+      include: {
+        // Include assigned account
+        assigned_account: {
+          select: {
+            name: true,
+          },
         },
-      },
-      // Include opportunity type
-      assigned_type: {
-        select: {
-          name: true,
+        // Include sales stage
+        assigned_sales_stage: {
+          select: {
+            name: true,
+          },
         },
-      },
-      // Include contacts through ContactsToOpportunities junction table
-      contacts: {
-        include: {
-          contact: {
-            select: {
-              id: true,
-              first_name: true,
-              last_name: true,
-              office_phone: true,
-              mobile_phone: true,
-              email: true,
+        // Include opportunity type
+        assigned_type: {
+          select: {
+            name: true,
+          },
+        },
+        // Include contacts through ContactsToOpportunities junction table
+        contacts: {
+          include: {
+            contact: {
+              select: {
+                id: true,
+                first_name: true,
+                last_name: true,
+                office_phone: true,
+                mobile_phone: true,
+                email: true,
+              },
             },
           },
         },
-      },
-      // Include assigned user (uses "assigned_to_user_relation")
-      assigned_to_user: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-      // Include created by user (uses "created_by_user_relation")
-      created_by_user: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-      // Include line items
-      lineItems: {
-        include: {
-          product: {
-            select: { id: true, name: true, status: true },
+        // Include assigned user (uses "assigned_to_user_relation")
+        assigned_to_user: {
+          select: {
+            name: true,
+            email: true,
           },
         },
-        orderBy: { sort_order: "asc" },
-      },
-      // Include documents through DocumentsToOpportunities junction table
-      documents: {
-        include: {
-          document: {
-            select: {
-              id: true,
-              document_name: true,
-              document_type: true,
-              document_file_url: true,
-              document_file_mimeType: true,
-              createdAt: true,
-              created_by: {
-                select: {
-                  id: true,
-                  name: true,
-                  email: true,
+        // Include created by user (uses "created_by_user_relation")
+        created_by_user: {
+          select: {
+            name: true,
+            email: true,
+          },
+        },
+        // Include line items
+        lineItems: {
+          include: {
+            product: {
+              select: { id: true, name: true, status: true },
+            },
+          },
+          orderBy: { sort_order: "asc" },
+        },
+        // Include documents through DocumentsToOpportunities junction table
+        documents: {
+          include: {
+            document: {
+              select: {
+                id: true,
+                document_name: true,
+                document_type: true,
+                document_file_url: true,
+                document_file_mimeType: true,
+                createdAt: true,
+                created_by: {
+                  select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                  },
                 },
               },
             },
           },
         },
       },
-    },
+    });
+    return data;
   });
-  return data;
 };

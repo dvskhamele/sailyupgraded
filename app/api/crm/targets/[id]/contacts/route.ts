@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 export async function POST(
   request: NextRequest,
@@ -8,6 +9,7 @@ export async function POST(
 ) {
   const session = await getSession();
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
+  const organizationId = await requireOrganizationId();
 
   const { id: targetId } = await params;
   const { name, email, phone, linkedinUrl } = await request.json() as {
@@ -18,17 +20,20 @@ export async function POST(
     return new NextResponse("name or email required", { status: 400 });
   }
 
-  const contact = await prismadb.crm_Target_Contact.create({
-    data: {
-      targetId,
-      name: name ?? null,
-      email: email ?? null,
-      phone: phone || null,
-      linkedinUrl: linkedinUrl || null,
-      source: "manual",
-      enrichStatus: "PENDING",
-    },
-  });
+  return await runWithOrganizationContext(organizationId, async () => {
+    const contact = await prismadb.crm_Target_Contact.create({
+      data: {
+        organizationId,
+        targetId,
+        name: name ?? null,
+        email: email ?? null,
+        phone: phone || null,
+        linkedinUrl: linkedinUrl || null,
+        source: "manual",
+        enrichStatus: "PENDING",
+      },
+    });
 
-  return NextResponse.json(contact);
+    return NextResponse.json(contact);
+  });
 }

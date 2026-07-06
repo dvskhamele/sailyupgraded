@@ -2,12 +2,15 @@
 
 import { cache } from "react";
 import { prismadb, withPrismaRetry } from "@/lib/prisma";
-
 import { requireOrganizationId } from "@/lib/auth-server";
-async function loadOpportunitiesFull() {
-  await requireOrganizationId();
+import { runWithOrganizationContext } from "@/lib/organization-context";
+
+async function loadOpportunitiesFull(organizationId: string) {
   return prismadb.crm_Opportunities.findMany({
-    where: { deletedAt: null },
+    where: {
+      organizationId,
+      deletedAt: null,
+    },
     include: {
       assigned_account: {
         select: {
@@ -32,5 +35,10 @@ async function loadOpportunitiesFull() {
 }
 
 export const getOpportunitiesFull = cache(async () => {
-  return withPrismaRetry(loadOpportunitiesFull);
+  const organizationId = await requireOrganizationId();
+  return withPrismaRetry(async () => {
+    return runWithOrganizationContext(organizationId, async () => {
+      return loadOpportunitiesFull(organizationId);
+    });
+  });
 });

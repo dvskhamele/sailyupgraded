@@ -9,13 +9,16 @@ import {
   pickExistingDbModelFields,
   pickSupportedModelFields,
 } from "@/lib/prisma-model-fields";
-import { requireOrganizationId } from "@/lib/auth-server";
-import { runWithOrganizationContext } from "@/lib/organization-context";
+
+import { requireOrganizationId, getSession } from "@/lib/auth-server";
+import { runWithOrganizationContext, getOrganizationContext } from "@/lib/organization-context";
 import { serializeDecimals, serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getSalesStageCollections } from "@/lib/crm-sales-stages";
-import { appendSocialLeadSourceOptions, ensureDefaultContactTypes } from "@/lib/crm/contact-form-options";
+import {
+  appendSocialLeadSourceOptions,
+  ensureDefaultContactTypes,
+} from "@/lib/crm/contact-form-options";
 import { getAccountIndustries } from "@/lib/crm/industries";
-import { getSession } from "@/lib/auth-server";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 const bypassLogin =
@@ -34,6 +37,7 @@ const fallbackCurrencies = [
 
 function getFallbackCrmData() {
   const now = new Date();
+
   const saleStages = [
     {
       id: "local-prospecting",
@@ -157,134 +161,132 @@ const crmDashboardContactSelectValues = pickSupportedModelFields("crm_Contacts",
   accountsIDs: true,
 } as const);
 
-async function loadAllCrmData() {
-  const organizationId = await requireOrganizationId();
+async function loadAllCrmData(organizationId: string) {
   const session = await getSession();
+  console.log("[loadAllCrmData] async context org id:", getOrganizationContext());
 
-  return runWithOrganizationContext(organizationId, async () => {
-
-    const accounts = await prismadb.crm_Accounts.findMany({
-      where: { deletedAt: null },
-      include: {
-        accountProducts: {
-          where: { status: "ACTIVE" },
-          include: {
-            product: {
-              select: {
-                id: true,
-                name: true,
-              },
+  const accounts = await prismadb.crm_Accounts.findMany({
+    where: { organizationId, deletedAt: null },
+    include: {
+      accountProducts: {
+        where: { organizationId, status: "ACTIVE" },
+        include: {
+          product: {
+            select: {
+              id: true,
+              name: true,
             },
           },
         },
       },
-    });
+    },
+  });
 
-    const opportunities = await prismadb.crm_Opportunities.findMany({
-      where: { deletedAt: null },
-    });
+  const opportunities = await prismadb.crm_Opportunities.findMany({
+    where: { organizationId, deletedAt: null },
+  });
 
-    const crmDashboardLeadSelect = await pickExistingDbModelFields(
-      "crm_Leads",
-      crmDashboardLeadSelectValues,
-    );
+  const crmDashboardLeadSelect = await pickExistingDbModelFields(
+    "crm_Leads",
+    crmDashboardLeadSelectValues
+  );
 
-    const crmDashboardContactSelect = await pickExistingDbModelFields(
-      "crm_Contacts",
-      crmDashboardContactSelectValues,
-    );
+  const crmDashboardContactSelect = await pickExistingDbModelFields(
+    "crm_Contacts",
+    crmDashboardContactSelectValues
+  );
 
-    const leads = await prismadb.crm_Leads.findMany({
-      where: { deletedAt: null },
-      select: crmDashboardLeadSelect,
-    });
+  const leads = await prismadb.crm_Leads.findMany({
+    where: { organizationId, deletedAt: null },
+    select: crmDashboardLeadSelect,
+  });
 
-    const contacts = await prismadb.crm_Contacts.findMany({
-      where: {
-        deletedAt: null,
-        ...(await buildExistingDbContactVisibilityFilter(session?.user)),
-      },
-      select: crmDashboardContactSelect,
-    });
+  const contacts = await prismadb.crm_Contacts.findMany({
+    where: {
+      organizationId,
+      deletedAt: null,
+      ...(await buildExistingDbContactVisibilityFilter(session?.user)),
+    },
+    select: crmDashboardContactSelect,
+  });
 
-    const contracts = await prismadb.crm_Contracts.findMany({
-      where: { deletedAt: null },
-    });
+  const contracts = await prismadb.crm_Contracts.findMany({
+    where: { organizationId, deletedAt: null },
+  });
 
-    const saleTypes = await prismadb.crm_Opportunities_Type.findMany({
-      orderBy: { name: "asc" },
-    });
+  const saleTypes = await prismadb.crm_Opportunities_Type.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    const saleStages = await getSalesStageCollections();
+  const saleStages = await getSalesStageCollections();
 
-    const campaigns = await prismadb.crm_campaigns.findMany({
-      where: { deletedAt: null },
-    });
+  const campaigns = await prismadb.crm_campaigns.findMany({
+    where: { organizationId, deletedAt: null },
+  });
 
-    const industries = await getAccountIndustries();
+  const industries = await getAccountIndustries();
 
-    const contactTypes = await ensureDefaultContactTypes();
+  const contactTypes = await ensureDefaultContactTypes();
 
-    const leadSources = await prismadb.crm_Lead_Sources.findMany({
-      orderBy: { name: "asc" },
-    });
+  const leadSources = await prismadb.crm_Lead_Sources.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    const leadStatuses = await prismadb.crm_Lead_Statuses.findMany({
-      orderBy: { name: "asc" },
-    });
+  const leadStatuses = await prismadb.crm_Lead_Statuses.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    const leadTypes = await prismadb.crm_Lead_Types.findMany({
-      orderBy: { name: "asc" },
-    });
+  const leadTypes = await prismadb.crm_Lead_Types.findMany({
+    orderBy: { name: "asc" },
+  });
 
-    const currencies = await prismadb.currency.findMany({
-      where: { isEnabled: true },
-      orderBy: { code: "asc" },
-    });
+  const currencies = await prismadb.currency.findMany({
+    where: { isEnabled: true },
+    orderBy: { code: "asc" },
+  });
 
-    const exchangeRates = await prismadb.exchangeRate.findMany();
+  const exchangeRates = await prismadb.exchangeRate.findMany();
 
-    const productCategories = await prismadb.crm_ProductCategories.findMany({
-      where: { isActive: true },
-      orderBy: { order: "asc" },
-    });
+  const productCategories = await prismadb.crm_ProductCategories.findMany({
+    where: { organizationId, isActive: true },
+    orderBy: { order: "asc" },
+  });
 
-    const products = await prismadb.crm_Products.findMany({
-      where: { deletedAt: null },
-      select: {
-        id: true,
-        name: true,
-        status: true,
-        unit_price: true,
-        currency: true,
-      },
-      orderBy: { name: "asc" },
-    });
+  const products = await prismadb.crm_Products.findMany({
+    where: { organizationId, deletedAt: null },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      unit_price: true,
+      currency: true,
+    },
+    orderBy: { name: "asc" },
+  });
 
-    return serializeDecimals({
-      accounts,
-      opportunities: serializeDecimalsList(opportunities),
-      leads,
-      contacts,
-      contracts: serializeDecimalsList(contracts),
-      saleTypes,
-      saleStages: saleStages.regularStages,
-      lostStage: saleStages.lostStage,
-      campaigns,
-      industries,
-      contactTypes,
-      leadSources: appendSocialLeadSourceOptions(leadSources),
-      leadStatuses,
-      leadTypes,
-      currencies,
-      productCategories,
-      products,
-      exchangeRates: exchangeRates.map((rate: any) => ({
-        fromCurrency: rate.fromCurrency,
-        toCurrency: rate.toCurrency,
-        rate: Number(rate.rate),
-      })),
-    });
+  return serializeDecimals({
+    accounts,
+    opportunities: serializeDecimalsList(opportunities),
+    leads,
+    contacts,
+    contracts: serializeDecimalsList(contracts),
+    saleTypes,
+    saleStages: saleStages.regularStages,
+    lostStage: saleStages.lostStage,
+    campaigns,
+    industries,
+    contactTypes,
+    leadSources: appendSocialLeadSourceOptions(leadSources),
+    leadStatuses,
+    leadTypes,
+    currencies,
+    productCategories,
+    products,
+    exchangeRates: exchangeRates.map((rate: any) => ({
+      fromCurrency: rate.fromCurrency,
+      toCurrency: rate.toCurrency,
+      rate: Number(rate.rate),
+    })),
   });
 }
 
@@ -300,8 +302,15 @@ export const getAllCrmData = cache(async () => {
     return getFallbackCrmData();
   }
 
+  const organizationId = await requireOrganizationId();
+  console.log("[getAllCrmData] organizationId", organizationId);
+
   try {
-    return await withPrismaRetry(loadAllCrmData);
+    return await withPrismaRetry(async () => {
+      return await runWithOrganizationContext(organizationId, async () => {
+        return await loadAllCrmData(organizationId);
+      });
+    });
   } catch (error) {
     if (!shouldUseFallback(error)) {
       throw error;
@@ -309,8 +318,9 @@ export const getAllCrmData = cache(async () => {
 
     console.warn(
       "[CRM] getAllCrmData failed; using local fallback data.",
-      error instanceof Error ? error.message : error
+      error instanceof Error ? error.message : error,
     );
+
     return getFallbackCrmData();
   }
 });

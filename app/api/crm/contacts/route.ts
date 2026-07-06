@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import {
   isPrismaAccessDeniedError,
   isTransientPrismaConnectionError,
@@ -9,25 +9,30 @@ import {
 import { getCrmContactListSelect } from "@/lib/prisma-contact-select";
 import { buildContactRoleFilter } from "@/lib/contact-options";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const organizationId = await requireOrganizationId();
 
   const role = request.nextUrl.searchParams.get("role");
   try {
     const contacts = await withPrismaRetry(async () => {
-      const select = await getCrmContactListSelect();
+      return runWithOrganizationContext(organizationId, async () => {
+        const select = await getCrmContactListSelect();
 
-      return prismadb.crm_Contacts.findMany({
-        where: {
-          deletedAt: null,
-          ...buildContactRoleFilter(role),
-          ...(await buildExistingDbContactVisibilityFilter(session.user)),
-        },
-        select,
+        return prismadb.crm_Contacts.findMany({
+          where: {
+            organizationId,
+            deletedAt: null,
+            ...buildContactRoleFilter(role),
+            ...(await buildExistingDbContactVisibilityFilter(session.user)),
+          },
+          select,
+        });
       });
     });
 

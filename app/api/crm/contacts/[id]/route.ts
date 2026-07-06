@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 const FIELD_MAP: Record<string, string> = {
   position:        "position",
@@ -24,6 +25,7 @@ export async function PATCH(
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const organizationId = await requireOrganizationId();
 
   const { enrichmentFields } = await request.json();
   if (!enrichmentFields || typeof enrichmentFields !== "object") {
@@ -40,24 +42,27 @@ export async function PATCH(
     return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
   }
 
-  const existing = await prismadb.crm_Contacts.findFirst({
-    where: {
-      id,
-      deletedAt: null,
-      ...(await buildExistingDbContactVisibilityFilter(session.user)),
-    },
-    select: { id: true },
+  return runWithOrganizationContext(organizationId, async () => {
+    const existing = await prismadb.crm_Contacts.findFirst({
+      where: {
+        id,
+        organizationId,
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+      },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ error: "Contact not found" }, { status: 404 });
+    }
+
+    const contact = await prismadb.crm_Contacts.update({
+      where: { id },
+      data: { ...updates, updatedBy: session.user.id },
+      select: { id: true },
+    });
+
+    return NextResponse.json({ success: true, id: contact.id });
   });
-
-  if (!existing) {
-    return NextResponse.json({ error: "Contact not found" }, { status: 404 });
-  }
-
-  const contact = await prismadb.crm_Contacts.update({
-    where: { id },
-    data: { ...updates, updatedBy: session.user.id },
-    select: { id: true },
-  });
-
-  return NextResponse.json({ success: true, id: contact.id });
 }

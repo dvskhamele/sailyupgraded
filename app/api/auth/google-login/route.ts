@@ -4,11 +4,10 @@ import { NextRequest, NextResponse } from "next/server";
 
 import { getGoogleClientId } from "@/lib/env";
 import { prismadb } from "@/lib/prisma";
+import { findCurrentOrganizationForUser } from "@/lib/organization-queries";
 
 const GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo";
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
-const USER_NOT_REGISTERED_MESSAGE =
-  "Your account is not registered. Please contact administrator or register first.";
 
 const googleLoginSchema = z.object({
   credential: z.string().min(20, "Google credential is required."),
@@ -105,9 +104,27 @@ export async function POST(req: NextRequest) {
     }
 
     const googleProfile = await verifyGoogleCredential(parsed.data.credential);
+    const normalizedEmail = googleProfile.email.toLowerCase().trim();
+    const now = new Date();
 
-    const user = await prismadb.users.findUnique({
-      where: { email: googleProfile.email },
+    // Upsert user: create if new, update if existing
+    const user = await prismadb.users.upsert({
+      where: { email: normalizedEmail },
+      update: {
+        emailVerified: true,
+        name: googleProfile.name ?? undefined,
+        image: googleProfile.picture ?? undefined,
+        lastLoginAt: now,
+      },
+      create: {
+        email: normalizedEmail,
+        name: googleProfile.name ?? normalizedEmail.split("@")[0],
+        image: googleProfile.picture ?? null,
+        emailVerified: true,
+        userStatus: "ACTIVE",
+        userLanguage: "en",
+        lastLoginAt: now,
+      },
       select: {
         id: true,
         email: true,
@@ -119,14 +136,7 @@ export async function POST(req: NextRequest) {
       },
     });
 
-    if (!user) {
-      return NextResponse.json(
-        { success: false, error: USER_NOT_REGISTERED_MESSAGE },
-        { status: 401 },
-      );
-    }
-
-    const now = new Date();
+    const organization = await findCurrentOrganizationForUser(user.id);
     const expiresAt = new Date(now.getTime() + SESSION_MAX_AGE_SECONDS * 1000);
     const sessionToken = crypto.randomUUID();
 
@@ -158,6 +168,7 @@ export async function POST(req: NextRequest) {
           userId: user.id,
         },
       }),
+      // Ensure lastLoginAt and emailVerified are updated even if user was just created
       prismadb.users.update({
         where: { id: user.id },
         data: {
@@ -180,6 +191,15 @@ export async function POST(req: NextRequest) {
         userStatus: user.userStatus,
         userLanguage: user.userLanguage,
       },
+      organization: organization ? {
+        id: organization.id,
+        name: organization.name,
+        slug: organization.slug,
+        role: organization.role,
+      } : null,
+      organizationId: organization?.id ?? null,
+      organizationRole: organization?.role ?? null,
+      redirectTo: organization ? "/en/crm/dashboard" : "/en/create-organization",
       session: {
         expiresAt: session.expiresAt,
       },

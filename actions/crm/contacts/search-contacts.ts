@@ -1,9 +1,10 @@
 "use server";
 
 import { prismadb } from "@/lib/prisma";
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 import type { Prisma } from "@prisma/client";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 export type ContactSearchItem = {
   id: string;
@@ -23,6 +24,7 @@ export const searchContacts = async ({
   take = 10,
 }: SearchContactsParams): Promise<ContactSearchItem[]> => {
   const session = await getSession();
+  const organizationId = await requireOrganizationId();
 
   if (!session) {
     return [];
@@ -86,24 +88,27 @@ export const searchContacts = async ({
     ];
   }
 
-  const contacts = await prismadb.crm_Contacts.findMany({
-    where: {
-      deletedAt: null,
-      ...(await buildExistingDbContactVisibilityFilter(session.user)),
-      OR: orConditions,
-    },
-    select: {
-      id: true,
-      serial: true,
-      first_name: true,
-      last_name: true,
-      email: true,
-    },
-    take,
-    orderBy: {
-      last_name: "asc",
-    },
-  });
+  return runWithOrganizationContext(organizationId, async () => {
+    const contacts = await prismadb.crm_Contacts.findMany({
+      where: {
+        organizationId,
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+        OR: orConditions,
+      },
+      select: {
+        id: true,
+        serial: true,
+        first_name: true,
+        last_name: true,
+        email: true,
+      },
+      take,
+      orderBy: {
+        last_name: "asc",
+      },
+    });
 
-  return contacts;
+    return contacts;
+  });
 };

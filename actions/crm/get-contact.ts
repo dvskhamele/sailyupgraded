@@ -1,10 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { prismadb, withPrismaRetry } from "@/lib/prisma";
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { getCrmContactDetailSelect } from "@/lib/prisma-contact-select";
 import { getExistingDbColumnNames } from "@/lib/prisma-model-fields";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 import { serializeDecimals } from "@/lib/serialize-decimals";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 function quoteIdentifier(identifier: string) {
   if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(identifier)) {
@@ -65,29 +66,33 @@ async function getImportedContactColumnData(contactId: string, organizationId: s
 }
 
 export const getContact = async (contactId: string) => {
+  const organizationId = await requireOrganizationId();
   return withPrismaRetry(async () => {
-    const session = await getSession();
-    if (!session?.user.organizationId) return null;
+    return runWithOrganizationContext(organizationId, async () => {
+      const session = await getSession();
+      if (!session?.user.organizationId) return null;
 
-    const select = await getCrmContactDetailSelect();
-    const data = await prismadb.crm_Contacts.findFirst({
-      where: {
-        id: contactId,
-        deletedAt: null,
-        ...(await buildExistingDbContactVisibilityFilter(session?.user)),
-      },
-      select,
-    });
+      const select = await getCrmContactDetailSelect();
+      const data = await prismadb.crm_Contacts.findFirst({
+        where: {
+          id: contactId,
+          organizationId,
+          deletedAt: null,
+          ...(await buildExistingDbContactVisibilityFilter(session?.user)),
+        },
+        select,
+      });
 
-    if (!data) {
-      return data;
-    }
+      if (!data) {
+        return data;
+      }
 
-    const importedColumns = await getImportedContactColumnData(contactId, session.user.organizationId);
+      const importedColumns = await getImportedContactColumnData(contactId, session.user.organizationId);
 
-    return serializeDecimals({
-      ...data,
-      imported_columns_data: importedColumns,
+      return serializeDecimals({
+        ...data,
+        imported_columns_data: importedColumns,
+      });
     });
   });
 };

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -46,6 +47,7 @@ type GoogleLoginButtonProps = {
 type GoogleLoginResponse = {
   success: boolean;
   error?: string;
+  redirectTo?: string;
 };
 
 const GOOGLE_SCRIPT_ID = "google-identity-services";
@@ -82,6 +84,7 @@ export function GoogleLoginButton({
   const buttonRef = useRef<HTMLDivElement>(null);
   const initializedRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
+  const router = useRouter();
 
   const handleGoogleCredential = useCallback(
     async (response: GoogleCredentialResponse) => {
@@ -105,22 +108,19 @@ export function GoogleLoginButton({
         const data = (await apiResponse.json()) as GoogleLoginResponse;
 
         if (!apiResponse.ok || !data.success) {
-          toast.error(
-            data.error ||
-              "Your account is not registered. Please contact administrator or register first.",
-          );
+          toast.error(data.error || "Something went wrong with Google login.");
           return;
         }
 
         toast.success("Login successful.");
-        window.location.href = dashboardPath;
+        router.push(data.redirectTo ?? dashboardPath);
       } catch {
         toast.error("Something went wrong with Google login.");
       } finally {
         setIsLoading(false);
       }
     },
-    [dashboardPath],
+    [dashboardPath, router],
   );
 
   useEffect(() => {

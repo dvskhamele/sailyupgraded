@@ -4,8 +4,9 @@ import {
   isTransientPrismaConnectionError,
   prismadb,
   resetPrisma,
+  withPrismaRetry,
 } from "@/lib/prisma";
-import { runWithOrganizationContext } from "@/lib/organization-context";
+import { runWithOrganizationContext, getOrganizationContext } from "@/lib/organization-context";
 
 const bypassLogin =
   process.env.BYPASS_LOGIN === "true" ||
@@ -20,11 +21,14 @@ function shouldUseFallback(error: unknown) {
   return isPrismaAccessDeniedError(error) || isTransientPrismaConnectionError(error);
 }
 
-async function loadOpportunities() {
+async function loadOpportunities(organizationId: string) {
+  console.log("[loadOpportunities] async context org id:", getOrganizationContext());
   const opportunities = await prismadb.crm_Opportunities.findMany({
-    where: { deletedAt: null },
+    where: {
+      organizationId,
+      deletedAt: null,
+    },
     include: {
-      // Include assigned user (uses "assigned_to_user_relation")
       assigned_to_user: {
         select: {
           avatar: true,
@@ -36,13 +40,11 @@ async function loadOpportunities() {
           name: true,
         },
       },
-      // Include created by user (uses "created_by_user_relation")
       created_by_user: {
         select: {
           name: true,
         },
       },
-      // Include contacts through ContactsToOpportunities junction table
       contacts: {
         include: {
           contact: {
@@ -60,7 +62,6 @@ async function loadOpportunities() {
           },
         },
       },
-      // Include documents through DocumentsToOpportunities junction table
       documents: {
         include: {
           document: {
@@ -78,7 +79,7 @@ async function loadOpportunities() {
     ...new Set(
       opportunities
         .map((opportunity) => opportunity.contact)
-        .filter((contactId): contactId is string => Boolean(contactId)),
+        .filter((contactId): contactId is string => Boolean(contactId))
     ),
   ];
 
@@ -88,6 +89,7 @@ async function loadOpportunities() {
 
   const assignedClientContacts = await prismadb.crm_Contacts.findMany({
     where: {
+      organizationId,
       id: { in: assignedClientIds },
       deletedAt: null,
     },
@@ -105,7 +107,7 @@ async function loadOpportunities() {
   });
 
   const assignedClientContactsById = new Map(
-    assignedClientContacts.map((contact) => [contact.id, contact]),
+    assignedClientContacts.map((contact) => [contact.id, contact])
   );
 
   return opportunities.map((opportunity) => ({
@@ -117,104 +119,120 @@ async function loadOpportunities() {
 }
 
 export const getOpportunities = async () => {
+  if (bypassLogin) {
+    return [];
+  }
+
   const organizationId = await requireOrganizationId();
 
-  return runWithOrganizationContext(organizationId, async () => {
-    if (bypassLogin) {
+  try {
+    return await withPrismaRetry(async () => {
+      return await runWithOrganizationContext(organizationId, async () => {
+        return await loadOpportunities(organizationId);
+      });
+    });
+  } catch (error) {
+    if (shouldUseFallback(error)) {
+      console.warn(
+        "[CRM] getOpportunities failed; using local fallback data.",
+        error instanceof Error ? error.message : error,
+      );
+
       return [];
     }
 
-    try {
-      return await loadOpportunities();
-    } catch (error) {
-      if (shouldUseFallback(error)) {
-        console.warn(
-          "[CRM] getOpportunities failed; using local fallback data.",
-          error instanceof Error ? error.message : error,
-        );
-
-        return [];
-      }
-
-      if (!isEndedPoolError(error)) {
-        throw error;
-      }
-
-      await resetPrisma();
-      return loadOpportunities();
+    if (!isEndedPoolError(error)) {
+      throw error;
     }
-  });
+
+    await resetPrisma();
+    return await runWithOrganizationContext(organizationId, async () => {
+      return await loadOpportunities(organizationId);
+    });
+  }
 };
 
-//Get opportunities by month for chart
+// Get opportunities by month for chart
 export const getOpportunitiesByMonth = async () => {
-  await requireOrganizationId();
-  const opportunities = await prismadb.crm_Opportunities.findMany({
-    where: { deletedAt: null },
-    select: {
-      created_on: true,
-    },
-  });
-
-  if (!opportunities) {
-    return {};
+  if (bypassLogin) {
+    return [];
   }
 
-  const opportunitiesByMonth = opportunities.reduce(
-    (acc: any, opportunity: any) => {
-      const month = new Date(opportunity.created_on).toLocaleString("default", {
-        month: "long",
+  const organizationId = await requireOrganizationId();
+
+  return await withPrismaRetry(async () => {
+    return await runWithOrganizationContext(organizationId, async () => {
+      console.log("[getOpportunitiesByMonth] async context org id:", getOrganizationContext());
+      const opportunities = await prismadb.crm_Opportunities.findMany({
+        where: { organizationId, deletedAt: null },
+        select: {
+          created_on: true,
+        },
       });
-      acc[month] = (acc[month] || 0) + 1;
-      return acc;
-    },
-    {}
-  );
 
-  const chartData = Object.keys(opportunitiesByMonth).map((month: any) => {
-    return {
-      name: month,
-      Number: opportunitiesByMonth[month],
-    };
+      const opportunitiesByMonth = opportunities.reduce(
+        (acc: Record<string, number>, opportunity) => {
+          if (!opportunity.created_on) {
+            return acc;
+          }
+
+          const month = new Date(opportunity.created_on).toLocaleString("default", {
+            month: "long",
+          });
+
+          acc[month] = (acc[month] || 0) + 1;
+          return acc;
+        },
+        {}
+      );
+
+      const chartData = Object.keys(opportunitiesByMonth).map((month) => ({
+        name: month,
+        Number: opportunitiesByMonth[month],
+      }));
+
+      return chartData;
+    });
   });
-
-  return chartData;
 };
 
-//Get opportunities by sales_stage name for chart
+// Get opportunities by sales_stage name for chart
 export const getOpportunitiesByStage = async () => {
-  await requireOrganizationId();
-  const opportunities = await prismadb.crm_Opportunities.findMany({
-    where: { deletedAt: null },
-    select: {
-      assigned_sales_stage: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  });
-
-  console.log(opportunities, "opportunities");
-  if (!opportunities) {
-    return {};
+  if (bypassLogin) {
+    return [];
   }
 
-  const opportunitiesByStage = opportunities.reduce(
-    (acc: any, opportunity: any) => {
-      const stage = opportunity.assigned_sales_stage?.name;
-      acc[stage] = (acc[stage] || 0) + 1;
-      return acc;
-    },
-    {}
-  );
+  const organizationId = await requireOrganizationId();
 
-  const chartData = Object.keys(opportunitiesByStage).map((stage: any) => {
-    return {
-      name: stage,
-      Number: opportunitiesByStage[stage],
-    };
+  return await withPrismaRetry(async () => {
+    return await runWithOrganizationContext(organizationId, async () => {
+      console.log("[getOpportunitiesByStage] async context org id:", getOrganizationContext());
+      const opportunities = await prismadb.crm_Opportunities.findMany({
+        where: { organizationId, deletedAt: null },
+        select: {
+          assigned_sales_stage: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+
+      const opportunitiesByStage = opportunities.reduce(
+        (acc: Record<string, number>, opportunity) => {
+          const stage = opportunity.assigned_sales_stage?.name ?? "Unknown";
+          acc[stage] = (acc[stage] || 0) + 1;
+          return acc;
+        },
+        {}
+      );
+
+      const chartData = Object.keys(opportunitiesByStage).map((stage) => ({
+        name: stage,
+        Number: opportunitiesByStage[stage],
+      }));
+
+      return chartData;
+    });
   });
-
-  return chartData;
 };

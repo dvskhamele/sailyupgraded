@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 import { isFieldEmpty } from "@/lib/enrichment/utils/field-utils";
 import { getApiKey } from "@/lib/api-keys";
 import { getAgentScript } from "@/lib/enrichment/e2b/agent-script";
@@ -43,33 +44,7 @@ export const enrichTarget = inngest.createFunction(
       force?: boolean;
     };
 
-    // Create an enrichment log row if one wasn't pre-created by the caller.
-    const enrichmentId = await step.run("ensure-enrichment-log", async () => {
-      if (incomingEnrichmentId) return incomingEnrichmentId;
-      const row = await prismadb.crm_Target_Enrichment.create({
-        data: {
-          targetId,
-          status: "RUNNING",
-          fields: fields?.map((field) => field.name) ?? [],
-          triggeredBy: triggeredBy ?? null,
-        },
-        select: { id: true },
-      });
-      return row.id;
-    });
-
-    const anthropicKey = await step.run("resolve-api-key", () =>
-      getApiKey("ANTHROPIC", triggeredBy)
-    );
-
-    if (!anthropicKey) {
-      await prismadb.crm_Target_Enrichment.update({
-        where: { id: enrichmentId },
-        data: { status: "FAILED", error: "NO_API_KEY: configure ANTHROPIC key in admin or profile settings" },
-      });
-      return;
-    }
-
+    // Load target first to get organizationId
     const target = await step.run("load-target", () =>
       prismadb.crm_Targets.findUnique({
         where: { id: targetId },
@@ -78,35 +53,81 @@ export const enrichTarget = inngest.createFunction(
           email: true, company: true, company_website: true,
           industry: true, employees: true, city: true,
           company_phone: true, social_linkedin: true, social_x: true, description: true,
+          organizationId: true,
         },
       })
     );
 
+    if (!target) {
+      return { skipped: "target not found" };
+    }
+
+    const organizationId = target.organizationId;
+
+    // Create an enrichment log row if one wasn't pre-created by the caller.
+    const enrichmentId = await step.run("ensure-enrichment-log", async () => {
+      if (incomingEnrichmentId) return incomingEnrichmentId;
+      return runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_Target_Enrichment.create({
+          data: {
+            organizationId,
+            targetId,
+            status: "RUNNING",
+            fields: fields?.map((field) => field.name) ?? [],
+            triggeredBy: triggeredBy ?? null,
+          },
+          select: { id: true },
+        })
+      );
+    });
+
+    const anthropicKey = await step.run("resolve-api-key", () =>
+      getApiKey("ANTHROPIC", triggeredBy)
+    );
+
+    if (!anthropicKey) {
+      await runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_Target_Enrichment.update({
+          where: { id: enrichmentId },
+          data: { status: "FAILED", error: "NO_API_KEY: configure ANTHROPIC key in admin or profile settings" },
+        })
+      );
+      return;
+    }
+
     if (!target?.company && !target?.email) {
-      await prismadb.crm_Target_Enrichment.update({
-        where: { id: enrichmentId },
-        data: { status: "SKIPPED", error: "No email or company on target" },
-      });
+      await runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_Target_Enrichment.update({
+          where: { id: enrichmentId },
+          data: { status: "SKIPPED", error: "No email or company on target" },
+        })
+      );
       return { skipped: "no email or company" };
     }
 
-    const recentEnrichment = await prismadb.crm_Target_Enrichment.findFirst({
-      where: { targetId, status: "COMPLETED", createdAt: { gte: new Date(Date.now() - SEVEN_DAYS_MS) } },
-      select: { createdAt: true },
-    });
+    const recentEnrichment = await runWithOrganizationContext(organizationId, () =>
+      prismadb.crm_Target_Enrichment.findFirst({
+        where: { targetId, status: "COMPLETED", createdAt: { gte: new Date(Date.now() - SEVEN_DAYS_MS) } },
+        select: { createdAt: true },
+      })
+    );
 
     if (!force && shouldSkipTargetEnrichment(recentEnrichment?.createdAt ?? null)) {
-      await prismadb.crm_Target_Enrichment.update({
-        where: { id: enrichmentId },
-        data: { status: "SKIPPED", error: "Enriched within last 7 days" },
-      });
+      await runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_Target_Enrichment.update({
+          where: { id: enrichmentId },
+          data: { status: "SKIPPED", error: "Enriched within last 7 days" },
+        })
+      );
       return { skipped: "recently enriched" };
     }
 
-    await prismadb.crm_Target_Enrichment.update({
-      where: { id: enrichmentId },
-      data: { status: "RUNNING" },
-    });
+    await runWithOrganizationContext(organizationId, () =>
+      prismadb.crm_Target_Enrichment.update({
+        where: { id: enrichmentId },
+        data: { status: "RUNNING" },
+      })
+    );
 
     const agentOutput = await step.run("run-e2b-agent", async (): Promise<AgentOutput> => {
       const knownDomain = resolveCompanyDomain({
@@ -167,41 +188,46 @@ export const enrichTarget = inngest.createFunction(
       }
 
       if (Object.keys(updates).length > 0) {
-        await prismadb.crm_Targets.update({ where: { id: targetId }, data: updates });
+        await runWithOrganizationContext(organizationId, () =>
+          prismadb.crm_Targets.update({ where: { id: targetId }, data: updates })
+        );
       }
       return { applied: Object.keys(updates) };
     });
 
     const contactIds = await step.run("upsert-contacts", async () => {
-      const ids: string[] = [];
-      for (const contact of agentOutput.contacts ?? []) {
-        if (!contact.email && !contact.linkedinUrl) continue;
-        const whereKey = buildContactUpsertKey(targetId, contact);
-        const upserted = await prismadb.crm_Target_Contact.upsert({
-          where: whereKey as Parameters<typeof prismadb.crm_Target_Contact.upsert>[0]["where"],
-          create: {
-            targetId,
-            name: contact.name,
-            email: contact.email,
-            title: contact.title,
-            linkedinUrl: contact.linkedinUrl,
-            phone: contact.phone,
-            source: "enriched",
-            enrichStatus: contact.title && contact.linkedinUrl ? "COMPLETED" : "PENDING",
-            enrichedAt: contact.title && contact.linkedinUrl ? new Date() : null,
-          },
-          update: {
-            title: contact.title ?? undefined,
-            linkedinUrl: contact.linkedinUrl ?? undefined,
-            name: contact.name ?? undefined,
-            enrichStatus: contact.title && contact.linkedinUrl ? "COMPLETED" : "PENDING",
-            enrichedAt: contact.title && contact.linkedinUrl ? new Date() : null,
-          },
-          select: { id: true, enrichStatus: true },
-        });
-        if (upserted.enrichStatus === "PENDING") ids.push(upserted.id);
-      }
-      return ids;
+      return runWithOrganizationContext(organizationId, async () => {
+        const ids: string[] = [];
+        for (const contact of agentOutput.contacts ?? []) {
+          if (!contact.email && !contact.linkedinUrl) continue;
+          const whereKey = buildContactUpsertKey(targetId, contact);
+          const upserted = await prismadb.crm_Target_Contact.upsert({
+            where: whereKey as Parameters<typeof prismadb.crm_Target_Contact.upsert>[0]["where"],
+            create: {
+              organizationId,
+              targetId,
+              name: contact.name,
+              email: contact.email,
+              title: contact.title,
+              linkedinUrl: contact.linkedinUrl,
+              phone: contact.phone,
+              source: "enriched",
+              enrichStatus: contact.title && contact.linkedinUrl ? "COMPLETED" : "PENDING",
+              enrichedAt: contact.title && contact.linkedinUrl ? new Date() : null,
+            },
+            update: {
+              title: contact.title ?? undefined,
+              linkedinUrl: contact.linkedinUrl ?? undefined,
+              name: contact.name ?? undefined,
+              enrichStatus: contact.title && contact.linkedinUrl ? "COMPLETED" : "PENDING",
+              enrichedAt: contact.title && contact.linkedinUrl ? new Date() : null,
+            },
+            select: { id: true, enrichStatus: true },
+          });
+          if (upserted.enrichStatus === "PENDING") ids.push(upserted.id);
+        }
+        return ids;
+      });
     });
 
     if (contactIds.length > 0) {
@@ -214,10 +240,12 @@ export const enrichTarget = inngest.createFunction(
       );
     }
 
-    await prismadb.crm_Target_Enrichment.update({
-      where: { id: enrichmentId },
-      data: { status: "COMPLETED" },
-    });
+    await runWithOrganizationContext(organizationId, () =>
+      prismadb.crm_Target_Enrichment.update({
+        where: { id: enrichmentId },
+        data: { status: "COMPLETED" },
+      })
+    );
 
     return { enriched: true, contactsFound: agentOutput.contacts?.length ?? 0 };
   }

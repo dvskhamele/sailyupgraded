@@ -1,5 +1,6 @@
 import { inngest } from "@/inngest/client";
 import { prismadb } from "@/lib/prisma";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 import { randomUUID } from "crypto";
 
 export const campaignProcessFollowUp = inngest.createFunction(
@@ -17,53 +18,75 @@ export const campaignProcessFollowUp = inngest.createFunction(
 
     await step.sleepUntil("wait-for-follow-up-time", new Date(scheduledAt));
 
-    const [campaign, followUpStep] = await step.run("load-step", async () => {
-      return Promise.all([
-        prismadb.crm_campaigns.findUnique({ where: { id: campaignId }, select: { status: true } }),
-        prismadb.crm_campaign_steps.findUnique({ where: { id: stepId } }),
-      ]);
+    // First get the campaign to get organizationId
+    const campaign = await step.run("load-campaign", async () => {
+      return prismadb.crm_campaigns.findUnique({ 
+        where: { id: campaignId }, 
+        select: { status: true, organizationId: true } 
+      });
     });
 
-    if (!campaign || campaign.status === "paused" || !followUpStep) {
+    if (!campaign) {
+      return { skipped: true, reason: "campaign not found" };
+    }
+
+    const organizationId = campaign.organizationId;
+
+    const followUpStep = await step.run("load-follow-up-step", async () => {
+      return runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_campaign_steps.findUnique({ where: { id: stepId } })
+      );
+    });
+
+    if (campaign.status === "paused" || !followUpStep) {
       return { skipped: true, reason: campaign?.status };
     }
 
     // Get step 0 to determine eligible recipients
     const step0 = await step.run("get-step-0", async () => {
-      return prismadb.crm_campaign_steps.findFirst({ where: { campaign_id: campaignId, order: 0 } });
+      return runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_campaign_steps.findFirst({ where: { campaign_id: campaignId, order: 0 } })
+      );
     });
     if (!step0) return { skipped: true, reason: "no step 0" };
 
     const eligibleTargets = await step.run("filter-recipients", async () => {
-      return prismadb.crm_campaign_sends.findMany({
-        where: {
-          step_id: step0.id,
-          status: { in: ["sent", "delivered"] },
-          unsubscribed_at: null,
-          ...(followUpStep.send_to === "non_openers" ? { opened_at: null } : {}),
-        },
-        select: { target_id: true, email: true },
-      });
+      return runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_campaign_sends.findMany({
+          where: {
+            step_id: step0.id,
+            status: { in: ["sent", "delivered"] },
+            unsubscribed_at: null,
+            ...(followUpStep.send_to === "non_openers" ? { opened_at: null } : {}),
+          },
+          select: { target_id: true, email: true },
+        })
+      );
     });
 
     if (eligibleTargets.length === 0) return { dispatched: 0, reason: "no eligible recipients" };
 
     // Create send records
     const sendRecords = await step.run("create-send-records", async () => {
-      await prismadb.crm_campaign_sends.createMany({
-        data: eligibleTargets.map((t) => ({
-          campaign_id: campaignId,
-          step_id: stepId,
-          target_id: t.target_id,
-          email: t.email,
-          unsubscribe_token: randomUUID(),
-        })),
-        skipDuplicates: true,
-      });
-      return prismadb.crm_campaign_sends.findMany({
-        where: { step_id: stepId },
-        select: { id: true },
-      });
+      await runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_campaign_sends.createMany({
+          data: eligibleTargets.map((t) => ({
+            organizationId,
+            campaign_id: campaignId,
+            step_id: stepId,
+            target_id: t.target_id,
+            email: t.email,
+            unsubscribe_token: randomUUID(),
+          })),
+          skipDuplicates: true,
+        })
+      );
+      return runWithOrganizationContext(organizationId, () =>
+        prismadb.crm_campaign_sends.findMany({
+          where: { step_id: stepId },
+          select: { id: true },
+        })
+      );
     });
 
     await step.sendEvent(

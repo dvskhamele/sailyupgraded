@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { revalidatePath } from "next/cache";
 
-import { getSession } from "@/lib/auth-server";
+import { getSession, requireOrganizationId } from "@/lib/auth-server";
 import { writeAuditLog } from "@/lib/audit-log";
 import { prismadb } from "@/lib/prisma";
+import { runWithOrganizationContext } from "@/lib/organization-context";
 
 type RawRow = Record<string, string>;
 type MappingKey =
@@ -94,6 +95,7 @@ export async function POST(request: NextRequest) {
   if (!session?.user?.id) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
+  const organizationId = await requireOrganizationId();
 
   const body = await request.json();
   const rows = Array.isArray(body?.rows) ? (body.rows as RawRow[]) : [];
@@ -250,254 +252,257 @@ export async function POST(request: NextRequest) {
     });
   });
 
-  const uniqueAssignedUserValues = Array.from(
-    new Set(candidates.map((candidate) => candidate.data.assigned_to).filter(Boolean)),
-  );
-  const uniqueIndustryValues = Array.from(
-    new Set(candidates.map((candidate) => candidate.data.industry).filter(Boolean)),
-  );
+  return await runWithOrganizationContext(organizationId, async () => {
+    const uniqueAssignedUserValues = Array.from(
+      new Set(candidates.map((candidate) => candidate.data.assigned_to).filter(Boolean)),
+    );
+    const uniqueIndustryValues = Array.from(
+      new Set(candidates.map((candidate) => candidate.data.industry).filter(Boolean)),
+    );
 
-  const [existingAccounts, users, industries] = await Promise.all([
-    candidates.length
-      ? prismadb.crm_Accounts.findMany({
-          where: {
-            deletedAt: null,
-            OR: [
-              { name: { in: candidates.map((candidate) => candidate.data.accountName) } },
-              {
-                email: {
-                  in: candidates
-                    .map((candidate) => candidate.normalizedEmail)
-                    .filter(Boolean),
+    const [existingAccounts, users, industries] = await Promise.all([
+      candidates.length
+        ? prismadb.crm_Accounts.findMany({
+            where: {
+              deletedAt: null,
+              OR: [
+                { name: { in: candidates.map((candidate) => candidate.data.accountName) } },
+                {
+                  email: {
+                    in: candidates
+                      .map((candidate) => candidate.normalizedEmail)
+                      .filter(Boolean),
+                  },
                 },
-              },
-              {
-                office_phone: {
-                  in: candidates
-                    .map((candidate) => candidate.normalizedPhone)
-                    .filter(Boolean),
+                {
+                  office_phone: {
+                    in: candidates
+                      .map((candidate) => candidate.normalizedPhone)
+                      .filter(Boolean),
+                  },
                 },
-              },
-              {
-                website: {
-                  in: candidates
-                    .map((candidate) => candidate.data.website)
-                    .filter(Boolean),
+                {
+                  website: {
+                    in: candidates
+                      .map((candidate) => candidate.data.website)
+                      .filter(Boolean),
+                  },
                 },
-              },
-            ],
-          },
-        })
-      : Promise.resolve([]),
-    uniqueAssignedUserValues.length
-      ? prismadb.users.findMany({
-          where: {
-            OR: [
-              { id: { in: uniqueAssignedUserValues } },
-              { email: { in: uniqueAssignedUserValues } },
-              { name: { in: uniqueAssignedUserValues } },
-            ],
-          },
-          select: { id: true, email: true, name: true },
-        })
-      : Promise.resolve([]),
-    uniqueIndustryValues.length
-      ? prismadb.crm_Industry_Type.findMany({
-          where: {
-            OR: [
-              { id: { in: uniqueIndustryValues } },
-              { name: { in: uniqueIndustryValues } },
-            ],
-          },
-          select: { id: true, name: true },
-        })
-      : Promise.resolve([]),
-  ]);
+              ],
+            },
+          })
+        : Promise.resolve([]),
+      uniqueAssignedUserValues.length
+        ? prismadb.users.findMany({
+            where: {
+              OR: [
+                { id: { in: uniqueAssignedUserValues } },
+                { email: { in: uniqueAssignedUserValues } },
+                { name: { in: uniqueAssignedUserValues } },
+              ],
+            },
+            select: { id: true, email: true, name: true },
+          })
+        : Promise.resolve([]),
+      uniqueIndustryValues.length
+        ? prismadb.crm_Industry_Type.findMany({
+            where: {
+              OR: [
+                { id: { in: uniqueIndustryValues } },
+                { name: { in: uniqueIndustryValues } },
+              ],
+            },
+            select: { id: true, name: true },
+          })
+        : Promise.resolve([]),
+    ]);
 
-  const existingByName = new Map<string, (typeof existingAccounts)[number]>();
-  const existingByEmail = new Map<string, (typeof existingAccounts)[number]>();
-  const existingByPhone = new Map<string, (typeof existingAccounts)[number]>();
-  const existingByWebsite = new Map<string, (typeof existingAccounts)[number]>();
-  const userLookup = new Map<string, string>();
-  const industryLookup = new Map<string, string>();
+    const existingByName = new Map<string, (typeof existingAccounts)[number]>();
+    const existingByEmail = new Map<string, (typeof existingAccounts)[number]>();
+    const existingByPhone = new Map<string, (typeof existingAccounts)[number]>();
+    const existingByWebsite = new Map<string, (typeof existingAccounts)[number]>();
+    const userLookup = new Map<string, string>();
+    const industryLookup = new Map<string, string>();
 
-  existingAccounts.forEach((account) => {
-    existingByName.set(normalizeLookup(account.name), account);
-    if (account.email) existingByEmail.set(normalizeEmail(account.email), account);
-    if (account.office_phone) {
-      existingByPhone.set(normalizePhone(account.office_phone), account);
-    }
-    if (account.website) {
-      existingByWebsite.set(normalizeWebsite(account.website), account);
-    }
-  });
-
-  users.forEach((user) => {
-    userLookup.set(user.id, user.id);
-    if (user.email) userLookup.set(user.email, user.id);
-    if (user.name) userLookup.set(user.name, user.id);
-  });
-
-  industries.forEach((industry) => {
-    industryLookup.set(industry.id, industry.id);
-    industryLookup.set(industry.name, industry.id);
-  });
-
-  let imported = 0;
-  let updated = 0;
-
-  for (const candidate of candidates) {
-    const existingMatch =
-      existingByName.get(candidate.normalizedName) ||
-      (candidate.normalizedEmail
-        ? existingByEmail.get(candidate.normalizedEmail)
-        : undefined) ||
-      (candidate.normalizedPhone
-        ? existingByPhone.get(candidate.normalizedPhone)
-        : undefined) ||
-      (candidate.normalizedWebsite
-        ? existingByWebsite.get(candidate.normalizedWebsite)
-        : undefined);
-
-    const resolvedAssignedTo = candidate.data.assigned_to
-      ? userLookup.get(candidate.data.assigned_to)
-      : undefined;
-    const resolvedIndustry = candidate.data.industry
-      ? industryLookup.get(candidate.data.industry)
-      : undefined;
-
-    const payload = {
-      name: candidate.data.accountName,
-      email: candidate.normalizedEmail || undefined,
-      office_phone: candidate.normalizedPhone || undefined,
-      website: normalizeOptionalText(candidate.data.website),
-      fax: normalizeOptionalText(candidate.data.fax),
-      company_id: normalizeOptionalText(candidate.data.company_id),
-      vat: normalizeOptionalText(candidate.data.vat),
-      annual_revenue: normalizeOptionalText(candidate.data.annual_revenue),
-      employees: normalizeOptionalText(candidate.data.employees),
-      member_of: normalizeOptionalText(candidate.data.member_of),
-      industry: resolvedIndustry,
-      type: normalizeOptionalText(candidate.data.type),
-      status: normalizeOptionalText(candidate.data.status) || "Active",
-      description: normalizeOptionalText(candidate.data.description),
-      assigned_to: resolvedAssignedTo,
-      billing_street: normalizeOptionalText(candidate.data.billing_street),
-      billing_postal_code: normalizeOptionalText(candidate.data.billing_postal_code),
-      billing_city: normalizeOptionalText(candidate.data.billing_city),
-      billing_state: normalizeOptionalText(candidate.data.billing_state),
-      billing_country: normalizeOptionalText(candidate.data.billing_country),
-      shipping_street: normalizeOptionalText(candidate.data.shipping_street),
-      shipping_postal_code: normalizeOptionalText(candidate.data.shipping_postal_code),
-      shipping_city: normalizeOptionalText(candidate.data.shipping_city),
-      shipping_state: normalizeOptionalText(candidate.data.shipping_state),
-      shipping_country: normalizeOptionalText(candidate.data.shipping_country),
-    };
-
-    try {
-      if (existingMatch) {
-        const updatePayload: Record<string, string> = {};
-        addIfMissing(updatePayload, "email", existingMatch.email, payload.email);
-        addIfMissing(updatePayload, "office_phone", existingMatch.office_phone, payload.office_phone);
-        addIfMissing(updatePayload, "website", existingMatch.website, payload.website);
-        addIfMissing(updatePayload, "fax", existingMatch.fax, payload.fax);
-        addIfMissing(updatePayload, "company_id", existingMatch.company_id, payload.company_id);
-        addIfMissing(updatePayload, "vat", existingMatch.vat, payload.vat);
-        addIfMissing(updatePayload, "annual_revenue", existingMatch.annual_revenue, payload.annual_revenue);
-        addIfMissing(updatePayload, "employees", existingMatch.employees, payload.employees);
-        addIfMissing(updatePayload, "member_of", existingMatch.member_of, payload.member_of);
-        addIfMissing(updatePayload, "industry", existingMatch.industry, payload.industry);
-        addIfMissing(updatePayload, "type", existingMatch.type, payload.type);
-        addIfMissing(updatePayload, "status", existingMatch.status, payload.status);
-        addIfMissing(updatePayload, "description", existingMatch.description, payload.description);
-        addIfMissing(updatePayload, "assigned_to", existingMatch.assigned_to, payload.assigned_to);
-        addIfMissing(updatePayload, "billing_street", existingMatch.billing_street, payload.billing_street);
-        addIfMissing(updatePayload, "billing_postal_code", existingMatch.billing_postal_code, payload.billing_postal_code);
-        addIfMissing(updatePayload, "billing_city", existingMatch.billing_city, payload.billing_city);
-        addIfMissing(updatePayload, "billing_state", existingMatch.billing_state, payload.billing_state);
-        addIfMissing(updatePayload, "billing_country", existingMatch.billing_country, payload.billing_country);
-        addIfMissing(updatePayload, "shipping_street", existingMatch.shipping_street, payload.shipping_street);
-        addIfMissing(updatePayload, "shipping_postal_code", existingMatch.shipping_postal_code, payload.shipping_postal_code);
-        addIfMissing(updatePayload, "shipping_city", existingMatch.shipping_city, payload.shipping_city);
-        addIfMissing(updatePayload, "shipping_state", existingMatch.shipping_state, payload.shipping_state);
-        addIfMissing(updatePayload, "shipping_country", existingMatch.shipping_country, payload.shipping_country);
-
-        if (Object.keys(updatePayload).length === 0) {
-          failures.push({
-            row: candidate.row,
-            name: candidate.data.accountName,
-            reason: "Existing account already has the imported data",
-          });
-          continue;
-        }
-
-        await prismadb.crm_Accounts.update({
-          where: { id: existingMatch.id },
-          data: {
-            updatedBy: userId,
-            ...updatePayload,
-          },
-          select: { id: true },
-        });
-        updated += 1;
-      } else {
-        const created = await prismadb.crm_Accounts.create({
-          data: {
-            v: 0,
-            createdBy: userId,
-            updatedBy: userId,
-            ...payload,
-          },
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            office_phone: true,
-            website: true,
-          },
-        });
-
-        existingByName.set(normalizeLookup(created.name), created as any);
-        if (created.email) existingByEmail.set(normalizeEmail(created.email), created as any);
-        if (created.office_phone) {
-          existingByPhone.set(normalizePhone(created.office_phone), created as any);
-        }
-        if (created.website) {
-          existingByWebsite.set(normalizeWebsite(created.website), created as any);
-        }
-        imported += 1;
+    existingAccounts.forEach((account) => {
+      existingByName.set(normalizeLookup(account.name), account);
+      if (account.email) existingByEmail.set(normalizeEmail(account.email), account);
+      if (account.office_phone) {
+        existingByPhone.set(normalizePhone(account.office_phone), account);
       }
-    } catch (error) {
-      failures.push({
-        row: candidate.row,
+      if (account.website) {
+        existingByWebsite.set(normalizeWebsite(account.website), account);
+      }
+    });
+
+    users.forEach((user) => {
+      userLookup.set(user.id, user.id);
+      if (user.email) userLookup.set(user.email, user.id);
+      if (user.name) userLookup.set(user.name, user.id);
+    });
+
+    industries.forEach((industry) => {
+      industryLookup.set(industry.id, industry.id);
+      industryLookup.set(industry.name, industry.id);
+    });
+
+    let imported = 0;
+    let updated = 0;
+
+    for (const candidate of candidates) {
+      const existingMatch =
+        existingByName.get(candidate.normalizedName) ||
+        (candidate.normalizedEmail
+          ? existingByEmail.get(candidate.normalizedEmail)
+          : undefined) ||
+        (candidate.normalizedPhone
+          ? existingByPhone.get(candidate.normalizedPhone)
+          : undefined) ||
+        (candidate.normalizedWebsite
+          ? existingByWebsite.get(candidate.normalizedWebsite)
+          : undefined);
+
+      const resolvedAssignedTo = candidate.data.assigned_to
+        ? userLookup.get(candidate.data.assigned_to)
+        : undefined;
+      const resolvedIndustry = candidate.data.industry
+        ? industryLookup.get(candidate.data.industry)
+        : undefined;
+
+      const payload = {
+        organizationId,
         name: candidate.data.accountName,
-        reason:
-          error instanceof Error ? error.message : "Failed to import account",
+        email: candidate.normalizedEmail || undefined,
+        office_phone: candidate.normalizedPhone || undefined,
+        website: normalizeOptionalText(candidate.data.website),
+        fax: normalizeOptionalText(candidate.data.fax),
+        company_id: normalizeOptionalText(candidate.data.company_id),
+        vat: normalizeOptionalText(candidate.data.vat),
+        annual_revenue: normalizeOptionalText(candidate.data.annual_revenue),
+        employees: normalizeOptionalText(candidate.data.employees),
+        member_of: normalizeOptionalText(candidate.data.member_of),
+        industry: resolvedIndustry,
+        type: normalizeOptionalText(candidate.data.type),
+        status: normalizeOptionalText(candidate.data.status) || "Active",
+        description: normalizeOptionalText(candidate.data.description),
+        assigned_to: resolvedAssignedTo,
+        billing_street: normalizeOptionalText(candidate.data.billing_street),
+        billing_postal_code: normalizeOptionalText(candidate.data.billing_postal_code),
+        billing_city: normalizeOptionalText(candidate.data.billing_city),
+        billing_state: normalizeOptionalText(candidate.data.billing_state),
+        billing_country: normalizeOptionalText(candidate.data.billing_country),
+        shipping_street: normalizeOptionalText(candidate.data.shipping_street),
+        shipping_postal_code: normalizeOptionalText(candidate.data.shipping_postal_code),
+        shipping_city: normalizeOptionalText(candidate.data.shipping_city),
+        shipping_state: normalizeOptionalText(candidate.data.shipping_state),
+        shipping_country: normalizeOptionalText(candidate.data.shipping_country),
+      };
+
+      try {
+        if (existingMatch) {
+          const updatePayload: Record<string, string> = {};
+          addIfMissing(updatePayload, "email", existingMatch.email, payload.email);
+          addIfMissing(updatePayload, "office_phone", existingMatch.office_phone, payload.office_phone);
+          addIfMissing(updatePayload, "website", existingMatch.website, payload.website);
+          addIfMissing(updatePayload, "fax", existingMatch.fax, payload.fax);
+          addIfMissing(updatePayload, "company_id", existingMatch.company_id, payload.company_id);
+          addIfMissing(updatePayload, "vat", existingMatch.vat, payload.vat);
+          addIfMissing(updatePayload, "annual_revenue", existingMatch.annual_revenue, payload.annual_revenue);
+          addIfMissing(updatePayload, "employees", existingMatch.employees, payload.employees);
+          addIfMissing(updatePayload, "member_of", existingMatch.member_of, payload.member_of);
+          addIfMissing(updatePayload, "industry", existingMatch.industry, payload.industry);
+          addIfMissing(updatePayload, "type", existingMatch.type, payload.type);
+          addIfMissing(updatePayload, "status", existingMatch.status, payload.status);
+          addIfMissing(updatePayload, "description", existingMatch.description, payload.description);
+          addIfMissing(updatePayload, "assigned_to", existingMatch.assigned_to, payload.assigned_to);
+          addIfMissing(updatePayload, "billing_street", existingMatch.billing_street, payload.billing_street);
+          addIfMissing(updatePayload, "billing_postal_code", existingMatch.billing_postal_code, payload.billing_postal_code);
+          addIfMissing(updatePayload, "billing_city", existingMatch.billing_city, payload.billing_city);
+          addIfMissing(updatePayload, "billing_state", existingMatch.billing_state, payload.billing_state);
+          addIfMissing(updatePayload, "billing_country", existingMatch.billing_country, payload.billing_country);
+          addIfMissing(updatePayload, "shipping_street", existingMatch.shipping_street, payload.shipping_street);
+          addIfMissing(updatePayload, "shipping_postal_code", existingMatch.shipping_postal_code, payload.shipping_postal_code);
+          addIfMissing(updatePayload, "shipping_city", existingMatch.shipping_city, payload.shipping_city);
+          addIfMissing(updatePayload, "shipping_state", existingMatch.shipping_state, payload.shipping_state);
+          addIfMissing(updatePayload, "shipping_country", existingMatch.shipping_country, payload.shipping_country);
+
+          if (Object.keys(updatePayload).length === 0) {
+            failures.push({
+              row: candidate.row,
+              name: candidate.data.accountName,
+              reason: "Existing account already has the imported data",
+            });
+            continue;
+          }
+
+          await prismadb.crm_Accounts.update({
+            where: { id: existingMatch.id },
+            data: {
+              updatedBy: userId,
+              ...updatePayload,
+            },
+            select: { id: true },
+          });
+          updated += 1;
+        } else {
+          const created = await prismadb.crm_Accounts.create({
+            data: {
+              v: 0,
+              createdBy: userId,
+              updatedBy: userId,
+              ...payload,
+            },
+            select: {
+              id: true,
+              name: true,
+              email: true,
+              office_phone: true,
+              website: true,
+            },
+          });
+
+          existingByName.set(normalizeLookup(created.name), created as any);
+          if (created.email) existingByEmail.set(normalizeEmail(created.email), created as any);
+          if (created.office_phone) {
+            existingByPhone.set(normalizePhone(created.office_phone), created as any);
+          }
+          if (created.website) {
+            existingByWebsite.set(normalizeWebsite(created.website), created as any);
+          }
+          imported += 1;
+        }
+      } catch (error) {
+        failures.push({
+          row: candidate.row,
+          name: candidate.data.accountName,
+          reason:
+            error instanceof Error ? error.message : "Failed to import account",
+        });
+      }
+    }
+
+    if (imported > 0 || updated > 0) {
+      await writeAuditLog({
+        entityType: "account",
+        entityId: "bulk_import",
+        action: "imported",
+        changes: [
+          { field: "imported", old: null, new: imported },
+          { field: "updated_missing_fields", old: null, new: updated },
+          { field: "failed", old: null, new: failures.length },
+        ],
+        userId,
       });
     }
-  }
 
-  if (imported > 0 || updated > 0) {
-    await writeAuditLog({
-      entityType: "account",
-      entityId: "bulk_import",
-      action: "imported",
-      changes: [
-        { field: "imported", old: null, new: imported },
-        { field: "updated_missing_fields", old: null, new: updated },
-        { field: "failed", old: null, new: failures.length },
-      ],
-      userId,
+    revalidatePath("/[locale]/(routes)/crm/accounts", "page");
+    revalidatePath("/[locale]/crm/accounts", "page");
+
+    return NextResponse.json({
+      imported,
+      updated,
+      failed: failures.length,
+      failures,
     });
-  }
-
-  revalidatePath("/[locale]/(routes)/crm/accounts", "page");
-  revalidatePath("/[locale]/crm/accounts", "page");
-
-  return NextResponse.json({
-    imported,
-    updated,
-    failed: failures.length,
-    failures,
   });
 }
