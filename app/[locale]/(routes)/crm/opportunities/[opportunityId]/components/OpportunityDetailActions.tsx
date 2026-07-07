@@ -18,6 +18,10 @@ import {
 } from "@/components/ui/sheet";
 import { UpdateOpportunityForm } from "../../components/UpdateOpportunityForm";
 import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
+import AlertModal from "@/components/modals/alert-modal";
+import { toast } from "sonner";
+import { deleteOpportunity } from "@/actions/crm/opportunities/delete-opportunity";
+import { useRouter } from "next/navigation";
 
 type ConfigItem = { id: string; name: string };
 
@@ -45,10 +49,39 @@ export function OpportunityDetailActions({
   currencies,
   categoryOptions = [],
 }: OpportunityDetailActionsProps) {
+  const router = useRouter();
   const [updateOpen, setUpdateOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const onDelete = async () => {
+    setDeleteLoading(true);
+    try {
+      const result = await deleteOpportunity(opportunity?.id);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Opportunity has been deleted");
+        router.push("/crm/opportunities");
+      }
+    } catch (error) {
+      toast.error("Something went wrong while deleting opportunity. Please try again.");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteOpen(false);
+      setUpdateOpen(false);
+      router.refresh();
+    }
+  };
 
   return (
     <>
+      <AlertModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={onDelete}
+        loading={deleteLoading}
+      />
       <Sheet open={updateOpen} onOpenChange={setUpdateOpen}>
         <SheetContent className="w-full md:max-w-[771px] overflow-y-auto">
           <SheetHeader>
@@ -60,6 +93,30 @@ export function OpportunityDetailActions({
                   entityId={opportunity.id}
                   detailRoute={`/crm/opportunities/${opportunity.id}`}
                 />
+                <Button
+                  variant="destructive"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setDeleteOpen(true);
+                  }}
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M3 6h18" />
+                    <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                    <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                  </svg>
+                </Button>
               </div>
             </div>
             <SheetDescription>Update opportunity details</SheetDescription>

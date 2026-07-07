@@ -26,7 +26,7 @@ const CONTACT_ROLE_IMPORT_ALIASES: Record<ContactRole, string[]> = {
   Other: ["other", "others", "other id", "other number"],
 };
 
-const CONTACT_ROLE_DB_VALUES: Record<ContactRole, string[]> = {
+export const CONTACT_ROLE_DB_VALUES: Record<ContactRole, string[]> = {
   Agent: ["Agent", "agent", "Agents", "agents"],
   Customer: ["Customer", "customer", "Customers", "customers","Client", "client", "Clients", "clients"],
   Partner: ["Partner", "partner", "Partners", "partners"],

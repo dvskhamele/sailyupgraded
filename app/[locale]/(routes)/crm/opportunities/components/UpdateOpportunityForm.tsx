@@ -873,7 +873,7 @@ export function UpdateOpportunityForm({
                   name="contact"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Assigned Client</FormLabel>
+                      <FormLabel> Client</FormLabel>
                       <FormControl>
                         <OpportunityClientSelect
                           value={field.value ?? ""}

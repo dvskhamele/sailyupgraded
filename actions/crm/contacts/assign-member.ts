@@ -4,6 +4,7 @@ import { prismadb } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { writeAuditLog } from "@/lib/audit-log";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
+import { CONTACT_VISIBILITY_ASSIGNED_MEMBER } from "@/lib/crm/contact-visibility";
 
 export const bulkAssignContacts = async (
   contactIds: string[],
@@ -41,7 +42,10 @@ export const bulkAssignContacts = async (
     // Update all contacts in one go
     await prismadb.crm_Contacts.updateMany({
       where: { id: { in: contacts.map((contact) => contact.id) } },
-      data: { assigned_to: assignedMemberId },
+      data: { 
+        assigned_to: assignedMemberId,
+        visible_to_name: CONTACT_VISIBILITY_ASSIGNED_MEMBER
+      },
     });
 
     await Promise.all(

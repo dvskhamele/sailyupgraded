@@ -104,6 +104,8 @@ import { formatCurrencyDisplay } from "@/lib/currency-input";
 import { stopRowNavigation } from "../../components/table-row-navigation";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
+import AlertModal from "@/components/modals/alert-modal";
+import { deleteOpportunity } from "@/actions/crm/opportunities/delete-opportunity";
 
 interface CRMKanbanProps {
   salesStages: crm_Opportunities_Sales_Stages[];
@@ -1156,6 +1158,30 @@ const CRMKanban = ({
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [editingOpportunity, setEditingOpportunity] =
     useState<crm_Opportunities | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
+
+  const onDelete = async () => {
+    if (!editingOpportunity) return;
+    setDeleteLoading(true);
+    try {
+      const result = await deleteOpportunity(editingOpportunity?.id);
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success("Opportunity has been deleted");
+      }
+    } catch (error) {
+      toast.error("Something went wrong while deleting opportunity. Please try again.");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteOpen(false);
+      setIsEditOpen(false);
+      setEditingOpportunity(null);
+      router.refresh();
+    }
+  };
+
   const isHydrated = useHydrated();
   const [nowMs, setNowMs] = useState<number | null>(null);
 
@@ -1732,6 +1758,12 @@ const CRMKanban = ({
         onSent={() => setEmailRecipients([])}
       />
 
+      <AlertModal
+        isOpen={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        onConfirm={onDelete}
+        loading={deleteLoading}
+      />
       <Sheet open={isEditOpen} onOpenChange={setIsEditOpen}>
         <SheetContent
           className="w-full md:max-w-[771px] overflow-y-auto"
@@ -1753,6 +1785,32 @@ const CRMKanban = ({
                     entityId={editingOpportunity.id}
                     detailRoute={`/crm/opportunities/${editingOpportunity.id}`}
                   />
+                )}
+                {editingOpportunity && (
+                  <Button
+                    variant="destructive"
+                    size="icon"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setDeleteOpen(true);
+                    }}
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      width="16"
+                      height="16"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    >
+                      <path d="M3 6h18" />
+                      <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                      <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                    </svg>
+                  </Button>
                 )}
               </div>
             </div>

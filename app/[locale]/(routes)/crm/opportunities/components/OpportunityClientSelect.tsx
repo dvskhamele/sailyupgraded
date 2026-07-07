@@ -5,6 +5,7 @@ import { Plus } from "lucide-react";
 import { toast } from "sonner";
 
 import { createContact } from "@/actions/crm/contacts/create-contact";
+import { CONTACT_ROLE_DB_VALUES } from "@/lib/contact-options";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,6 +21,7 @@ type ContactOption = {
   first_name?: string | null;
   last_name?: string | null;
   email?: string | null;
+  role?: string | null;
 };
 
 type OpportunityClientSelectProps = {
@@ -63,15 +65,37 @@ export function OpportunityClientSelect({
 
   const allContacts = useMemo(() => {
     const seen = new Set<string>();
+    // Safe check for CONTACT_ROLE_DB_VALUES and its Customer property
+    const customerRolesArray = CONTACT_ROLE_DB_VALUES?.Customer ?? [
+      "Customer",
+      "customer",
+      "Customers",
+      "customers",
+      "Client",
+      "client",
+      "Clients",
+      "clients",
+    ];
+    const customerRoles = new Set(customerRolesArray.map((r) => r.toLowerCase()));
     return [...localContacts, ...contacts].filter((contact) => {
       if (!contact?.id || seen.has(contact.id)) {
+        return false;
+      }
+      
+      const roleLower = (contact.role ?? "Customer").trim().toLowerCase();
+      if (!customerRoles.has(roleLower)) {
+        return false;
+      }
+
+      // If accountId is provided, only show contacts for that account
+      if (accountId && contact.account !== accountId) {
         return false;
       }
 
       seen.add(contact.id);
       return true;
     });
-  }, [contacts, localContacts]);
+  }, [contacts, localContacts, accountId]);
 
   const filteredContacts = useMemo(() => {
     const query = searchValue.trim().toLowerCase();
@@ -106,6 +130,7 @@ export function OpportunityClientSelect({
       const name = splitClientName(clientName);
       const result = await createContact({
         ...name,
+        role: "Customer",
         status: true,
         country: "United States",
         assigned_account: accountId || undefined,
