@@ -105,7 +105,7 @@ const ContactsViewClient = ({
         <SelectValue placeholder="Assigned Member" />
       </SelectTrigger>
       <SelectContent>
-        <SelectItem value="all">All Members</SelectItem>
+        <SelectItem value="all">Filter All Members</SelectItem>
         {assignedMembers.map((member) => (
           <SelectItem key={member.id} value={member.id}>
             {member.name}

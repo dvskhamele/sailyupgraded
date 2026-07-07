@@ -7,7 +7,7 @@ import { Users, ClipboardList, Coins, SlidersHorizontal } from "lucide-react";
 // import { Key, Settings } from "lucide-react";
 
 const navItems = [
-  { label: "CRM Settings", href: "/admin/crm-settings", icon: SlidersHorizontal },
+  { label: "Sales Stages Settings", href: "/admin/crm-settings", icon: SlidersHorizontal },
   { label: "Users",        href: "/admin/users",        icon: Users },
   { label: "Audit Log",    href: "/admin/audit-log",    icon: ClipboardList },
   { label: "Currencies",   href: "/admin/currencies",  icon: Coins },

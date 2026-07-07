@@ -19,6 +19,8 @@ import {
   getSalesAssignedMemberOptions,
 } from "@/actions/reports/sales";
 
+const LOST_STAGE_ORDER = -1;
+
 type Props = { searchParams: Promise<Record<string, string | undefined>> };
 
 export default async function SalesReportPage({ searchParams }: Props) {
@@ -59,13 +61,13 @@ export default async function SalesReportPage({ searchParams }: Props) {
     ]);
 
   const revenueStages = await prismadb.crm_Opportunities_Sales_Stages.findMany({
-    where: { countInRevenue: true },
+    where: { order: { not: LOST_STAGE_ORDER } },
     select: { name: true },
     orderBy: { order: "asc" },
   });
 
   const pipelineStages = await prismadb.crm_Opportunities_Sales_Stages.findMany({
-    where: { countInPipeline: true },
+    where: { order: { not: LOST_STAGE_ORDER } },
     select: { name: true },
     orderBy: { order: "asc" },
   });

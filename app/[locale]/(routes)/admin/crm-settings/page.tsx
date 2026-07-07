@@ -28,7 +28,7 @@ export default async function CrmSettingsPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold tracking-tight">CRM Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Sales Stages Settings</h1>
         <p className="text-muted-foreground text-sm mt-1">
           Manage sales stages for the opportunity pipeline.
         </p>

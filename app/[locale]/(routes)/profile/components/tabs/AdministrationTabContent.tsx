@@ -21,7 +21,7 @@ import { useAutoSaveForm } from "@/hooks/use-auto-save-form";
 
 const adminPanels = [
   {
-    title: "CRM Settings",
+    title: "Sales Stages Settings",
     description: "Manage sales types, stages, and CRM config values.",
     href: "/admin/crm-settings",
     Icon: SlidersHorizontal,

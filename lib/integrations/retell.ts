@@ -19,10 +19,15 @@ export async function getRetellIntegration(userId?: string): Promise<RetellSetti
     apiKey: string;
   };
 
-  return {
-    ...settings,
-    apiKey: decrypt(settings.apiKey),  
-  };
+  try {
+    return {
+      ...settings,
+      apiKey: decrypt(settings.apiKey),
+    };
+  } catch (error) {
+    console.error("[RETELL_INTEGRATION_DECRYPT_FAILED]", error);
+    return null;
+  }
 }
 
 export async function getRetellSettings(userId: string): Promise<RetellSettings | null> {
@@ -39,10 +44,15 @@ export async function getRetellSettings(userId: string): Promise<RetellSettings 
     apiKey: string;
   };
 
-  return {
-    ...settings,
-    apiKey: decrypt(settings.apiKey),
-  };
+  try {
+    return {
+      ...settings,
+      apiKey: decrypt(settings.apiKey),
+    };
+  } catch (error) {
+    console.error("[RETELL_INTEGRATION_DECRYPT_FAILED]", error);
+    return null;
+  }
 }
 
 export async function saveRetellSettings(

@@ -114,7 +114,7 @@ export function CategoryFilter({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value={ALL_ASSIGNED_MEMBERS_VALUE}>
-                  All Members
+                 Filter All Members
                 </SelectItem>
                 {assignedMembers.map((member) => (
                   <SelectItem key={member.id} value={member.id}>

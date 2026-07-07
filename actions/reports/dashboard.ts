@@ -3,6 +3,8 @@ import type { ReportFilters, KPIData } from "./types";
 import { getExchangeRates, convertAmount } from "@/lib/currency";
 import { Decimal } from "@prisma/client/runtime/client";
 
+const LOST_STAGE_ORDER = -1;
+
 function calcChange(current: number, previous: number): number {
   if (previous === 0) return current > 0 ? 100 : 0;
   return Math.round(((current - previous) / previous) * 100);
@@ -49,7 +51,7 @@ export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: 
       where: { 
         created_on: { gte: filters.dateFrom, lte: filters.dateTo }, 
         deletedAt: null, 
-        assigned_sales_stage: { is: { countInRevenue: true } } 
+        assigned_sales_stage: { is: { order: { not: LOST_STAGE_ORDER } } } 
       },
       select: { budget: true, currency: true },
     }),
@@ -57,7 +59,7 @@ export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: 
       where: { 
         created_on: { gte: prev.dateFrom, lte: prev.dateTo }, 
         deletedAt: null, 
-        assigned_sales_stage: { is: { countInRevenue: true } } 
+        assigned_sales_stage: { is: { order: { not: LOST_STAGE_ORDER } } } 
       },
       select: { budget: true, currency: true },
     }),
@@ -66,7 +68,7 @@ export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: 
       where: { 
         created_on: { gte: filters.dateFrom, lte: filters.dateTo }, 
         deletedAt: null, 
-        assigned_sales_stage: { is: { countInPipeline: true } } 
+        assigned_sales_stage: { is: { order: { not: LOST_STAGE_ORDER } } } 
       },
       select: { budget: true, currency: true },
     }),
@@ -74,7 +76,7 @@ export async function getDashboardKPIs(filters: ReportFilters, displayCurrency: 
       where: { 
         created_on: { gte: prev.dateFrom, lte: prev.dateTo }, 
         deletedAt: null, 
-        assigned_sales_stage: { is: { countInPipeline: true } } 
+        assigned_sales_stage: { is: { order: { not: LOST_STAGE_ORDER } } } 
       },
       select: { budget: true, currency: true },
     }),

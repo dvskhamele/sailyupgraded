@@ -67,6 +67,8 @@ const fkField: Record<CrmConfigType, string | null> = {
   salesStage:      "sales_stage",
 };
 
+const LOST_STAGE_ORDER = -1;
+
 export async function getConfigValues(configType: CrmConfigType): Promise<ConfigValue[]> {
   if (configType === "salesStage") {
     const { regularStages, firstStage, lostStage } = await getSalesStageCollections();
@@ -75,8 +77,6 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         id: true,
         name: true,
         order: true,
-        countInRevenue: true,
-        countInPipeline: true,
         _count: { select: { assigned_opportunities_sales_stage: true } }
       },
       orderBy: [{ order: "asc" }, { name: "asc" }],
@@ -91,8 +91,8 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         usageCount: row?._count?.assigned_opportunities_sales_stage ?? 0,
         position: stage.order ?? 0,
         isProtected: stage.id === firstStage?.id,
-        countInRevenue: row?.countInRevenue ?? false,
-        countInPipeline: row?.countInPipeline ?? true,
+        countInRevenue: true,
+        countInPipeline: true,
       };
     });
 
@@ -104,8 +104,8 @@ export async function getConfigValues(configType: CrmConfigType): Promise<Config
         usageCount: 0,
         position: lostStage.order ?? 0,
         isProtected: true,
-        countInRevenue: row?.countInRevenue ?? false,
-        countInPipeline: row?.countInPipeline ?? true,
+        countInRevenue: false,
+        countInPipeline: false,
       });
     }
 
@@ -150,18 +150,11 @@ export async function createConfigValue(
     orderData = { order: nextPosition };
   }
 
-  const extraData: Record<string, any> = {};
-  if (configType === "salesStage") {
-    if (countInRevenue !== undefined) extraData.countInRevenue = countInRevenue;
-    if (countInPipeline !== undefined) extraData.countInPipeline = countInPipeline;
-  }
-
   await (model() as any).create({
     data: {
       name: parsed,
       v: 0,
       ...orderData,
-      ...extraData,
     },
     select: { id: true }
   });
@@ -179,10 +172,6 @@ export async function updateConfigValue(
   const { model } = configMap[configType];
   
   const data: Record<string, any> = { name: parsed };
-  if (configType === "salesStage") {
-    if (countInRevenue !== undefined) data.countInRevenue = countInRevenue;
-    if (countInPipeline !== undefined) data.countInPipeline = countInPipeline;
-  }
 
   await (model() as any).update({ 
     where: { id }, 
@@ -249,7 +238,7 @@ export async function updateSalesStagesForPipeline() {
       }))
     },
     data: {
-      countInPipeline: false
+      order: LOST_STAGE_ORDER
     }
   });
 

@@ -33,7 +33,15 @@ import { handleRowClick, handleRowKeyDown } from "../../components/table-row-nav
 import { Button } from "@/components/ui/button";
 import AlertModal from "@/components/modals/alert-modal";
 import { bulkDeleteOpportunities } from "@/actions/crm/opportunities/delete-opportunity";
+import { bulkAssignOpportunities } from "@/actions/crm/opportunities/assign-member";
 import { toast } from "sonner";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -55,6 +63,15 @@ export function OpportunitiesDataTable<TData, TValue>({
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
+
+  // Bulk Assign Member states
+  const [bulkAssignLoading, setBulkAssignLoading] = React.useState(false);
+  const [confirmAssignOpen, setConfirmAssignOpen] = React.useState(false);
+  const [pendingMemberId, setPendingMemberId] = React.useState<string>("");
+  const [members, setMembers] = React.useState<
+    Array<{ id: string; name: string | null; email: string | null }>
+  >([]);
+  const [membersLoading, setMembersLoading] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -83,6 +100,58 @@ export function OpportunitiesDataTable<TData, TValue>({
     (row) => (row.original as { id: string }).id
   );
   const selectedCount = selectedOpportunityIds.length;
+
+  // Load members when opportunities are selected
+  React.useEffect(() => {
+    if (selectedCount === 0) return;
+
+    const loadMembers = async () => {
+      setMembersLoading(true);
+      try {
+        const response = await fetch("/api/crm/agents/search?take=100");
+        if (!response.ok) throw new Error("Failed to load members");
+        const data = await response.json();
+        setMembers(data.users || []);
+      } catch {
+        toast.error("Failed to load members");
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, [selectedCount]);
+
+  const handleSelectMember = (memberId: string) => {
+    if (!memberId) return;
+    setPendingMemberId(memberId);
+    setConfirmAssignOpen(true);
+  };
+
+  const onBulkAssign = async () => {
+    if (!pendingMemberId) {
+      toast.error("Please select a member");
+      return;
+    }
+    setBulkAssignLoading(true);
+    try {
+      const result = await bulkAssignOpportunities(selectedOpportunityIds, pendingMemberId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      table.toggleAllRowsSelected(false);
+      setPendingMemberId("");
+      toast.success(`${result.count ?? selectedCount} opportunity(s) assigned`);
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong while assigning opportunities. Please try again.");
+    } finally {
+      setBulkAssignLoading(false);
+      setConfirmAssignOpen(false);
+    }
+  };
 
   const onBulkDelete = async () => {
     setBulkDeleteLoading(true);
@@ -114,19 +183,54 @@ export function OpportunitiesDataTable<TData, TValue>({
         title={`Delete ${selectedCount} opportunity(s)?`}
         description="Selected opportunities will be moved to deleted records."
       />
+      <AlertModal
+        isOpen={confirmAssignOpen}
+        onClose={() => {
+          setConfirmAssignOpen(false);
+          setPendingMemberId("");
+        }}
+        onConfirm={onBulkAssign}
+        loading={bulkAssignLoading}
+        title={`Assign to ${members.find((m) => m.id === pendingMemberId)?.name ?? members.find((m) => m.id === pendingMemberId)?.email}?`}
+        description={`Are you sure you want to assign this member to ${selectedCount} selected opportunity${selectedCount > 1 ? "ies" : ""}?`}
+      />
       <div className="flex justify-between items-start gap-3">
         <div />
         <div className="flex justify-end items-center gap-2">
           {selectedCount > 0 && (
-            <Button
-              size="sm"
-              variant="destructive"
-              onClick={() => setBulkDeleteOpen(true)}
-              disabled={bulkDeleteLoading}
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Delete selected
-            </Button>
+            <>
+              {membersLoading ? (
+                <div className="text-sm text-muted-foreground px-3 py-1.5">
+                  Loading members...
+                </div>
+              ) : (
+                <Select
+                  value=""
+                  onValueChange={handleSelectMember}
+                  disabled={bulkDeleteLoading || bulkAssignLoading}
+                >
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="Bulk Assign Member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name ?? member.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <Button
+                size="sm"
+                variant="destructive"
+                onClick={() => setBulkDeleteOpen(true)}
+                disabled={bulkDeleteLoading || bulkAssignLoading}
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Delete selected
+              </Button>
+            </>
           )}
         </div>
       </div>

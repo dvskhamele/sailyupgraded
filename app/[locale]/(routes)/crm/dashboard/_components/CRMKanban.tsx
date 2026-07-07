@@ -1172,9 +1172,16 @@ const CRMKanban = ({
         const response = await fetch("/api/retell/agents", {
           cache: "no-store",
         });
-        const payload = (await response.json()) as RetellAgentsResponse;
+        
+        let payload: RetellAgentsResponse | null = null;
+        try {
+          payload = (await response.json()) as RetellAgentsResponse;
+        } catch (parseError) {
+          console.warn("[RETELL_OUTBOUND_AGENT_LOAD] Invalid JSON response", parseError);
+          return;
+        }
 
-        if (!response.ok || !("agents" in payload)) {
+        if (!response.ok || !payload || !("agents" in payload)) {
           return;
         }
 

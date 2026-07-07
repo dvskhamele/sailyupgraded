@@ -27,14 +27,22 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Mail, Trash2 } from "lucide-react";
+import { Mail, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AlertModal from "@/components/modals/alert-modal";
 import { bulkDeleteContacts } from "@/actions/crm/contacts/delete-contact";
+import { bulkAssignContacts } from "@/actions/crm/contacts/assign-member";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
 import { SendEmailDialog } from "../components/SendEmailDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[];
@@ -61,6 +69,15 @@ export function ContactsDataTable<TData, TValue>({
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
+
+  // Bulk Assign Member states
+  const [bulkAssignLoading, setBulkAssignLoading] = React.useState(false);
+  const [confirmAssignOpen, setConfirmAssignOpen] = React.useState(false);
+  const [pendingMemberId, setPendingMemberId] = React.useState<string>("");
+  const [members, setMembers] = React.useState<
+    Array<{ id: string; name: string | null; email: string | null }>
+  >([]);
+  const [membersLoading, setMembersLoading] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -93,6 +110,27 @@ export function ContactsDataTable<TData, TValue>({
     .filter((email): email is string => Boolean(email));
   const selectedCount = selectedContactIds.length;
 
+  // Load members when contacts are selected
+  React.useEffect(() => {
+    if (selectedCount === 0) return;
+
+    const loadMembers = async () => {
+      setMembersLoading(true);
+      try {
+        const response = await fetch("/api/crm/agents/search?take=100");
+        if (!response.ok) throw new Error("Failed to load members");
+        const data = await response.json();
+        setMembers(data.users || []);
+      } catch {
+        toast.error("Failed to load members");
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, [selectedCount]);
+
   const onBulkDelete = async () => {
     setBulkDeleteLoading(true);
     try {
@@ -113,6 +151,37 @@ export function ContactsDataTable<TData, TValue>({
     }
   };
 
+  const handleSelectMember = (memberId: string) => {
+    if (!memberId) return;
+    setPendingMemberId(memberId);
+    setConfirmAssignOpen(true);
+  };
+
+  const onBulkAssign = async () => {
+    if (!pendingMemberId) {
+      toast.error("Please select a member");
+      return;
+    }
+    setBulkAssignLoading(true);
+    try {
+      const result = await bulkAssignContacts(selectedContactIds, pendingMemberId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      table.toggleAllRowsSelected(false);
+      setPendingMemberId("");
+      toast.success(`${result.count ?? selectedCount} contact(s) assigned`);
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong while assigning contacts. Please try again.");
+    } finally {
+      setBulkAssignLoading(false);
+      setConfirmAssignOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-4 w-full">
       <AlertModal
@@ -122,6 +191,17 @@ export function ContactsDataTable<TData, TValue>({
         loading={bulkDeleteLoading}
         title={`Delete ${selectedCount} contact(s)?`}
         description="Selected contacts will be moved to deleted records."
+      />
+      <AlertModal
+        isOpen={confirmAssignOpen}
+        onClose={() => {
+          setConfirmAssignOpen(false);
+          setPendingMemberId("");
+        }}
+        onConfirm={onBulkAssign}
+        loading={bulkAssignLoading}
+        title={`Assign to ${members.find((m) => m.id === pendingMemberId)?.name ?? members.find((m) => m.id === pendingMemberId)?.email}?`}
+        description={`Are you sure you want to assign this member to ${selectedCount} selected contact${selectedCount > 1 ? "s" : ""}?`}
       />
       <SendEmailDialog
         open={sendEmailOpen}
@@ -144,16 +224,38 @@ export function ContactsDataTable<TData, TValue>({
                   }
                   setSendEmailOpen(true);
                 }}
-                disabled={bulkDeleteLoading}
+                disabled={bulkDeleteLoading || bulkAssignLoading}
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Send Email
               </Button>
+              {membersLoading ? (
+                <div className="text-sm text-muted-foreground px-3 py-1.5">
+                  Loading members...
+                </div>
+              ) : (
+                <Select
+                  value=""
+                  onValueChange={handleSelectMember}
+                  disabled={bulkDeleteLoading || bulkAssignLoading}
+                >
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="Bulk Assign Member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name ?? member.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 size="sm"
                 variant="destructive"
                 onClick={() => setBulkDeleteOpen(true)}
-                disabled={bulkDeleteLoading}
+                disabled={bulkDeleteLoading || bulkAssignLoading}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete selected

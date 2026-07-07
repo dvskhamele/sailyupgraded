@@ -162,11 +162,11 @@ const OpportunitiesView = ({
                 onValueChange={setSelectedAssignedMemberId}
               >
                 <SelectTrigger className="h-9">
-                  <SelectValue placeholder="All Members" />
+                  <SelectValue placeholder="Filter All Members" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value={ALL_ASSIGNED_MEMBERS_VALUE}>
-                    All Members
+                    Filter All Members
                   </SelectItem>
                   {assignedMembers.map((member) => (
                     <SelectItem key={member.id} value={member.id}>

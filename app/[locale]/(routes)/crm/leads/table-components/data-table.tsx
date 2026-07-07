@@ -37,7 +37,15 @@ import { toast } from "sonner";
 import { localLeadRepository } from "@/lib/offline-first/storage";
 import { convertLeadsToContacts } from "@/actions/crm/leads/convert-leads";
 import { bulkDeleteLeads } from "@/actions/crm/leads/delete-lead";
+import { bulkAssignLeads } from "@/actions/crm/leads/assign-member";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 type ConfigItem = { id: string; name: string };
 type FilterOption = { label: string; value: string };
@@ -96,6 +104,14 @@ export function LeadDataTable<TData, TValue>({
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
   const [bulkConvertLoading, setBulkConvertLoading] = React.useState(false);
+  // Bulk Assign Member states
+  const [bulkAssignLoading, setBulkAssignLoading] = React.useState(false);
+  const [confirmAssignOpen, setConfirmAssignOpen] = React.useState(false);
+  const [pendingMemberId, setPendingMemberId] = React.useState<string>("");
+  const [members, setMembers] = React.useState<
+    Array<{ id: string; name: string | null; email: string | null }>
+  >([]);
+  const [membersLoading, setMembersLoading] = React.useState(false);
 
   const table = useReactTable({
     data,
@@ -127,6 +143,73 @@ export function LeadDataTable<TData, TValue>({
     .map((row) => (row.original as { email?: string | null }).email?.trim())
     .filter((email): email is string => Boolean(email));
   const selectedCount = selectedLeadIds.length;
+
+  // Load members when leads are selected
+  React.useEffect(() => {
+    if (selectedCount === 0) return;
+
+    const loadMembers = async () => {
+      setMembersLoading(true);
+      try {
+        const response = await fetch("/api/crm/agents/search?take=100");
+        if (!response.ok) throw new Error("Failed to load members");
+        const data = await response.json();
+        setMembers(data.users || []);
+      } catch {
+        toast.error("Failed to load members");
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, [selectedCount]);
+
+  const handleSelectMember = (memberId: string) => {
+    if (!memberId) return;
+    setPendingMemberId(memberId);
+    setConfirmAssignOpen(true);
+  };
+
+  const onBulkAssign = async () => {
+    if (!pendingMemberId) {
+      toast.error("Please select a member");
+      return;
+    }
+    setBulkAssignLoading(true);
+    try {
+      // 1. Update on server
+      const result = await bulkAssignLeads(selectedLeadIds, pendingMemberId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      // 2. Update local repository for offline support
+      await Promise.all(
+        selectedLeadIds.map(async (id) => {
+          const existingLead = await localLeadRepository.get(id);
+          if (existingLead) {
+            await localLeadRepository.update(id, {
+              ...existingLead,
+              assigned_to: pendingMemberId
+            });
+          }
+        })
+      );
+
+      table.toggleAllRowsSelected(false);
+      setPendingMemberId("");
+      toast.success(`${result.count ?? selectedCount} lead(s) assigned`);
+      await onDataChange?.();
+      router.refresh();
+    } catch {
+      toast.error("Something went wrong while assigning leads. Please try again.");
+    } finally {
+      setBulkAssignLoading(false);
+      setConfirmAssignOpen(false);
+    }
+  };
 
   const onBulkDelete = async () => {
     setBulkDeleteLoading(true);
@@ -189,6 +272,17 @@ export function LeadDataTable<TData, TValue>({
         title={`Delete ${selectedCount} lead(s)?`}
         description="Selected leads will be moved to deleted records."
       />
+      <AlertModal
+        isOpen={confirmAssignOpen}
+        onClose={() => {
+          setConfirmAssignOpen(false);
+          setPendingMemberId("");
+        }}
+        onConfirm={onBulkAssign}
+        loading={bulkAssignLoading}
+        title={`Assign to ${members.find((m) => m.id === pendingMemberId)?.name ?? members.find((m) => m.id === pendingMemberId)?.email}?`}
+        description={`Are you sure you want to assign this member to ${selectedCount} selected lead(s)?`}
+      />
       <SendEmailDialog
         open={sendEmailOpen}
         onOpenChange={setSendEmailOpen}
@@ -211,16 +305,38 @@ export function LeadDataTable<TData, TValue>({
                   }
                   setSendEmailOpen(true);
                 }}
-                disabled={bulkConvertLoading || bulkDeleteLoading}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading}
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Send Email
               </Button>
+              {membersLoading ? (
+                <div className="text-sm text-muted-foreground px-3 py-1.5">
+                  Loading members...
+                </div>
+              ) : (
+                <Select
+                  value=""
+                  onValueChange={handleSelectMember}
+                  disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading}
+                >
+                  <SelectTrigger className="w-[180px] h-9">
+                    <SelectValue placeholder="Bulk Assign Member" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {members.map((member) => (
+                      <SelectItem key={member.id} value={member.id}>
+                        {member.name ?? member.email}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <Button
                 size="sm"
                 variant="outline"
                 onClick={onBulkConvert}
-                disabled={bulkConvertLoading || bulkDeleteLoading}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading}
               >
                 <UserCheck className="h-4 w-4 mr-1" />
                 Convert to Contact
@@ -229,7 +345,7 @@ export function LeadDataTable<TData, TValue>({
                 size="sm"
                 variant="destructive"
                 onClick={() => setBulkDeleteOpen(true)}
-                disabled={bulkDeleteLoading || bulkConvertLoading}
+                disabled={bulkDeleteLoading || bulkConvertLoading || bulkAssignLoading}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete selected

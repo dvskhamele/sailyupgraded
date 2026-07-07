@@ -4,6 +4,8 @@ import { groupedToChartData } from "./types";
 import { getExchangeRates, convertAmount } from "@/lib/currency";
 import { Decimal } from "@prisma/client/runtime/client";
 
+const LOST_STAGE_ORDER = -1;
+
 function dateRangeWhere(filters: ReportFilters) {
   return {
     created_on: { gte: filters.dateFrom, lte: filters.dateTo },
@@ -21,7 +23,7 @@ function boundRevenueWhere(filters: ReportFilters) {
     ...assigneeWhere(filters),
     assigned_sales_stage: {
       is: {
-        countInRevenue: true,
+        order: { not: LOST_STAGE_ORDER },
       },
     },
   };
@@ -63,7 +65,7 @@ export async function getPipelineValue(filters: ReportFilters, displayCurrency: 
     where: { 
       ...dateRangeWhere(filters), 
       ...assigneeWhere(filters), 
-      assigned_sales_stage: { is: { countInPipeline: true } } 
+      assigned_sales_stage: { is: { order: { not: LOST_STAGE_ORDER } } } 
     },
     select: { budget: true, currency: true },
   });

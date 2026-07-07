@@ -56,22 +56,22 @@ export const columns: ColumnDef<Account>[] = [
     enableSorting: true,
     enableHiding: true,
   },
-  {
-    accessorKey: "contacts",
-    header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Company contact" />
-    ),
+  // {
+  //   accessorKey: "contacts",
+  //   header: ({ column }) => (
+  //     <DataTableColumnHeader column={column} title="Company contact" />
+  //   ),
 
-    cell: ({ row }) => (
-      <div className="w-[150px]">
-        {row.original.contacts?.map(
-          (contact: any) => contact.first_name + " " + contact.last_name
-        )}
-      </div>
-    ),
-    enableSorting: false,
-    enableHiding: true,
-  },
+  //   cell: ({ row }) => (
+  //     <div className="w-[150px]">
+  //       {row.original.contacts?.map(
+  //         (contact: any) => contact.first_name + " " + contact.last_name
+  //       )}
+  //     </div>
+  //   ),
+  //   enableSorting: false,
+  //   enableHiding: true,
+  // },
   {
     accessorKey: "status",
     header: ({ column }) => (
