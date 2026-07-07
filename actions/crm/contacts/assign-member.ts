@@ -50,7 +50,7 @@ export const bulkAssignContacts = async (
           entityType: "contact",
           entityId: contact.id,
           action: "updated",
-          changes: { assigned_to: assignedMemberId },
+          changes: null,
           userId: session.user.id,
         })
       )

@@ -48,7 +48,7 @@ export const bulkAssignOpportunities = async (
           entityType: "opportunity",
           entityId: opportunity.id,
           action: "updated",
-          changes: { assigned_to: assignedMemberId },
+          changes: null,
           userId: session.user.id,
         })
       )

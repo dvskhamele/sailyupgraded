@@ -48,7 +48,7 @@ export const bulkAssignLeads = async (
           entityType: "lead",
           entityId: lead.id,
           action: "updated",
-          changes: { assigned_to: assignedMemberId },
+          changes: null,
           userId: session.user.id,
         })
       )
