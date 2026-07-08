@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { CalendarClock, Check, ChevronsUpDown, Plus, X } from "lucide-react";
+import { CalendarClock, Check, ChevronsUpDown, Plus, X, Users } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/select";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { UserSearchCombobox } from "@/components/ui/user-search-combobox";
+import AlertModal from "@/components/modals/alert-modal";
 import { ActivityEntry } from "./ActivityEntry";
 import { ActivityForm } from "./ActivityForm";
 import {
@@ -36,6 +37,8 @@ import {
   getRetailAIActivities,
   getRetailAIActivitiesByEntity,
 } from "@/actions/crm/retail-ai-activities/get-retail-ai-activities";
+import { bulkAssignActivities } from "@/actions/crm/activities/assign-member";
+import { bulkDeleteActivities } from "@/actions/crm/activities/delete-activity";
 import type {
   ActivityWithLinks,
   ActivityCursor,
@@ -47,6 +50,7 @@ import {
 } from "@/actions/crm/contacts/search-contacts";
 import useDebounce from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 import { HelpModal } from "@/components/ui/help-modal";
 
@@ -242,6 +246,102 @@ export function ActivitiesView({
   const didMountRef = useRef(false);
   const hasEntityContext = !!entityType && !!entityId;
   const showFilters = !hasEntityContext;
+
+  // Bulk assign states
+  const [selectedActivityIds, setSelectedActivityIds] = useState<Set<string>>(new Set());
+  const [confirmAssignOpen, setConfirmAssignOpen] = useState(false);
+  const [pendingMemberId, setPendingMemberId] = useState<string>("");
+  const [members, setMembers] = useState<
+    Array<{ id: string; name: string | null; email: string | null }>
+  >([]);
+  const [membersLoading, setMembersLoading] = useState(false);
+  const [bulkAssignLoading, setBulkAssignLoading] = useState(false);
+  const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false);
+  const [bulkDeleteLoading, setBulkDeleteLoading] = useState(false);
+
+  // Load members when activities are selected
+  useEffect(() => {
+    if (selectedActivityIds.size === 0) return;
+
+    const loadMembers = async () => {
+      setMembersLoading(true);
+      try {
+        const response = await fetch("/api/crm/agents/search?take=100");
+        if (!response.ok) throw new Error("Failed to load members");
+        const data = await response.json();
+        setMembers(data.users || []);
+      } catch {
+        toast.error("Failed to load members");
+      } finally {
+        setMembersLoading(false);
+      }
+    };
+
+    loadMembers();
+  }, [selectedActivityIds.size]);
+
+  const toggleActivitySelection = (id: string) => {
+    setSelectedActivityIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const handleSelectMember = (memberId: string) => {
+    if (!memberId) return;
+    setPendingMemberId(memberId);
+    setConfirmAssignOpen(true);
+  };
+
+  const onBulkAssign = async () => {
+    if (!pendingMemberId) {
+      toast.error("Please select a member");
+      return;
+    }
+    setBulkAssignLoading(true);
+    try {
+      const result = await bulkAssignActivities(Array.from(selectedActivityIds), pendingMemberId);
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      setSelectedActivityIds(new Set());
+      setPendingMemberId("");
+      toast.success(`${result.count ?? selectedActivityIds.size} activity(ies) assigned`);
+      loadFirstPage();
+    } catch {
+      toast.error("Something went wrong while assigning activities. Please try again.");
+    } finally {
+      setBulkAssignLoading(false);
+      setConfirmAssignOpen(false);
+    }
+  };
+
+  const onBulkDelete = async () => {
+    setBulkDeleteLoading(true);
+    try {
+      const result = await bulkDeleteActivities(Array.from(selectedActivityIds));
+      if (result.error) {
+        toast.error(result.error);
+        return;
+      }
+
+      setSelectedActivityIds(new Set());
+      toast.success(`${result.count ?? selectedActivityIds.size} activity(ies) deleted`);
+      loadFirstPage();
+    } catch {
+      toast.error("Something went wrong while deleting activities. Please try again.");
+    } finally {
+      setBulkDeleteLoading(false);
+      setBulkDeleteOpen(false);
+    }
+  };
   const showAIFilters = activityModule === "retail-ai";
 
   const filters: ActivityFilters = {
@@ -339,18 +439,77 @@ export function ActivitiesView({
   return (
     <TooltipProvider>
       <Card className="overflow-hidden rounded-3xl border bg-background/80 shadow-sm backdrop-blur">
+        {/* Alert Modal for Bulk Assign */}
+        <AlertModal
+          isOpen={confirmAssignOpen}
+          onClose={() => {
+            setConfirmAssignOpen(false);
+            setPendingMemberId("");
+          }}
+          onConfirm={onBulkAssign}
+          loading={bulkAssignLoading}
+          title={`Assign to ${members.find((m) => m.id === pendingMemberId)?.name ?? members.find((m) => m.id === pendingMemberId)?.email}?`}
+          description={`Are you sure you want to assign this member to ${selectedActivityIds.size} selected activity(ies)?`}
+        />
+        {/* Alert Modal for Bulk Delete */}
+        <AlertModal
+          isOpen={bulkDeleteOpen}
+          onClose={() => setBulkDeleteOpen(false)}
+          onConfirm={onBulkDelete}
+          loading={bulkDeleteLoading}
+          title={`Delete ${selectedActivityIds.size} activity(ies)?`}
+          description="Selected activities will be moved to deleted records."
+        />
         {/* Header */}
         <CardHeader className="flex flex-col gap-4 border-b bg-muted/30 px-6 py-5 sm:flex-row sm:items-center sm:justify-between">
           {/* Title */}
-          <div>
+          <div className="flex flex-col gap-2">
             <CardTitle className="flex items-center gap-2 text-xl font-semibold tracking-tight">
               {title}
               <HelpModal module={activityModule === "retail-ai" ? "ai_templates" : "activities"} />
             </CardTitle>
 
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="text-sm text-muted-foreground">
               {description}
             </p>
+            {selectedActivityIds.size > 0 && (
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium text-foreground">
+                  {selectedActivityIds.size} selected
+                </span>
+                {membersLoading ? (
+                  <div className="text-sm text-muted-foreground px-3 py-1.5">
+                    Loading members...
+                  </div>
+                ) : (
+                  <Select
+                    value=""
+                    onValueChange={handleSelectMember}
+                    disabled={bulkAssignLoading || bulkDeleteLoading}
+                  >
+                    <SelectTrigger className="w-[180px] h-9 ml-2">
+                      <SelectValue placeholder="Bulk Assign Member" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {members.map((member) => (
+                        <SelectItem key={member.id} value={member.id}>
+                          {member.name ?? member.email}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                )}
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="ml-2"
+                  onClick={() => setBulkDeleteOpen(true)}
+                  disabled={bulkAssignLoading || bulkDeleteLoading}
+                >
+                  Delete Selected
+                </Button>
+              </div>
+              )}
           </div>
 
           {/* Action Button */}
@@ -560,20 +719,22 @@ export function ActivitiesView({
           ) : (
             <>
               {/* Activity List */}
-              <div className="space-y-4">
-                {activities.map((activity) => (
-                  <ActivityEntry
-                    key={activity.id}
-                    activity={activity}
-                    entityType={entityType}
-                    entityId={entityId}
-                    editLinks={hasEntityContext ? undefined : activity.links}
-                    activityModule={activityModule}
-                    onDeleted={handleDeleted}
-                    onUpdated={handleUpdated}
-                  />
-                ))}
-              </div>
+          <div className="space-y-4">
+            {activities.map((activity) => (
+              <ActivityEntry
+                key={activity.id}
+                activity={activity}
+                entityType={entityType}
+                entityId={entityId}
+                editLinks={hasEntityContext ? undefined : activity.links}
+                activityModule={activityModule}
+                onDeleted={handleDeleted}
+                onUpdated={handleUpdated}
+                selected={selectedActivityIds.has(activity.id)}
+                onToggleSelection={() => toggleActivitySelection(activity.id)}
+              />
+            ))}
+          </div>
 
               {/* Load More */}
               {cursor && (

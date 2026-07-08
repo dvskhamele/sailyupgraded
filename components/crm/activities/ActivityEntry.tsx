@@ -16,6 +16,7 @@ import {
   MessageSquare,
   PlayCircle,
   ExternalLink,
+  Check,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
@@ -126,6 +127,8 @@ interface Props {
   entityId?: string;
   editLinks?: Array<{ entityType: string; entityId: string }>;
   activityModule?: "crm" | "retail-ai";
+  selected?: boolean;
+  onToggleSelection?: () => void;
 }
 
 export function ActivityEntry({
@@ -136,6 +139,8 @@ export function ActivityEntry({
   entityId,
   editLinks,
   activityModule = "crm",
+  selected,
+  onToggleSelection,
 }: Props) {
   const [editOpen, setEditOpen] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -208,7 +213,20 @@ export function ActivityEntry({
   };
 
   return (
-    <div className="group relative flex gap-4 rounded-2xl border bg-background/80 p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/20">
+    <div className={cn("group relative flex gap-4 rounded-2xl border bg-background/80 p-4 shadow-sm transition-all hover:shadow-md hover:border-primary/20", selected && "border-primary/50 bg-primary/5")}>
+      {onToggleSelection && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            onToggleSelection();
+          }}
+          className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground hover:bg-muted-foreground/20 transition-colors"
+        >
+          <div className="h-4 w-4 rounded border-2 flex items-center justify-center" style={{ borderColor: selected ? 'currentColor' : undefined }}>
+            {selected && <Check className="h-3 w-3" />}
+          </div>
+        </button>
+      )}
       {/* Left Icon */}
       <div className="mt-1 flex h-10 w-10 items-center justify-center rounded-xl bg-muted text-muted-foreground">
         <Icon className="h-5 w-5" />
