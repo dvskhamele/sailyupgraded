@@ -13,6 +13,7 @@ import {
   PhoneCall,
   PhoneOff,
   Pencil,
+  Calendar,
 } from "lucide-react";
 import { ThumbsDown } from "lucide-react";
 import { RetellWebClient } from "retell-client-js-sdk";
@@ -105,6 +106,7 @@ import { stopRowNavigation } from "../../components/table-row-navigation";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 import { ViewDetailsButton } from "@/components/crm/common/ViewDetailsButton";
 import AlertModal from "@/components/modals/alert-modal";
+import { ActivityForm } from "@/components/crm/activities/ActivityForm";
 import { deleteOpportunity } from "@/actions/crm/opportunities/delete-opportunity";
 
 interface CRMKanbanProps {
@@ -714,6 +716,7 @@ function OpportunityCard({
   onOpenEdit,
   onOpenAiMessage,
   onOpenEmail,
+  onOpenActivity,
   stage,
   salesStages,
   nowMs,
@@ -792,13 +795,22 @@ function OpportunityCard({
             {opportunity.name}
           </h3>
 
-          <Pencil
-            className="w-4 h-4 text-gray-500 hover:text-gray-700 cursor-pointer transition"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenEdit(opportunity);
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <Calendar
+              className="w-4 h-4 text-gray-500 hover:text-indigo-600 cursor-pointer transition"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenActivity(opportunity);
+              }}
+            />
+            <Pencil
+              className="w-4 h-4 text-gray-500 hover:text-gray-700 cursor-pointer transition"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenEdit(opportunity);
+              }}
+            />
+          </div>
         </div>
       </CardHeader>
 
@@ -1160,6 +1172,9 @@ const CRMKanban = ({
     useState<crm_Opportunities | null>(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [isActivityOpen, setIsActivityOpen] = useState(false);
+  const [activityOpportunity, setActivityOpportunity] =
+    useState<crm_Opportunities | null>(null);
 
   const onDelete = async () => {
     if (!editingOpportunity) return;
@@ -1260,6 +1275,11 @@ const CRMKanban = ({
   const openEditOpportunity = (opportunity: crm_Opportunities) => {
     setEditingOpportunity(opportunity);
     setIsEditOpen(true);
+  };
+
+  const openActivityForm = (opportunity: crm_Opportunities) => {
+    setActivityOpportunity(opportunity);
+    setIsActivityOpen(true);
   };
 
   const openAiMessageDialog = (opportunity: crm_Opportunities) => {
@@ -1957,6 +1977,7 @@ const CRMKanban = ({
                       onOpenEdit={openEditOpportunity}
                       onOpenAiMessage={openAiMessageDialog}
                       onOpenEmail={openEmailDialog}
+                      onOpenActivity={openActivityForm}
                       stage={col}
                       salesStages={salesStages}
                       nowMs={nowMs}
@@ -1996,6 +2017,7 @@ const CRMKanban = ({
                     onOpenEdit={openEditOpportunity}
                     onOpenAiMessage={openAiMessageDialog}
                     onOpenEmail={openEmailDialog}
+                    onOpenActivity={openActivityForm}
                     stage={{ probability: null }}
                     salesStages={salesStages}
                     nowMs={nowMs}
@@ -2025,6 +2047,24 @@ const CRMKanban = ({
       ) : null}
     </DragOverlay>
   </DndContext>
+)}
+
+{/* Activity Form */}
+{activityOpportunity && isActivityOpen && (
+  <ActivityForm
+    open={isActivityOpen}
+    onOpenChange={(open) => {
+      setIsActivityOpen(open);
+      if (!open) {
+        setActivityOpportunity(null);
+      }
+    }}
+    entityType="opportunity"
+    entityId={activityOpportunity.id}
+    onSaved={() => {
+      router.refresh();
+    }}
+  />
 )}
     </>
   );
