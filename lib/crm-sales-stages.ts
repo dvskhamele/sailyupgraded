@@ -5,12 +5,15 @@ export const LOST_STAGE_ORDER = -1;
 export const DEFAULT_FIRST_STAGE_NAME = "First Step";
 export const DEFAULT_LOST_STAGE_NAME = "Lost";
 
-type SalesStageRow = {
+type SalesStageDbRow = {
   id: string;
   v: number;
   name: string;
   probability: number | null;
   order: number | null;
+};
+
+type SalesStageRow = SalesStageDbRow & {
   countInRevenue: boolean;
   countInPipeline: boolean;
 };
@@ -21,13 +24,7 @@ function sortRegularStages<T extends SalesStageRow>(stages: T[]) {
   });
 }
 
-function normalizeStages(stages: Array<{
-  id: string;
-  v: number;
-  name: string;
-  probability: number | null;
-  order: number | null;
-}>): SalesStageRow[] {
+function normalizeStages(stages: SalesStageDbRow[]): SalesStageRow[] {
   return stages.map((stage) => ({
     ...stage,
     countInRevenue: stage.order !== LOST_STAGE_ORDER,
@@ -35,27 +32,32 @@ function normalizeStages(stages: Array<{
   }));
 }
 
-export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[]) {
-  const rawStages =
-    existingStages ?? (await prismadb.crm_Opportunities_Sales_Stages.findMany({
-      select: {
-        id: true,
-        v: true,
-        name: true,
-        probability: true,
-        order: true,
-      },
-      orderBy: [{ order: "asc" }, { name: "asc" }]
-    }));
-
-  const stages = existingStages ? rawStages : normalizeStages(rawStages);
+export async function ensureProtectedSalesStages(
+  existingStages?: SalesStageRow[]
+): Promise<SalesStageRow[]> {
+  const stages: SalesStageRow[] =
+    existingStages ??
+    normalizeStages(
+      await prismadb.crm_Opportunities_Sales_Stages.findMany({
+        select: {
+          id: true,
+          v: true,
+          name: true,
+          probability: true,
+          order: true,
+        },
+        orderBy: [{ order: "asc" }, { name: "asc" }],
+      })
+    );
 
   const lostStageExists = stages.some(
     (stage) => stage.order === LOST_STAGE_ORDER
   );
+
   const hasRegularStages = stages.some(
     (stage) => stage.order !== LOST_STAGE_ORDER
   );
+
   const writes: Promise<unknown>[] = [];
 
   if (!lostStageExists) {
@@ -64,6 +66,7 @@ export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[
         data: {
           v: 0,
           name: DEFAULT_LOST_STAGE_NAME,
+          probability: 0,
           order: LOST_STAGE_ORDER,
         },
       })
@@ -88,6 +91,7 @@ export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[
   }
 
   await Promise.all(writes);
+
   const newRawStages = await prismadb.crm_Opportunities_Sales_Stages.findMany({
     select: {
       id: true,
@@ -96,22 +100,22 @@ export async function ensureProtectedSalesStages(existingStages?: SalesStageRow[
       probability: true,
       order: true,
     },
-    orderBy: [{ order: "asc" }, { name: "asc" }]
+    orderBy: [{ order: "asc" }, { name: "asc" }],
   });
+
   return normalizeStages(newRawStages);
 }
 
 async function loadSalesStageCollections() {
   const allStages = await ensureProtectedSalesStages();
+
   const lostStage =
-    allStages.find(
-      (stage) => stage.order === LOST_STAGE_ORDER
-    ) ?? null;
+    allStages.find((stage) => stage.order === LOST_STAGE_ORDER) ?? null;
+
   const regularStages = sortRegularStages(
-    allStages.filter(
-      (stage) => stage.order !== LOST_STAGE_ORDER
-    )
+    allStages.filter((stage) => stage.order !== LOST_STAGE_ORDER)
   );
+
   const firstStage = regularStages[0] ?? null;
 
   return {

@@ -22,6 +22,7 @@ type ContactOption = {
   last_name?: string | null;
   email?: string | null;
   role?: string | null;
+  accountsIDs?: string | null;
 };
 
 type OpportunityClientSelectProps = {
@@ -88,7 +89,7 @@ export function OpportunityClientSelect({
       }
 
       // If accountId is provided, only show contacts for that account
-      if (accountId && contact.account !== accountId) {
+      if (accountId && contact.accountsIDs !== accountId) {
         return false;
       }
 

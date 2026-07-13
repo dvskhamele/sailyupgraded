@@ -188,7 +188,7 @@ export function LeadDataTable<TData, TValue>({
       // 2. Update local repository for offline support
       await Promise.all(
         selectedLeadIds.map(async (id) => {
-          const existingLead = await localLeadRepository.get(id);
+          const existingLead = await localLeadRepository.getById(id);
           if (existingLead) {
             await localLeadRepository.update(id, {
               ...existingLead,

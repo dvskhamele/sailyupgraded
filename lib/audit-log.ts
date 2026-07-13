@@ -6,6 +6,7 @@ export type AuditEntityType =
   | "contact"
   | "lead"
   | "opportunity"
+  | "activity"
   | "contract"
   | "product"
   | "account_product"
