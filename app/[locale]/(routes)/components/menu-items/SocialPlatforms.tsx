@@ -111,11 +111,20 @@ const socialPlatforms: SocialPlatformConfig[] = [
     },
   },
   {
-    id: "tiktok",
-    title: "TikTok",
-    icon: Music2,
-    actions: {},
+  id: "tiktok",
+  title: "TikTok",
+  icon: Music2,
+  actions: {
+    extension: {
+      label: "Extension",
+      url: "https://chromewebstore.google.com/detail/tokreach-smart-outreach-l/cpbjlfdfedgbaagaioihmlimjljmkgbl",
+    },
+    login: {
+      label: "Start",
+      url: "https://www.tiktok.com/login",
+    },
   },
+},
   {
     id: "google-ads",
     title: "Google",
