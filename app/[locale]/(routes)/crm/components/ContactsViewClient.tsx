@@ -134,7 +134,10 @@ const ContactsViewClient = ({
             </CardTitle>
           </div>
           <div className="flex space-x-2">
-            <ImportContactsDialog importRole={roleView.defaultCreateRole} />
+            <ImportContactsDialog
+              importRole={roleView.defaultCreateRole}
+              contactType={currentRole !== "all" ? currentRole : undefined}
+            />
             <Sheet open={open} onOpenChange={setOpen}>
               <SheetTrigger asChild>
                 <Button size="sm" aria-label={labels.addNew} data-testid="add-contact-btn">+</Button>

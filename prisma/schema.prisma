@@ -1862,6 +1862,7 @@ enum crm_AuditLog_Action {
   restored
   relation_added
   relation_removed
+  imported
 }
 
 enum crm_Opportunity_Status {

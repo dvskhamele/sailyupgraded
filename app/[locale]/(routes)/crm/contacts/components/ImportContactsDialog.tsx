@@ -40,6 +40,7 @@ import {
   parseContactWorkbookRows,
   type ContactImportRawRow,
 } from "@/lib/contact-import-workbook";
+import { Badge } from "@/components/ui/badge";
 
 type RawRow = ContactImportRawRow;
 type MappingKey =
@@ -85,6 +86,14 @@ type ImportResult = {
   updated: number;
   failed: number;
   failures: ImportFailure[];
+  summary?: {
+    totalRows: number;
+    importedRows: number;
+    skippedRows: number;
+    validationErrors: ImportFailure[];
+    mappedFields: string[];
+    customFields: string[];
+  };
 };
 
 const SKIP_VALUE = "__skip__";
@@ -262,11 +271,31 @@ function suggestMapping(headers: string[]): ColumnMapping {
   return defaults;
 }
 
+/** Generate a human-readable label from a contact type string */
+function getContactTypeLabel(contactType?: string): string {
+  switch (contactType?.toLowerCase()) {
+    case "customer":
+      return "Customer / Client";
+    case "agent":
+      return "Agent";
+    case "prospect":
+      return "Prospect";
+    case "vendor":
+      return "Vendor";
+    case "partner":
+      return "Partner";
+    default:
+      return contactType || "Contact";
+  }
+}
+
 type ImportContactsDialogProps = {
   importRole?: string;
+  /** Page context: "customer", "agent", "prospect", "vendor", etc. */
+  contactType?: string;
 };
 
-export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) {
+export function ImportContactsDialog({ importRole, contactType }: ImportContactsDialogProps) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const [open, setOpen] = useState(false);
@@ -403,6 +432,9 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
     setIsUploading(true);
     setResult(null);
 
+    // Determine the contact type - use contactType first, fall back to importRole
+    const effectiveContactType = contactType || importRole || "customer";
+
     try {
       const response = await fetch("/api/crm/contacts/import", {
         method: "POST",
@@ -413,7 +445,10 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
           rows,
           mapping,
           duplicateMode,
-          importRole,
+          // Pass the page context as contactType
+          contactType: effectiveContactType,
+          // Keep importRole for backward compatibility
+          importRole: effectiveContactType,
         }),
       });
 
@@ -427,11 +462,11 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
 
       if (payload.failed > 0) {
         toast.warning(
-          `${payload.imported + payload.updated} contact(s) processed with ${payload.failed} issue(s).`,
+          `${payload.imported ?? 0} contact(s) imported with ${payload.failed} issue(s).`,
         );
       } else {
         toast.success(
-          `${payload.imported} contact(s) imported${payload.updated ? `, ${payload.updated} updated` : ""}.`,
+          `${payload.imported ?? 0} contact(s) imported.`,
         );
       }
     } catch (error) {
@@ -449,6 +484,12 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
     }
   };
 
+  // Determine the contact type label for display
+  const contactTypeLabel = getContactTypeLabel(contactType || importRole);
+
+  // Compute summary from result
+  const summary = result?.summary;
+
   return (
     <>
       <input
@@ -465,13 +506,16 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
         onClick={openFilePicker}
       >
         <Upload className="mr-2 h-4 w-4" />
-        Import Contacts
+        Import {contactTypeLabel !== "Contact" ? contactTypeLabel : "Contacts"}
       </Button>
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[85vh] max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Import Contacts</DialogTitle>
+            <DialogTitle>Import {contactTypeLabel} Contacts</DialogTitle>
             <DialogDescription>
+              {contactType
+                ? `This import will automatically save all records as "${contactTypeLabel}" contacts. `
+                : ""}
               Review the selected CSV or Excel file, map the columns, and import
               valid contacts. Each row must include a full name or last name, and
               at least one of email, mobile phone, or office phone.
@@ -498,6 +542,7 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
                   <h3 className="text-sm font-medium">Column Mapping</h3>
                   <p className="text-xs text-muted-foreground">
                     Match your uploaded columns to the contact fields we import.
+                    Unknown columns will be stored as custom fields.
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -588,6 +633,11 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
                     Valid rows ready to import: {validRowCount}. Rows that will be
                     skipped for missing required values: {skippedInvalidCount}.
                   </p>
+                  {contactType ? (
+                    <div className="text-xs text-muted-foreground mt-1">
+                      All imported records will be saved with contact type: <Badge variant="outline" className="ml-1">{contactTypeLabel}</Badge>
+                    </div>
+                  ) : null}
                 </div>
                 <div className="overflow-x-auto rounded-md border">
                   <Table>
@@ -646,7 +696,7 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
                     Importing
                   </>
                 ) : (
-                  "Import Contacts"
+                  `Import ${contactTypeLabel} Contacts`
                 )}
               </Button>
               {headers.length > 0 &&
@@ -686,6 +736,55 @@ export function ImportContactsDialog({ importRole }: ImportContactsDialogProps) 
                     <span className="text-sm font-medium">
                       {result.failed} row(s) failed or were skipped
                     </span>
+                  </div>
+                ) : null}
+
+                {/* Enhanced Summary */}
+                {summary ? (
+                  <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                    <h4 className="text-sm font-medium">Import Summary</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Total Rows:</span>{" "}
+                        <span className="font-medium">{summary.totalRows}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Imported:</span>{" "}
+                        <span className="font-medium text-green-600">{summary.importedRows}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Skipped:</span>{" "}
+                        <span className="font-medium text-yellow-600">{summary.skippedRows}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Validation Errors:</span>{" "}
+                        <span className="font-medium text-red-600">{summary.validationErrors.length}</span>
+                      </div>
+                    </div>
+                    {summary.mappedFields.length > 0 ? (
+                      <div className="mt-2">
+                        <span className="text-xs text-muted-foreground">Mapped Fields: </span>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {summary.mappedFields.map((field) => (
+                            <Badge key={field} variant="secondary" className="text-[10px]">
+                              {field}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {summary.customFields.length > 0 ? (
+                      <div className="mt-2">
+                        <span className="text-xs text-muted-foreground">Custom Fields Detected: </span>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {summary.customFields.map((field) => (
+                            <Badge key={field} variant="outline" className="text-[10px]">
+                              custom: {field}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 ) : null}
 
