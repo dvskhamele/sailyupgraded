@@ -87,7 +87,10 @@ export async function sendSmtp2GoEmail({
   subject,
   message,
 }: Smtp2GoSendInput): Promise<Smtp2GoSendResult> {
+  console.log("[sendSmtp2GoEmail] Called with userId:", userId);
+  
   const normalizedFrom = normalizeSenderEmail(from);
+  console.log("[sendSmtp2GoEmail] Normalized from:", normalizedFrom);
 
   if (!isAllowedSmtp2GoSender(normalizedFrom)) {
     console.warn("SMTP2GO sender rejected before API call:", normalizedFrom);
@@ -98,9 +101,12 @@ export async function sendSmtp2GoEmail({
     };
   }
 
+  console.log("[sendSmtp2GoEmail] Calling getSmtp2goSettings...");
   const smtp = await getSmtp2goSettings(userId);
+  console.log("[sendSmtp2GoEmail] getSmtp2goSettings returned:", smtp ? JSON.stringify(smtp, null, 2) : "null");
 
   if (!smtp) {
+  console.error("[sendSmtp2GoEmail] SMTP2GO settings not found!");
   return {
     recipient,
     success: false,
@@ -108,8 +114,10 @@ export async function sendSmtp2GoEmail({
   };
 }
 
-const apiKey = smtp?.apiKey;
-
+  const apiKey = smtp.apiKey; // We know smtp exists now
+  console.log("[sendSmtp2GoEmail] smtp object:", smtp);
+  console.log("[sendSmtp2GoEmail] smtp.apiKey:", smtp.apiKey);
+  console.log("[sendSmtp2GoEmail] Final apiKey variable:", apiKey);
   console.log("SMTP2GO API KEY PRESENT:", Boolean(apiKey));
 
   if (!apiKey) {

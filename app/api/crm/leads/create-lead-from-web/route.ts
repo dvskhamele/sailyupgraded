@@ -100,6 +100,7 @@
 // }
 
 
+
 import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 
@@ -110,10 +111,7 @@ export async function POST(req: Request) {
   });
 
   if (req.headers.get("content-type") !== "application/json") {
-    return NextResponse.json(
-      { message: "Invalid content-type" },
-      { status: 400 }
-    );
+    return NextResponse.json({ message: "Invalid content-type" }, { status: 400 });
   }
 
   const body = await req.json();
@@ -129,31 +127,41 @@ export async function POST(req: Request) {
 
   const { firstName, lastName, account, job, email, phone, lead_source } = body;
 
-  //Validate auth with token from .env.local
   const token = headers.get("authorization");
-
   if (!token) {
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   }
-
   if (!process.env.NEXTCRM_TOKEN) {
     return NextResponse.json(
       { message: "NEXTCRM_TOKEN not defined in .env.local file" },
       { status: 401 }
     );
   }
-
   if (token.trim() !== process.env.NEXTCRM_TOKEN.trim()) {
     console.log("Unauthorized");
     return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
   } else {
     if (!lastName) {
-      return NextResponse.json(
-        { message: "Missing required fields" },
-        { status: 400 }
-      );
+      return NextResponse.json({ message: "Missing required fields" }, { status: 400 });
     }
     try {
+      // ── SOURCE FIX ──────────────────────────────────────────────────
+      // The UI Source column reads lead_source_id. The crm_Lead_Sources
+      // records use ids like "linkedin-source", "facebook-source", etc.
+      // Map the incoming platform to that id; create the record if it's a
+      // new platform (e.g. tiktok) so it never fails.
+      const sourceKey = (lead_source || "linkedin").toString().toLowerCase().trim();
+      const sourceId = `${sourceKey}-source`; // e.g. "linkedin-source"
+      await prismadb.crm_Lead_Sources.upsert({
+        where: { id: sourceId },
+        update: {},
+        create: {
+          id: sourceId,
+          name: sourceKey.charAt(0).toUpperCase() + sourceKey.slice(1),
+        },
+      });
+      // ────────────────────────────────────────────────────────────────
+
       const createPayload = {
         v: 1,
         firstName,
@@ -162,47 +170,16 @@ export async function POST(req: Request) {
         jobTitle: job,
         email,
         phone,
-        // ── SOURCE FIX ──────────────────────────────────────────────
-        // Persist the lead's origin (e.g. "linkedin", "instagram").
-        // NOTE: pick the field that actually exists on the crm_Leads
-        // Prisma model / drives the Source column in the UI:
-        source_platform: lead_source,      // if the model has a string column
-        // lead_source_id: <resolve lead_source → LeadSource record id>,
-        // ────────────────────────────────────────────────────────────
+        lead_source_id: sourceId, // ← this is what the UI displays
       };
       console.log("[LEAD CREATE DEBUG] Prisma create payload", createPayload);
-      console.log("[LEAD CREATE DEBUG] Executing prismadb.crm_Leads.create()");
-      const lead = await prismadb.crm_Leads.create({
-        data: {
-          ...createPayload,
-        },
-      });
-      console.log("[LEAD CREATE DEBUG] Create result", lead);
+      const lead = await prismadb.crm_Leads.create({ data: { ...createPayload } });
       console.log("[LEAD CREATE DEBUG] Created lead ID", { id: lead.id });
-
-      const verificationLead = await prismadb.crm_Leads.findUnique({
-        where: { id: lead.id },
-      });
-      console.log("[LEAD CREATE DEBUG] Verification query result", verificationLead);
-
-      if (!verificationLead) {
-        console.error("[LEAD CREATE DEBUG] Verification query did not find created lead", {
-          id: lead.id,
-          database: getDatabaseUrlDiagnostics(),
-        });
-      }
-      console.log("[LEAD CREATE DEBUG] Completed without transaction rollback", {
-        id: lead.id,
-        note: "create-lead-from-web does not wrap crm_Leads.create() in a transaction",
-      });
 
       return NextResponse.json({ message: "New lead created successfully" });
     } catch (error) {
       console.log(error);
-      return NextResponse.json(
-        { message: "Error creating new lead" },
-        { status: 500 }
-      );
+      return NextResponse.json({ message: "Error creating new lead" }, { status: 500 });
     }
   }
 }

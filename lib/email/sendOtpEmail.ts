@@ -1,5 +1,5 @@
 import { Resend } from "resend";
-import { getEmailFromAddress, getResendApiKey } from "@/lib/env";
+import { getResendApiKey } from "@/lib/env";
 
 const OTP_REGEX = /^\d{6}$/;
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
@@ -133,7 +133,7 @@ export async function sendOtpEmail(
   }
 
   const apiKey = getResendApiKey();
-  const fromAddress = getEmailFromAddress();
+  const fromAddress = process.env.RESEND_FROM_EMAIL?.trim() || process.env.RESEND_FROM?.trim();
 
   if (!apiKey) {
     console.error("[OTP EMAIL] Missing RESEND_API_KEY", { email });
@@ -141,8 +141,8 @@ export async function sendOtpEmail(
   }
 
   if (!fromAddress) {
-    console.error("[OTP EMAIL] Missing EMAIL_FROM", { email });
-    throw new Error("Missing EMAIL_FROM.");
+    console.error("[OTP EMAIL] Missing RESEND_FROM / RESEND_FROM_EMAIL", { email });
+    throw new Error("Missing RESEND_FROM / RESEND_FROM_EMAIL.");
   }
 
   const resend = new Resend(apiKey);
