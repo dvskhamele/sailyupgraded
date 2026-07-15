@@ -8,6 +8,8 @@
  * - Supports batch inserts, large files, and per-row error isolation
  * - Returns detailed import summary
  * - Duplicate records are always allowed — no duplicate detection is performed
+ * - NO required field validation — any row with at least one non-empty value is imported
+ * - Only completely empty rows are skipped
  */
 import { Prisma } from "@prisma/client";
 import { prismadb } from "@/lib/prisma";
@@ -18,6 +20,7 @@ import {
 } from "@/lib/custom-fields";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { normalizeContactRole, type ContactRole } from "@/lib/contact-options";
+import { isEmptyRow } from "@/lib/crm/import-engine";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -53,7 +56,8 @@ export interface ContactImportValidationError {
 export interface ContactImportSummary {
   totalRows: number;
   importedRows: number;
-  skippedRows: number;
+  skippedEmptyRows: number;
+  failedRows: number;
   validationErrors: ContactImportValidationError[];
   mappedFields: string[];
   customFields: string[];
@@ -336,59 +340,6 @@ export function mapRow(
 }
 
 // ---------------------------------------------------------------------------
-// Validate a row (only required fields)
-// ---------------------------------------------------------------------------
-
-export interface RowValidationResult {
-  valid: boolean;
-  errors: ContactImportValidationError[];
-}
-
-/**
- * Validate a row's required fields only.
- * Does NOT reject for unknown columns.
- */
-export function validateRow(
-  mappedRow: MappedRow,
-  rowNumber: number,
-  email?: string | null,
-): RowValidationResult {
-  const errors: ContactImportValidationError[] = [];
-
-  // Must have at least a name (first_name or last_name)
-  if (
-    !mappedRow.modelValues.first_name &&
-    !mappedRow.modelValues.last_name
-  ) {
-    errors.push({
-      row: rowNumber,
-      email: email ?? null,
-      field: "name",
-      reason: "Missing first name and last name. At least one is required.",
-    });
-  }
-
-  // Must have at least one of: email, mobile_phone, office_phone
-  if (
-    !mappedRow.modelValues.email &&
-    !mappedRow.modelValues.mobile_phone &&
-    !mappedRow.modelValues.office_phone
-  ) {
-    errors.push({
-      row: rowNumber,
-      email: email ?? null,
-      field: "contact",
-      reason: "Missing email, mobile phone, and office phone. At least one is required.",
-    });
-  }
-
-  return {
-    valid: errors.length === 0,
-    errors,
-  };
-}
-
-// ---------------------------------------------------------------------------
 // Extract custom fields from unknown column values
 // ---------------------------------------------------------------------------
 
@@ -478,12 +429,6 @@ function normalizeEmail(email: string): string {
   return email.trim().toLowerCase();
 }
 
-function isValidEmail(email: string): boolean {
-  const normalized = normalizeEmail(email);
-  const atIdx = normalized.indexOf("@");
-  return atIdx > 0 && normalized.slice(atIdx + 1).includes(".");
-}
-
 // ---------------------------------------------------------------------------
 // Bulk insert contacts with error isolation
 // ---------------------------------------------------------------------------
@@ -498,6 +443,7 @@ export interface BulkInsertResult {
  * Bulk insert mapped contacts into the database.
  * Each row is processed individually so that one failure doesn't stop the batch.
  * Duplicate records are always allowed — no duplicate detection is performed.
+ * No required field validation — any row with data is imported.
  */
 export async function bulkInsertContacts(
   mappedRows: Array<{
@@ -659,13 +605,7 @@ export async function bulkInsertContacts(
       const officePhone = mapped.modelValues.office_phone || "";
       const normalizedOfficePhone = officePhone ? normalizePhone(officePhone) : "";
 
-      // Validation
-      if (normalizedEmailVal && !isValidEmail(normalizedEmailVal)) {
-        errors.push({ row: rowNumber, email: normalizedEmailVal, field: "email", reason: "Invalid email format" });
-        continue;
-      }
-
-      // Compute name
+      // Compute name - use "Imported Contact" as fallback if no name provided
       const firstName = mapped.modelValues.first_name || "";
       const lastName = mapped.modelValues.last_name || "";
       const fullName = mapped.modelValues.name || "";
@@ -772,6 +712,8 @@ export async function bulkInsertContacts(
 /**
  * Main entry point for importing contacts.
  * Returns a detailed summary of the import operation.
+ * No required field validation — any row with at least one non-empty value is imported.
+ * Only completely empty rows are skipped.
  */
 export async function importContacts(
   rows: ContactImportRow[],
@@ -790,25 +732,25 @@ export async function importContacts(
   // Build field mapping
   const mapping = buildFieldMapping(allHeaders, customFieldDefinitions);
 
-  // Map and validate each row
-  const validRows: Array<{ row: ContactImportRow; mapped: MappedRow; rowNumber: number }> = [];
-  const validationErrors: ContactImportValidationError[] = [];
+  // Map rows and skip only completely empty rows
+  const rowsToImport: Array<{ row: ContactImportRow; mapped: MappedRow; rowNumber: number }> = [];
+  let skippedEmptyRows = 0;
 
   for (let i = 0; i < rows.length; i++) {
     const rowNumber = i + 2; // 1-indexed with header row
-    const mapped = mapRow(rows[i], mapping);
-    const email = mapped.modelValues.email || null;
-    const validation = validateRow(mapped, rowNumber, email);
 
-    if (validation.valid) {
-      validRows.push({ row: rows[i], mapped, rowNumber });
-    } else {
-      validationErrors.push(...validation.errors);
+    // Skip only completely empty rows
+    if (isEmptyRow(rows[i])) {
+      skippedEmptyRows += 1;
+      continue;
     }
+
+    const mapped = mapRow(rows[i], mapping);
+    rowsToImport.push({ row: rows[i], mapped, rowNumber });
   }
 
-  // Bulk insert valid rows
-  const { imported, errors } = await bulkInsertContacts(validRows, options, customFieldDefinitions);
+  // Bulk insert all non-empty rows
+  const { imported, errors } = await bulkInsertContacts(rowsToImport, options, customFieldDefinitions);
 
   // Compile summary
   const mappedFields = Object.values(mapping.modelFields);
@@ -817,8 +759,9 @@ export async function importContacts(
   return {
     totalRows: rows.length,
     importedRows: imported,
-    skippedRows: 0, // No rows are skipped for duplicates anymore
-    validationErrors: [...validationErrors, ...errors],
+    skippedEmptyRows,
+    failedRows: errors.length,
+    validationErrors: errors,
     mappedFields: [...new Set(mappedFields)],
     customFields: [...new Set(customFields)],
   };

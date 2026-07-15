@@ -114,6 +114,12 @@ export const campaignScheduleSend = inngest.createFunction(
       data: { status: "sending" },
     });
 
+    // Fire event to log a single Activity record for this bulk email campaign
+    await step.sendEvent("log-campaign-activity", {
+      name: "campaigns/log-activity" as const,
+      data: { campaignId },
+    });
+
     return { dispatched: sendRecords.length };
   }
 );

@@ -75,7 +75,6 @@ type MappingKey =
   | "social_youtube"
   | "social_tiktok";
 type ColumnMapping = Record<MappingKey, string>;
-type DuplicateMode = "skip" | "update";
 type ImportFailure = {
   row: number;
   email: string | null;
@@ -89,7 +88,8 @@ type ImportResult = {
   summary?: {
     totalRows: number;
     importedRows: number;
-    skippedRows: number;
+    skippedEmptyRows: number;
+    failedRows: number;
     validationErrors: ImportFailure[];
     mappedFields: string[];
     customFields: string[];
@@ -305,7 +305,6 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
   const [mapping, setMapping] = useState<ColumnMapping>({
     ...DEFAULT_MAPPING,
   });
-  const [duplicateMode, setDuplicateMode] = useState<DuplicateMode>("skip");
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
@@ -314,7 +313,6 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
     setHeaders([]);
     setRows([]);
     setMapping({ ...DEFAULT_MAPPING });
-    setDuplicateMode("skip");
     setResult(null);
     setIsUploading(false);
     if (fileRef.current) {
@@ -348,39 +346,19 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
         mapping.status !== SKIP_VALUE ? String(row[mapping.status] ?? "").trim() : "";
       const name = fullName || [firstName, lastName].filter(Boolean).join(" ");
 
+      // A row is importable if it has at least one non-empty value
+      const hasAnyValue = Object.values(row).some((v) => String(v ?? "").trim().length > 0);
+
       return {
         row: index + 2,
         name,
         email,
         phone: mobilePhone || officePhone,
         status,
-        valid: Boolean(name || lastName) && Boolean(email || mobilePhone || officePhone),
+        valid: hasAnyValue,
       };
     });
   }, [mapping, rows]);
-
-  const validRowCount = useMemo(() => {
-    return rows.filter((row) => {
-      const hasName = (
-        (mapping.name !== SKIP_VALUE && String(row[mapping.name] ?? "").trim().length > 0) ||
-        (mapping.last_name !== SKIP_VALUE &&
-          String(row[mapping.last_name] ?? "").trim().length > 0)
-      );
-      const hasEmail =
-        mapping.email !== SKIP_VALUE &&
-        String(row[mapping.email] ?? "").trim().length > 0;
-      const hasMobilePhone =
-        mapping.mobile_phone !== SKIP_VALUE &&
-        String(row[mapping.mobile_phone] ?? "").trim().length > 0;
-      const hasOfficePhone =
-        mapping.office_phone !== SKIP_VALUE &&
-        String(row[mapping.office_phone] ?? "").trim().length > 0;
-
-      return hasName && (hasEmail || hasMobilePhone || hasOfficePhone);
-    }).length;
-  }, [mapping, rows]);
-
-  const skippedInvalidCount = rows.length - validRowCount;
 
   const openFilePicker = () => {
     fileRef.current?.click();
@@ -419,13 +397,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
   };
 
   const handleImport = async () => {
-    if (
-      rows.length === 0 ||
-      (mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
-      (mapping.email === SKIP_VALUE &&
-        mapping.mobile_phone === SKIP_VALUE &&
-        mapping.office_phone === SKIP_VALUE)
-    ) {
+    if (rows.length === 0) {
       return;
     }
 
@@ -444,7 +416,6 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
         body: JSON.stringify({
           rows,
           mapping,
-          duplicateMode,
           // Pass the page context as contactType
           contactType: effectiveContactType,
           // Keep importRole for backward compatibility
@@ -516,9 +487,9 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
               {contactType
                 ? `This import will automatically save all records as "${contactTypeLabel}" contacts. `
                 : ""}
-              Review the selected CSV or Excel file, map the columns, and import
-              valid contacts. Each row must include a full name or last name, and
-              at least one of email, mobile phone, or office phone.
+              Review the selected CSV or Excel file, map the columns, and import.
+              All rows with at least one non-empty value will be imported. Unknown
+              columns will be stored as custom fields.
             </DialogDescription>
           </DialogHeader>
 
@@ -569,23 +540,6 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                       </Select>
                     </div>
                   ))}
-                  <div className="space-y-2">
-                    <p className="text-sm font-medium">Duplicates</p>
-                    <Select
-                      value={duplicateMode}
-                      onValueChange={(value) =>
-                        setDuplicateMode(value as DuplicateMode)
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select behavior" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="skip">Skip existing contacts</SelectItem>
-                        <SelectItem value="update">Update existing contacts</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
                 </div>
               </div>
             ) : null}
@@ -630,8 +584,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                 <div>
                   <h3 className="text-sm font-medium">Mapped Preview</h3>
                   <p className="text-xs text-muted-foreground">
-                    Valid rows ready to import: {validRowCount}. Rows that will be
-                    skipped for missing required values: {skippedInvalidCount}.
+                    All rows containing at least one non-empty value will be imported.
                   </p>
                   {contactType ? (
                     <div className="text-xs text-muted-foreground mt-1">
@@ -657,7 +610,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                           <TableCell>{row.row}</TableCell>
                           <TableCell>{row.name || "N/A"}</TableCell>
                           <TableCell>
-                            <EmailLink value={row.email} fallback="Missing email" />
+                            <EmailLink value={row.email} fallback="N/A" />
                           </TableCell>
                           <TableCell>
                             <WhatsAppLink value={row.phone} fallback="N/A" />
@@ -667,7 +620,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                             {row.valid ? (
                               <span className="text-green-600">Ready</span>
                             ) : (
-                              <span className="text-yellow-600">Needs required fields</span>
+                              <span className="text-yellow-600">Empty row</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -681,14 +634,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleImport}
-                disabled={
-                  isUploading ||
-                  rows.length === 0 ||
-                  (mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
-                  (mapping.email === SKIP_VALUE &&
-                    mapping.mobile_phone === SKIP_VALUE &&
-                    mapping.office_phone === SKIP_VALUE)
-                }
+                disabled={isUploading || rows.length === 0}
               >
                 {isUploading ? (
                   <>
@@ -699,15 +645,6 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                   `Import ${contactTypeLabel} Contacts`
                 )}
               </Button>
-              {headers.length > 0 &&
-              ((mapping.name === SKIP_VALUE && mapping.last_name === SKIP_VALUE) ||
-                (mapping.email === SKIP_VALUE &&
-                  mapping.mobile_phone === SKIP_VALUE &&
-                  mapping.office_phone === SKIP_VALUE)) ? (
-                <p className="text-xs text-destructive">
-                  Full name or last name, and at least one of email, mobile phone, or office phone are required.
-                </p>
-              ) : null}
             </div>
 
             {result ? (
@@ -734,7 +671,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                   <div className="flex items-center gap-2 text-yellow-600">
                     <AlertTriangle className="h-5 w-5" />
                     <span className="text-sm font-medium">
-                      {result.failed} row(s) failed or were skipped
+                      {result.failed} row(s) failed due to database errors
                     </span>
                   </div>
                 ) : null}
@@ -753,12 +690,12 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                         <span className="font-medium text-green-600">{summary.importedRows}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Skipped:</span>{" "}
-                        <span className="font-medium text-yellow-600">{summary.skippedRows}</span>
+                        <span className="text-muted-foreground">Skipped (Empty):</span>{" "}
+                        <span className="font-medium text-yellow-600">{summary.skippedEmptyRows}</span>
                       </div>
                       <div>
-                        <span className="text-muted-foreground">Validation Errors:</span>{" "}
-                        <span className="font-medium text-red-600">{summary.validationErrors.length}</span>
+                        <span className="text-muted-foreground">Failed (DB Errors):</span>{" "}
+                        <span className="font-medium text-red-600">{summary.failedRows}</span>
                       </div>
                     </div>
                     {summary.mappedFields.length > 0 ? (

@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       contactCustomFields,
     );
 
-    // Compile response - preserve backwards compatibility with legacy import response shape
+    // Compile response
     const failures = result.validationErrors.map((err) => ({
       row: err.row,
       email: err.email,
@@ -95,18 +95,19 @@ export async function POST(request: NextRequest) {
 
     revalidatePath("/[locale]/crm/contacts", "page");
 
-    // Return enhanced response with full summary (backward-compatible + new fields)
+    // Return enhanced response with full summary
     return NextResponse.json({
       imported: result.importedRows,
       updated: 0,
-      failed: result.validationErrors.length,
+      failed: result.failedRows,
       failures,
 
-      // New enhanced summary fields
+      // Enhanced summary fields
       summary: {
         totalRows: result.totalRows,
         importedRows: result.importedRows,
-        skippedRows: result.skippedRows,
+        skippedEmptyRows: result.skippedEmptyRows,
+        failedRows: result.failedRows,
         validationErrors: failures,
         mappedFields: result.mappedFields,
         customFields: result.customFields,
