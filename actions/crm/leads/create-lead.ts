@@ -16,6 +16,7 @@ import {
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
 import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
+import { resolveSourcePlatformToLeadSourceId } from "@/lib/crm/lead-source-resolver";
 
 function normalizeOptionalText(value?: string | null) {
   const trimmed = value?.trim() ?? "";
@@ -339,6 +340,7 @@ export const createLead = async (data: {
   social_instagram?: string;
   social_youtube?: string;
   social_tiktok?: string;
+  source_platform?: string;
   productId?: string;
   custom_fields_data?: Record<string, CustomFieldValue | null | undefined>;
 }) => {
@@ -393,6 +395,7 @@ export const createLead = async (data: {
     social_instagram,
     social_youtube,
     social_tiktok,
+    source_platform,
     productId,
     custom_fields_data,
   } = data;
@@ -403,7 +406,10 @@ export const createLead = async (data: {
       ? new Date(Number(birthday_year), Number(birthday_month) - 1, Number(birthday_day))
       : null;
   const resolvedContactTypeId = await resolveContactTypeId(contact_type_id);
-  const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
+  const resolvedLeadSourceId =
+    (await resolveLeadSourceId(lead_source_id)) ??
+    (await resolveSourcePlatformToLeadSourceId(source_platform)) ??
+    undefined;
   const leadCustomFields = await prismadb.custom_fields.findMany({
     orderBy: { createdAt: "asc" },
   });

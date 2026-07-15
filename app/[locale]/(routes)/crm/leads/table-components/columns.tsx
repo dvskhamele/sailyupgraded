@@ -218,12 +218,22 @@ export const createColumns = (
   {
     accessorKey: "lead_source",
     header: ({ column }) => (
-      <DataTableColumnHeader column={column} title="Source" />
+      <DataTableColumnHeader column={column} title="Lead Source" />
     ),
     cell: ({ row }) => {
-      const source = row.original.lead_source?.name || "Unknown";
-      return <div className="w-[100px]">{source}</div>;
+      const sourceName =
+        row.original.lead_source?.name ??
+        leadSources.find((s) => s.id === (row.original as any).lead_source_id)?.name;
+      return <div className="w-[100px]">{sourceName ?? "—"}</div>;
     },
+    filterFn: (row, _id, value) => {
+      const sourceName =
+        row.original.lead_source?.name ??
+        leadSources.find((s) => s.id === (row.original as any).lead_source_id)?.name;
+      return value.includes(sourceName);
+    },
+    enableSorting: true,
+    enableHiding: true,
   },
 
     {

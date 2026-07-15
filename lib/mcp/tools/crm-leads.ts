@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { getDatabaseUrlDiagnostics, prismadb } from "@/lib/prisma";
+import { resolveSourcePlatformToLeadSourceId } from "@/lib/crm/lead-source-resolver";
 import {
   paginationSchema,
   paginationArgs,
@@ -79,6 +80,7 @@ export const crmLeadTools = [
       company: z.string().optional(),
       phone: z.string().optional(),
       jobTitle: z.string().optional(),
+      sourcePlatform: z.string().optional(),
     }),
     async handler(
       args: {
@@ -88,10 +90,18 @@ export const crmLeadTools = [
         company?: string;
         phone?: string;
         jobTitle?: string;
+        sourcePlatform?: string;
       },
       userId: string
     ) {
-      const { lastName, firstName, ...rest } = args;
+      const { lastName, firstName, sourcePlatform, ...rest } = args;
+
+      // ── Auto-resolve lead_source_id from source_platform ──────────────
+      const resolvedLeadSourceId = sourcePlatform
+        ? await resolveSourcePlatformToLeadSourceId(sourcePlatform)
+        : null;
+      // ──────────────────────────────────────────────────────────────────
+
       const createPayload = {
         v: 0,
         lastName,
@@ -99,7 +109,9 @@ export const crmLeadTools = [
         ...rest,
         assigned_to: userId,
         createdBy: userId,
+        ...(resolvedLeadSourceId ? { lead_source_id: resolvedLeadSourceId } : {}),
       };
+
       console.log("[LEAD CREATE DEBUG] Entry point", {
         path: "lib/mcp/tools/crm-leads.ts:crm_create_lead",
         database: getDatabaseUrlDiagnostics(),
