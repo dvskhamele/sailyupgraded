@@ -29,111 +29,132 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { WhatsAppLink } from "@/components/ui/contact-link";
+import { Badge } from "@/components/ui/badge";
+import { parseWorkbookRows, type ImportRawRow } from "@/lib/crm/workbook-parser";
 
-type RawRow = Record<string, string>;
-type MappingKey =
-  | "external_id"
-  | "created_time"
-  | "ad_id"
-  | "opportunity_name"
-  | "adset_id"
-  | "adset_name"
-  | "campaign_id"
-  | "campaign_name"
-  | "form_id"
-  | "form_name"
-  | "is_organic"
-  | "platform"
-  | "budget"
-  | "full_name"
-  | "phone_number"
-  | "lead_status";
-type ColumnMapping = Record<MappingKey, string>;
+// ---------------------------------------------------------------------------
+// Types
+// ---------------------------------------------------------------------------
+
+type RawRow = ImportRawRow;
+
 type ImportFailure = {
   row: number;
   name: string | null;
   reason: string;
 };
+
 type ImportResult = {
   imported: number;
   failed: number;
   failures: ImportFailure[];
+  summary?: {
+    totalRows: number;
+    importedRows: number;
+    skippedRows: number;
+    validationErrors: ImportFailure[];
+    mappedFields: string[];
+    customFields: string[];
+  };
 };
 
+// ---------------------------------------------------------------------------
+// Manual mapping types and constants (fallback UI)
+// ---------------------------------------------------------------------------
+
 const SKIP_VALUE = "__skip__";
+
+type MappingKey =
+  | "name"
+  | "account"
+  | "assigned_to"
+  | "budget"
+  | "close_date"
+  | "sales_stage"
+  | "type"
+  | "description"
+  | "next_step"
+  | "campaign"
+  | "contact"
+  | "currency"
+  | "expected_revenue"
+  | "clientName"
+  | "category";
+
+type ColumnMapping = Record<MappingKey, string>;
+
 const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
-  { key: "external_id", label: "id" },
-  { key: "created_time", label: "created_time" },
-  { key: "ad_id", label: "ad_id" },
-  { key: "opportunity_name", label: "ad_name (Opportunity name)" },
-  { key: "adset_id", label: "adset_id" },
-  { key: "adset_name", label: "adset_name" },
-  { key: "campaign_id", label: "campaign_id" },
-  { key: "campaign_name", label: "campaign_name" },
-  { key: "form_id", label: "form_id" },
-  { key: "form_name", label: "form_name" },
-  { key: "is_organic", label: "is_organic" },
-  { key: "platform", label: "platform" },
-  {
-    key: "budget",
-    label: "what_is_your_budget_for_website_development?",
-  },
-  { key: "full_name", label: "full name" },
-  { key: "phone_number", label: "phone_number" },
-  { key: "lead_status", label: "lead_status" },
+  { key: "name", label: "Opportunity Name" },
+  { key: "account", label: "Account / Company" },
+  { key: "assigned_to", label: "Assigned To" },
+  { key: "budget", label: "Budget / Amount" },
+  { key: "close_date", label: "Close Date" },
+  { key: "sales_stage", label: "Sales Stage / Pipeline Stage" },
+  { key: "type", label: "Type / Sale Type" },
+  { key: "description", label: "Description" },
+  { key: "next_step", label: "Next Step" },
+  { key: "campaign", label: "Campaign" },
+  { key: "contact", label: "Contact" },
+  { key: "currency", label: "Currency" },
+  { key: "expected_revenue", label: "Expected Revenue" },
+  { key: "clientName", label: "Client Name" },
+  { key: "category", label: "Category / Product" },
 ];
 
 const DEFAULT_MAPPING = Object.fromEntries(
   IMPORT_FIELDS.map(({ key }) => [key, SKIP_VALUE]),
 ) as ColumnMapping;
 
+// Smart auto-mapping using the same normalization as the backend
 const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
-  external_id: ["id", "lead id", "lead_id"],
-  created_time: ["created_time", "created time", "created_at", "time"],
-  ad_id: ["ad_id", "ad id"],
-  opportunity_name: ["ad_name", "ad name", "opportunity name", "opportunity_name", "name"],
-  adset_id: ["adset_id", "adset id"],
-  adset_name: ["adset_name", "adset name"],
-  campaign_id: ["campaign_id", "campaign id"],
-  campaign_name: ["campaign_name", "campaign name"],
-  form_id: ["form_id", "form id"],
-  form_name: ["form_name", "form name"],
-  is_organic: ["is_organic", "organic", "is organic"],
-  platform: ["platform", "source platform", "channel"],
-  budget: [
-    "what_is_your_budget_for_website_development?",
-    "website development budget",
-    "budget",
-  ],
-  full_name: ["full name", "fullname", "full_name", "name"],
-  phone_number: ["phone_number", "phone number", "phone", "mobile", "mobile phone"],
-  lead_status: ["lead_status", "lead status", "status"],
+  name: ["opportunity name", "deal name", "opportunity", "deal", "title", "ad name", "opportunityname", "dealname"],
+  account: ["account", "account name", "company", "company name", "organization", "organisation", "client", "client name", "accountname", "companyname"],
+  assigned_to: ["assigned to", "owner", "user", "assignee", "sales person", "responsible", "assignedto"],
+  budget: ["budget", "value", "deal value", "amount", "opportunity value", "revenue", "price", "project value", "contract value", "dealvalue"],
+  close_date: ["close date", "closing date", "expected close", "deadline", "target date", "closedate", "closingdate", "expectedclose"],
+  sales_stage: ["sales stage", "stage", "pipeline stage", "deal stage", "opportunity stage", "status", "salesstage", "pipelinestage"],
+  type: ["type", "opportunity type", "deal type", "sale type", "category", "opportunitytype"],
+  description: ["description", "notes", "details", "comments", "remarks"],
+  next_step: ["next step", "next action", "follow up", "nextstep"],
+  campaign: ["campaign", "campaign name", "source campaign", "campaignname", "campaign id"],
+  contact: ["contact", "contact name", "primary contact", "customer name", "contactname"],
+  currency: ["currency", "currency code", "currency name", "currencycode"],
+  expected_revenue: ["expected revenue", "forecasted revenue", "projected revenue", "expectedrevenue"],
+  clientName: ["client name", "customer", "customer name", "prospect name", "clientname", "customername"],
+  category: ["category", "product", "product name", "service", "service type", "productname"],
 };
 
 function normalizeHeader(value: string) {
-  return value.trim().toLowerCase();
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 function suggestMapping(headers: string[]): ColumnMapping {
   const defaults: ColumnMapping = { ...DEFAULT_MAPPING };
+  const usedHeaders = new Set<string>();
 
-  for (const key of Object.keys(defaults) as MappingKey[]) {
+  for (const key of Object.keys(DEFAULT_MAPPING) as MappingKey[]) {
     const match = headers.find((header) => {
+      if (usedHeaders.has(header)) return false;
       const normalized = normalizeHeader(header);
       return AUTO_MAP_CANDIDATES[key].some(
         (candidate) =>
-          normalized === candidate || normalized.includes(candidate),
+          normalized === normalizeHeader(candidate) ||
+          normalized.includes(normalizeHeader(candidate)),
       );
     });
 
     if (match) {
       defaults[key] = match;
+      usedHeaders.add(match);
     }
   }
 
   return defaults;
 }
+
+// ---------------------------------------------------------------------------
+// Component
+// ---------------------------------------------------------------------------
 
 export function ImportOpportunitiesDialog() {
   const router = useRouter();
@@ -145,6 +166,7 @@ export function ImportOpportunitiesDialog() {
   const [mapping, setMapping] = useState<ColumnMapping>({ ...DEFAULT_MAPPING });
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMapping, setShowMapping] = useState(false);
 
   const reset = () => {
     setFileName("");
@@ -153,6 +175,7 @@ export function ImportOpportunitiesDialog() {
     setMapping({ ...DEFAULT_MAPPING });
     setResult(null);
     setIsUploading(false);
+    setShowMapping(false);
     if (fileRef.current) {
       fileRef.current.value = "";
     }
@@ -169,47 +192,42 @@ export function ImportOpportunitiesDialog() {
 
   const mappedPreview = useMemo(() => {
     return rows.slice(0, 10).map((row, index) => {
-      const name =
-        mapping.opportunity_name !== SKIP_VALUE
-          ? String(row[mapping.opportunity_name] ?? "").trim()
-          : "";
-      const fullName =
-        mapping.full_name !== SKIP_VALUE
-          ? String(row[mapping.full_name] ?? "").trim()
-          : "";
-      const phoneNumber =
-        mapping.phone_number !== SKIP_VALUE
-          ? String(row[mapping.phone_number] ?? "").trim()
-          : "";
-      const budget =
-        mapping.budget !== SKIP_VALUE
-          ? String(row[mapping.budget] ?? "").trim()
-          : "";
-      const platform =
-        mapping.platform !== SKIP_VALUE
-          ? String(row[mapping.platform] ?? "").trim()
-          : "";
+      const name = mapping.name !== SKIP_VALUE
+        ? String(row[mapping.name] ?? "").trim()
+        : "";
+      const account = mapping.account !== SKIP_VALUE
+        ? String(row[mapping.account] ?? "").trim()
+        : "";
+      const budget = mapping.budget !== SKIP_VALUE
+        ? String(row[mapping.budget] ?? "").trim()
+        : "";
+      const salesStage = mapping.sales_stage !== SKIP_VALUE
+        ? String(row[mapping.sales_stage] ?? "").trim()
+        : "";
+      const closeDate = mapping.close_date !== SKIP_VALUE
+        ? String(row[mapping.close_date] ?? "").trim()
+        : "";
 
       return {
         row: index + 2,
         name,
-        fullName,
-        phoneNumber,
+        account,
         budget,
-        platform,
-        valid: Boolean(name),
+        salesStage,
+        closeDate,
+        valid: Boolean(name || salesStage),
       };
     });
   }, [mapping, rows]);
 
   const validRowCount = useMemo(() => {
-    if (mapping.opportunity_name === SKIP_VALUE) {
-      return 0;
-    }
-
-    return rows.filter(
-      (row) => String(row[mapping.opportunity_name] ?? "").trim().length > 0,
-    ).length;
+    return rows.filter((row) => {
+      const hasName = mapping.name !== SKIP_VALUE &&
+        String(row[mapping.name] ?? "").trim().length > 0;
+      const hasStage = mapping.sales_stage !== SKIP_VALUE &&
+        String(row[mapping.sales_stage] ?? "").trim().length > 0;
+      return hasName || hasStage;
+    }).length;
   }, [mapping, rows]);
 
   const skippedInvalidCount = rows.length - validRowCount;
@@ -232,27 +250,32 @@ export function ImportOpportunitiesDialog() {
         raw: false,
         cellDates: false,
       });
-      const firstSheetName = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[firstSheetName];
-      const parsedRows = XLSX.utils.sheet_to_json<RawRow>(sheet, {
-        defval: "",
-        raw: false,
-      });
+      const { headers: nextHeaders, rows: parsedRows } = parseWorkbookRows(workbook);
 
-      const nextHeaders = parsedRows.length > 0 ? Object.keys(parsedRows[0]) : [];
       if (nextHeaders.length === 0) {
         throw new Error("The selected file does not contain any importable rows.");
       }
 
       setHeaders(nextHeaders);
-      setRows(
-        parsedRows.map((row) =>
-          Object.fromEntries(
-            Object.entries(row).map(([key, value]) => [key, String(value ?? "").trim()]),
-          ),
-        ),
-      );
-      setMapping(suggestMapping(nextHeaders));
+      setRows(parsedRows);
+
+      // Auto-suggest mapping for manual fallback
+      const suggestedMapping = suggestMapping(nextHeaders);
+      setMapping(suggestedMapping);
+
+      // Count auto-mapped fields to determine if confidence is high
+      const mappedCount = Object.values(suggestedMapping).filter(
+        (v: string) => v !== SKIP_VALUE
+      ).length;
+
+      // If few fields mapped, show manual mapping UI
+      // Otherwise try auto-import directly
+      if (mappedCount < 3) {
+        setShowMapping(true);
+      } else {
+        setShowMapping(false);
+      }
+
       setOpen(true);
     } catch (error) {
       const message =
@@ -263,10 +286,6 @@ export function ImportOpportunitiesDialog() {
   };
 
   const handleImport = async () => {
-    if (rows.length === 0 || mapping.opportunity_name === SKIP_VALUE) {
-      return;
-    }
-
     setIsUploading(true);
     setResult(null);
 
@@ -278,7 +297,7 @@ export function ImportOpportunitiesDialog() {
         },
         body: JSON.stringify({
           rows,
-          mapping,
+          mapping: showMapping ? mapping : undefined,
         }),
       });
 
@@ -292,10 +311,12 @@ export function ImportOpportunitiesDialog() {
 
       if (payload.failed > 0) {
         toast.warning(
-          `${payload.imported} opportunity import(s) completed with ${payload.failed} issue(s).`,
+          `${payload.imported ?? 0} opportunity(s) imported with ${payload.failed} issue(s).`,
         );
       } else {
-        toast.success(`${payload.imported} opportunity import(s) completed.`);
+        toast.success(
+          `${payload.imported ?? 0} opportunity(s) imported.`,
+        );
       }
     } catch (error) {
       const message =
@@ -310,6 +331,9 @@ export function ImportOpportunitiesDialog() {
       setIsUploading(false);
     }
   };
+
+  // Compute summary from result
+  const summary = result?.summary;
 
   return (
     <>
@@ -332,11 +356,10 @@ export function ImportOpportunitiesDialog() {
       <Dialog open={open} onOpenChange={handleOpenChange}>
         <DialogContent className="max-h-[85vh] max-w-5xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Import WhatsApp Leads</DialogTitle>
+            <DialogTitle>Import Opportunities</DialogTitle>
             <DialogDescription>
-              Upload a CSV or Excel file, map the WhatsApp lead columns, and import
-              each valid row as an opportunity. `ad_name` is used as the opportunity
-              name and the remaining lead fields are preserved in the description.
+              Upload a CSV or Excel file. Fields are auto-detected and mapped
+              intelligently. Unknown columns are stored as custom fields.
             </DialogDescription>
           </DialogHeader>
 
@@ -354,12 +377,41 @@ export function ImportOpportunitiesDialog() {
               </div>
             </div>
 
-            {headers.length > 0 ? (
+            {/* Toggle manual mapping */}
+            {headers.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Button
+                  type="button"
+                  variant={showMapping ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setShowMapping(true)}
+                >
+                  Manual Mapping
+                </Button>
+                <Button
+                  type="button"
+                  variant={showMapping ? "outline" : "default"}
+                  size="sm"
+                  onClick={() => setShowMapping(false)}
+                >
+                  Auto-Detect
+                </Button>
+                {!showMapping && (
+                  <p className="text-xs text-muted-foreground ml-2">
+                    Fields will be auto-detected. Unknown columns become custom fields.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Manual Column Mapping (fallback) */}
+            {headers.length > 0 && showMapping ? (
               <div className="space-y-4 rounded-md border p-4">
                 <div>
                   <h3 className="text-sm font-medium">Column Mapping</h3>
                   <p className="text-xs text-muted-foreground">
-                    Match your uploaded columns to the WhatsApp lead fields used for opportunity import.
+                    Match your uploaded columns to opportunity fields. Unknown columns
+                    will be stored as custom fields.
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -390,6 +442,18 @@ export function ImportOpportunitiesDialog() {
               </div>
             ) : null}
 
+            {/* Auto-detect info */}
+            {headers.length > 0 && !showMapping ? (
+              <div className="space-y-2 rounded-md border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950/20">
+                <p className="text-xs text-blue-700 dark:text-blue-400">
+                  <strong>Intelligent Auto-Detection enabled.</strong> The system will
+                  automatically map {headers.length} detected column(s) to opportunity
+                  fields. Columns not matching any field will be saved as custom fields.
+                </p>
+              </div>
+            ) : null}
+
+            {/* Uploaded Data Preview */}
             {previewRows.length > 0 ? (
               <div className="space-y-2 rounded-md border p-4">
                 <div>
@@ -425,13 +489,13 @@ export function ImportOpportunitiesDialog() {
               </div>
             ) : null}
 
+            {/* Mapped Preview */}
             {mappedPreview.length > 0 ? (
               <div className="space-y-2 rounded-md border p-4">
                 <div>
                   <h3 className="text-sm font-medium">Mapped Preview</h3>
                   <p className="text-xs text-muted-foreground">
-                    Valid rows ready to import: {validRowCount}. Rows that will be
-                    skipped for missing opportunity name: {skippedInvalidCount}.
+                    Valid rows ready to import: {validRowCount}. Empty rows will be skipped.
                   </p>
                 </div>
                 <div className="overflow-x-auto rounded-md border">
@@ -440,10 +504,10 @@ export function ImportOpportunitiesDialog() {
                       <TableRow>
                         <TableHead>Row</TableHead>
                         <TableHead>Opportunity</TableHead>
-                        <TableHead>Full name</TableHead>
-                        <TableHead>Phone</TableHead>
+                        <TableHead>Account</TableHead>
                         <TableHead>Budget</TableHead>
-                        <TableHead>Platform</TableHead>
+                        <TableHead>Stage</TableHead>
+                        <TableHead>Close Date</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -451,18 +515,16 @@ export function ImportOpportunitiesDialog() {
                       {mappedPreview.map((row) => (
                         <TableRow key={row.row}>
                           <TableCell>{row.row}</TableCell>
-                          <TableCell>{row.name || "Missing ad_name"}</TableCell>
-                          <TableCell>{row.fullName || "N/A"}</TableCell>
-                          <TableCell>
-                            <WhatsAppLink value={row.phoneNumber} fallback="N/A" />
-                          </TableCell>
+                          <TableCell>{row.name || "Auto-named"}</TableCell>
+                          <TableCell>{row.account || "N/A"}</TableCell>
                           <TableCell>{row.budget || "N/A"}</TableCell>
-                          <TableCell>{row.platform || "N/A"}</TableCell>
+                          <TableCell>{row.salesStage || "N/A"}</TableCell>
+                          <TableCell>{row.closeDate || "N/A"}</TableCell>
                           <TableCell>
                             {row.valid ? (
                               <span className="text-green-600">Ready</span>
                             ) : (
-                              <span className="text-yellow-600">Needs ad_name</span>
+                              <span className="text-yellow-600">Minimal data</span>
                             )}
                           </TableCell>
                         </TableRow>
@@ -476,7 +538,7 @@ export function ImportOpportunitiesDialog() {
             <div className="flex items-center gap-3">
               <Button
                 onClick={handleImport}
-                disabled={isUploading || rows.length === 0 || mapping.opportunity_name === SKIP_VALUE}
+                disabled={isUploading || rows.length === 0}
               >
                 {isUploading ? (
                   <>
@@ -487,11 +549,6 @@ export function ImportOpportunitiesDialog() {
                   "Import Opportunities"
                 )}
               </Button>
-              {headers.length > 0 && mapping.opportunity_name === SKIP_VALUE ? (
-                <p className="text-xs text-destructive">
-                  `ad_name` mapping is required because it becomes the opportunity name.
-                </p>
-              ) : null}
             </div>
 
             {result ? (
@@ -514,6 +571,55 @@ export function ImportOpportunitiesDialog() {
                   </div>
                 ) : null}
 
+                {/* Enhanced Summary */}
+                {summary ? (
+                  <div className="space-y-2 rounded-md border bg-muted/30 p-3">
+                    <h4 className="text-sm font-medium">Import Summary</h4>
+                    <div className="grid grid-cols-2 gap-2 text-xs">
+                      <div>
+                        <span className="text-muted-foreground">Total Rows:</span>{" "}
+                        <span className="font-medium">{summary.totalRows}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Imported:</span>{" "}
+                        <span className="font-medium text-green-600">{summary.importedRows}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Skipped:</span>{" "}
+                        <span className="font-medium text-yellow-600">{summary.skippedRows}</span>
+                      </div>
+                      <div>
+                        <span className="text-muted-foreground">Validation Errors:</span>{" "}
+                        <span className="font-medium text-red-600">{summary.validationErrors.length}</span>
+                      </div>
+                    </div>
+                    {summary.mappedFields.length > 0 ? (
+                      <div className="mt-2">
+                        <span className="text-xs text-muted-foreground">Mapped Fields: </span>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {summary.mappedFields.map((field) => (
+                            <Badge key={field} variant="secondary" className="text-[10px]">
+                              {field}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                    {summary.customFields.length > 0 ? (
+                      <div className="mt-2">
+                        <span className="text-xs text-muted-foreground">Custom Fields Detected: </span>
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {summary.customFields.map((field) => (
+                            <Badge key={field} variant="outline" className="text-[10px]">
+                              custom: {field}
+                            </Badge>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : null}
+
                 {result.failures.length > 0 ? (
                   <div className="space-y-2">
                     <div className="flex items-center gap-2 text-red-600">
@@ -527,7 +633,8 @@ export function ImportOpportunitiesDialog() {
                           className="text-xs text-red-700 dark:text-red-400"
                         >
                           Row {failure.row || "-"}{" "}
-                          {failure.name ? `(${failure.name})` : ""}: {failure.reason}
+                          {failure.name ? `(${failure.name})` : ""}:{" "}
+                          {failure.reason}
                         </p>
                       ))}
                     </div>
