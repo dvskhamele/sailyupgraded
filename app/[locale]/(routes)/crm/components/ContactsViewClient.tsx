@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Download } from "lucide-react";
 
 import {
   Card,
@@ -134,6 +135,22 @@ const ContactsViewClient = ({
             </CardTitle>
           </div>
           <div className="flex space-x-2">
+            {roleView.filter === "agent" && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/templates/agent-import-template.xlsx" download>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Sample Excel
+                </Link>
+              </Button>
+            )}
+            {roleView.filter === "customer" && (
+              <Button variant="outline" size="sm" asChild>
+                <Link href="/templates/customer-client-import-template.csv" download>
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Sample CSV
+                </Link>
+              </Button>
+            )}
             <ImportContactsDialog
               importRole={roleView.defaultCreateRole}
               contactType={currentRole !== "all" ? currentRole : undefined}
