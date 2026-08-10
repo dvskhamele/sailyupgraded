@@ -118,7 +118,7 @@ export function getAgentSpreadsheetHeaderMap(customFields: CustomFieldDefinition
   }
   const aliases: Record<string, string> = {
     firstname: "first_name", lastname: "last_name", emailaddress: "email",
-    fullname: "first_name", contactname: "first_name", companyname: "company",
+    fullname: "first_name", contactname: "first_name",
     mobile: "mobile_phone", mobilephone: "mobile_phone", officephone: "office_phone",
     companyname: "company", jobtitle: "jobTitle", title: "position",
     assignedaccount: "accountsIDs", account: "accountsIDs", accountname: "accountsIDs",
