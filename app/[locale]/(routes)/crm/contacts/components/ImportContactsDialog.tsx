@@ -93,6 +93,7 @@ type ImportResult = {
     validationErrors: ImportFailure[];
     mappedFields: string[];
     customFields: string[];
+    unsupportedColumns?: string[];
   };
 };
 
@@ -488,8 +489,9 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                 ? `This import will automatically save all records as "${contactTypeLabel}" contacts. `
                 : ""}
               Review the selected CSV or Excel file, map the columns, and import.
-              All rows with at least one non-empty value will be imported. Unknown
-              columns will be stored as custom fields.
+              All rows with at least one non-empty value will be imported. Agent
+              fields and Agent custom fields are matched from their labels; unsupported
+              columns are reported in the import summary.
             </DialogDescription>
           </DialogHeader>
 
@@ -513,7 +515,8 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                   <h3 className="text-sm font-medium">Column Mapping</h3>
                   <p className="text-xs text-muted-foreground">
                     Match your uploaded columns to the contact fields we import.
-                    Unknown columns will be stored as custom fields.
+                    Agent fields are matched from their labels. Unsupported columns
+                    are reported after import.
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -720,6 +723,12 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                             </Badge>
                           ))}
                         </div>
+                      </div>
+                    ) : null}
+                    {summary.unsupportedColumns && summary.unsupportedColumns.length > 0 ? (
+                      <div className="mt-2">
+                        <span className="text-xs text-destructive">Unsupported columns (not imported): </span>
+                        <span className="text-xs">{summary.unsupportedColumns.join(", ")}</span>
                       </div>
                     ) : null}
                   </div>

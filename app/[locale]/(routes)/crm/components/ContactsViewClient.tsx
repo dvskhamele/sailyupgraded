@@ -136,12 +136,20 @@ const ContactsViewClient = ({
           </div>
           <div className="flex space-x-2">
             {roleView.filter === "agent" && (
-              <Button variant="outline" size="sm" asChild>
-                <Link href="/templates/agent-import-template.xlsx" download>
+              <>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/api/crm/agents/spreadsheet">
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Excel
+                  </Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href="/api/crm/agents/spreadsheet?template=1">
                   <Download className="mr-2 h-4 w-4" />
-                  Download Sample Excel
-                </Link>
-              </Button>
+                    Download Excel Template
+                  </Link>
+                </Button>
+              </>
             )}
             {roleView.filter === "customer" && (
               <Button variant="outline" size="sm" asChild>

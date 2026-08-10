@@ -11,16 +11,20 @@
  * - NO required field validation — any row with at least one non-empty value is imported
  * - Only completely empty rows are skipped
  */
-import { Prisma } from "@prisma/client";
 import { prismadb } from "@/lib/prisma";
 import {
   type CustomFieldDefinition,
-  normalizeCustomField,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { normalizeContactRole, type ContactRole } from "@/lib/contact-options";
 import { isEmptyRow } from "@/lib/crm/import-engine";
+import {
+  getAgentSpreadsheetFields,
+  getAgentSpreadsheetHeaderMap,
+  isAgentSpreadsheetImportable,
+  normalizeSpreadsheetHeader,
+} from "@/lib/crm/agent-spreadsheet";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -61,6 +65,7 @@ export interface ContactImportSummary {
   validationErrors: ContactImportValidationError[];
   mappedFields: string[];
   customFields: string[];
+  unsupportedColumns: string[];
 }
 
 export interface ContactImportOptions {
@@ -165,50 +170,7 @@ export function normalizeHeader(header: string): string {
 // ---------------------------------------------------------------------------
 
 function buildModelFieldLookup(): Map<string, string> {
-  const lookup = new Map<string, string>();
-
-  // Get model fields from Prisma DMMF
-  const model = Prisma.dmmf.datamodel.models.find(
-    (m) => m.name === "crm_Contacts",
-  );
-  if (!model) {
-    // Fallback: return empty, fields will be stored as custom
-    return lookup;
-  }
-
-  const excludedFields = new Set([
-    "id",
-    "v",
-    "__v",
-    "createdAt",
-    "createdBy",
-    "created_by",
-    "created_on",
-    "cratedAt",
-    "updatedAt",
-    "updatedBy",
-    "deletedAt",
-    "deletedBy",
-    "last_activity",
-    "last_activity_by",
-    "tags",
-    "notes",
-    "custom_fields_data",
-    "visible_to_name",
-  ]);
-
-  for (const field of model.fields) {
-    if (field.kind !== "scalar" && field.kind !== "enum") continue;
-    const fieldName = field.name;
-    const dbName = field.dbName ?? field.name;
-    if (excludedFields.has(fieldName) || excludedFields.has(dbName)) continue;
-
-    // Store normalized version -> actual field name
-    lookup.set(normalizeHeader(fieldName), fieldName);
-    if (dbName !== fieldName) {
-      lookup.set(normalizeHeader(dbName), fieldName);
-    }
-  }
+  const lookup = getAgentSpreadsheetHeaderMap();
 
   // Add all aliases
   for (const [fieldName, aliases] of Object.entries(STANDARD_FIELD_ALIASES)) {
@@ -272,26 +234,17 @@ export function buildFieldMapping(
   const customFields: Record<string, string> = {};
   const unknownHeaders: string[] = [];
 
-  // Build custom field lookup by normalized name
-  const customFieldLookup = new Map<string, string>();
-  for (const cf of customFieldDefinitions) {
-    const normalized = normalizeCustomField(cf);
-    customFieldLookup.set(normalizeHeader(normalized.name), cf.id);
-  }
+  const headerMap = getAgentSpreadsheetHeaderMap(customFieldDefinitions);
 
   for (const header of headers) {
     // Try model field match first
-    const modelField = findMatchingField(header);
-    if (modelField) {
-      modelFields[header] = modelField;
+    const matchingField = headerMap.get(normalizeSpreadsheetHeader(header));
+    if (matchingField?.startsWith("custom:")) {
+      customFields[header] = matchingField.slice("custom:".length);
       continue;
     }
-
-    // Try custom field match
-    const normalizedHeader = normalizeHeader(header);
-    const customFieldId = customFieldLookup.get(normalizedHeader);
-    if (customFieldId) {
-      customFields[header] = customFieldId;
+    if (matchingField) {
+      modelFields[header] = matchingField;
       continue;
     }
 
@@ -351,7 +304,29 @@ export function extractCustomFields(
   mappedRow: MappedRow,
   customFieldDefinitions: CustomFieldDefinition[],
 ): Record<string, string> {
-  return { ...mappedRow.customFieldValues, ...mappedRow.unknownColumnValues };
+  return mappedRow.customFieldValues;
+}
+
+function coerceScalarValue(fieldName: string, value: string) {
+  const field = getAgentSpreadsheetFields().find((candidate) => candidate.key === fieldName);
+  if (!field) return value;
+  if (field.type === "Boolean") {
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "y", "active"].includes(normalized)) return true;
+    if (["false", "0", "no", "n", "inactive"].includes(normalized)) return false;
+    throw new Error(`Invalid boolean value "${value}" for ${field.label}`);
+  }
+  if (["Int", "Float", "Decimal"].includes(field.type)) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) throw new Error(`Invalid number value "${value}" for ${field.label}`);
+    return number;
+  }
+  if (field.type === "DateTime") {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) throw new Error(`Invalid date/time value "${value}" for ${field.label}`);
+    return date;
+  }
+  return value;
 }
 
 // ---------------------------------------------------------------------------
@@ -469,17 +444,19 @@ export async function bulkInsertContacts(
   const uniqueLeadSources = new Set<string>();
   const uniqueLeadStatuses = new Set<string>();
   const uniqueLeadTypes = new Set<string>();
+  const uniqueContactTypes = new Set<string>();
 
   for (const { mapped } of mappedRows) {
     if (mapped.modelValues.assigned_to) uniqueUsers.add(mapped.modelValues.assigned_to);
-    if (mapped.modelValues.assigned_account) uniqueAccounts.add(mapped.modelValues.assigned_account);
+    if (mapped.modelValues.accountsIDs) uniqueAccounts.add(mapped.modelValues.accountsIDs);
     if (mapped.modelValues.lead_source_id) uniqueLeadSources.add(mapped.modelValues.lead_source_id);
     if (mapped.modelValues.lead_status_id) uniqueLeadStatuses.add(mapped.modelValues.lead_status_id);
     if (mapped.modelValues.lead_type_id) uniqueLeadTypes.add(mapped.modelValues.lead_type_id);
+    if (mapped.modelValues.contact_type_id) uniqueContactTypes.add(mapped.modelValues.contact_type_id);
   }
 
   // Resolve lookup values
-  const [users, accounts, leadSources, leadStatuses, leadTypes] = await Promise.all([
+  const [users, accounts, leadSources, leadStatuses, leadTypes, contactTypes] = await Promise.all([
     uniqueUsers.size
       ? prismadb.users.findMany({
           where: {
@@ -537,6 +514,12 @@ export async function bulkInsertContacts(
           select: { id: true, name: true },
         })
       : Promise.resolve([]),
+    uniqueContactTypes.size
+      ? prismadb.crm_Contact_Types.findMany({
+          where: { OR: [{ id: { in: Array.from(uniqueContactTypes) } }, { name: { in: Array.from(uniqueContactTypes) } }] },
+          select: { id: true, name: true },
+        })
+      : Promise.resolve([]),
   ]);
 
   // Build lookup maps
@@ -545,6 +528,7 @@ export async function bulkInsertContacts(
   const leadSourceLookup = new Map<string, string>();
   const leadStatusLookup = new Map<string, string>();
   const leadTypeLookup = new Map<string, string>();
+  const contactTypeLookup = new Map<string, string>();
 
   users.forEach((u) => {
     userLookup.set(u.id, u.id);
@@ -570,6 +554,11 @@ export async function bulkInsertContacts(
     leadTypeLookup.set(lt.id, lt.id);
     leadTypeLookup.set(lt.name, lt.id);
     leadTypeLookup.set(lt.name.trim().toLowerCase(), lt.id);
+  });
+  contactTypes.forEach((type) => {
+    contactTypeLookup.set(type.id, type.id);
+    contactTypeLookup.set(type.name, type.id);
+    contactTypeLookup.set(type.name.trim().toLowerCase(), type.id);
   });
 
   // Auto-create missing accounts
@@ -616,8 +605,8 @@ export async function bulkInsertContacts(
       const resolvedAssignedTo = mapped.modelValues.assigned_to
         ? userLookup.get(mapped.modelValues.assigned_to) ?? userLookup.get(mapped.modelValues.assigned_to.trim().toLowerCase())
         : undefined;
-      const resolvedAccount = mapped.modelValues.assigned_account
-        ? accountLookup.get(mapped.modelValues.assigned_account) ?? accountLookup.get(mapped.modelValues.assigned_account.trim().toLowerCase())
+      const resolvedAccount = mapped.modelValues.accountsIDs
+        ? accountLookup.get(mapped.modelValues.accountsIDs) ?? accountLookup.get(mapped.modelValues.accountsIDs.trim().toLowerCase())
         : undefined;
       const resolvedLeadSource = mapped.modelValues.lead_source_id
         ? leadSourceLookup.get(mapped.modelValues.lead_source_id) ?? leadSourceLookup.get(mapped.modelValues.lead_source_id.trim().toLowerCase())
@@ -628,9 +617,38 @@ export async function bulkInsertContacts(
       const resolvedLeadType = mapped.modelValues.lead_type_id
         ? leadTypeLookup.get(mapped.modelValues.lead_type_id) ?? leadTypeLookup.get(mapped.modelValues.lead_type_id.trim().toLowerCase())
         : undefined;
+      const resolvedContactType = mapped.modelValues.contact_type_id
+        ? contactTypeLookup.get(mapped.modelValues.contact_type_id) ?? contactTypeLookup.get(mapped.modelValues.contact_type_id.trim().toLowerCase())
+        : undefined;
+      const unresolvedRelationship = [
+        ["Assigned Member", mapped.modelValues.assigned_to, resolvedAssignedTo],
+        ["Assigned Company", mapped.modelValues.accountsIDs, resolvedAccount],
+        ["Contact Type", mapped.modelValues.contact_type_id, resolvedContactType],
+        ["Lead Source", mapped.modelValues.lead_source_id, resolvedLeadSource],
+        ["Lead Status", mapped.modelValues.lead_status_id, resolvedLeadStatus],
+        ["Lead Type", mapped.modelValues.lead_type_id, resolvedLeadType],
+      ].find(([, value, resolved]) => value && !resolved);
+      if (unresolvedRelationship) {
+        throw new Error(`${unresolvedRelationship[0]} value "${unresolvedRelationship[1]}" could not be resolved to an existing record.`);
+      }
 
       // Handle custom fields
       const allCustomValues = extractCustomFields(mapped, customFieldDefinitions);
+      for (const customField of customFieldDefinitions) {
+        const customValue = allCustomValues[customField.id];
+        if (customField.type === "file" && allCustomValues[customField.id]) {
+          throw new Error(`${customField.name} cannot be imported from Excel because file fields require an uploaded file.`);
+        }
+        if (customValue && customField.type === "number" && !Number.isFinite(Number(customValue))) {
+          throw new Error(`Invalid number value "${customValue}" for custom field ${customField.name}.`);
+        }
+        if (customValue && customField.type === "select") {
+          const options = Array.isArray(customField.options) ? customField.options.filter((option): option is string => typeof option === "string") : [];
+          if (options.length > 0 && !options.includes(customValue)) {
+            throw new Error(`Invalid option "${customValue}" for custom field ${customField.name}.`);
+          }
+        }
+      }
       const sanitizedCustomValues = sanitizeCustomFieldValues(allCustomValues, customFieldDefinitions);
       const customFieldsData = Object.keys(sanitizedCustomValues).length > 0
         ? sanitizedCustomValues
@@ -639,10 +657,22 @@ export async function bulkInsertContacts(
       // Serial
       const serial = mapped.modelValues.serial || generateSerial(normalizedRole, rowNumber, importBatchId);
       const supportedSerial = await pickExistingDbModelFields("crm_Contacts", { serial });
+      const dynamicFields = getAgentSpreadsheetFields();
+      const supportedDynamicValues: Record<string, unknown> = {};
+      for (const [fieldName, value] of Object.entries(mapped.modelValues)) {
+        const field = dynamicFields.find((candidate) => candidate.key === fieldName);
+        if (!field || !isAgentSpreadsheetImportable(field)) {
+          if (field && value) throw new Error(`${field.label} cannot be imported from Excel (${field.type} fields require a supported upload flow).`);
+          continue;
+        }
+        if (["serial", "first_name", "last_name", "email", "personal_email", "mobile_phone", "office_phone", "accountsIDs", "assigned_to", "contact_type_id", "lead_source_id", "lead_status_id", "lead_type_id", "role", "status"].includes(fieldName)) continue;
+        supportedDynamicValues[fieldName] = coerceScalarValue(fieldName, value);
+      }
 
       // Build contact payload
       const contactPayload = {
         ...supportedSerial,
+        ...supportedDynamicValues,
         v: 1,
         first_name: computedFirstName || undefined,
         last_name: computedLastName,
@@ -650,23 +680,10 @@ export async function bulkInsertContacts(
         personal_email: mapped.modelValues.personal_email || undefined,
         mobile_phone: normalizedMobilePhone || undefined,
         office_phone: normalizedOfficePhone || undefined,
-        website: mapped.modelValues.website || undefined,
-        position: mapped.modelValues.position || undefined,
-        description: mapped.modelValues.description || undefined,
-        company: mapped.modelValues.company || undefined,
-        jobTitle: mapped.modelValues.jobTitle || undefined,
-        phone: mapped.modelValues.phone || undefined,
-        birthday: mapped.modelValues.birthday || undefined,
-        address: mapped.modelValues.address || undefined,
-        address_line1: mapped.modelValues.address_line1 || undefined,
-        address_line2: mapped.modelValues.address_line2 || undefined,
-        city: mapped.modelValues.city || undefined,
-        state: mapped.modelValues.state || undefined,
-        country: mapped.modelValues.country || undefined,
-        postal_code: mapped.modelValues.postal_code || undefined,
         status: mapped.modelValues.status ? mapped.modelValues.status.toLowerCase() === "active" || mapped.modelValues.status === "1" || mapped.modelValues.status.toLowerCase() === "true" : true,
         assigned_to: resolvedAssignedTo,
         accountsIDs: resolvedAccount,
+        contact_type_id: resolvedContactType,
         lead_source_id: resolvedLeadSource,
         lead_status_id: resolvedLeadStatus,
         lead_type_id: resolvedLeadType,
@@ -764,5 +781,6 @@ export async function importContacts(
     validationErrors: errors,
     mappedFields: [...new Set(mappedFields)],
     customFields: [...new Set(customFields)],
+    unsupportedColumns: mapping.unknownHeaders,
   };
 }

@@ -33,7 +33,19 @@ export async function POST(request: NextRequest) {
   }
 
   const body = await request.json();
-  const rows = Array.isArray(body?.rows) ? body.rows : [];
+  const sourceRows = Array.isArray(body?.rows) ? body.rows : [];
+  // The dialog's legacy manual mapper is field -> source header. Preserve it,
+  // while allowing the dynamic label-based mapper to handle every other field.
+  const legacyFieldNames: Record<string, string> = { assigned_account: "accountsIDs" };
+  const mapping = body?.mapping && typeof body.mapping === "object" ? body.mapping as Record<string, string> : {};
+  const rows = sourceRows.map((sourceRow: Record<string, unknown>) => {
+    const row = { ...sourceRow };
+    for (const [field, header] of Object.entries(mapping)) {
+      if (!header || header === "__skip__" || sourceRow[header] == null) continue;
+      row[legacyFieldNames[field] ?? field] = sourceRow[header];
+    }
+    return row;
+  });
   const contactType = (body?.contactType || body?.importRole || "").toLowerCase().trim();
 
   // Validate contactType is provided
@@ -111,6 +123,7 @@ export async function POST(request: NextRequest) {
         validationErrors: failures,
         mappedFields: result.mappedFields,
         customFields: result.customFields,
+        unsupportedColumns: result.unsupportedColumns,
       },
     });
   } catch (error) {
