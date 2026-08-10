@@ -137,12 +137,12 @@ const ContactsViewClient = ({
           <div className="flex space-x-2">
             {roleView.filter === "agent" && (
               <>
-                <Button variant="outline" size="sm" asChild>
+                {/* <Button variant="outline" size="sm" asChild>
                   <Link href="/api/crm/agents/spreadsheet">
                     <Download className="mr-2 h-4 w-4" />
                     Export Excel
                   </Link>
-                </Button>
+                </Button> */}
                 <Button variant="outline" size="sm" asChild>
                   <Link href="/api/crm/agents/spreadsheet?template=1">
                   <Download className="mr-2 h-4 w-4" />
