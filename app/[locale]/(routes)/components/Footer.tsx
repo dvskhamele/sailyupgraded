@@ -8,7 +8,7 @@ const Footer = async () => {
       <div className="hidden md:flex pr-5">
         <Link href="/crm/dashboard">
           <h1 className="text-muted-foreground hover:text-foreground transition-colors">
-            Saily - v{packageJson.version}
+            SailySaaS - v{packageJson.version}
           </h1>
         </Link>
       </div>

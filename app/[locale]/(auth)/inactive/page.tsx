@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
+import Image from "next/image";
 import { EmailLink } from "@/components/ui/contact-link";
 import { redirect } from "next/navigation";
 import TryAgain from "./components/TryAgain";
@@ -10,10 +11,11 @@ import {
   Card,
   CardContent,
   CardDescription,
+  CardHeader,
   CardTitle,
 } from "@/components/ui/card";
 
-const PendingPage = async () => {
+const InactivePage = async () => {
   const adminUsers: Users[] = await prismadb.users.findMany({
     where: {
       role: "admin",
@@ -28,36 +30,55 @@ const PendingPage = async () => {
   }
 
   return (
-    <Card className="p-10 space-y- m-10">
-      <CardTitle className="flex justify-center py-10">
-        Your account has been deactivated by Admin
-      </CardTitle>
-      <CardDescription className="py-3">
-        Hi, your Saily account has been disabled. Ask someone in your
-        organization to activate your account again.
-      </CardDescription>
+    <Card className="mx-auto w-full max-w-md rounded-2xl border bg-white/80 dark:bg-card/80 backdrop-blur shadow-xl">
+      <CardHeader className="space-y-4 text-center">
+        <div className="flex flex-col items-center justify-center gap-2">
+          <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border bg-background shadow-xs">
+            <Image
+              src="/logo/saily-icon.png"
+              alt="Saily"
+              width={64}
+              height={64}
+              className="h-full w-full object-contain p-1"
+              priority
+            />
+          </div>
+          <span className="font-bold text-xl tracking-tight text-foreground">
+            SailySaaS
+          </span>
+        </div>
+
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            Account Deactivated
+          </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Hi, your Saily account has been disabled. Ask an administrator in your organization to activate your account.
+          </CardDescription>
+        </div>
+      </CardHeader>
       <CardContent>
-        <h2 className="flex justify-center text-xl">Admin List</h2>
-        <div className="flex flex-wrap justify-center">
+        <h2 className="flex justify-center text-base font-semibold mb-2">Administrators</h2>
+        <div className="flex flex-col gap-2">
           {adminUsers &&
             adminUsers?.map((user: Users) => (
               <div
                 key={user.id}
-                className="flex flex-col p-5 m-2 gap-3 border rounded-md"
+                className="flex flex-col p-3 border rounded-lg bg-muted/40"
               >
                 <div>
-                  <p className="font-bold">{user.name}</p>
-                  <p><EmailLink value={user.email} /></p>
+                  <p className="font-semibold text-sm">{user.name}</p>
+                  <p className="text-xs text-muted-foreground"><EmailLink value={user.email} /></p>
                 </div>
               </div>
             ))}
         </div>
 
         <div className="flex flex-col md:flex-row space-x-2 justify-center items-center pt-5">
-          <Button asChild>
+          <Button asChild variant="outline">
             <Link href="/sign-in">Log-in with another account</Link>
           </Button>
-          <p>or</p>
+          <p className="text-xs text-muted-foreground">or</p>
           <TryAgain />
         </div>
       </CardContent>
@@ -65,4 +86,4 @@ const PendingPage = async () => {
   );
 };
 
-export default PendingPage;
+export default InactivePage;

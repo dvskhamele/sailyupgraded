@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { MailIcon } from "lucide-react";
+import Image from "next/image";
 import { GoogleLoginButton } from "@/components/auth/GoogleLoginButton";
 
 type Step = "email" | "otp";
@@ -122,15 +123,31 @@ export function LoginComponent({
   return (
     <Card className="mx-auto w-full max-w-md rounded-2xl border bg-white/80 backdrop-blur shadow-xl">
       {/* HEADER */}
-      <CardHeader className="space-y-2 text-center">
-        <CardTitle className="text-3xl font-bold tracking-tight">
-          Sign in
-        </CardTitle>
+      <CardHeader className="space-y-4 text-center">
+        <div className="flex flex-col items-center justify-center gap-2">
+          <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border bg-background shadow-xs">
+            <Image
+              src="/logo/saily-icon.png"
+              alt="Saily"
+              width={64}
+              height={64}
+              className="h-full w-full object-contain p-1"
+              priority
+            />
+          </div>
+          <span className="font-bold text-xl tracking-tight text-foreground">
+            SailySaaS
+          </span>
+        </div>
 
-        <CardDescription className="text-sm text-muted-foreground">
-          Sign in to continue to your dashboard
-        </CardDescription>
-        
+        <div className="space-y-1">
+          <CardTitle className="text-2xl font-bold tracking-tight">
+            Sign in
+          </CardTitle>
+          <CardDescription className="text-sm text-muted-foreground">
+            Sign in to continue to your dashboard
+          </CardDescription>
+        </div>
       </CardHeader>
 
       {/* CONTENT */}

@@ -25,6 +25,14 @@ export async function generateMetadata(props: Props) {
     metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"),
     title: t("title"),
     description: t("description"),
+    icons: {
+      icon: [
+        { url: "/favicon.ico" },
+        { url: "/logo/saily-icon.png", type: "image/png" },
+      ],
+      apple: [{ url: "/logo/saily-icon.png", type: "image/png" }],
+      shortcut: ["/favicon.ico"],
+    },
     openGraph: {
       images: [
         {

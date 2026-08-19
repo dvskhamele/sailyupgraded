@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/sidebar";
 import { cn } from "@/lib/utils";
 import { Link } from "@/i18n/navigation";
+import Image from "next/image";
 import { NavMain } from "./nav-main";
 import { NavUser } from "./nav-user";
 import getContactsMenuItem from "./menu-items/Contacts";
@@ -140,29 +141,31 @@ export function AppSidebar({
         <Link
           href="/crm/dashboard"
           className={cn(
-            "flex items-center py-1",
-            isExpanded ? "gap-x-4" : "justify-center",
+            "flex items-center py-1.5 transition-all group-data-[collapsible=icon]:justify-center",
+            isExpanded ? "gap-x-3 px-2" : "justify-center px-0",
           )}
         >
-          {/* "N" Branding Symbol with rotation animation */}
-          <div
-            className={cn(
-              "flex-shrink-0 border rounded-full px-4 py-2 transition-transform duration-500",
-              isExpanded && "rotate-[360deg]",
-            )}
-          >
-            S
+          {/* Saily Logo Symbol */}
+          <div className="relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg border bg-background shadow-xs">
+            <Image
+              src="/logo/saily-icon.png"
+              alt="Saily logo"
+              width={32}
+              height={32}
+              className="h-full w-full object-contain p-0.5"
+              priority
+            />
           </div>
 
           {/* App Name - visible when expanded, hidden when collapsed */}
-          <h1
+          <span
             className={cn(
-              "origin-left font-medium text-xl transition-all overflow-hidden whitespace-nowrap",
+              "origin-left font-semibold text-lg tracking-tight text-foreground transition-all duration-200 overflow-hidden whitespace-nowrap",
               !isExpanded ? "w-0 opacity-0" : "w-auto opacity-100",
             )}
           >
-            Saily
-          </h1>
+            SailySaaS
+          </span>
         </Link>
       </SidebarHeader>
 

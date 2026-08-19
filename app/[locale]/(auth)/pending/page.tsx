@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import Link from "next/link";
+import Image from "next/image";
 import { EmailLink } from "@/components/ui/contact-link";
 import { redirect } from "next/navigation";
 import TryAgain from "./components/TryAgain";
@@ -59,41 +60,51 @@ const PendingPage = async () => {
   }
 
   return (
-    <div className="flex flex-col space-y-5 justify-center items-center max-w-3xl border rounded-md p-10 shadow-md">
-      {/*       <pre>
-        <code>{JSON.stringify(session, null, 2)}</code>
-      </pre> */}
-      <div className="flex flex-col">
-        <h1 className="text-3xl">
-          Saily - your account must be allowed by Admin
+    <div className="flex flex-col space-y-5 justify-center items-center max-w-3xl border rounded-2xl p-10 shadow-md bg-white/80 dark:bg-card/80 backdrop-blur">
+      <div className="flex flex-col items-center justify-center gap-2">
+        <div className="relative flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border bg-background shadow-xs">
+          <Image
+            src="/logo/saily-icon.png"
+            alt="Saily"
+            width={64}
+            height={64}
+            className="h-full w-full object-contain p-1"
+            priority
+          />
+        </div>
+        <span className="font-bold text-xl tracking-tight text-foreground">
+          SailySaaS
+        </span>
+      </div>
+
+      <div className="flex flex-col text-center space-y-2">
+        <h1 className="text-2xl font-bold tracking-tight">
+          Your account is pending Admin approval
         </h1>
-        <p>
-          Hi, welcome to Saily. Ask someone in your organization to approve
-          your account. If you are fist user call to tech support to enable
-          account.
+        <p className="text-sm text-muted-foreground max-w-md">
+          Welcome to Saily. Ask an administrator in your organization to approve your account.
         </p>
       </div>
-      <div className="flex flex-col justify-center ">
-        <h2 className="flex justify-center text-xl">Admin List</h2>
+      <div className="flex flex-col justify-center w-full">
+        <h2 className="flex justify-center text-base font-semibold mb-2">Administrators</h2>
         {adminUsers &&
           adminUsers?.map((user: Users) => (
             <div
               key={user.id}
-              className="flex flex-col p-5 m-2 gap-3 border rounded-md"
+              className="flex flex-col p-4 m-2 gap-1 border rounded-lg bg-muted/40"
             >
               <div>
-                <p className="font-bold">{user.name}</p>
-                <p>{user.id}</p>
-                <p><EmailLink value={user.email} /></p>
+                <p className="font-semibold text-sm">{user.name}</p>
+                <p className="text-xs text-muted-foreground"><EmailLink value={user.email} /></p>
               </div>
             </div>
           ))}
       </div>
-      <div className="flex flex-col md:flex-row space-x-2 justify-center items-center">
-        <Button asChild>
+      <div className="flex flex-col md:flex-row space-x-2 justify-center items-center pt-2">
+        <Button asChild variant="outline">
           <Link href="/sign-in">Log-in with another account</Link>
         </Button>
-        <p>or</p>
+        <p className="text-xs text-muted-foreground">or</p>
         <TryAgain />
       </div>
     </div>

@@ -1,7 +1,7 @@
 {
   "RootLayout": {
-    "title": "Saily",
-    "description": "Saily — це CRM з відкритим вихідним кодом, створена на основі NextJS."
+    "title": "SailySaaS",
+    "description": "SailySaaS — це сучасна CRM, створена на основі NextJS."
   },
   "ModuleMenu": {
     "dashboard": "Панель приладів",
@@ -27,7 +27,7 @@
   "DashboardPage": {
     "containerTitle": "Панель приладів",
     "totalRevenue": "Загальна виручка",
-    "containerDescription": "Ласкаво просимо до NextCRM, тут Ви можете побачити всю важливу інформацію про ваш бізнес.",
+    "containerDescription": "Ласкаво просимо до SailySaaS, тут Ви можете побачити всю важливу інформацію про ваш бізнес.",
     "expectedRevenue": "Очікуваний дохід",
     "activeUsers": "Активні користувачі",
     "accounts": "Компанії",
