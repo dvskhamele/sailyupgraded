@@ -62,7 +62,9 @@ import {
   CONTACT_VISIBILITY_ASSIGNED_MEMBER,
   CONTACT_VISIBILITY_OPTIONS,
 } from "@/lib/crm/contact-visibility";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Calendar } from "@/components/ui/calendar";
+import { parseBirthday, formatBirthday, birthdayToParts } from "@/lib/crm/birthday";
+import { CalendarIcon, Check, ChevronsUpDown, Plus, X } from "lucide-react";
 
 type Option = { id: string; name: string };
 type AccountOption = {
@@ -70,8 +72,6 @@ type AccountOption = {
   name: string;
   accountProducts?: { product?: { id: string; name: string } | null }[];
 };
-
-const FALLBACK_BIRTH_YEAR_END = 2026;
 
 function ContactTypeCombobox({
   value,
@@ -199,6 +199,7 @@ function ExtraFieldsCollapsible({
 export const unifiedPersonFormSchema = z.object({
   id: z.uuid().optional(),
   serial: z.string().optional().nullable(),
+  birthday: z.union([z.date(), z.string()]).optional().nullable(),
   birthday_year: z.string().optional().nullable(),
   birthday_month: z.string().optional().nullable(),
   birthday_day: z.string().optional().nullable(),
@@ -325,12 +326,26 @@ export function UnifiedPersonForm({
   const contactT = useTranslations("CrmContactForm");
   const leadT = useTranslations("CrmLeadForm");
   const c = useTranslations("Common");
-  const [birthYearEnd, setBirthYearEnd] = useState(FALLBACK_BIRTH_YEAR_END);
-  const [showExtraFields, setShowExtraFields] = useState(false);
-
-  useEffect(() => {
-    setBirthYearEnd(new Date().getFullYear());
-  }, []);
+  const [isBirthdayOpen, setIsBirthdayOpen] = useState(false);
+  const [showExtraFields, setShowExtraFields] = useState(() => {
+    return Boolean(
+      initialValues?.birthday ||
+      initialValues?.birthday_year ||
+      initialValues?.birthday_month ||
+      initialValues?.birthday_day ||
+      initialValues?.country ||
+      initialValues?.city ||
+      initialValues?.state ||
+      initialValues?.postal_code ||
+      initialValues?.social_twitter ||
+      initialValues?.social_facebook ||
+      initialValues?.social_linkedin ||
+      initialValues?.social_skype ||
+      initialValues?.social_instagram ||
+      initialValues?.social_youtube ||
+      initialValues?.social_tiktok
+    );
+  });
 
   const formSchema = unifiedPersonFormSchema.extend({
     last_name: z.string().min(1, contactT("lastNameRequired")),
@@ -348,14 +363,28 @@ export function UnifiedPersonForm({
     saleStages.find((stage) => stage.name === "New Lead Intake")?.id ??
     "";
 
+  const initialBirthdayDate = parseBirthday(
+    initialValues?.birthday ??
+      (initialValues?.birthday_year &&
+      initialValues?.birthday_month &&
+      initialValues?.birthday_day
+        ? `${initialValues.birthday_day}/${initialValues.birthday_month}/${initialValues.birthday_year}`
+        : undefined)
+  );
+  const initialBirthdayParts = birthdayToParts(initialBirthdayDate);
+
   const form = useForm<UnifiedPersonFormValues>({
     resolver: zodResolver(formSchema),
     mode: "onBlur",
     defaultValues: {
       serial: "",
-      birthday_year: "",
-      birthday_month: "",
-      birthday_day: "",
+      birthday: initialBirthdayDate ?? undefined,
+      birthday_year:
+        initialValues?.birthday_year || initialBirthdayParts.birthday_year,
+      birthday_month:
+        initialValues?.birthday_month || initialBirthdayParts.birthday_month,
+      birthday_day:
+        initialValues?.birthday_day || initialBirthdayParts.birthday_day,
       first_name: "",
       last_name: "",
       visible_to_name: CONTACT_VISIBILITY_ALL_MEMBERS,
@@ -644,8 +673,6 @@ export function UnifiedPersonForm({
     form,
     opportunityEnabled,
   ]);
-
-  const yearOptions = Array.from({ length: 100 }, (_, i) => birthYearEnd - i);
 
   return (
     <Form {...form}>
@@ -1061,106 +1088,126 @@ export function UnifiedPersonForm({
             </div>
 
             <ExtraFieldsCollapsible open={showExtraFields}>
-              <div>
-                <label className="text-sm font-medium leading-none">
-                  {contactT("birthday")}
-                </label>
-                <div className="flex space-x-3 w-full mt-2">
-                  <FormField
-                    control={form.control}
-                    name="birthday_year"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value ?? ""}
+              <FormField
+                control={form.control}
+                name="birthday"
+                render={({ field }) => {
+                  const selectedDate = parseBirthday(field.value);
+                  return (
+                    <FormItem className="flex flex-col">
+                      <FormLabel className="text-sm font-medium leading-none">
+                        {contactT("birthday")}
+                      </FormLabel>
+                      <Popover
+                        open={isBirthdayOpen}
+                        onOpenChange={setIsBirthdayOpen}
+                      >
+                        <div className="relative flex items-center">
+                          <PopoverTrigger asChild>
+                            <FormControl>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                disabled={form.formState.isSubmitting}
+                                className={cn(
+                                  "w-full justify-start text-left font-normal pl-3",
+                                  !selectedDate && "text-muted-foreground",
+                                )}
+                              >
+                                <CalendarIcon className="mr-2 h-4 w-4 opacity-50" />
+                                {selectedDate ? (
+                                  formatBirthday(selectedDate, "dd/MM/yyyy")
+                                ) : (
+                                  <span>
+                                    {contactT("pickBirthday") ||
+                                      "Pick a birthday"}
+                                  </span>
+                                )}
+                              </Button>
+                            </FormControl>
+                          </PopoverTrigger>
+                          {selectedDate && !form.formState.isSubmitting && (
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="icon"
+                              className="absolute right-1 h-7 w-7 text-muted-foreground hover:text-foreground"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                field.onChange(undefined);
+                                form.setValue("birthday_year", "", {
+                                  shouldDirty: true,
+                                });
+                                form.setValue("birthday_month", "", {
+                                  shouldDirty: true,
+                                });
+                                form.setValue("birthday_day", "", {
+                                  shouldDirty: true,
+                                });
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                              <span className="sr-only">Clear birthday</span>
+                            </Button>
+                          )}
+                        </div>
+                        <PopoverContent
+                          className="w-auto p-0"
+                          align="start"
+                          onWheelCapture={(e) => e.stopPropagation()}
                         >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={contactT("year")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="h-56">
-                            {yearOptions.map((year) => (
-                              <SelectItem key={year} value={year.toString()}>
-                                {year}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="birthday_month"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value ?? ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={contactT("month")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="h-56">
-                            {[
-                              { value: "1", label: contactT("january") },
-                              { value: "2", label: contactT("february") },
-                              { value: "3", label: contactT("march") },
-                              { value: "4", label: contactT("april") },
-                              { value: "5", label: contactT("may") },
-                              { value: "6", label: contactT("june") },
-                              { value: "7", label: contactT("july") },
-                              { value: "8", label: contactT("august") },
-                              { value: "9", label: contactT("september") },
-                              { value: "10", label: contactT("october") },
-                              { value: "11", label: contactT("november") },
-                              { value: "12", label: contactT("december") },
-                            ].map((month) => (
-                              <SelectItem key={month.value} value={month.value}>
-                                {month.label}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  <FormField
-                    control={form.control}
-                    name="birthday_day"
-                    render={({ field }) => (
-                      <FormItem className="flex-1">
-                        <Select
-                          onValueChange={field.onChange}
-                          value={field.value ?? ""}
-                        >
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder={contactT("day")} />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent className="h-56">
-                            {Array.from({ length: 31 }, (_, i) => i + 1).map(
-                              (day) => (
-                                <SelectItem key={day} value={day.toString()}>
-                                  {day}
-                                </SelectItem>
-                              ),
-                            )}
-                          </SelectContent>
-                        </Select>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </div>
+                          <Calendar
+                            mode="single"
+                            captionLayout="dropdown"
+                            startMonth={new Date(1900, 0)}
+                            endMonth={new Date()}
+                            defaultMonth={selectedDate || new Date(2000, 0)}
+                            selected={selectedDate || undefined}
+                            onSelect={(date) => {
+                              if (date) {
+                                field.onChange(date);
+                                const parts = birthdayToParts(date);
+                                form.setValue(
+                                  "birthday_year",
+                                  parts.birthday_year,
+                                  { shouldDirty: true },
+                                );
+                                form.setValue(
+                                  "birthday_month",
+                                  parts.birthday_month,
+                                  { shouldDirty: true },
+                                );
+                                form.setValue(
+                                  "birthday_day",
+                                  parts.birthday_day,
+                                  { shouldDirty: true },
+                                );
+                              } else {
+                                field.onChange(undefined);
+                                form.setValue("birthday_year", "", {
+                                  shouldDirty: true,
+                                });
+                                form.setValue("birthday_month", "", {
+                                  shouldDirty: true,
+                                });
+                                form.setValue("birthday_day", "", {
+                                  shouldDirty: true,
+                                });
+                              }
+                              setIsBirthdayOpen(false);
+                            }}
+                            disabled={(date) =>
+                              date > new Date() || date < new Date("1900-01-01")
+                            }
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
+                      <FormMessage />
+                    </FormItem>
+                  );
+                }}
+              />
 
               <FormField
                 control={form.control}

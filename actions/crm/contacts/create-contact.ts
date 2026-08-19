@@ -21,6 +21,7 @@ import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
+import { formatBirthdayForContactDb } from "@/lib/crm/birthday";
 
 function isMissingContactSerialColumnError(error: unknown) {
   const message = error instanceof Error ? error.message : String(error);
@@ -64,6 +65,7 @@ export const createContact = async (data: {
   serial?: string;
   assigned_to?: string;
   assigned_account?: string;
+  birthday?: string | Date | null;
   birthday_day?: string;
   birthday_month?: string;
   birthday_year?: string;
@@ -125,6 +127,7 @@ export const createContact = async (data: {
     serial,
     assigned_to,
     assigned_account,
+    birthday,
     birthday_day,
     birthday_month,
     birthday_year,
@@ -187,10 +190,12 @@ export const createContact = async (data: {
     lead_type_id: lead_type_id || undefined,
     tags: [],
     notes: normalizeContactNotes(notes),
-    birthday:
-      birthday_day && birthday_month && birthday_year
-        ? `${birthday_day}/${birthday_month}/${birthday_year}`
-        : null,
+    birthday: formatBirthdayForContactDb(
+      birthday ??
+        (birthday_day && birthday_month && birthday_year
+          ? { birthday_day, birthday_month, birthday_year }
+          : null),
+    ),
     custom_fields_data:
       Object.keys(sanitizedCustomFieldValues).length > 0
         ? sanitizedCustomFieldValues

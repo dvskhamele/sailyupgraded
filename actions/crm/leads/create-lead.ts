@@ -17,6 +17,7 @@ import {
 } from "@/lib/custom-fields";
 import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 import { resolveSourcePlatformToLeadSourceId } from "@/lib/crm/lead-source-resolver";
+import { formatBirthdayForLeadDb } from "@/lib/crm/birthday";
 
 function normalizeOptionalText(value?: string | null) {
   const trimmed = value?.trim() ?? "";
@@ -301,6 +302,7 @@ async function createPipelineOpportunityForLead(data: {
 
 export const createLead = async (data: {
   serial?: string;
+  birthday?: string | Date | null;
   birthday_day?: string;
   birthday_month?: string;
   birthday_year?: string;
@@ -356,6 +358,7 @@ export const createLead = async (data: {
   const userId = session.user.id;
   const {
     serial,
+    birthday,
     birthday_day,
     birthday_month,
     birthday_year,
@@ -401,10 +404,12 @@ export const createLead = async (data: {
   } = data;
 
   const resolvedAddressLine1 = getAddressLine1(undefined, address_line1);
-  const birthdayValue =
-    birthday_day && birthday_month && birthday_year
-      ? new Date(Number(birthday_year), Number(birthday_month) - 1, Number(birthday_day))
-      : null;
+  const birthdayValue = formatBirthdayForLeadDb(
+    birthday ??
+      (birthday_day && birthday_month && birthday_year
+        ? { birthday_day, birthday_month, birthday_year }
+        : null),
+  );
   const resolvedContactTypeId = await resolveContactTypeId(contact_type_id);
   const resolvedLeadSourceId =
     (await resolveLeadSourceId(lead_source_id)) ??

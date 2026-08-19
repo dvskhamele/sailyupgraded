@@ -6,6 +6,7 @@ import { getAddressLine1 } from "@/lib/crm-address";
 import { UnifiedPersonForm, type UnifiedPersonFormValues } from "@/components/crm/unified-person-form";
 import { localLeadRepository } from "@/lib/offline-first/storage";
 import { updateLead } from "@/actions/crm/leads/update-lead";
+import { parseBirthday, birthdayToParts } from "@/lib/crm/birthday";
 
 type Option = { id: string; name: string };
 type AccountItem = {
@@ -89,9 +90,8 @@ export function UpdateLeadForm({
     social_instagram: initialData.social_instagram ?? "",
     social_youtube: initialData.social_youtube ?? "",
     social_tiktok: initialData.social_tiktok ?? "",
-    birthday_year: initialData.birthday ? new Date(initialData.birthday).getFullYear().toString() : "",
-    birthday_month: initialData.birthday ? (new Date(initialData.birthday).getMonth() + 1).toString() : "",
-    birthday_day: initialData.birthday ? new Date(initialData.birthday).getDate().toString() : "",
+    birthday: parseBirthday(initialData.birthday),
+    ...birthdayToParts(initialData.birthday),
   };
 
   const updateLocalLead = async (data: UnifiedPersonFormValues) => {

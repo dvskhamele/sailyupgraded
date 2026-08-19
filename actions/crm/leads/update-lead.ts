@@ -14,10 +14,12 @@ import {
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
 import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
+import { formatBirthdayForLeadDb } from "@/lib/crm/birthday";
 
 export const updateLead = async (data: {
   id: string;
   serial?: string | null;
+  birthday?: string | Date | null;
   birthday_day?: string | null;
   birthday_month?: string | null;
   birthday_year?: string | null;
@@ -47,9 +49,9 @@ export const updateLead = async (data: {
   lead_type_id?: string | null;
   refered_by?: string | null;
   campaign?: string | null;
-  assigned_to?: string;
+  assigned_to?: string | null;
   assigned_account?: string | null;
-  accountIDs?: string;
+  accountIDs?: string | null;
   social_twitter?: string | null;
   social_facebook?: string | null;
   social_linkedin?: string | null;
@@ -66,6 +68,7 @@ export const updateLead = async (data: {
   const {
     id,
     serial,
+    birthday,
     birthday_day,
     birthday_month,
     birthday_year,
@@ -111,10 +114,12 @@ export const updateLead = async (data: {
   if (!id) return { error: "id is required" };
 
   const resolvedAddressLine1 = getAddressLine1(undefined, address_line1);
-  const birthdayValue =
-    birthday_day && birthday_month && birthday_year
-      ? new Date(Number(birthday_year), Number(birthday_month) - 1, Number(birthday_day))
-      : null;
+  const birthdayValue = formatBirthdayForLeadDb(
+    birthday ??
+      (birthday_day && birthday_month && birthday_year
+        ? { birthday_day, birthday_month, birthday_year }
+        : null),
+  );
   const resolvedContactTypeId = await resolveContactTypeId(contact_type_id);
   const resolvedLeadSourceId = await resolveLeadSourceId(lead_source_id);
 

@@ -8,6 +8,7 @@ import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { notesToPlainText } from "@/lib/crm/notes";
 import { UnifiedPersonForm } from "@/components/crm/unified-person-form";
 import { normalizeContactVisibility } from "@/lib/crm/contact-visibility";
+import { parseBirthday, birthdayToParts } from "@/lib/crm/birthday";
 
 type Option = { id: string; name: string };
 type AccountOption = {
@@ -108,9 +109,8 @@ export function UpdateContactForm({
         : "",
     opportunity_stage_id: primaryOpportunity?.sales_stage ?? "",
     opportunity_description: primaryOpportunity?.description ?? "",
-    birthday_year: initialData.birthday ? new Date(initialData.birthday).getFullYear().toString() : "",
-    birthday_month: initialData.birthday ? (new Date(initialData.birthday).getMonth() + 1).toString() : "",
-    birthday_day: initialData.birthday ? new Date(initialData.birthday).getDate().toString() : "",
+    birthday: parseBirthday(initialData.birthday),
+    ...birthdayToParts(initialData.birthday),
   };
 
   return (

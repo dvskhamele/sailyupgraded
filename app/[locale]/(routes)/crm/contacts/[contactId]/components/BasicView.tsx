@@ -28,6 +28,7 @@ import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
 import { getReferenceId, normalizeContactRole } from "@/lib/contact-options";
 import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
+import { formatBirthdayDisplay } from "@/lib/crm/birthday";
 import { parseOpportunityProducts } from "@/lib/opportunity-products";
 import { formatCurrencyDisplay } from "@/lib/currency-input";
 import { normalizeContactNotes } from "@/lib/crm/notes";
@@ -154,9 +155,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Birthday</p>
                   <p className="text-sm text-muted-foreground">
-                    {data.birthday
-                      ? moment(data.birthday).format("MMM DD YYYY")
-                      : "N/A"}
+                    {formatBirthdayDisplay(data.birthday) || "N/A"}
                   </p>
                 </div>
               </div>

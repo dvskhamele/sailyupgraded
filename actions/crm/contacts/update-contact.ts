@@ -22,6 +22,7 @@ import {
   fieldAppliesToEntity,
   sanitizeCustomFieldValues,
 } from "@/lib/custom-fields";
+import { formatBirthdayForContactDb } from "@/lib/crm/birthday";
 
 type ImportedColumnValue = {
   column: string;
@@ -105,6 +106,7 @@ export const updateContact = async (data: {
   serial?: string | null;
   assigned_to?: string;
   assigned_account?: string | null;
+  birthday?: string | Date | null;
   birthday_day?: string | null;
   birthday_month?: string | null;
   birthday_year?: string | null;
@@ -164,6 +166,7 @@ export const updateContact = async (data: {
     serial,
     assigned_to,
     assigned_account,
+    birthday,
     birthday_day,
     birthday_month,
     birthday_year,
@@ -226,10 +229,12 @@ export const updateContact = async (data: {
       lead_source_id: resolvedLeadSourceId,
       lead_status_id: lead_status_id || null,
       lead_type_id: lead_type_id || null,
-      birthday:
-        birthday_day && birthday_month && birthday_year
-          ? `${birthday_day}/${birthday_month}/${birthday_year}`
-          : null,
+      birthday: formatBirthdayForContactDb(
+        birthday ??
+          (birthday_day && birthday_month && birthday_year
+            ? { birthday_day, birthday_month, birthday_year }
+            : null),
+      ),
       custom_fields_data:
         Object.keys(sanitizedCustomFieldValues).length > 0
           ? sanitizedCustomFieldValues
