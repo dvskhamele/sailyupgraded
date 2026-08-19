@@ -14,7 +14,12 @@
 import { prismadb } from "@/lib/prisma";
 import {
   type CustomFieldDefinition,
+  type CustomFieldContactRole,
+  normalizeCustomField,
+  fieldAppliesToEntity,
   sanitizeCustomFieldValues,
+  mergeCustomFieldValues,
+  normalizeHeader as canonicalNormalizeHeader,
 } from "@/lib/custom-fields";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
 import { normalizeContactRole, type ContactRole } from "@/lib/contact-options";
@@ -25,6 +30,7 @@ import {
   isAgentSpreadsheetImportable,
   normalizeSpreadsheetHeader,
 } from "@/lib/crm/agent-spreadsheet";
+import { parseDateValue } from "@/lib/crm/date-parser";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -60,6 +66,7 @@ export interface ContactImportValidationError {
 export interface ContactImportSummary {
   totalRows: number;
   importedRows: number;
+  updatedRows?: number;
   skippedEmptyRows: number;
   failedRows: number;
   validationErrors: ContactImportValidationError[];
@@ -143,6 +150,8 @@ const STANDARD_FIELD_ALIASES: Record<string, string[]> = {
   lead_type_id: ["lead type", "leadtype", "lead type id"],
   refered_by: ["referred by", "refered by", "referrer", "referredby"],
   campaign: ["campaign"],
+  agent_level: ["agent level", "agentlevel", "agent_level", "agent tier", "agent rank"],
+  created_on: ["date entered", "dateentered", "date recruited", "daterecruited", "date created", "datecreated", "entered date", "recruited date"],
 };
 
 // ---------------------------------------------------------------------------
@@ -153,16 +162,13 @@ const STANDARD_FIELD_ALIASES: Record<string, string[]> = {
  * Normalize a header by:
  * - Trimming whitespace
  * - Converting to lowercase
- * - Removing all spaces, underscores, hyphens
+ * - Removing all non-alphanumeric characters
  *
  * "First Name", "first_name", "first-name", "firstname" → "firstname"
  * "Email Address", "email_address", "email-address" → "emailaddress"
  */
 export function normalizeHeader(header: string): string {
-  return header
-    .trim()
-    .toLowerCase()
-    .replace(/[\s_\-]+/g, "");
+  return canonicalNormalizeHeader(header);
 }
 
 // ---------------------------------------------------------------------------
@@ -229,20 +235,53 @@ export function findMatchingField(header: string): string | null {
 export function buildFieldMapping(
   headers: string[],
   customFieldDefinitions: CustomFieldDefinition[],
+  contactRole?: CustomFieldContactRole | null,
 ): ContactImportFieldMapping {
   const modelFields: Record<string, string> = {};
   const customFields: Record<string, string> = {};
   const unknownHeaders: string[] = [];
 
-  const headerMap = getAgentSpreadsheetHeaderMap(customFieldDefinitions);
+  const headerMap = getAgentSpreadsheetHeaderMap(customFieldDefinitions, contactRole);
+
+  // Build custom field direct lookup
+  const customFieldLookup = new Map<string, string>();
+  for (const cf of customFieldDefinitions) {
+    if (!fieldAppliesToEntity(cf, "Contact", contactRole)) continue;
+    const normalized = normalizeCustomField(cf);
+    const fieldId = normalized.id;
+    const normName = normalizeHeader(normalized.name);
+    customFieldLookup.set(normName, fieldId);
+    customFieldLookup.set(normalizeHeader(fieldId), fieldId);
+    customFieldLookup.set(normalizeHeader(`custom:${fieldId}`), fieldId);
+    customFieldLookup.set(normalizeHeader(`custom_${normalized.name}`), fieldId);
+    customFieldLookup.set(normalizeHeader(`custom_field_${normalized.name}`), fieldId);
+  }
 
   for (const header of headers) {
-    // Try model field match first
-    const matchingField = headerMap.get(normalizeSpreadsheetHeader(header));
+    const norm = normalizeSpreadsheetHeader(header);
+
+    // 1. Explicit custom field header (custom:id or field UUID)
+    if (header.startsWith("custom:")) {
+      const fieldId = header.slice("custom:".length);
+      customFields[header] = fieldId;
+      continue;
+    }
+
+    // 2. Spreadsheet header map match
+    const matchingField = headerMap.get(norm);
     if (matchingField?.startsWith("custom:")) {
       customFields[header] = matchingField.slice("custom:".length);
       continue;
     }
+
+    // 3. Custom field lookup by name or alias
+    const cfMatch = customFieldLookup.get(norm);
+    if (cfMatch) {
+      customFields[header] = cfMatch;
+      continue;
+    }
+
+    // 4. Model field match
     if (matchingField) {
       modelFields[header] = matchingField;
       continue;
@@ -297,14 +336,43 @@ export function mapRow(
 // ---------------------------------------------------------------------------
 
 /**
- * Extract custom field values from a row's unknown columns.
+ * Extract custom field values from a row's mapped values.
  * Returns values to be stored in custom_fields_data JSON.
+ * Includes both explicitly matched custom fields and unknown columns
+ * (which may be custom fields not in the header map).
  */
 export function extractCustomFields(
   mappedRow: MappedRow,
   customFieldDefinitions: CustomFieldDefinition[],
 ): Record<string, string> {
-  return mappedRow.customFieldValues;
+  const result: Record<string, string> = { ...mappedRow.customFieldValues };
+
+  // For unknown columns, check if any unknown column name matches a custom field definition
+  for (const [header, val] of Object.entries(mappedRow.unknownColumnValues)) {
+    const trimmed = String(val ?? "").trim();
+    if (!trimmed) continue;
+
+    const normHeader = normalizeHeader(header);
+    const strippedHeader = normalizeHeader(header.replace(/^custom_?(field_?)?/i, ""));
+
+    const matchedCf = customFieldDefinitions.find((cf) => {
+      const normName = normalizeHeader(cf.name);
+      return (
+        normName === normHeader ||
+        normName === strippedHeader ||
+        normalizeHeader(cf.id) === normHeader ||
+        normalizeHeader(`custom:${cf.id}`) === normHeader
+      );
+    });
+
+    if (matchedCf) {
+      result[matchedCf.id] = trimmed;
+    } else {
+      result[header] = trimmed;
+    }
+  }
+
+  return result;
 }
 
 function coerceScalarValue(fieldName: string, value: string) {
@@ -322,8 +390,8 @@ function coerceScalarValue(fieldName: string, value: string) {
     return number;
   }
   if (field.type === "DateTime") {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) throw new Error(`Invalid date/time value "${value}" for ${field.label}`);
+    const date = parseDateValue(value);
+    if (!date) throw new Error(`Invalid date/time value "${value}" for ${field.label}. Expected formats: MM/DD/YYYY, MM-DD-YYYY, or YYYY-MM-DD`);
     return date;
   }
   return value;
@@ -582,7 +650,68 @@ export async function bulkInsertContacts(
     accountLookup.set(account.name.trim().toLowerCase(), account.id);
   }
 
+  // Pre-fetch existing contacts for update / upsert matching
+  const uniqueSerials = new Set<string>();
+  const uniqueEmails = new Set<string>();
+  const uniquePhones = new Set<string>();
+
+  for (const { mapped } of mappedRows) {
+    if (mapped.modelValues.serial) uniqueSerials.add(mapped.modelValues.serial.trim());
+    if (mapped.modelValues.email) uniqueEmails.add(normalizeEmail(mapped.modelValues.email));
+    if (mapped.modelValues.personal_email) uniqueEmails.add(normalizeEmail(mapped.modelValues.personal_email));
+    if (mapped.modelValues.mobile_phone) uniquePhones.add(normalizePhone(mapped.modelValues.mobile_phone));
+    if (mapped.modelValues.office_phone) uniquePhones.add(normalizePhone(mapped.modelValues.office_phone));
+  }
+
+  const existingConditions = [];
+  if (uniqueSerials.size > 0) existingConditions.push({ serial: { in: Array.from(uniqueSerials) } });
+  if (uniqueEmails.size > 0) {
+    const emailList = Array.from(uniqueEmails).filter(Boolean);
+    if (emailList.length > 0) {
+      existingConditions.push({ email: { in: emailList } });
+      existingConditions.push({ personal_email: { in: emailList } });
+    }
+  }
+  if (uniquePhones.size > 0) {
+    const phoneList = Array.from(uniquePhones).filter(Boolean);
+    if (phoneList.length > 0) {
+      existingConditions.push({ mobile_phone: { in: phoneList } });
+      existingConditions.push({ office_phone: { in: phoneList } });
+    }
+  }
+
+  const existingContacts = existingConditions.length > 0
+    ? await prismadb.crm_Contacts.findMany({
+        where: {
+          deletedAt: null,
+          OR: existingConditions,
+        },
+        select: {
+          id: true,
+          serial: true,
+          email: true,
+          personal_email: true,
+          mobile_phone: true,
+          office_phone: true,
+          custom_fields_data: true,
+        },
+      })
+    : [];
+
+  const existingBySerial = new Map<string, (typeof existingContacts)[0]>();
+  const existingByEmail = new Map<string, (typeof existingContacts)[0]>();
+  const existingByPhone = new Map<string, (typeof existingContacts)[0]>();
+
+  existingContacts.forEach((c) => {
+    if (c.serial) existingBySerial.set(c.serial.trim().toLowerCase(), c);
+    if (c.email) existingByEmail.set(normalizeEmail(c.email), c);
+    if (c.personal_email) existingByEmail.set(normalizeEmail(c.personal_email), c);
+    if (c.mobile_phone) existingByPhone.set(normalizePhone(c.mobile_phone), c);
+    if (c.office_phone) existingByPhone.set(normalizePhone(c.office_phone), c);
+  });
+
   let imported = 0;
+  let updated = 0;
   const errors: ContactImportValidationError[] = [];
 
   for (const { row: rawRow, mapped, rowNumber } of mappedRows) {
@@ -639,25 +768,41 @@ export async function bulkInsertContacts(
         if (customField.type === "file" && allCustomValues[customField.id]) {
           throw new Error(`${customField.name} cannot be imported from Excel because file fields require an uploaded file.`);
         }
-        if (customValue && customField.type === "number" && !Number.isFinite(Number(customValue))) {
-          throw new Error(`Invalid number value "${customValue}" for custom field ${customField.name}.`);
+        if (customValue && customField.type === "number") {
+          const cleaned = String(customValue).replace(/,/g, "").replace(/[$€£¥]/g, "").trim();
+          if (!Number.isFinite(Number(cleaned))) {
+            throw new Error(`Invalid number value "${customValue}" for custom field ${customField.name}.`);
+          }
         }
         if (customValue && customField.type === "select") {
           const options = Array.isArray(customField.options) ? customField.options.filter((option): option is string => typeof option === "string") : [];
-          if (options.length > 0 && !options.includes(customValue)) {
+          if (options.length > 0 && !options.some((opt) => opt.trim().toLowerCase() === customValue.trim().toLowerCase())) {
             throw new Error(`Invalid option "${customValue}" for custom field ${customField.name}.`);
           }
         }
       }
       const sanitizedCustomValues = sanitizeCustomFieldValues(allCustomValues, customFieldDefinitions);
-      const customFieldsData = Object.keys(sanitizedCustomValues).length > 0
-        ? sanitizedCustomValues
-        : undefined;
+
+      // Unknown columns: store unmapped columns safely in custom_fields_data
+      const unknownColumnValues = mapped.unknownColumnValues;
+      const unknownEntries: Record<string, string> = {};
+      for (const [header, value] of Object.entries(unknownColumnValues)) {
+        const trimmed = String(value ?? "").trim();
+        if (trimmed) {
+          unknownEntries[header] = trimmed;
+        }
+      }
+
+      const customFieldsData = {
+        ...sanitizedCustomValues,
+        ...(Object.keys(unknownEntries).length > 0 ? unknownEntries : {}),
+      };
+      const hasCustomFields = Object.keys(customFieldsData).length > 0;
 
       // Serial
       const serial = mapped.modelValues.serial || generateSerial(normalizedRole, rowNumber, importBatchId);
       const supportedSerial = await pickExistingDbModelFields("crm_Contacts", { serial });
-      const dynamicFields = getAgentSpreadsheetFields();
+      const dynamicFields = getAgentSpreadsheetFields(customFieldDefinitions, role as CustomFieldContactRole);
       const supportedDynamicValues: Record<string, unknown> = {};
       for (const [fieldName, value] of Object.entries(mapped.modelValues)) {
         const field = dynamicFields.find((candidate) => candidate.key === fieldName);
@@ -669,46 +814,112 @@ export async function bulkInsertContacts(
         supportedDynamicValues[fieldName] = coerceScalarValue(fieldName, value);
       }
 
-      // Build contact payload
-      const contactPayload = {
-        ...supportedSerial,
-        ...supportedDynamicValues,
-        v: 1,
-        first_name: computedFirstName || undefined,
-        last_name: computedLastName,
-        email: normalizedEmailVal || undefined,
-        personal_email: mapped.modelValues.personal_email || undefined,
-        mobile_phone: normalizedMobilePhone || undefined,
-        office_phone: normalizedOfficePhone || undefined,
-        status: mapped.modelValues.status ? mapped.modelValues.status.toLowerCase() === "active" || mapped.modelValues.status === "1" || mapped.modelValues.status.toLowerCase() === "true" : true,
-        assigned_to: resolvedAssignedTo,
-        accountsIDs: resolvedAccount,
-        contact_type_id: resolvedContactType,
-        lead_source_id: resolvedLeadSource,
-        lead_status_id: resolvedLeadStatus,
-        lead_type_id: resolvedLeadType,
-        refered_by: mapped.modelValues.refered_by || undefined,
-        campaign: mapped.modelValues.campaign || undefined,
-        social_twitter: mapped.modelValues.social_twitter || undefined,
-        social_facebook: mapped.modelValues.social_facebook || undefined,
-        social_linkedin: mapped.modelValues.social_linkedin || undefined,
-        social_skype: mapped.modelValues.social_skype || undefined,
-        social_instagram: mapped.modelValues.social_instagram || undefined,
-        social_youtube: mapped.modelValues.social_youtube || undefined,
-        social_tiktok: mapped.modelValues.social_tiktok || undefined,
-        custom_fields_data: customFieldsData,
-        role: normalizedRole,
-        createdBy: userId,
-        updatedBy: userId,
-        tags: [],
-        notes: [],
-      };
+      // Check if this row matches an existing contact for update / upsert
+      const existingMatch =
+        (mapped.modelValues.serial ? existingBySerial.get(mapped.modelValues.serial.trim().toLowerCase()) : undefined) ||
+        (normalizedEmailVal ? existingByEmail.get(normalizedEmailVal) : undefined) ||
+        (mapped.modelValues.personal_email ? existingByEmail.get(normalizeEmail(mapped.modelValues.personal_email)) : undefined) ||
+        (normalizedMobilePhone ? existingByPhone.get(normalizedMobilePhone) : undefined) ||
+        (normalizedOfficePhone ? existingByPhone.get(normalizedOfficePhone) : undefined);
 
-      await prismadb.crm_Contacts.create({
-        data: contactPayload as any,
-        select: { id: true },
-      });
-      imported += 1;
+      if (existingMatch) {
+        // Merge custom fields without deleting existing custom field values
+        const mergedCustomFields = mergeCustomFieldValues(
+          existingMatch.custom_fields_data,
+          customFieldsData,
+        );
+
+        const updateData: Record<string, unknown> = {
+          updatedBy: userId,
+          updatedAt: new Date(),
+        };
+
+        if (Object.keys(mergedCustomFields).length > 0) {
+          updateData.custom_fields_data = mergedCustomFields;
+        }
+
+        if (computedFirstName) updateData.first_name = computedFirstName;
+        if (lastName) updateData.last_name = lastName;
+        if (normalizedEmailVal) updateData.email = normalizedEmailVal;
+        if (mapped.modelValues.personal_email) updateData.personal_email = mapped.modelValues.personal_email;
+        if (normalizedMobilePhone) updateData.mobile_phone = normalizedMobilePhone;
+        if (normalizedOfficePhone) updateData.office_phone = normalizedOfficePhone;
+        if (resolvedAssignedTo) updateData.assigned_to = resolvedAssignedTo;
+        if (resolvedAccount) updateData.accountsIDs = resolvedAccount;
+        if (resolvedContactType) updateData.contact_type_id = resolvedContactType;
+        if (resolvedLeadSource) updateData.lead_source_id = resolvedLeadSource;
+        if (resolvedLeadStatus) updateData.lead_status_id = resolvedLeadStatus;
+        if (resolvedLeadType) updateData.lead_type_id = resolvedLeadType;
+        if (mapped.modelValues.refered_by) updateData.refered_by = mapped.modelValues.refered_by;
+        if (mapped.modelValues.campaign) updateData.campaign = mapped.modelValues.campaign;
+        if (mapped.modelValues.status) {
+          updateData.status = mapped.modelValues.status.toLowerCase() === "active" || mapped.modelValues.status === "1" || mapped.modelValues.status.toLowerCase() === "true";
+        }
+        for (const [key, val] of Object.entries(supportedDynamicValues)) {
+          if (val !== undefined && val !== null && val !== "") {
+            updateData[key] = val;
+          }
+        }
+
+        const supportedUpdateFields = await pickExistingDbModelFields("crm_Contacts", updateData);
+
+        await prismadb.crm_Contacts.update({
+          where: { id: existingMatch.id },
+          data: supportedUpdateFields as any,
+          select: { id: true },
+        });
+
+        // Update in-memory match with new custom_fields_data for subsequent rows
+        existingMatch.custom_fields_data = mergedCustomFields as any;
+
+        updated += 1;
+      } else {
+        // Build contact payload
+        const contactPayload = {
+          ...supportedSerial,
+          ...supportedDynamicValues,
+          v: 1,
+          first_name: computedFirstName || undefined,
+          last_name: computedLastName,
+          email: normalizedEmailVal || undefined,
+          personal_email: mapped.modelValues.personal_email || undefined,
+          mobile_phone: normalizedMobilePhone || undefined,
+          office_phone: normalizedOfficePhone || undefined,
+          status: mapped.modelValues.status ? mapped.modelValues.status.toLowerCase() === "active" || mapped.modelValues.status === "1" || mapped.modelValues.status.toLowerCase() === "true" : true,
+          assigned_to: resolvedAssignedTo,
+          accountsIDs: resolvedAccount,
+          contact_type_id: resolvedContactType,
+          lead_source_id: resolvedLeadSource,
+          lead_status_id: resolvedLeadStatus,
+          lead_type_id: resolvedLeadType,
+          refered_by: mapped.modelValues.refered_by || undefined,
+          campaign: mapped.modelValues.campaign || undefined,
+          social_twitter: mapped.modelValues.social_twitter || undefined,
+          social_facebook: mapped.modelValues.social_facebook || undefined,
+          social_linkedin: mapped.modelValues.social_linkedin || undefined,
+          social_skype: mapped.modelValues.social_skype || undefined,
+          social_instagram: mapped.modelValues.social_instagram || undefined,
+          social_youtube: mapped.modelValues.social_youtube || undefined,
+          social_tiktok: mapped.modelValues.social_tiktok || undefined,
+          custom_fields_data: hasCustomFields ? customFieldsData : undefined,
+          role: normalizedRole,
+          createdBy: userId,
+          updatedBy: userId,
+          tags: [],
+          notes: [],
+        };
+
+        const createdContact = await prismadb.crm_Contacts.create({
+          data: contactPayload as any,
+          select: { id: true, serial: true, email: true, personal_email: true, mobile_phone: true, office_phone: true },
+        });
+
+        if (createdContact.serial) existingBySerial.set(createdContact.serial.trim().toLowerCase(), { ...createdContact, custom_fields_data: customFieldsData as any });
+        if (createdContact.email) existingByEmail.set(normalizeEmail(createdContact.email), { ...createdContact, custom_fields_data: customFieldsData as any });
+        if (createdContact.mobile_phone) existingByPhone.set(normalizePhone(createdContact.mobile_phone), { ...createdContact, custom_fields_data: customFieldsData as any });
+
+        imported += 1;
+      }
     } catch (error) {
       errors.push({
         row: rowNumber,
@@ -719,7 +930,7 @@ export async function bulkInsertContacts(
     }
   }
 
-  return { imported, updated: 0, errors };
+  return { imported, updated, errors };
 }
 
 // ---------------------------------------------------------------------------
@@ -746,8 +957,10 @@ export async function importContacts(
     }, new Set<string>()),
   );
 
-  // Build field mapping
-  const mapping = buildFieldMapping(allHeaders, customFieldDefinitions);
+  // Build field mapping — pass the contact role so custom fields scoped to
+  // the right role are included in the header map.
+  const contactRole = getContactRoleFromType(options.contactType);
+  const mapping = buildFieldMapping(allHeaders, customFieldDefinitions, contactRole);
 
   // Map rows and skip only completely empty rows
   const rowsToImport: Array<{ row: ContactImportRow; mapped: MappedRow; rowNumber: number }> = [];
@@ -767,7 +980,7 @@ export async function importContacts(
   }
 
   // Bulk insert all non-empty rows
-  const { imported, errors } = await bulkInsertContacts(rowsToImport, options, customFieldDefinitions);
+  const { imported, updated, errors } = await bulkInsertContacts(rowsToImport, options, customFieldDefinitions);
 
   // Compile summary
   const mappedFields = Object.values(mapping.modelFields);
@@ -776,6 +989,7 @@ export async function importContacts(
   return {
     totalRows: rows.length,
     importedRows: imported,
+    updatedRows: updated,
     skippedEmptyRows,
     failedRows: errors.length,
     validationErrors: errors,

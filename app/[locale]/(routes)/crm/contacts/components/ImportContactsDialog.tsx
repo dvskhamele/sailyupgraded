@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, type ChangeEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import * as XLSX from "xlsx";
 import {
@@ -41,40 +41,14 @@ import {
   type ContactImportRawRow,
 } from "@/lib/contact-import-workbook";
 import { Badge } from "@/components/ui/badge";
+import {
+  type CustomFieldDefinition,
+  filterCustomFieldsForEntity,
+  normalizeHeader as canonicalNormalizeHeader,
+} from "@/lib/custom-fields";
 
 type RawRow = ContactImportRawRow;
-type MappingKey =
-  | "serial"
-  | "name"
-  | "first_name"
-  | "last_name"
-  | "email"
-  | "personal_email"
-  | "mobile_phone"
-  | "office_phone"
-  | "website"
-  | "position"
-  | "description"
-  | "birthday"
-  | "address"
-  | "address_line1"
-  | "address_line2"
-  | "city"
-  | "state"
-  | "country"
-  | "postal_code"
-  | "status"
-  | "role"
-  | "contact_type_id"
-  | "assigned_to"
-  | "assigned_account"
-  | "social_twitter"
-  | "social_facebook"
-  | "social_linkedin"
-  | "social_skype"
-  | "social_youtube"
-  | "social_tiktok";
-type ColumnMapping = Record<MappingKey, string>;
+type ColumnMapping = Record<string, string>;
 type ImportFailure = {
   row: number;
   email: string | null;
@@ -88,6 +62,7 @@ type ImportResult = {
   summary?: {
     totalRows: number;
     importedRows: number;
+    updatedRows?: number;
     skippedEmptyRows: number;
     failedRows: number;
     validationErrors: ImportFailure[];
@@ -98,7 +73,7 @@ type ImportResult = {
 };
 
 const SKIP_VALUE = "__skip__";
-const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
+const IMPORT_FIELDS: Array<{ key: string; label: string; isCustom?: boolean }> = [
   { key: "serial", label: " ID" },
   { key: "name", label: "Full name" },
   { key: "first_name", label: "First name" },
@@ -133,7 +108,7 @@ const IMPORT_FIELDS: Array<{ key: MappingKey; label: string }> = [
 const DEFAULT_MAPPING = Object.fromEntries(
   IMPORT_FIELDS.map(({ key }) => [key, SKIP_VALUE]),
 ) as ColumnMapping;
-const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
+const AUTO_MAP_CANDIDATES: Record<string, string[]> = {
   serial: [
     "reference id",
     "referenceid",
@@ -207,7 +182,7 @@ const AUTO_MAP_CANDIDATES: Record<MappingKey, string[]> = {
   social_youtube: ["youtube"],
   social_tiktok: ["tiktok", "tik tok"],
 };
-const AUTO_MAP_PRIORITY: MappingKey[] = [
+const AUTO_MAP_PRIORITY: string[] = [
   "serial",
   "first_name",
   "last_name",
@@ -241,30 +216,61 @@ const AUTO_MAP_PRIORITY: MappingKey[] = [
 ];
 
 function normalizeHeader(value: string) {
-  return value.trim().toLowerCase();
+  return canonicalNormalizeHeader(value);
 }
 
-function normalizeHeaderToken(value: string) {
-  return normalizeHeader(value).replace(/[^a-z0-9]/g, "");
-}
-
-function suggestMapping(headers: string[]): ColumnMapping {
+function suggestMapping(
+  headers: string[],
+  customFields: CustomFieldDefinition[] = [],
+): ColumnMapping {
   const defaults: ColumnMapping = { ...DEFAULT_MAPPING };
+  for (const cf of customFields) {
+    defaults[`custom:${cf.id}`] = SKIP_VALUE;
+  }
   const usedHeaders = new Set<string>();
 
+  // 1. Map standard fields
   for (const key of AUTO_MAP_PRIORITY) {
+    const candidates = AUTO_MAP_CANDIDATES[key] ?? [];
     const match = headers.find((header) => {
       if (usedHeaders.has(header)) return false;
-      const normalized = normalizeHeaderToken(header);
-      return AUTO_MAP_CANDIDATES[key].some(
+      const normalized = normalizeHeader(header);
+      return candidates.some(
         (candidate) =>
-          normalized === normalizeHeaderToken(candidate) ||
-          normalized.includes(normalizeHeaderToken(candidate)),
+          normalized === normalizeHeader(candidate) ||
+          normalized.includes(normalizeHeader(candidate)),
       );
     });
 
     if (match) {
       defaults[key] = match;
+      usedHeaders.add(match);
+    }
+  }
+
+  // 2. Map custom fields
+  for (const cf of customFields) {
+    const cfKey = `custom:${cf.id}`;
+    const normCfName = normalizeHeader(cf.name);
+    const normCfId = normalizeHeader(cf.id);
+
+    const match = headers.find((header) => {
+      if (usedHeaders.has(header)) return false;
+      const normHeader = normalizeHeader(header);
+      const strippedHeader = normalizeHeader(header.replace(/^custom_?(field_?)?/i, ""));
+
+      return (
+        normHeader === normCfName ||
+        strippedHeader === normCfName ||
+        normHeader === normCfId ||
+        normHeader === normalizeHeader(`custom:${cf.id}`) ||
+        header === cf.id ||
+        header === `custom:${cf.id}`
+      );
+    });
+
+    if (match) {
+      defaults[cfKey] = match;
       usedHeaders.add(match);
     }
   }
@@ -306,8 +312,37 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
   const [mapping, setMapping] = useState<ColumnMapping>({
     ...DEFAULT_MAPPING,
   });
+  const [customFields, setCustomFields] = useState<CustomFieldDefinition[]>([]);
   const [result, setResult] = useState<ImportResult | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  useEffect(() => {
+    let mounted = true;
+    fetch("/api/custom-fields")
+      .then((res) => res.json())
+      .then((data) => {
+        if (mounted && Array.isArray(data)) {
+          setCustomFields(data);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const applicableCustomFields = useMemo(() => {
+    return filterCustomFieldsForEntity(customFields, "Contact", contactType || importRole);
+  }, [customFields, contactType, importRole]);
+
+  const allImportFields = useMemo(() => {
+    const customList = applicableCustomFields.map((cf) => ({
+      key: `custom:${cf.id}`,
+      label: `Custom: ${cf.name}`,
+      isCustom: true,
+    }));
+    return [...IMPORT_FIELDS, ...customList];
+  }, [applicableCustomFields]);
 
   const reset = () => {
     setFileName("");
@@ -347,6 +382,18 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
         mapping.status !== SKIP_VALUE ? String(row[mapping.status] ?? "").trim() : "";
       const name = fullName || [firstName, lastName].filter(Boolean).join(" ");
 
+      // Extract custom field values for preview
+      const rowCustomFields: Array<{ name: string; value: string }> = [];
+      for (const cf of applicableCustomFields) {
+        const mappedHeader = mapping[`custom:${cf.id}`];
+        if (mappedHeader && mappedHeader !== SKIP_VALUE && row[mappedHeader]) {
+          rowCustomFields.push({
+            name: cf.name,
+            value: String(row[mappedHeader]).trim(),
+          });
+        }
+      }
+
       // A row is importable if it has at least one non-empty value
       const hasAnyValue = Object.values(row).some((v) => String(v ?? "").trim().length > 0);
 
@@ -356,10 +403,11 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
         email,
         phone: mobilePhone || officePhone,
         status,
+        customFields: rowCustomFields,
         valid: hasAnyValue,
       };
     });
-  }, [mapping, rows]);
+  }, [mapping, rows, applicableCustomFields]);
 
   const openFilePicker = () => {
     fileRef.current?.click();
@@ -387,7 +435,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
 
       setHeaders(nextHeaders);
       setRows(parsedRows);
-      setMapping(suggestMapping(nextHeaders));
+      setMapping(suggestMapping(nextHeaders, applicableCustomFields));
       setOpen(true);
     } catch (error) {
       const message =
@@ -489,9 +537,8 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                 ? `This import will automatically save all records as "${contactTypeLabel}" contacts. `
                 : ""}
               Review the selected CSV or Excel file, map the columns, and import.
-              All rows with at least one non-empty value will be imported. Agent
-              fields and Agent custom fields are matched from their labels; unsupported
-              columns are reported in the import summary.
+              All rows with at least one non-empty value will be imported. Custom
+              fields are matched from their labels or column headers.
             </DialogDescription>
           </DialogHeader>
 
@@ -514,17 +561,23 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                 <div>
                   <h3 className="text-sm font-medium">Column Mapping</h3>
                   <p className="text-xs text-muted-foreground">
-                    Match your uploaded columns to the contact fields we import.
-                    Agent fields are matched from their labels. Unsupported columns
-                    are reported after import.
+                    Match your uploaded columns to standard contact fields and custom fields.
+                    Unsupported columns are safely preserved in custom data.
                   </p>
                 </div>
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                  {IMPORT_FIELDS.map((field) => (
+                  {allImportFields.map((field) => (
                     <div key={field.key} className="space-y-2">
-                      <p className="text-sm font-medium">{field.label}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-sm font-medium">{field.label}</p>
+                        {field.isCustom && (
+                          <Badge variant="outline" className="text-[10px] px-1 py-0 border-blue-400 text-blue-600">
+                            Custom
+                          </Badge>
+                        )}
+                      </div>
                       <Select
-                        value={mapping[field.key]}
+                        value={mapping[field.key] ?? SKIP_VALUE}
                         onValueChange={(value) =>
                           setMapping((current) => ({ ...current, [field.key]: value }))
                         }
@@ -603,6 +656,7 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                         <TableHead>Name</TableHead>
                         <TableHead>Email</TableHead>
                         <TableHead>Phone</TableHead>
+                        <TableHead>Custom Fields</TableHead>
                         <TableHead>Imported status</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
@@ -617,6 +671,19 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                           </TableCell>
                           <TableCell>
                             <WhatsAppLink value={row.phone} fallback="N/A" />
+                          </TableCell>
+                          <TableCell>
+                            {row.customFields && row.customFields.length > 0 ? (
+                              <div className="flex flex-wrap gap-1 max-w-xs">
+                                {row.customFields.map((cf, i) => (
+                                  <Badge key={i} variant="outline" className="text-[10px]">
+                                    {cf.name}: {cf.value}
+                                  </Badge>
+                                ))}
+                              </div>
+                            ) : (
+                              <span className="text-muted-foreground text-xs">—</span>
+                            )}
                           </TableCell>
                           <TableCell>{row.status || "N/A"}</TableCell>
                           <TableCell>
@@ -692,6 +759,12 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
                         <span className="text-muted-foreground">Imported:</span>{" "}
                         <span className="font-medium text-green-600">{summary.importedRows}</span>
                       </div>
+                      {summary.updatedRows !== undefined && summary.updatedRows > 0 && (
+                        <div>
+                          <span className="text-muted-foreground">Updated:</span>{" "}
+                          <span className="font-medium text-blue-600">{summary.updatedRows}</span>
+                        </div>
+                      )}
                       <div>
                         <span className="text-muted-foreground">Skipped (Empty):</span>{" "}
                         <span className="font-medium text-yellow-600">{summary.skippedEmptyRows}</span>

@@ -91,13 +91,14 @@ export async function POST(request: NextRequest) {
     }));
 
     // Audit log
-    if (result.importedRows > 0) {
+    if (result.importedRows > 0 || (result.updatedRows ?? 0) > 0) {
       await writeAuditLog({
         entityType: "contact",
         entityId: "bulk_import",
         action: "imported",
         changes: [
           { field: "imported", old: null, new: result.importedRows },
+          { field: "updated", old: null, new: result.updatedRows ?? 0 },
           { field: "totalRows", old: null, new: result.totalRows },
           { field: "contactType", old: null, new: contactType },
         ],
@@ -110,7 +111,7 @@ export async function POST(request: NextRequest) {
     // Return enhanced response with full summary
     return NextResponse.json({
       imported: result.importedRows,
-      updated: 0,
+      updated: result.updatedRows ?? 0,
       failed: result.failedRows,
       failures,
 
@@ -118,6 +119,7 @@ export async function POST(request: NextRequest) {
       summary: {
         totalRows: result.totalRows,
         importedRows: result.importedRows,
+        updatedRows: result.updatedRows ?? 0,
         skippedEmptyRows: result.skippedEmptyRows,
         failedRows: result.failedRows,
         validationErrors: failures,

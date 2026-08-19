@@ -6,6 +6,7 @@ const config: Config = {
   setupFiles: ["<rootDir>/jest.env.setup.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/$1",
+    "^server-only$": "<rootDir>/__mocks__/server-only.ts",
     "^e2b$": "<rootDir>/__mocks__/e2b.ts",
   },
   testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],

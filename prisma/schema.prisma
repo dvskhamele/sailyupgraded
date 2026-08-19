@@ -518,6 +518,7 @@ model crm_Contacts {
   position             String?
   status               Boolean                   @default(true)
   role                 String                    @default("Customer")
+  agent_level          String?
   lead_source_id       String?
   lead_status_id       String?
   lead_type_id         String?

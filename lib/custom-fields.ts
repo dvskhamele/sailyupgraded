@@ -26,18 +26,58 @@ export type CustomFieldFileValue = {
   type: string;
 };
 
-export type CustomFieldValue = string | CustomFieldFileValue;
+export type CustomFieldValue = string | number | boolean | CustomFieldFileValue;
 export type CustomFieldValues = Record<string, CustomFieldValue>;
 
-function normalizeStringArray(value: unknown) {
-  if (!Array.isArray(value)) {
+/**
+ * Canonical header and field-name normalizer:
+ * Converts to lowercase and removes all non-alphanumeric characters.
+ * "Customer Type", "customer_type", "Customer-Type", "CUSTOMER TYPE " -> "customertype"
+ */
+export function normalizeHeader(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (!value) {
     return [];
   }
 
-  return value
-    .filter((item): item is string => typeof item === "string")
-    .map((item) => item.trim())
-    .filter(Boolean);
+  if (Array.isArray(value)) {
+    return value
+      .filter((item): item is string => typeof item === "string")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter((item): item is string => typeof item === "string")
+            .map((item) => item.trim())
+            .filter(Boolean);
+        }
+      } catch {
+        // Fall back to splitting by comma
+      }
+    }
+
+    return trimmed
+      .split(",")
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
 }
 
 function normalizeContactRoleScope(value: unknown): CustomFieldContactRole | undefined {
@@ -109,6 +149,10 @@ export function fieldAppliesToContactRole(
     return true;
   }
 
+  if (!contactRole || contactRole === "all") {
+    return true;
+  }
+
   return normalizedField.contact_role === normalizeContactRoleScope(contactRole);
 }
 
@@ -140,25 +184,63 @@ export function filterCustomFieldsForEntity(
     .filter((field) => fieldAppliesToEntity(field, entityType, contactRole));
 }
 
+/**
+ * Safely sanitizes custom field input values from forms or Excel imports.
+ * Maps values to the canonical custom field UUIDs and validates data types.
+ */
 export function sanitizeCustomFieldValues(
   values: unknown,
   fields: CustomFieldDefinition[],
-) {
+): CustomFieldValues {
   if (!values || typeof values !== "object" || Array.isArray(values)) {
     return {};
   }
 
   const rawValues = values as Record<string, unknown>;
   const sanitizedEntries: [string, CustomFieldValue][] = [];
+  const consumedKeys = new Set<string>();
 
   fields.forEach((field) => {
     const normalizedField = normalizeCustomField(field);
-    const rawValue = rawValues[normalizedField.id];
+    const fieldId = normalizedField.id;
+    const normalizedName = normalizeHeader(normalizedField.name);
 
-    if (rawValue == null) {
+    let rawValue: unknown = undefined;
+
+    // 1. Direct field ID match (e.g. rawValues["uuid-123"])
+    if (rawValues[fieldId] !== undefined) {
+      rawValue = rawValues[fieldId];
+      consumedKeys.add(fieldId);
+    } else if (rawValues[`custom:${fieldId}`] !== undefined) {
+      // 2. Prefixed field ID match (e.g. rawValues["custom:uuid-123"])
+      rawValue = rawValues[`custom:${fieldId}`];
+      consumedKeys.add(`custom:${fieldId}`);
+    } else {
+      // 3. Normalized header/key match
+      for (const [key, val] of Object.entries(rawValues)) {
+        if (consumedKeys.has(key) || val === undefined || val === null) continue;
+
+        const normalizedKey = normalizeHeader(key);
+        const strippedKey = normalizeHeader(key.replace(/^custom_?(field_?)?/i, ""));
+
+        if (
+          normalizedKey === normalizedName ||
+          strippedKey === normalizedName ||
+          normalizedKey === normalizeHeader(fieldId) ||
+          normalizedKey === normalizeHeader(`custom:${fieldId}`)
+        ) {
+          rawValue = val;
+          consumedKeys.add(key);
+          break;
+        }
+      }
+    }
+
+    if (rawValue === undefined || rawValue === null) {
       return;
     }
 
+    // Handle File fields
     if (normalizedField.type === "file") {
       if (!rawValue || typeof rawValue !== "object" || Array.isArray(rawValue)) {
         return;
@@ -176,7 +258,7 @@ export function sanitizeCustomFieldValues(
       }
 
       sanitizedEntries.push([
-        normalizedField.id,
+        fieldId,
         {
           url: metadata.url,
           name: metadata.name,
@@ -187,25 +269,77 @@ export function sanitizeCustomFieldValues(
       return;
     }
 
-    const value = String(rawValue).trim();
-    if (!value) {
+    const trimmedString = String(rawValue).trim();
+    if (!trimmedString) {
       return;
     }
 
-    if (
-      normalizedField.type === "select" &&
-      normalizedField.options.length > 0 &&
-      !normalizedField.options.includes(value)
-    ) {
+    // Handle Select fields
+    if (normalizedField.type === "select") {
+      if (normalizedField.options.length > 0) {
+        const matchedOption = normalizedField.options.find(
+          (opt) => opt.trim().toLowerCase() === trimmedString.toLowerCase(),
+        );
+        if (matchedOption) {
+          sanitizedEntries.push([fieldId, matchedOption]);
+        }
+      } else {
+        sanitizedEntries.push([fieldId, trimmedString]);
+      }
       return;
     }
 
-    if (normalizedField.type === "number" && Number.isNaN(Number(value))) {
+    // Handle Number fields
+    if (normalizedField.type === "number") {
+      const cleaned = trimmedString.replace(/,/g, "").replace(/[$€£¥]/g, "").trim();
+      const num = Number(cleaned);
+      if (Number.isFinite(num)) {
+        sanitizedEntries.push([fieldId, String(num)]);
+      }
       return;
     }
 
-    sanitizedEntries.push([normalizedField.id, value]);
+    // Handle Boolean fields
+    if (normalizedField.type === "boolean" || normalizedField.type === "checkbox") {
+      const lower = trimmedString.toLowerCase();
+      if (["true", "1", "yes", "y", "active"].includes(lower)) {
+        sanitizedEntries.push([fieldId, "true"]);
+      } else if (["false", "0", "no", "n", "inactive"].includes(lower)) {
+        sanitizedEntries.push([fieldId, "false"]);
+      }
+      return;
+    }
+
+    // Default string / text / date fields
+    sanitizedEntries.push([fieldId, trimmedString]);
   });
 
   return Object.fromEntries(sanitizedEntries) as CustomFieldValues;
+}
+
+/**
+ * Safely merges existing custom field values with newly imported custom field values.
+ * Preserves existing values when the imported row does not provide a value for a field.
+ */
+export function mergeCustomFieldValues(
+  existingValues: unknown,
+  newValues: unknown,
+): Record<string, unknown> {
+  const existingMap =
+    existingValues && typeof existingValues === "object" && !Array.isArray(existingValues)
+      ? (existingValues as Record<string, unknown>)
+      : {};
+  const newMap =
+    newValues && typeof newValues === "object" && !Array.isArray(newValues)
+      ? (newValues as Record<string, unknown>)
+      : {};
+
+  const merged = { ...existingMap };
+  for (const [key, val] of Object.entries(newMap)) {
+    if (val !== undefined && val !== null && val !== "") {
+      merged[key] = val;
+    }
+  }
+
+  return merged;
 }

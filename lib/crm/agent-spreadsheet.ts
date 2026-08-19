@@ -4,6 +4,7 @@ import {
   fieldAppliesToEntity,
   normalizeCustomField,
   type CustomFieldDefinition,
+  type CustomFieldContactRole,
 } from "@/lib/custom-fields";
 
 export type AgentSpreadsheetField = {
@@ -17,17 +18,20 @@ export type AgentSpreadsheetField = {
 // scalar column is discovered from Prisma, so schema additions automatically
 // become spreadsheet columns.
 const INTERNAL_CONTACT_COLUMNS = new Set([
-  "id", "v", "created_by", "createdBy", "created_on", "cratedAt",
+  "id", "v", "created_by", "createdBy", "cratedAt",
   "updatedAt", "updatedBy", "last_activity", "last_activity_by",
   "deletedAt", "deletedBy", "custom_fields_data", "tags",
   // "account" is a legacy duplicate of accountsIDs — exclude to avoid confusion
   "account",
+  // role is handled separately via contactType; visible_to_name is UI-only
+  "visible_to_name",
 ]);
 
 const LABELS: Record<string, string> = {
   // Identity
   serial: "Agent ID",
   role: "Role",
+  agent_level: "Agent Level",
   // Name
   first_name: "First Name",
   last_name: "Last Name",
@@ -46,6 +50,8 @@ const LABELS: Record<string, string> = {
   assigned_to: "Assigned Member",
   accountsIDs: "Assigned Company",
   visible_to_name: "Visibility",
+  // Date Entered
+  created_on: "Date Entered",
   // Lead classification
   contact_type_id: "Contact Type",
   lead_source_id: "Lead Source",
@@ -88,7 +94,10 @@ function titleCase(value: string) {
     .replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
-export function getAgentSpreadsheetFields(customFields: CustomFieldDefinition[] = []) {
+export function getAgentSpreadsheetFields(
+  customFields: CustomFieldDefinition[] = [],
+  contactRole?: CustomFieldContactRole | null,
+) {
   const contact = Prisma.dmmf.datamodel.models.find((model) => model.name === "crm_Contacts");
   const standard: AgentSpreadsheetField[] = (contact?.fields ?? [])
     .filter((field) => (field.kind === "scalar" || field.kind === "enum") && !INTERNAL_CONTACT_COLUMNS.has(field.name))
@@ -98,7 +107,7 @@ export function getAgentSpreadsheetFields(customFields: CustomFieldDefinition[] 
       type: field.name === "notes" ? "textarea" : RELATIONSHIP_FIELDS.has(field.name) ? "relationship" : field.type,
     }));
   const custom = customFields
-    .filter((field) => fieldAppliesToEntity(field, "Contact", "Agent"))
+    .filter((field) => fieldAppliesToEntity(field, "Contact", contactRole))
     .map(normalizeCustomField)
     .map((field) => ({ key: `custom:${field.id}`, label: field.name, type: field.type, custom: true }));
 
@@ -106,16 +115,18 @@ export function getAgentSpreadsheetFields(customFields: CustomFieldDefinition[] 
 }
 
 export function normalizeSpreadsheetHeader(value: string) {
-  return value.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  return value.trim().toLowerCase().replace(/[^a-z0-9]/g, "");
 }
 
 /** Supports generated labels plus the legacy nine-column workbooks. */
-export function getAgentSpreadsheetHeaderMap(customFields: CustomFieldDefinition[] = []) {
+export function getAgentSpreadsheetHeaderMap(
+  customFields: CustomFieldDefinition[] = [],
+  contactRole?: CustomFieldContactRole | null,
+) {
   const map = new Map<string, string>();
-  for (const field of getAgentSpreadsheetFields(customFields)) {
-    map.set(normalizeSpreadsheetHeader(field.label), field.key);
-    map.set(normalizeSpreadsheetHeader(field.key), field.key);
-  }
+
+  // Apply aliases FIRST so that custom fields and standard label lookups
+  // take priority over alias entries.
   const aliases: Record<string, string> = {
     firstname: "first_name", lastname: "last_name", emailaddress: "email",
     fullname: "first_name", contactname: "first_name",
@@ -136,7 +147,7 @@ export function getAgentSpreadsheetHeaderMap(customFields: CustomFieldDefinition
     fulladdress: "address", completeaddress: "address",
     agentid: "serial", agentcode: "serial", reference: "serial", referencenumber: "serial", referenceid: "serial",
     assignedcompany: "accountsIDs",
-    percentlevel: "role", level: "role", agentlevel: "role", "%level": "role",
+    percentlevel: "agent_level", level: "agent_level", agentlevel: "agent_level", "%level": "agent_level",
     dateentered: "created_on", daterecruited: "created_on", datecreated: "created_on",
     visibility: "visible_to_name", visibleto: "visible_to_name",
     contacttype: "contact_type_id", contactcategory: "contact_type_id",
@@ -162,6 +173,20 @@ export function getAgentSpreadsheetHeaderMap(customFields: CustomFieldDefinition
     organization: "company", organisation: "company", org: "company",
   };
   for (const [header, key] of Object.entries(aliases)) map.set(header, key);
+
+  // Standard fields and custom fields override aliases.
+  for (const field of getAgentSpreadsheetFields(customFields, contactRole)) {
+    map.set(normalizeSpreadsheetHeader(field.label), field.key);
+    map.set(normalizeSpreadsheetHeader(field.key), field.key);
+    if (field.custom && field.key.startsWith("custom:")) {
+      const fieldId = field.key.slice("custom:".length);
+      map.set(normalizeSpreadsheetHeader(fieldId), field.key);
+      map.set(fieldId, field.key);
+      map.set(field.key, field.key);
+      map.set(normalizeSpreadsheetHeader(`custom_${field.label}`), field.key);
+      map.set(normalizeSpreadsheetHeader(`custom_field_${field.label}`), field.key);
+    }
+  }
   return map;
 }
 

@@ -69,17 +69,13 @@ export interface RowValidationResult {
  * Normalize a header by:
  * - Trimming whitespace
  * - Converting to lowercase
- * - Removing all spaces, underscores, hyphens
- *
- * "First Name", "first_name", "first-name", "firstname" → "firstname"
- * "Email Address", "email_address", "email-address" → "emailaddress"
- * "Opportunity Name", "opportunity_name", "opportunity-name" → "opportunityname"
+ * - Removing all non-alphanumeric characters
  */
 export function normalizeHeader(header: string): string {
   return header
     .trim()
     .toLowerCase()
-    .replace(/[\s_\-]+/g, "");
+    .replace(/[^a-z0-9]/g, "");
 }
 
 // ---------------------------------------------------------------------------
@@ -183,14 +179,29 @@ export function buildFieldMapping(
   const customFields: Record<string, string> = {};
   const unknownHeaders: string[] = [];
 
-  // Build custom field lookup by normalized name
+  // Build custom field lookup by normalized name and IDs
   const customFieldLookup = new Map<string, string>();
   for (const cf of customFieldDefinitions) {
     const normalized = normalizeCustomField(cf);
-    customFieldLookup.set(normalizeHeader(normalized.name), cf.id);
+    const fieldId = normalized.id;
+    const normName = normalizeHeader(normalized.name);
+    customFieldLookup.set(normName, fieldId);
+    customFieldLookup.set(normalizeHeader(fieldId), fieldId);
+    customFieldLookup.set(normalizeHeader(`custom:${fieldId}`), fieldId);
+    customFieldLookup.set(normalizeHeader(`custom_${normalized.name}`), fieldId);
+    customFieldLookup.set(normalizeHeader(`custom_field_${normalized.name}`), fieldId);
   }
 
   for (const header of headers) {
+    const normalizedHeader = normalizeHeader(header);
+
+    // Explicit custom field key
+    if (header.startsWith("custom:")) {
+      const fieldId = header.slice("custom:".length);
+      customFields[header] = fieldId;
+      continue;
+    }
+
     // Try model field match first
     const modelField = findMatchingField(header, modelFieldLookup);
     if (modelField) {
@@ -199,7 +210,6 @@ export function buildFieldMapping(
     }
 
     // Try custom field match
-    const normalizedHeader = normalizeHeader(header);
     const customFieldId = customFieldLookup.get(normalizedHeader);
     if (customFieldId) {
       customFields[header] = customFieldId;
@@ -256,7 +266,33 @@ export function extractCustomFields(
   mappedRow: MappedRow,
   customFieldDefinitions: CustomFieldDefinition[],
 ): Record<string, string> {
-  return { ...mappedRow.customFieldValues, ...mappedRow.unknownColumnValues };
+  const result: Record<string, string> = { ...mappedRow.customFieldValues };
+
+  for (const [header, val] of Object.entries(mappedRow.unknownColumnValues)) {
+    const trimmed = String(val ?? "").trim();
+    if (!trimmed) continue;
+
+    const normHeader = normalizeHeader(header);
+    const strippedHeader = normalizeHeader(header.replace(/^custom_?(field_?)?/i, ""));
+
+    const matchedCf = customFieldDefinitions.find((cf) => {
+      const normName = normalizeHeader(cf.name);
+      return (
+        normName === normHeader ||
+        normName === strippedHeader ||
+        normalizeHeader(cf.id) === normHeader ||
+        normalizeHeader(`custom:${cf.id}`) === normHeader
+      );
+    });
+
+    if (matchedCf) {
+      result[matchedCf.id] = trimmed;
+    } else {
+      result[header] = trimmed;
+    }
+  }
+
+  return result;
 }
 
 // ---------------------------------------------------------------------------
