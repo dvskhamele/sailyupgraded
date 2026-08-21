@@ -4,6 +4,7 @@ import * as XLSX from "xlsx";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import {
+  createAgentTemplateWorkbook,
   formatAgentSpreadsheetValue,
   getAgentSpreadsheetFields,
   isAgentSpreadsheetImportable,
@@ -23,18 +24,17 @@ export async function GET(request: NextRequest) {
   const session = await getSession();
   if (!session?.user?.id) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const customFields = await prismadb.custom_fields.findMany({ orderBy: { createdAt: "asc" } });
-  const fields = getAgentSpreadsheetFields(customFields);
   const template = request.nextUrl.searchParams.get("template") === "1";
-  const headers = fields.map((field) => field.label);
-  const workbook = XLSX.utils.book_new();
 
   if (template) {
-    const importableHeaders = fields.filter(isAgentSpreadsheetImportable).map((field) => field.label);
-    const sheet = XLSX.utils.aoa_to_sheet([importableHeaders]);
-    XLSX.utils.book_append_sheet(workbook, sheet, "Agents");
-    return workbookResponse(workbook, "agent-import-template.xlsx");
+    const workbook = createAgentTemplateWorkbook();
+    return workbookResponse(workbook, "Agent_Import_Template.xlsx");
   }
+
+  const customFields = await prismadb.custom_fields.findMany({ orderBy: { createdAt: "asc" } });
+  const fields = getAgentSpreadsheetFields(customFields);
+  const headers = fields.map((field) => field.label);
+  const workbook = XLSX.utils.book_new();
 
   const agents = await prismadb.crm_Contacts.findMany({
     where: { deletedAt: null, role: "Agent" },

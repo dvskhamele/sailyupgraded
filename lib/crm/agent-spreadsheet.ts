@@ -1,4 +1,5 @@
 import { Prisma } from "@prisma/client";
+import * as XLSX from "xlsx";
 
 import {
   fieldAppliesToEntity,
@@ -228,4 +229,100 @@ export function formatAgentSpreadsheetValue(field: AgentSpreadsheetField, value:
     return file.url ?? file.name ?? JSON.stringify(value);
   }
   return String(value);
+}
+
+// ---------------------------------------------------------------------------
+// 32-Column Agent Excel Download Template & Dummy Foreign Client Row
+// ---------------------------------------------------------------------------
+
+export const AGENT_IMPORT_TEMPLATE_COLUMNS = [
+  "Agent Photo",
+  "FirstName",
+  "LastName",
+  "City",
+  "State",
+  "Zipcode",
+  "CellPhone",
+  "Email",
+  "AgentNumber",
+  "AgentStatus",
+  "Date Recruited",
+  "AgentLevel",
+  "Address",
+  "Recruiter Name",
+  "Date of Birth",
+  "ASSIGNED TO",
+  "Visibility",
+  "Website",
+  "Lead Source",
+  "Lead Type",
+  "Referred By",
+  "Campaign",
+  "Twitter",
+  "Facebook",
+  "LinkedIn",
+  "Thread",
+  "Instagram",
+  "YouTube",
+  "TikTok",
+  "Notes",
+  "Assigned Company",
+  "Country",
+] as const;
+
+export const AGENT_IMPORT_TEMPLATE_DUMMY_ROW = [
+  "", // 1. Agent Photo
+  "Sophia", // 2. FirstName
+  "Anderson", // 3. LastName
+  "New York", // 4. City
+  "NY", // 5. State
+  "10001", // 6. Zipcode
+  "+1-212-555-0199", // 7. CellPhone
+  "sophia.anderson@example.com", // 8. Email
+  "NAA550001", // 9. AgentNumber
+  "Active", // 10. AgentStatus
+  "2026-07-15", // 11. Date Recruited
+  "55", // 12. AgentLevel
+  "125 Madison Avenue", // 13. Address
+  "John Carter", // 14. Recruiter Name
+  "1990-05-20", // 15. Date of Birth
+  "Manager A", // 16. ASSIGNED TO
+  "Public", // 17. Visibility
+  "https://www.example.com/agents/sophia-anderson", // 18. Website
+  "LinkedIn", // 19. Lead Source
+  "Inbound", // 20. Lead Type
+  "Global Realty Partner", // 21. Referred By
+  "US Real Estate Campaign 1", // 22. Campaign
+  "https://twitter.com/sophiaanderson", // 23. Twitter
+  "https://facebook.com/sophia.anderson", // 24. Facebook
+  "https://linkedin.com/in/sophia-anderson", // 25. LinkedIn
+  "https://threads.net/@sophiaanderson", // 26. Thread
+  "https://instagram.com/sophiaanderson", // 27. Instagram
+  "https://youtube.com/@sophiaanderson", // 28. YouTube
+  "https://tiktok.com/@sophiaanderson", // 29. TikTok
+  "Dummy foreign client record for import testing.", // 30. Notes
+  "NorthStar Realty", // 31. Assigned Company
+  "United States", // 32. Country
+];
+
+export function createAgentTemplateWorkbook(): XLSX.WorkBook {
+  const workbook = XLSX.utils.book_new();
+  const sheetData = [
+    [...AGENT_IMPORT_TEMPLATE_COLUMNS],
+    [...AGENT_IMPORT_TEMPLATE_DUMMY_ROW],
+  ];
+  const sheet = XLSX.utils.aoa_to_sheet(sheetData);
+
+  // Set explicit string cell types on dummy row to preserve string typing for Zipcode, CellPhone, AgentNumber, etc.
+  for (let c = 0; c < AGENT_IMPORT_TEMPLATE_COLUMNS.length; c++) {
+    const cellAddress = XLSX.utils.encode_cell({ r: 1, c });
+    const cell = sheet[cellAddress];
+    if (cell) {
+      cell.t = "s";
+      cell.v = String(AGENT_IMPORT_TEMPLATE_DUMMY_ROW[c] ?? "");
+    }
+  }
+
+  XLSX.utils.book_append_sheet(workbook, sheet, "Agents");
+  return workbook;
 }
