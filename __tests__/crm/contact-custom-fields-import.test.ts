@@ -1,3 +1,40 @@
+jest.mock("@/lib/prisma", () => ({
+  prismadb: {
+    crm_Contacts: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+      update: jest.fn(),
+    },
+    crm_Accounts: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    users: {
+      findMany: jest.fn(),
+    },
+    crm_Lead_Sources: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    crm_Lead_Statuses: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    crm_Lead_Types: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    crm_Contact_Types: {
+      findMany: jest.fn(),
+      create: jest.fn(),
+    },
+    custom_fields: {
+      findMany: jest.fn(),
+    },
+    $queryRaw: jest.fn(),
+  },
+}));
+
 import {
   normalizeHeader,
   fieldAppliesToEntity,

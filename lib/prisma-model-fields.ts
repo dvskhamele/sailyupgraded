@@ -22,7 +22,7 @@ function getDbColumnCache() {
   return global.cachedPrismaDbColumnNames;
 }
 
-export async function getExistingDbColumnNames(modelName: string) {
+export async function getExistingDbColumnNames(modelName: string): Promise<Set<string>> {
   const dbColumnCache = getDbColumnCache();
   const cached = dbColumnCache.get(modelName);
   if (cached) return cached;
@@ -31,25 +31,38 @@ export async function getExistingDbColumnNames(modelName: string) {
     const model = getModelMetadata(modelName);
     if (!model) return new Set<string>();
 
-    const tableName = model.dbName ?? model.name;
-    const rows = await prismadb.$queryRaw<Array<{ COLUMN_NAME: string }>>`
-      SELECT COLUMN_NAME
-      FROM INFORMATION_SCHEMA.COLUMNS
-      WHERE TABLE_SCHEMA = DATABASE()
-        AND TABLE_NAME = ${tableName}
-      ORDER BY ORDINAL_POSITION
-    `;
+    const defaultFieldNames = getModelFieldNames(modelName);
 
-    return new Set(rows.map((row) => row.COLUMN_NAME));
+    try {
+      if (!prismadb || typeof (prismadb as any).$queryRaw !== "function") {
+        return defaultFieldNames;
+      }
+      const tableName = model.dbName ?? model.name;
+      const rows = await prismadb.$queryRaw<Array<{ COLUMN_NAME: string }>>`
+        SELECT COLUMN_NAME
+        FROM INFORMATION_SCHEMA.COLUMNS
+        WHERE TABLE_SCHEMA = DATABASE()
+          AND TABLE_NAME = ${tableName}
+        ORDER BY ORDINAL_POSITION
+      `;
+
+      if (!Array.isArray(rows) || rows.length === 0) {
+        return defaultFieldNames;
+      }
+
+      return new Set(rows.map((row) => row.COLUMN_NAME));
+    } catch {
+      return defaultFieldNames;
+    }
   })();
 
   dbColumnCache.set(modelName, promise);
 
   try {
     return await promise;
-  } catch (error) {
+  } catch {
     dbColumnCache.delete(modelName);
-    throw error;
+    return getModelFieldNames(modelName);
   }
 }
 

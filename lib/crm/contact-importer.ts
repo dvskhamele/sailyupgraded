@@ -31,6 +31,8 @@ import {
   normalizeSpreadsheetHeader,
 } from "@/lib/crm/agent-spreadsheet";
 import { parseDateValue } from "@/lib/crm/date-parser";
+import { formatBirthdayForContactDb } from "@/lib/crm/birthday";
+import { normalizeContactNotes } from "@/lib/crm/notes";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -91,67 +93,111 @@ export interface ContactImportOptions {
 const STANDARD_FIELD_ALIASES: Record<string, string[]> = {
   serial: [
     "serial",
+    "agent number",
+    "agentnumber",
+    "agent_number",
+    "agent no",
+    "agentno",
+    "agent id",
+    "agentid",
+    "agent code",
     "reference id",
     "reference number",
     "referenceid",
     "referencenumber",
     "role id",
     "contact id",
+    "customer id",
+    "client id",
     "sr no",
     "sequence",
   ],
-  first_name: ["first name", "firstname", "given name"],
-  last_name: ["last name", "lastname", "surname", "family name"],
-  email: ["email", "e-mail", "email address", "mail", "electronic mail"],
-  personal_email: ["personal email", "personalemail", "private email"],
-  mobile_phone: ["mobile", "mobile phone", "mobilephone", "cell", "cell phone"],
+  first_name: ["first name", "firstname", "first_name", "given name", "givenname", "forename"],
+  last_name: ["last name", "lastname", "last_name", "surname", "family name", "familyname"],
+  email: ["email", "e-mail", "email address", "emailaddress", "mail", "electronic mail"],
+  personal_email: ["personal email", "personalemail", "personal_email", "private email", "privateemail"],
+  mobile_phone: ["cellphone", "cell phone", "cell_phone", "mobile", "mobile phone", "mobilephone", "mobile_phone", "cell"],
   office_phone: [
     "office phone",
     "officephone",
+    "office_phone",
     "telephone",
     "tel",
     "work phone",
+    "workphone",
+    "work",
     "phone",
     "phone number",
   ],
-  website: ["website", "web", "url", "site"],
+  website: ["website", "web", "url", "site", "web address", "webaddress"],
   position: ["position", "job title", "title", "designation"],
-  description: ["description", "notes", "note", "details"],
-  birthday: ["birthday", "birth date", "birthdate", "dob", "date of birth"],
-  company: ["company", "company name", "assigned company", "organization", "organisation"],
-  jobTitle: ["job title", "jobtitle"],
-  address: ["address", "full address"],
-  address_line1: ["address line 1", "addressline1", "street", "street 1"],
-  address_line2: ["address line 2", "addressline2", "street 2"],
-  city: ["city", "town"],
-  state: ["state", "region", "province"],
-  country: ["country"],
-  postal_code: ["postal code", "postalcode", "zip", "zip code", "pincode"],
-  status: ["status", "active", "is active", "isactive"],
-  assigned_to: ["assigned to", "assignedto", "owner", "user", "assignee"],
+  description: ["description", "notes", "note", "details", "about", "summary"],
+  notes: ["notes", "note", "internal notes", "internalnotes", "remarks", "comments"],
+  birthday: ["birthday", "birth date", "birthdate", "dob", "date of birth", "dateofbirth", "date_of_birth", "birth_date"],
+  company: ["company", "company name", "companyname", "assigned company", "assignedcompany", "assigned_company", "organization", "organisation"],
+  jobTitle: ["job title", "jobtitle", "job_title"],
+  address: ["address", "full address", "fulladdress", "complete address"],
+  address_line1: ["address line 1", "addressline1", "address_line1", "street", "street 1", "address 1", "addresslineone"],
+  address_line2: ["address line 2", "addressline2", "address_line2", "street 2", "suite", "apartment", "address 2", "addresslinetwo"],
+  city: ["city", "town", "city name"],
+  state: ["state", "region", "province", "state name"],
+  country: ["country", "country name"],
+  postal_code: ["zipcode", "zip code", "zip_code", "zip", "postal code", "postalcode", "postal_code", "pincode", "postcode"],
+  status: ["agent status", "agentstatus", "agent_status", "status", "active", "is active", "isactive", "status field"],
+  role: ["role", "role field", "contact role"],
+  assigned_to: ["assigned to", "assignedto", "assigned_to", "assigned member", "assignedmember", "owner", "user", "assignee"],
+  accountsIDs: [
+    "assigned company",
+    "assignedcompany",
+    "assigned_company",
+    "assigned account",
+    "assignedaccount",
+    "account",
+    "account name",
+    "accountname",
+    "company name",
+    "company",
+  ],
   assigned_account: [
     "account",
     "account name",
     "accountname",
     "assigned account",
     "assignedaccount",
+    "assigned company",
+    "assignedcompany",
     "company name",
     "company",
   ],
-  social_twitter: ["twitter", "x"],
-  social_facebook: ["facebook"],
-  social_linkedin: ["linkedin", "linkedin url", "linkedin profile", "linkedinurl"],
-  social_skype: ["thread", "skype"],
-  social_youtube: ["youtube"],
-  social_tiktok: ["tiktok", "tik tok"],
-  social_instagram: ["instagram"],
-  lead_source_id: ["lead source", "leadsource", "lead source id"],
-  lead_status_id: ["lead status", "leadstatus", "lead status id"],
-  lead_type_id: ["lead type", "leadtype", "lead type id"],
-  refered_by: ["referred by", "refered by", "referrer", "referredby"],
+  visible_to_name: ["visibility", "visible to", "visibleto", "visible_to", "visible to name"],
+  social_twitter: ["twitter", "x", "twitter handle", "twitter url", "twitterhandle", "twitterurl"],
+  social_facebook: ["facebook", "facebook url", "facebook page", "facebookurl", "facebookpage"],
+  social_linkedin: ["linkedin", "linkedin url", "linkedin profile", "linkedinurl", "linkedinprofile"],
+  social_skype: ["thread", "threads", "thread handle", "threadhandle", "skype", "skype id", "skypeid"],
+  social_youtube: ["youtube", "youtube channel", "youtube url", "youtubechannel", "youtubeurl"],
+  social_tiktok: ["tiktok", "tik tok", "tiktok handle", "tiktok url", "tiktokhandle", "tiktokurl"],
+  social_instagram: ["instagram", "instagram handle", "instagram url", "instagramhandle", "instagramurl"],
+  agent_photo: ["agent photo", "agentphoto", "agent_photo", "photo", "avatar", "picture", "image"],
+  recruiter_name: ["recruiter name", "recruitername", "recruiter_name", "recruiter"],
+  lead_source_id: ["lead source", "leadsource", "lead_source", "lead source id", "source"],
+  lead_status_id: ["lead status", "leadstatus", "lead_status", "lead status id"],
+  lead_type_id: ["lead type", "leadtype", "lead_type", "lead type id"],
+  refered_by: ["referred by", "refered by", "referrer", "referredby", "referedby", "referred_by", "refered_by", "referral"],
   campaign: ["campaign"],
-  agent_level: ["agent level", "agentlevel", "agent_level", "agent tier", "agent rank"],
-  created_on: ["date entered", "dateentered", "date recruited", "daterecruited", "date created", "datecreated", "entered date", "recruited date"],
+  agent_level: ["agent level", "agentlevel", "agent_level", "percent level", "% level", "level", "agent tier", "agent rank"],
+  created_on: [
+    "date recruited",
+    "daterecruited",
+    "date_recruited",
+    "date entered",
+    "dateentered",
+    "date_entered",
+    "date created",
+    "datecreated",
+    "date_created",
+    "entered date",
+    "recruited date",
+  ],
 };
 
 // ---------------------------------------------------------------------------
@@ -375,17 +421,24 @@ export function extractCustomFields(
   return result;
 }
 
+function parseStatusValue(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  const str = String(value ?? "").trim().toLowerCase();
+  if (!str) return true;
+  if (["active", "true", "1", "yes", "y", "enabled"].includes(str)) return true;
+  if (["inactive", "false", "0", "no", "n", "disabled", "terminated", "archived", "suspended"].includes(str)) return false;
+  return true;
+}
+
 function coerceScalarValue(fieldName: string, value: string) {
   const field = getAgentSpreadsheetFields().find((candidate) => candidate.key === fieldName);
   if (!field) return value;
   if (field.type === "Boolean") {
-    const normalized = value.trim().toLowerCase();
-    if (["true", "1", "yes", "y", "active"].includes(normalized)) return true;
-    if (["false", "0", "no", "n", "inactive"].includes(normalized)) return false;
-    throw new Error(`Invalid boolean value "${value}" for ${field.label}`);
+    return parseStatusValue(value);
   }
   if (["Int", "Float", "Decimal"].includes(field.type)) {
-    const number = Number(value);
+    const cleaned = value.replace(/,/g, "").replace(/[$€£¥%]/g, "").trim();
+    const number = Number(cleaned);
     if (!Number.isFinite(number)) throw new Error(`Invalid number value "${value}" for ${field.label}`);
     return number;
   }
@@ -485,7 +538,7 @@ export interface BulkInsertResult {
 /**
  * Bulk insert mapped contacts into the database.
  * Each row is processed individually so that one failure doesn't stop the batch.
- * Duplicate records are always allowed — no duplicate detection is performed.
+ * Duplicate records are updated when unique fields match.
  * No required field validation — any row with data is imported.
  */
 export async function bulkInsertContacts(
@@ -514,9 +567,10 @@ export async function bulkInsertContacts(
   const uniqueLeadTypes = new Set<string>();
   const uniqueContactTypes = new Set<string>();
 
-  for (const { mapped } of mappedRows) {
+  for (const { mapped, row: rawRow } of mappedRows) {
     if (mapped.modelValues.assigned_to) uniqueUsers.add(mapped.modelValues.assigned_to);
-    if (mapped.modelValues.accountsIDs) uniqueAccounts.add(mapped.modelValues.accountsIDs);
+    const acctVal = mapped.modelValues.accountsIDs || mapped.modelValues.company || rawRow["Assigned Company"] || rawRow["Company"];
+    if (acctVal) uniqueAccounts.add(String(acctVal).trim());
     if (mapped.modelValues.lead_source_id) uniqueLeadSources.add(mapped.modelValues.lead_source_id);
     if (mapped.modelValues.lead_status_id) uniqueLeadStatuses.add(mapped.modelValues.lead_status_id);
     if (mapped.modelValues.lead_type_id) uniqueLeadTypes.add(mapped.modelValues.lead_type_id);
@@ -602,6 +656,7 @@ export async function bulkInsertContacts(
     userLookup.set(u.id, u.id);
     if (u.email) userLookup.set(u.email, u.id);
     if (u.name) userLookup.set(u.name, u.id);
+    if (u.name) userLookup.set(u.name.trim().toLowerCase(), u.id);
   });
   accounts.forEach((a) => {
     accountLookup.set(a.id, a.id);
@@ -635,19 +690,89 @@ export async function bulkInsertContacts(
     (name) => !accountNamesSet.has(name.trim().toLowerCase()) && !accountLookup.has(name.trim().toLowerCase()),
   );
   for (const accountName of missingAccountNames) {
-    const account = await prismadb.crm_Accounts.create({
-      data: {
-        v: 0,
-        name: accountName.trim(),
-        status: "Active",
-        createdBy: userId,
-        updatedBy: userId,
-      },
-      select: { id: true, name: true },
-    });
-    accountLookup.set(account.id, account.id);
-    accountLookup.set(account.name, account.id);
-    accountLookup.set(account.name.trim().toLowerCase(), account.id);
+    try {
+      const account = await prismadb.crm_Accounts.create({
+        data: {
+          v: 0,
+          name: accountName.trim(),
+          status: "Active",
+          createdBy: userId,
+          updatedBy: userId,
+        },
+        select: { id: true, name: true },
+      });
+      accountLookup.set(account.id, account.id);
+      accountLookup.set(account.name, account.id);
+      accountLookup.set(account.name.trim().toLowerCase(), account.id);
+    } catch {}
+  }
+
+  // Auto-create missing lead sources
+  const leadSourceNamesSet = new Set(leadSources.map((ls) => ls.name.trim().toLowerCase()));
+  const missingLeadSourceNames = Array.from(uniqueLeadSources).filter(
+    (name) => !leadSourceNamesSet.has(name.trim().toLowerCase()) && !leadSourceLookup.has(name.trim().toLowerCase()),
+  );
+  for (const sourceName of missingLeadSourceNames) {
+    try {
+      const source = await prismadb.crm_Lead_Sources.create({
+        data: { v: 0, name: sourceName.trim() },
+        select: { id: true, name: true },
+      });
+      leadSourceLookup.set(source.id, source.id);
+      leadSourceLookup.set(source.name, source.id);
+      leadSourceLookup.set(source.name.trim().toLowerCase(), source.id);
+    } catch {}
+  }
+
+  // Auto-create missing lead statuses
+  const leadStatusNamesSet = new Set(leadStatuses.map((ls) => ls.name.trim().toLowerCase()));
+  const missingLeadStatusNames = Array.from(uniqueLeadStatuses).filter(
+    (name) => !leadStatusNamesSet.has(name.trim().toLowerCase()) && !leadStatusLookup.has(name.trim().toLowerCase()),
+  );
+  for (const statusName of missingLeadStatusNames) {
+    try {
+      const statusRecord = await prismadb.crm_Lead_Statuses.create({
+        data: { v: 0, name: statusName.trim() },
+        select: { id: true, name: true },
+      });
+      leadStatusLookup.set(statusRecord.id, statusRecord.id);
+      leadStatusLookup.set(statusRecord.name, statusRecord.id);
+      leadStatusLookup.set(statusRecord.name.trim().toLowerCase(), statusRecord.id);
+    } catch {}
+  }
+
+  // Auto-create missing lead types
+  const leadTypeNamesSet = new Set(leadTypes.map((lt) => lt.name.trim().toLowerCase()));
+  const missingLeadTypeNames = Array.from(uniqueLeadTypes).filter(
+    (name) => !leadTypeNamesSet.has(name.trim().toLowerCase()) && !leadTypeLookup.has(name.trim().toLowerCase()),
+  );
+  for (const typeName of missingLeadTypeNames) {
+    try {
+      const typeRecord = await prismadb.crm_Lead_Types.create({
+        data: { v: 0, name: typeName.trim() },
+        select: { id: true, name: true },
+      });
+      leadTypeLookup.set(typeRecord.id, typeRecord.id);
+      leadTypeLookup.set(typeRecord.name, typeRecord.id);
+      leadTypeLookup.set(typeRecord.name.trim().toLowerCase(), typeRecord.id);
+    } catch {}
+  }
+
+  // Auto-create missing contact types
+  const contactTypeNamesSet = new Set(contactTypes.map((ct) => ct.name.trim().toLowerCase()));
+  const missingContactTypeNames = Array.from(uniqueContactTypes).filter(
+    (name) => !contactTypeNamesSet.has(name.trim().toLowerCase()) && !contactTypeLookup.has(name.trim().toLowerCase()),
+  );
+  for (const ctName of missingContactTypeNames) {
+    try {
+      const ctRecord = await prismadb.crm_Contact_Types.create({
+        data: { name: ctName.trim() },
+        select: { id: true, name: true },
+      });
+      contactTypeLookup.set(ctRecord.id, ctRecord.id);
+      contactTypeLookup.set(ctRecord.name, ctRecord.id);
+      contactTypeLookup.set(ctRecord.name.trim().toLowerCase(), ctRecord.id);
+    } catch {}
   }
 
   // Pre-fetch existing contacts for update / upsert matching
@@ -661,9 +786,10 @@ export async function bulkInsertContacts(
     if (mapped.modelValues.personal_email) uniqueEmails.add(normalizeEmail(mapped.modelValues.personal_email));
     if (mapped.modelValues.mobile_phone) uniquePhones.add(normalizePhone(mapped.modelValues.mobile_phone));
     if (mapped.modelValues.office_phone) uniquePhones.add(normalizePhone(mapped.modelValues.office_phone));
+    if (mapped.modelValues.phone) uniquePhones.add(normalizePhone(mapped.modelValues.phone));
   }
 
-  const existingConditions = [];
+  const existingConditions: Array<Record<string, unknown>> = [];
   if (uniqueSerials.size > 0) existingConditions.push({ serial: { in: Array.from(uniqueSerials) } });
   if (uniqueEmails.size > 0) {
     const emailList = Array.from(uniqueEmails).filter(Boolean);
@@ -677,6 +803,7 @@ export async function bulkInsertContacts(
     if (phoneList.length > 0) {
       existingConditions.push({ mobile_phone: { in: phoneList } });
       existingConditions.push({ office_phone: { in: phoneList } });
+      existingConditions.push({ phone: { in: phoneList } });
     }
   }
 
@@ -693,6 +820,8 @@ export async function bulkInsertContacts(
           personal_email: true,
           mobile_phone: true,
           office_phone: true,
+          phone: true,
+          notes: true,
           custom_fields_data: true,
         },
       })
@@ -708,6 +837,7 @@ export async function bulkInsertContacts(
     if (c.personal_email) existingByEmail.set(normalizeEmail(c.personal_email), c);
     if (c.mobile_phone) existingByPhone.set(normalizePhone(c.mobile_phone), c);
     if (c.office_phone) existingByPhone.set(normalizePhone(c.office_phone), c);
+    if (c.phone) existingByPhone.set(normalizePhone(c.phone), c);
   });
 
   let imported = 0;
@@ -716,12 +846,13 @@ export async function bulkInsertContacts(
 
   for (const { row: rawRow, mapped, rowNumber } of mappedRows) {
     try {
-      const email = mapped.modelValues.email || "";
+      const email = mapped.modelValues.email ? mapped.modelValues.email.trim() : "";
       const normalizedEmailVal = email ? normalizeEmail(email) : "";
-      const mobilePhone = mapped.modelValues.mobile_phone || "";
+      const mobilePhone = mapped.modelValues.mobile_phone ? mapped.modelValues.mobile_phone.trim() : "";
       const normalizedMobilePhone = mobilePhone ? normalizePhone(mobilePhone) : "";
-      const officePhone = mapped.modelValues.office_phone || "";
+      const officePhone = mapped.modelValues.office_phone ? mapped.modelValues.office_phone.trim() : "";
       const normalizedOfficePhone = officePhone ? normalizePhone(officePhone) : "";
+      const generalPhone = mapped.modelValues.phone ? mapped.modelValues.phone.trim() : "";
 
       // Compute name - use "Imported Contact" as fallback if no name provided
       const firstName = mapped.modelValues.first_name || "";
@@ -731,38 +862,57 @@ export async function bulkInsertContacts(
       const computedLastName = lastName || (fullName ? "" : "Imported Contact");
 
       // Resolve references
-      const resolvedAssignedTo = mapped.modelValues.assigned_to
-        ? userLookup.get(mapped.modelValues.assigned_to) ?? userLookup.get(mapped.modelValues.assigned_to.trim().toLowerCase())
+      const rawAssignedTo = mapped.modelValues.assigned_to?.trim();
+      const resolvedAssignedTo = rawAssignedTo
+        ? userLookup.get(rawAssignedTo) ?? userLookup.get(rawAssignedTo.toLowerCase())
         : undefined;
-      const resolvedAccount = mapped.modelValues.accountsIDs
-        ? accountLookup.get(mapped.modelValues.accountsIDs) ?? accountLookup.get(mapped.modelValues.accountsIDs.trim().toLowerCase())
+
+      const rawAccount = (mapped.modelValues.accountsIDs || mapped.modelValues.company || rawRow["Assigned Company"] || rawRow["Company"] || "").trim();
+      const resolvedAccount = rawAccount
+        ? accountLookup.get(rawAccount) ?? accountLookup.get(rawAccount.toLowerCase())
         : undefined;
-      const resolvedLeadSource = mapped.modelValues.lead_source_id
-        ? leadSourceLookup.get(mapped.modelValues.lead_source_id) ?? leadSourceLookup.get(mapped.modelValues.lead_source_id.trim().toLowerCase())
+
+      const rawLeadSource = mapped.modelValues.lead_source_id?.trim();
+      const resolvedLeadSource = rawLeadSource
+        ? leadSourceLookup.get(rawLeadSource) ?? leadSourceLookup.get(rawLeadSource.toLowerCase())
         : undefined;
-      const resolvedLeadStatus = mapped.modelValues.lead_status_id
-        ? leadStatusLookup.get(mapped.modelValues.lead_status_id) ?? leadStatusLookup.get(mapped.modelValues.lead_status_id.trim().toLowerCase())
+
+      const rawLeadStatus = mapped.modelValues.lead_status_id?.trim();
+      const resolvedLeadStatus = rawLeadStatus
+        ? leadStatusLookup.get(rawLeadStatus) ?? leadStatusLookup.get(rawLeadStatus.toLowerCase())
         : undefined;
-      const resolvedLeadType = mapped.modelValues.lead_type_id
-        ? leadTypeLookup.get(mapped.modelValues.lead_type_id) ?? leadTypeLookup.get(mapped.modelValues.lead_type_id.trim().toLowerCase())
+
+      const rawLeadType = mapped.modelValues.lead_type_id?.trim();
+      const resolvedLeadType = rawLeadType
+        ? leadTypeLookup.get(rawLeadType) ?? leadTypeLookup.get(rawLeadType.toLowerCase())
         : undefined;
-      const resolvedContactType = mapped.modelValues.contact_type_id
-        ? contactTypeLookup.get(mapped.modelValues.contact_type_id) ?? contactTypeLookup.get(mapped.modelValues.contact_type_id.trim().toLowerCase())
+
+      const rawContactType = mapped.modelValues.contact_type_id?.trim();
+      const resolvedContactType = rawContactType
+        ? contactTypeLookup.get(rawContactType) ?? contactTypeLookup.get(rawContactType.toLowerCase())
         : undefined;
-      const unresolvedRelationship = [
-        ["Assigned Member", mapped.modelValues.assigned_to, resolvedAssignedTo],
-        ["Assigned Company", mapped.modelValues.accountsIDs, resolvedAccount],
-        ["Contact Type", mapped.modelValues.contact_type_id, resolvedContactType],
-        ["Lead Source", mapped.modelValues.lead_source_id, resolvedLeadSource],
-        ["Lead Status", mapped.modelValues.lead_status_id, resolvedLeadStatus],
-        ["Lead Type", mapped.modelValues.lead_type_id, resolvedLeadType],
-      ].find(([, value, resolved]) => value && !resolved);
-      if (unresolvedRelationship) {
-        throw new Error(`${unresolvedRelationship[0]} value "${unresolvedRelationship[1]}" could not be resolved to an existing record.`);
-      }
 
       // Handle custom fields
       const allCustomValues = extractCustomFields(mapped, customFieldDefinitions);
+
+      // Handle Recruiter Name and Agent Photo
+      const recruiterName = mapped.modelValues.recruiter_name || mapped.unknownColumnValues["Recruiter Name"] || mapped.unknownColumnValues["recruiter_name"] || rawRow["Recruiter Name"] || "";
+      if (recruiterName) {
+        allCustomValues["recruiter_name"] = recruiterName;
+        allCustomValues["Recruiter Name"] = recruiterName;
+      }
+
+      const agentPhoto = mapped.modelValues.agent_photo || mapped.unknownColumnValues["Agent Photo"] || mapped.unknownColumnValues["agent_photo"] || rawRow["Agent Photo"] || "";
+      if (agentPhoto) {
+        allCustomValues["agent_photo"] = agentPhoto;
+        allCustomValues["Agent Photo"] = agentPhoto;
+      }
+
+      if (rawAssignedTo && !resolvedAssignedTo) {
+        allCustomValues["assigned_member"] = rawAssignedTo;
+        allCustomValues["Assigned Member"] = rawAssignedTo;
+      }
+
       for (const customField of customFieldDefinitions) {
         const customValue = allCustomValues[customField.id];
         if (customField.type === "file" && allCustomValues[customField.id]) {
@@ -793,30 +943,69 @@ export async function bulkInsertContacts(
         }
       }
 
-      const customFieldsData = {
+      const customFieldsData: Record<string, unknown> = {
         ...sanitizedCustomValues,
         ...(Object.keys(unknownEntries).length > 0 ? unknownEntries : {}),
       };
+      if (recruiterName) {
+        customFieldsData["recruiter_name"] = recruiterName;
+        customFieldsData["Recruiter Name"] = recruiterName;
+      }
+      if (agentPhoto) {
+        customFieldsData["agent_photo"] = agentPhoto;
+        customFieldsData["Agent Photo"] = agentPhoto;
+      }
+      if (rawAssignedTo && !resolvedAssignedTo) {
+        customFieldsData["assigned_member"] = rawAssignedTo;
+        customFieldsData["Assigned Member"] = rawAssignedTo;
+      }
       const hasCustomFields = Object.keys(customFieldsData).length > 0;
 
-      // Serial
-      const serial = mapped.modelValues.serial || generateSerial(normalizedRole, rowNumber, importBatchId);
-      const supportedSerial = await pickExistingDbModelFields("crm_Contacts", { serial });
+      // Serial (AgentNumber)
+      const rawSerial = mapped.modelValues.serial?.trim() || rawRow["AgentNumber"]?.trim() || rawRow["Agent Number"]?.trim();
+      const serial = rawSerial || generateSerial(normalizedRole, rowNumber, importBatchId);
+
+      // Notes & Description
+      const noteText = mapped.modelValues.notes || mapped.modelValues.description || rawRow["Notes"] || rawRow["Note"] || "";
+      const parsedNotes = noteText ? normalizeContactNotes(noteText) : [];
+
+      // Birthday
+      const rawBirthday = mapped.modelValues.birthday || rawRow["Date of Birth"] || rawRow["Date Of Birth"] || rawRow["Birthday"] || "";
+      const formattedBirthday = rawBirthday ? (formatBirthdayForContactDb(rawBirthday) || rawBirthday.trim()) : undefined;
+
+      // Address
+      const rawAddress = mapped.modelValues.address || mapped.modelValues.address_line1 || rawRow["Address"] || "";
+      const addressLine1 = mapped.modelValues.address_line1 || rawAddress || undefined;
+      const addressLine2 = mapped.modelValues.address_line2 || rawRow["Address Line 2"] || undefined;
+      const city = mapped.modelValues.city || rawRow["City"] || undefined;
+      const state = mapped.modelValues.state || rawRow["State"] || undefined;
+      const postalCode = mapped.modelValues.postal_code || rawRow["Zipcode"] || rawRow["Zip Code"] || undefined;
+      const country = mapped.modelValues.country || rawRow["Country"] || undefined;
+
+      // Status
+      const rawStatus = mapped.modelValues.status ?? rawRow["AgentStatus"] ?? rawRow["Agent Status"] ?? rawRow["Status"];
+      const status = rawStatus !== undefined && rawStatus !== "" ? parseStatusValue(rawStatus) : true;
+
+      // Dynamic scalar values
       const dynamicFields = getAgentSpreadsheetFields(customFieldDefinitions, role as CustomFieldContactRole);
       const supportedDynamicValues: Record<string, unknown> = {};
       for (const [fieldName, value] of Object.entries(mapped.modelValues)) {
         const field = dynamicFields.find((candidate) => candidate.key === fieldName);
         if (!field || !isAgentSpreadsheetImportable(field)) {
-          if (field && value) throw new Error(`${field.label} cannot be imported from Excel (${field.type} fields require a supported upload flow).`);
+          if (field && value && field.type === "file") throw new Error(`${field.label} cannot be imported from Excel (${field.type} fields require a supported upload flow).`);
           continue;
         }
-        if (["serial", "first_name", "last_name", "email", "personal_email", "mobile_phone", "office_phone", "accountsIDs", "assigned_to", "contact_type_id", "lead_source_id", "lead_status_id", "lead_type_id", "role", "status"].includes(fieldName)) continue;
+        if (["serial", "first_name", "last_name", "email", "personal_email", "mobile_phone", "office_phone", "phone", "accountsIDs", "company", "assigned_to", "contact_type_id", "lead_source_id", "lead_status_id", "lead_type_id", "role", "status", "notes", "description", "birthday", "address", "address_line1", "address_line2", "city", "state", "postal_code", "country"].includes(fieldName)) continue;
         supportedDynamicValues[fieldName] = coerceScalarValue(fieldName, value);
+      }
+
+      if (mapped.modelValues.created_on) {
+        supportedDynamicValues["created_on"] = coerceScalarValue("created_on", mapped.modelValues.created_on);
       }
 
       // Check if this row matches an existing contact for update / upsert
       const existingMatch =
-        (mapped.modelValues.serial ? existingBySerial.get(mapped.modelValues.serial.trim().toLowerCase()) : undefined) ||
+        (rawSerial ? existingBySerial.get(rawSerial.toLowerCase()) : undefined) ||
         (normalizedEmailVal ? existingByEmail.get(normalizedEmailVal) : undefined) ||
         (mapped.modelValues.personal_email ? existingByEmail.get(normalizeEmail(mapped.modelValues.personal_email)) : undefined) ||
         (normalizedMobilePhone ? existingByPhone.get(normalizedMobilePhone) : undefined) ||
@@ -840,21 +1029,46 @@ export async function bulkInsertContacts(
 
         if (computedFirstName) updateData.first_name = computedFirstName;
         if (lastName) updateData.last_name = lastName;
-        if (normalizedEmailVal) updateData.email = normalizedEmailVal;
-        if (mapped.modelValues.personal_email) updateData.personal_email = mapped.modelValues.personal_email;
-        if (normalizedMobilePhone) updateData.mobile_phone = normalizedMobilePhone;
-        if (normalizedOfficePhone) updateData.office_phone = normalizedOfficePhone;
+        if (email) updateData.email = email;
+        if (mapped.modelValues.personal_email) updateData.personal_email = mapped.modelValues.personal_email.trim();
+        if (mobilePhone) updateData.mobile_phone = mobilePhone;
+        if (officePhone) updateData.office_phone = officePhone;
+        if (generalPhone) updateData.phone = generalPhone;
         if (resolvedAssignedTo) updateData.assigned_to = resolvedAssignedTo;
         if (resolvedAccount) updateData.accountsIDs = resolvedAccount;
+        if (rawAccount) updateData.company = rawAccount;
         if (resolvedContactType) updateData.contact_type_id = resolvedContactType;
         if (resolvedLeadSource) updateData.lead_source_id = resolvedLeadSource;
         if (resolvedLeadStatus) updateData.lead_status_id = resolvedLeadStatus;
         if (resolvedLeadType) updateData.lead_type_id = resolvedLeadType;
-        if (mapped.modelValues.refered_by) updateData.refered_by = mapped.modelValues.refered_by;
+        if (mapped.modelValues.refered_by || recruiterName) updateData.refered_by = mapped.modelValues.refered_by || recruiterName;
         if (mapped.modelValues.campaign) updateData.campaign = mapped.modelValues.campaign;
-        if (mapped.modelValues.status) {
-          updateData.status = mapped.modelValues.status.toLowerCase() === "active" || mapped.modelValues.status === "1" || mapped.modelValues.status.toLowerCase() === "true";
+        if (rawStatus !== undefined && rawStatus !== "") updateData.status = status;
+        if (rawAddress) updateData.address = rawAddress;
+        if (addressLine1) updateData.address_line1 = addressLine1;
+        if (addressLine2) updateData.address_line2 = addressLine2;
+        if (city) updateData.city = city;
+        if (state) updateData.state = state;
+        if (postalCode) updateData.postal_code = postalCode;
+        if (country) updateData.country = country;
+        if (formattedBirthday) updateData.birthday = formattedBirthday;
+        if (mapped.modelValues.agent_level) updateData.agent_level = mapped.modelValues.agent_level;
+        if (mapped.modelValues.website) updateData.website = mapped.modelValues.website;
+        if (mapped.modelValues.visible_to_name) updateData.visible_to_name = mapped.modelValues.visible_to_name;
+        if (mapped.modelValues.social_twitter) updateData.social_twitter = mapped.modelValues.social_twitter;
+        if (mapped.modelValues.social_facebook) updateData.social_facebook = mapped.modelValues.social_facebook;
+        if (mapped.modelValues.social_linkedin) updateData.social_linkedin = mapped.modelValues.social_linkedin;
+        if (mapped.modelValues.social_skype) updateData.social_skype = mapped.modelValues.social_skype;
+        if (mapped.modelValues.social_instagram) updateData.social_instagram = mapped.modelValues.social_instagram;
+        if (mapped.modelValues.social_youtube) updateData.social_youtube = mapped.modelValues.social_youtube;
+        if (mapped.modelValues.social_tiktok) updateData.social_tiktok = mapped.modelValues.social_tiktok;
+
+        if (noteText) {
+          updateData.description = noteText;
+          const existingNotes = Array.isArray(existingMatch.notes) ? existingMatch.notes : [];
+          updateData.notes = [...existingNotes, ...parsedNotes];
         }
+
         for (const [key, val] of Object.entries(supportedDynamicValues)) {
           if (val !== undefined && val !== null && val !== "") {
             updateData[key] = val;
@@ -876,24 +1090,37 @@ export async function bulkInsertContacts(
       } else {
         // Build contact payload
         const contactPayload = {
-          ...supportedSerial,
           ...supportedDynamicValues,
+          serial: serial || undefined,
           v: 1,
           first_name: computedFirstName || undefined,
           last_name: computedLastName,
-          email: normalizedEmailVal || undefined,
+          email: email || undefined,
           personal_email: mapped.modelValues.personal_email || undefined,
-          mobile_phone: normalizedMobilePhone || undefined,
-          office_phone: normalizedOfficePhone || undefined,
-          status: mapped.modelValues.status ? mapped.modelValues.status.toLowerCase() === "active" || mapped.modelValues.status === "1" || mapped.modelValues.status.toLowerCase() === "true" : true,
+          mobile_phone: mobilePhone || undefined,
+          office_phone: officePhone || undefined,
+          phone: generalPhone || undefined,
+          status,
           assigned_to: resolvedAssignedTo,
           accountsIDs: resolvedAccount,
+          company: rawAccount || undefined,
+          address: rawAddress || undefined,
+          address_line1: addressLine1 || undefined,
+          address_line2: addressLine2 || undefined,
+          city: city || undefined,
+          state: state || undefined,
+          postal_code: postalCode || undefined,
+          country: country || undefined,
+          birthday: formattedBirthday || undefined,
+          agent_level: mapped.modelValues.agent_level || undefined,
           contact_type_id: resolvedContactType,
           lead_source_id: resolvedLeadSource,
           lead_status_id: resolvedLeadStatus,
           lead_type_id: resolvedLeadType,
-          refered_by: mapped.modelValues.refered_by || undefined,
+          refered_by: mapped.modelValues.refered_by || recruiterName || undefined,
           campaign: mapped.modelValues.campaign || undefined,
+          website: mapped.modelValues.website || undefined,
+          visible_to_name: mapped.modelValues.visible_to_name || "all_members",
           social_twitter: mapped.modelValues.social_twitter || undefined,
           social_facebook: mapped.modelValues.social_facebook || undefined,
           social_linkedin: mapped.modelValues.social_linkedin || undefined,
@@ -906,21 +1133,25 @@ export async function bulkInsertContacts(
           createdBy: userId,
           updatedBy: userId,
           tags: [],
-          notes: [],
+          notes: parsedNotes.length > 0 ? parsedNotes : [],
+          description: noteText || undefined,
         };
 
+        const supportedCreateFields = await pickExistingDbModelFields("crm_Contacts", contactPayload);
+
         const createdContact = await prismadb.crm_Contacts.create({
-          data: contactPayload as any,
-          select: { id: true, serial: true, email: true, personal_email: true, mobile_phone: true, office_phone: true },
+          data: supportedCreateFields as any,
+          select: { id: true, serial: true, email: true, personal_email: true, mobile_phone: true, office_phone: true, phone: true, notes: true, custom_fields_data: true },
         });
 
-        if (createdContact.serial) existingBySerial.set(createdContact.serial.trim().toLowerCase(), { ...createdContact, custom_fields_data: customFieldsData as any });
-        if (createdContact.email) existingByEmail.set(normalizeEmail(createdContact.email), { ...createdContact, custom_fields_data: customFieldsData as any });
-        if (createdContact.mobile_phone) existingByPhone.set(normalizePhone(createdContact.mobile_phone), { ...createdContact, custom_fields_data: customFieldsData as any });
+        if (createdContact.serial) existingBySerial.set(createdContact.serial.trim().toLowerCase(), createdContact as any);
+        if (createdContact.email) existingByEmail.set(normalizeEmail(createdContact.email), createdContact as any);
+        if (createdContact.mobile_phone) existingByPhone.set(normalizePhone(createdContact.mobile_phone), createdContact as any);
 
         imported += 1;
       }
     } catch (error) {
+      console.error(`[AGENT/CONTACT IMPORT ERROR] Row ${rowNumber}:`, error);
       errors.push({
         row: rowNumber,
         email: mapped.modelValues.email || null,

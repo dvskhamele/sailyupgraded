@@ -128,49 +128,72 @@ export function getAgentSpreadsheetHeaderMap(
   // Apply aliases FIRST so that custom fields and standard label lookups
   // take priority over alias entries.
   const aliases: Record<string, string> = {
-    firstname: "first_name", lastname: "last_name", emailaddress: "email",
-    fullname: "first_name", contactname: "first_name",
-    mobile: "mobile_phone", mobilephone: "mobile_phone", officephone: "office_phone",
-    companyname: "company", jobtitle: "jobTitle", title: "position",
-    assignedaccount: "accountsIDs", account: "accountsIDs", accountname: "accountsIDs",
-    assignedmember: "assigned_to", owner: "assigned_to", user: "assigned_to",
-    phonenumber: "phone", contactnumber: "phone",
-    mobilephonenumber: "mobile_phone", cell: "mobile_phone", cellphone: "mobile_phone",
-    officephonenumber: "office_phone", workphone: "office_phone", work: "office_phone",
-    personalemail: "personal_email", privatemail: "personal_email", privateemail: "personal_email",
-    e_mail: "email",
-    cityname: "city", statename: "state", region: "state", province: "state",
-    countryname: "country", zip: "postal_code", zipcode: "postal_code", pincode: "postal_code",
-    postcode: "postal_code", postalcode: "postal_code",
-    street: "address_line1", streetaddress: "address_line1", address1: "address_line1", addresslineone: "address_line1",
-    address2: "address_line2", addresslinetwo: "address_line2", suite: "address_line2", apartment: "address_line2",
-    fulladdress: "address", completeaddress: "address",
+    // Identity & Agent Number
     agentid: "serial", agentcode: "serial", reference: "serial", referencenumber: "serial", referenceid: "serial",
-    assignedcompany: "accountsIDs",
-    percentlevel: "agent_level", level: "agent_level", agentlevel: "agent_level", "%level": "agent_level",
-    dateentered: "created_on", daterecruited: "created_on", datecreated: "created_on",
-    visibility: "visible_to_name", visibleto: "visible_to_name",
-    contacttype: "contact_type_id", contactcategory: "contact_type_id",
-    leadsource: "lead_source_id", source: "lead_source_id",
-    leadstatus: "lead_status_id",
-    leadtype: "lead_type_id",
-    referredby: "refered_by", referrer: "refered_by", referral: "refered_by",
-    x: "social_twitter", twitterhandle: "social_twitter", twitterurl: "social_twitter",
-    facebookurl: "social_facebook", facebookpage: "social_facebook",
-    linkedinprofile: "social_linkedin", linkedinurl: "social_linkedin",
-    skype: "social_skype", skypeid: "social_skype", threadhandle: "social_skype",
-    instagramhandle: "social_instagram", instagramurl: "social_instagram",
-    youtubechannel: "social_youtube", youtubeurl: "social_youtube",
-    tiktokhandle: "social_tiktok", tiktokurl: "social_tiktok",
-    web: "website", site: "website", webaddress: "website",
-    descriptionfield: "description", about: "description", summary: "description",
-    internalnotes: "notes", remarks: "notes", comments: "notes",
-    statusfield: "status", isactive: "status", activeinactive: "status",
-    rolefield: "role", contactrole: "role",
-    positiontitle: "position", designation: "position",
-    givenname: "first_name", forename: "first_name",
-    familyname: "last_name", surname: "last_name",
-    organization: "company", organisation: "company", org: "company",
+    agentnumber: "serial", agentno: "serial", agentnum: "serial", agent_number: "serial",
+    contactid: "serial", customerid: "serial", clientid: "serial",
+
+    // Name
+    firstname: "first_name", first_name: "first_name", givenname: "first_name", forename: "first_name",
+    lastname: "last_name", last_name: "last_name", familyname: "last_name", surname: "last_name",
+    fullname: "first_name", contactname: "first_name", name: "first_name",
+
+    // Contact info
+    email: "email", emailaddress: "email", e_mail: "email", mail: "email",
+    personalemail: "personal_email", privatemail: "personal_email", privateemail: "personal_email",
+    phone: "phone", phonenumber: "phone", contactnumber: "phone",
+    mobile: "mobile_phone", mobilephone: "mobile_phone", mobilephonenumber: "mobile_phone",
+    cell: "mobile_phone", cellphone: "mobile_phone", cellphonenumber: "mobile_phone",
+    officephone: "office_phone", officephonenumber: "office_phone", workphone: "office_phone", work: "office_phone", telephone: "office_phone", tel: "office_phone",
+    website: "website", web: "website", site: "website", webaddress: "website", url: "website",
+
+    // Professional & Assignment
+    company: "company", companyname: "company", organization: "company", organisation: "company", org: "company",
+    jobtitle: "jobTitle", title: "position", position: "position", positiontitle: "position", designation: "position",
+    assignedaccount: "accountsIDs", account: "accountsIDs", accountname: "accountsIDs", assignedcompany: "accountsIDs",
+    assignedmember: "assigned_to", assignedto: "assigned_to", owner: "assigned_to", user: "assigned_to", assignee: "assigned_to",
+    visibility: "visible_to_name", visibleto: "visible_to_name", visible_to: "visible_to_name",
+
+    // Agent Level & Dates
+    percentlevel: "agent_level", level: "agent_level", agentlevel: "agent_level", "%level": "agent_level", agenttier: "agent_level", agentrank: "agent_level",
+    dateentered: "created_on", daterecruited: "created_on", datecreated: "created_on", entereddate: "created_on", recruiteddate: "created_on",
+    dateofbirth: "birthday", birthdate: "birthday", dob: "birthday", birthday: "birthday", birth_date: "birthday", date_of_birth: "birthday",
+
+    // Recruiter & Lead classification
+    recruitername: "recruiter_name", recruiter: "recruiter_name", recruiter_name: "recruiter_name",
+    contacttype: "contact_type_id", contactcategory: "contact_type_id", contact_type: "contact_type_id",
+    leadsource: "lead_source_id", source: "lead_source_id", lead_source: "lead_source_id",
+    leadstatus: "lead_status_id", lead_status: "lead_status_id",
+    leadtype: "lead_type_id", lead_type: "lead_type_id",
+    referredby: "refered_by", referedby: "refered_by", referrer: "refered_by", referral: "refered_by", referred_by: "refered_by",
+    campaign: "campaign",
+
+    // Status
+    status: "status", agentstatus: "status", statusfield: "status", isactive: "status", activeinactive: "status", active: "status",
+    role: "role", rolefield: "role", contactrole: "role",
+
+    // Address
+    address: "address", fulladdress: "address", completeaddress: "address",
+    street: "address_line1", streetaddress: "address_line1", address1: "address_line1", addressline1: "address_line1", addresslineone: "address_line1",
+    address2: "address_line2", addressline2: "address_line2", addresslinetwo: "address_line2", suite: "address_line2", apartment: "address_line2",
+    city: "city", cityname: "city", town: "city",
+    state: "state", statename: "state", region: "state", province: "state",
+    country: "country", countryname: "country",
+    zip: "postal_code", zipcode: "postal_code", pincode: "postal_code", postcode: "postal_code", postalcode: "postal_code", postal_code: "postal_code",
+
+    // Notes & description
+    notes: "notes", note: "notes", internalnotes: "notes", remarks: "notes", comments: "notes",
+    description: "description", descriptionfield: "description", about: "description", summary: "description", details: "description",
+
+    // Social & Photo
+    twitter: "social_twitter", x: "social_twitter", twitterhandle: "social_twitter", twitterurl: "social_twitter",
+    facebook: "social_facebook", facebookurl: "social_facebook", facebookpage: "social_facebook",
+    linkedin: "social_linkedin", linkedinprofile: "social_linkedin", linkedinurl: "social_linkedin",
+    thread: "social_skype", threads: "social_skype", skype: "social_skype", skypeid: "social_skype", threadhandle: "social_skype",
+    instagram: "social_instagram", instagramhandle: "social_instagram", instagramurl: "social_instagram",
+    youtube: "social_youtube", youtubechannel: "social_youtube", youtubeurl: "social_youtube",
+    tiktok: "social_tiktok", tiktokhandle: "social_tiktok", tiktokurl: "social_tiktok",
+    agentphoto: "agent_photo", photo: "agent_photo", avatar: "agent_photo", picture: "agent_photo", image: "agent_photo",
   };
   for (const [header, key] of Object.entries(aliases)) map.set(header, key);
 
