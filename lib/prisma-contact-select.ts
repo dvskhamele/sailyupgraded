@@ -40,6 +40,7 @@ const contactScalarListFieldValues = {
   position: true,
   status: true,
   role: true,
+  agent_level: true,
   lead_source_id: true,
   lead_status_id: true,
   lead_type_id: true,

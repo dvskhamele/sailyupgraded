@@ -8,6 +8,7 @@ const config: Config = {
     "^@/(.*)$": "<rootDir>/$1",
     "^server-only$": "<rootDir>/__mocks__/server-only.ts",
     "^e2b$": "<rootDir>/__mocks__/e2b.ts",
+    "^next-intl$": "<rootDir>/__mocks__/next-intl.ts",
   },
   testMatch: ["**/__tests__/**/*.test.ts", "**/__tests__/**/*.test.tsx"],
   transform: {

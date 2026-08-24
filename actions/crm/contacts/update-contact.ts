@@ -212,6 +212,19 @@ export const updateContact = async (data: {
     const supportedRoleFields = await pickExistingDbModelFields("crm_Contacts", {
       role: normalizeContactRole(data.role),
     });
+    const contactSelect = await getCrmContactDetailSelect();
+    const before = await prismadb.crm_Contacts.findFirst({
+      where: {
+        id,
+        deletedAt: null,
+        ...(await buildExistingDbContactVisibilityFilter(session.user)),
+      },
+      select: contactSelect,
+    });
+    if (!before) {
+      return { error: "Contact not found" };
+    }
+
     const contactCustomFields = await prismadb.custom_fields.findMany({
       orderBy: { createdAt: "asc" },
     });
@@ -219,6 +232,52 @@ export const updateContact = async (data: {
       custom_fields_data,
       contactCustomFields.filter((field) => fieldAppliesToEntity(field, "Contact", data.role)),
     );
+
+    const beforeCustomFields =
+      before.custom_fields_data && typeof before.custom_fields_data === "object" && !Array.isArray(before.custom_fields_data)
+        ? (before.custom_fields_data as Record<string, unknown>)
+        : {};
+
+    const extraCustomFieldEntries: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(beforeCustomFields)) {
+      if (v !== undefined && v !== null && v !== "") {
+        const lowerK = k.toLowerCase();
+        if (
+          lowerK.includes("photo") ||
+          lowerK.includes("avatar") ||
+          lowerK.includes("image") ||
+          lowerK.includes("recruiter") ||
+          k === "agent_photo" ||
+          k === "Agent Photo"
+        ) {
+          extraCustomFieldEntries[k] = v;
+        }
+      }
+    }
+
+    if (custom_fields_data && typeof custom_fields_data === "object" && !Array.isArray(custom_fields_data)) {
+      for (const [k, v] of Object.entries(custom_fields_data)) {
+        if (v !== undefined && v !== null && v !== "") {
+          const lowerK = k.toLowerCase();
+          if (
+            lowerK.includes("photo") ||
+            lowerK.includes("avatar") ||
+            lowerK.includes("image") ||
+            lowerK.includes("recruiter") ||
+            k === "agent_photo" ||
+            k === "Agent Photo"
+          ) {
+            extraCustomFieldEntries[k] = v;
+          }
+        }
+      }
+    }
+
+    const finalCustomFieldsData = {
+      ...extraCustomFieldEntries,
+      ...sanitizedCustomFieldValues,
+    };
+
     const supportedUpdateFields = await pickExistingDbModelFields("crm_Contacts", {
       v: 0,
       serial: serial?.trim() || null,
@@ -236,8 +295,8 @@ export const updateContact = async (data: {
             : null),
       ),
       custom_fields_data:
-        Object.keys(sanitizedCustomFieldValues).length > 0
-          ? sanitizedCustomFieldValues
+        Object.keys(finalCustomFieldsData).length > 0
+          ? finalCustomFieldsData
           : null,
       visible_to_name: normalizeContactVisibility(data.visible_to_name),
       ...(notes !== undefined && { notes: normalizeContactNotes(notes) }),
@@ -245,19 +304,6 @@ export const updateContact = async (data: {
       ...supportedAddressFields,
       ...rest,
     });
-
-    const contactSelect = await getCrmContactDetailSelect();
-    const before = await prismadb.crm_Contacts.findFirst({
-      where: {
-        id,
-        deletedAt: null,
-        ...(await buildExistingDbContactVisibilityFilter(session.user)),
-      },
-      select: contactSelect,
-    });
-    if (!before) {
-      return { error: "Contact not found" };
-    }
     let contact;
 
     try {

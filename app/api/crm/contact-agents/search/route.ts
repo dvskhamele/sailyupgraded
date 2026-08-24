@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
+import { extractAgentPhotoUrl } from "@/lib/crm/agent-photo";
 
 const DEFAULT_TAKE = 50;
 
@@ -56,6 +57,7 @@ export async function GET(request: NextRequest) {
         last_name: true,
         email: true,
         serial: true,
+        custom_fields_data: true,
       },
       orderBy: [{ last_name: "asc" }, { first_name: "asc" }],
       skip,
@@ -65,12 +67,17 @@ export async function GET(request: NextRequest) {
   ]);
 
   return NextResponse.json({
-    agents: agents.map((agent) => ({
-      id: agent.id,
-      name: getAgentDisplayName(agent),
-      email: agent.email,
-      serial: agent.serial,
-    })),
+    agents: agents.map((agent) => {
+      const photo = extractAgentPhotoUrl(agent);
+      return {
+        id: agent.id,
+        name: getAgentDisplayName(agent),
+        email: agent.email,
+        serial: agent.serial,
+        avatar: photo,
+        photo: photo,
+      };
+    }),
     hasMore: skip + agents.length < total,
   });
 }

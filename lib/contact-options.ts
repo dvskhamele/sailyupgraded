@@ -55,7 +55,7 @@ export function buildContactRoleFilter(
   if (normalizedRole === "customer" || normalizedRole === "customers" || normalizedRole === "client") {
     return {
       role: {
-        in: [...CONTACT_ROLE_DB_VALUES.Customer, ...CONTACT_ROLE_DB_VALUES.Customer],
+        in: CONTACT_ROLE_DB_VALUES.Customer,
       },
     };
   }
@@ -85,7 +85,7 @@ export function buildContactRoleFilter(
   if (normalizedRole === "others" || normalizedRole === "other") {
     return {
       role: {
-        notIn: ["Customer", "Agent"],
+        notIn: ["Customer", "Client", "Agent"],
       },
     };
   }

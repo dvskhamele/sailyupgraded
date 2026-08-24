@@ -1,3 +1,4 @@
+import React from "react";
 import {
   Card,
   CardContent,
@@ -23,6 +24,8 @@ import Link from "next/link";
 import { EnvelopeClosedIcon } from "@radix-ui/react-icons";
 import { Badge } from "@/components/ui/badge";
 import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { extractAgentPhotoUrl, getAgentInitials } from "@/lib/crm/agent-photo";
 import { ContactDetailActions } from "./ContactDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
@@ -56,6 +59,13 @@ export async function BasicView({ data }: OppsViewProps) {
     ? data.opportunities.map((item: any) => item.opportunity).filter(Boolean)
     : [];
   const referenceId = getReferenceId(data);
+  const photoUrl = extractAgentPhotoUrl(data);
+  const initials = getAgentInitials(data);
+  const fullName = [data?.first_name, data?.last_name].filter(Boolean).join(" ").trim();
+  const normalizedRole = normalizeContactRole(data?.role);
+  const isAgent = normalizedRole === "Agent";
+  const location = [data?.city, data?.state].filter(Boolean).join(", ") || data?.country || "";
+  const identifierLabel = isAgent ? "Agent Number" : "ID";
   const importedColumns = Array.isArray(data?.imported_columns_data)
     ? data.imported_columns_data
     : [];
@@ -72,24 +82,63 @@ export async function BasicView({ data }: OppsViewProps) {
     <div className="pb-3 space-y-5">
       {/*      <pre>{JSON.stringify(data, null, 2)}</pre> */}
       <Card>
-        <CardHeader className="pb-3">
-          <div className="flex w-full justify-between">
-            <div>
-              {/* <CardTitle>Basic Information</CardTitle> */}
+        <CardHeader className="pb-4">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 rounded-xl sm:rounded-2xl border-2 border-border/80 shadow-sm shrink-0 overflow-hidden">
+                <AvatarImage
+                  src={photoUrl ?? undefined}
+                  alt={fullName || "Agent Photo"}
+                  className="aspect-square h-full w-full object-cover"
+                />
+                <AvatarFallback className="rounded-xl sm:rounded-2xl bg-primary/10 text-primary text-2xl sm:text-3xl font-bold">
+                  {initials}
+                </AvatarFallback>
+              </Avatar>
 
-              <CardDescription>
-                <h1 className="text-lg font-bold ">
-                  {[
-                    `${data.first_name ?? ""} ${data.last_name ?? ""}`.trim(),
-                    `ID: ${data.id}`,
-                    referenceId !== "-" ? ` ID: ${referenceId}` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" | ")}
-                </h1>
-              </CardDescription>
+              <div className="space-y-1.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-foreground">
+                    {fullName || "Unnamed Contact"}
+                  </h1>
+                  <Badge variant={data.status ? "default" : "secondary"}>
+                    {data.status ? "Active" : "Inactive"}
+                  </Badge>
+                  <Badge variant="outline" className="font-medium">
+                    {normalizedRole}
+                  </Badge>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted-foreground">
+                  {referenceId !== "-" ? (
+                    <div>
+                      <span className="font-medium text-foreground">{identifierLabel}:</span> {referenceId}
+                    </div>
+                  ) : null}
+                  {location ? (
+                    <div>
+                      <span className="font-medium text-foreground">Location:</span> {location}
+                    </div>
+                  ) : null}
+                  {data.agent_level ? (
+                    <div>
+                      <span className="font-medium text-foreground">Agent Level:</span> {data.agent_level}
+                    </div>
+                  ) : null}
+                  {data.assigned_accounts?.name ? (
+                    <div>
+                      <span className="font-medium text-foreground">Company:</span> {data.assigned_accounts.name}
+                    </div>
+                  ) : null}
+                </div>
+
+                <p className="text-xs text-muted-foreground/80 pt-0.5">
+                  ID: {data.id}
+                </p>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
+
+            <div className="flex items-center gap-2 self-start">
               {/* <EnrichButton
                 contactId={data.id}
                 contactEmail={data.email ?? null}
