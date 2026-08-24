@@ -33,6 +33,7 @@ import {
 import { parseDateValue } from "@/lib/crm/date-parser";
 import { formatBirthdayForContactDb } from "@/lib/crm/birthday";
 import { normalizeContactNotes } from "@/lib/crm/notes";
+import { uploadAgentPhoto } from "@/lib/crm/agent-photo-storage";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -895,6 +896,9 @@ export async function bulkInsertContacts(
       // Handle custom fields
       const allCustomValues = extractCustomFields(mapped, customFieldDefinitions);
 
+      // Serial (AgentNumber)
+      const rawSerial = mapped.modelValues.serial?.trim() || rawRow["AgentNumber"]?.trim() || rawRow["Agent Number"]?.trim();
+
       // Handle Recruiter Name and Agent Photo
       const recruiterName = mapped.modelValues.recruiter_name || mapped.unknownColumnValues["Recruiter Name"] || mapped.unknownColumnValues["recruiter_name"] || rawRow["Recruiter Name"] || "";
       if (recruiterName) {
@@ -902,7 +906,30 @@ export async function bulkInsertContacts(
         allCustomValues["Recruiter Name"] = recruiterName;
       }
 
-      const agentPhoto = mapped.modelValues.agent_photo || mapped.unknownColumnValues["Agent Photo"] || mapped.unknownColumnValues["agent_photo"] || rawRow["Agent Photo"] || "";
+      const rawAgentPhoto =
+        mapped.modelValues.agent_photo ||
+        mapped.unknownColumnValues["Agent Photo"] ||
+        mapped.unknownColumnValues["agent_photo"] ||
+        rawRow["Agent Photo"] ||
+        rawRow["agent_photo"] ||
+        "";
+
+      let agentPhoto = "";
+      if (rawAgentPhoto) {
+        try {
+          agentPhoto = await uploadAgentPhoto(
+            rawAgentPhoto,
+            `${rawSerial || "agent"}_photo.png`
+          );
+        } catch (imgErr: any) {
+          console.warn(
+            `[ContactImporter] Failed to process agent photo for row ${rowNumber}:`,
+            imgErr
+          );
+          agentPhoto = "";
+        }
+      }
+
       if (agentPhoto) {
         allCustomValues["agent_photo"] = agentPhoto;
         allCustomValues["Agent Photo"] = agentPhoto;
@@ -962,7 +989,6 @@ export async function bulkInsertContacts(
       const hasCustomFields = Object.keys(customFieldsData).length > 0;
 
       // Serial (AgentNumber)
-      const rawSerial = mapped.modelValues.serial?.trim() || rawRow["AgentNumber"]?.trim() || rawRow["Agent Number"]?.trim();
       const serial = rawSerial || generateSerial(normalizedRole, rowNumber, importBatchId);
 
       // Notes & Description
@@ -995,7 +1021,7 @@ export async function bulkInsertContacts(
           if (field && value && field.type === "file") throw new Error(`${field.label} cannot be imported from Excel (${field.type} fields require a supported upload flow).`);
           continue;
         }
-        if (["serial", "first_name", "last_name", "email", "personal_email", "mobile_phone", "office_phone", "phone", "accountsIDs", "company", "assigned_to", "contact_type_id", "lead_source_id", "lead_status_id", "lead_type_id", "role", "status", "notes", "description", "birthday", "address", "address_line1", "address_line2", "city", "state", "postal_code", "country"].includes(fieldName)) continue;
+        if (["serial", "first_name", "last_name", "email", "personal_email", "mobile_phone", "office_phone", "phone", "accountsIDs", "company", "assigned_to", "contact_type_id", "lead_source_id", "lead_status_id", "lead_type_id", "role", "status", "notes", "description", "birthday", "address", "address_line1", "address_line2", "city", "state", "postal_code", "country", "agent_photo"].includes(fieldName)) continue;
         supportedDynamicValues[fieldName] = coerceScalarValue(fieldName, value);
       }
 

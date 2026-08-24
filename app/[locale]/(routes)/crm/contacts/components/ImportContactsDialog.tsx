@@ -38,6 +38,7 @@ import {
 import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import {
   parseContactWorkbookRows,
+  parseContactWorkbookBuffer,
   type ContactImportRawRow,
 } from "@/lib/contact-import-workbook";
 import { Badge } from "@/components/ui/badge";
@@ -74,6 +75,7 @@ type ImportResult = {
 
 const SKIP_VALUE = "__skip__";
 const IMPORT_FIELDS: Array<{ key: string; label: string; isCustom?: boolean }> = [
+  { key: "agent_photo", label: "Agent Photo" },
   { key: "serial", label: "Agent ID / Serial" },
   { key: "name", label: "Full name" },
   { key: "first_name", label: "First name" },
@@ -118,6 +120,17 @@ const DEFAULT_MAPPING = Object.fromEntries(
   IMPORT_FIELDS.map(({ key }) => [key, SKIP_VALUE]),
 ) as ColumnMapping;
 const AUTO_MAP_CANDIDATES: Record<string, string[]> = {
+  agent_photo: [
+    "agent photo",
+    "agentphoto",
+    "agent_photo",
+    "photo",
+    "avatar",
+    "picture",
+    "image",
+    "agent image",
+    "agent picture",
+  ],
   serial: [
     "agent number",
     "agentnumber",
@@ -470,13 +483,8 @@ export function ImportContactsDialog({ importRole, contactType }: ImportContacts
 
     try {
       const buffer = await selected.arrayBuffer();
-      const workbook = XLSX.read(buffer, {
-        type: "array",
-        raw: false,
-        cellDates: false,
-      });
       const { headers: nextHeaders, rows: parsedRows } =
-        parseContactWorkbookRows(workbook);
+        await parseContactWorkbookBuffer(buffer);
       if (nextHeaders.length === 0) {
         throw new Error("The selected file does not contain any importable rows.");
       }
