@@ -1,7 +1,7 @@
 {
   "RootLayout": {
-    "title": "SailySaaS",
-    "description": "SailySaaS je moderní CRM vytvořené na frameworku NextJS."
+    "title": "Saily",
+    "description": "Saily je moderní CRM vytvořené na frameworku NextJS."
   },
   "ModuleMenu": {
     "dashboard": "Přehled",
@@ -27,7 +27,7 @@
   },
   "DashboardPage": {
     "containerTitle": "Přehled",
-    "containerDescription": "Vítejte v SailySaaS, zde můžete vidět všechny důležité informace o vašem podniku.",
+    "containerDescription": "Vítejte v Saily, zde můžete vidět všechny důležité informace o vašem podniku.",
     "totalRevenue": "Celkový obrat",
     "expectedRevenue": "Očekávaný obrat",
     "activeUsers": "Aktivní uživatelé",

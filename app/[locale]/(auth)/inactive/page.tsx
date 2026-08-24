@@ -44,7 +44,7 @@ const InactivePage = async () => {
             />
           </div>
           <span className="font-bold text-xl tracking-tight text-foreground">
-            SailySaaS
+            Saily
           </span>
         </div>
 

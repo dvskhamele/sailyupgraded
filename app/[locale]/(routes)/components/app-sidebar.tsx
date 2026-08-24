@@ -164,7 +164,7 @@ export function AppSidebar({
               !isExpanded ? "w-0 opacity-0" : "w-auto opacity-100",
             )}
           >
-            SailySaaS
+            Saily
           </span>
         </Link>
       </SidebarHeader>

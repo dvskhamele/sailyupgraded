@@ -1,7 +1,7 @@
 {
   "RootLayout": {
-    "title": "SailySaaS",
-    "description": "Willkommen bei SailySaaS CRM mit Prisma und Next.js"
+    "title": "Saily",
+    "description": "Willkommen bei Saily CRM mit Prisma und Next.js"
   },
   "ModuleMenu": {
     "dashboard": "Dashboard",
@@ -27,7 +27,7 @@
   "DashboardPage": {
     "containerTitle": "Dashboard",
     "totalRevenue": "Gesamtumsatz",
-    "containerDescription": "Willkommen bei SailySaaS, hier können Sie alle wichtigen Informationen über Ihr Unternehmen sehen.",
+    "containerDescription": "Willkommen bei Saily, hier können Sie alle wichtigen Informationen über Ihr Unternehmen sehen.",
     "expectedRevenue": "Erwarteter Umsatz",
     "activeUsers": "Aktive Benutzer",
     "accounts": "Unternehmen",
