@@ -1,5 +1,10 @@
 import { prismadb } from "@/lib/prisma";
-import { getApiKey } from "@/lib/api-keys";
+import {
+  getApiKey,
+  getAllApiKeys,
+  sanitizeApiKey,
+  maskApiKey,
+} from "@/lib/api-keys";
 import { serializeDecimalsList } from "@/lib/serialize-decimals";
 import { getCrmContactListSelect } from "@/lib/prisma-contact-select";
 import { pickExistingDbModelFields } from "@/lib/prisma-model-fields";
@@ -143,7 +148,11 @@ export function parseEmailInfo(email: string | null | undefined): {
 
 export async function fetchEnrichmentFromProvider(
   contact: Partial<crm_Contacts> & { assigned_accounts?: { name?: string | null; website?: string | null } | null },
-  keys: { openaiApiKey?: string | null; firecrawlApiKey?: string | null }
+  keys: {
+    openaiApiKey?: string | null;
+    openaiApiKeys?: string[];
+    firecrawlApiKey?: string | null;
+  }
 ): Promise<EnrichedContactData> {
   const email = contact.email || contact.personal_email || null;
   const fullName = `${contact.first_name || ""} ${contact.last_name || ""}`.trim();
@@ -155,9 +164,10 @@ export async function fetchEnrichmentFromProvider(
   let scrapedContent = "";
 
   // 1. If Firecrawl key is available, search web for contact/company details
-  if (keys.firecrawlApiKey) {
+  const firecrawlKey = sanitizeApiKey(keys.firecrawlApiKey);
+  if (firecrawlKey) {
     try {
-      const firecrawl = new FirecrawlApp({ apiKey: keys.firecrawlApiKey });
+      const firecrawl = new FirecrawlApp({ apiKey: firecrawlKey });
       const searchQueries: string[] = [];
 
       if (email && !emailInfo.isPersonal && emailInfo.domain) {
@@ -196,10 +206,20 @@ export async function fetchEnrichmentFromProvider(
     }
   }
 
-  // 2. If OpenAI key is available, use LLM to extract structured fields
-  if (keys.openaiApiKey) {
+  // 2. If OpenAI key(s) available, try LLM extraction with fallback between candidates
+  const openaiCandidateKeys =
+    Array.isArray(keys.openaiApiKeys) && keys.openaiApiKeys.length > 0
+      ? keys.openaiApiKeys
+      : keys.openaiApiKey
+      ? [keys.openaiApiKey]
+      : [];
+
+  for (const rawKey of openaiCandidateKeys) {
+    const sanitizedKey = sanitizeApiKey(rawKey);
+    if (!sanitizedKey) continue;
+
     try {
-      const openai = new OpenAI({ apiKey: keys.openaiApiKey });
+      const openai = new OpenAI({ apiKey: sanitizedKey });
 
       const prompt = `You are a B2B contact and company data enrichment assistant.
 Given the following contact information and scraped web content, enrich and extract all available valid data for this contact and their company.
@@ -262,8 +282,20 @@ Instructions:
         const parsed = JSON.parse(content) as EnrichedContactData;
         return parsed;
       }
-    } catch (err) {
-      console.warn("[BulkEnrichment] OpenAI enrichment failed:", err);
+    } catch (err: any) {
+      const isAuthError =
+        err?.status === 401 ||
+        err?.code === "invalid_api_key" ||
+        err?.message?.includes("Incorrect API key provided") ||
+        err?.message?.includes("invalid_api_key");
+
+      if (isAuthError) {
+        console.warn(
+          `[BulkEnrichment] OpenAI key ${maskApiKey(sanitizedKey)} is invalid (401). Trying next candidate key if available...`
+        );
+      } else {
+        console.warn("[BulkEnrichment] OpenAI enrichment failed:", err?.message || err);
+      }
     }
   }
 
@@ -453,10 +485,14 @@ export async function bulkEnrichContacts(
 
   const contactsMap = new Map(contacts.map((c: any) => [c.id, c]));
 
-  // Resolve API keys (OpenAI, Firecrawl)
-  const openaiApiKey = await getApiKey("OPENAI", userId);
-  const firecrawlApiKey = await getApiKey("FIRECRAWL", userId);
-  const keys = { openaiApiKey, firecrawlApiKey };
+  // Resolve candidate API keys (OpenAI, Firecrawl) across ENV, SYSTEM, USER scopes
+  const openaiApiKeys = await getAllApiKeys("OPENAI", userId);
+  const firecrawlApiKeys = await getAllApiKeys("FIRECRAWL", userId);
+  const keys = {
+    openaiApiKeys,
+    openaiApiKey: openaiApiKeys[0] || null,
+    firecrawlApiKey: firecrawlApiKeys[0] || null,
+  };
 
   const updatedContacts: any[] = [];
   const failedContacts: Array<{ id: string; name?: string; error: string }> = [];

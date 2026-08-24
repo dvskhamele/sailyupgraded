@@ -9,6 +9,10 @@ jest.mock("@/lib/prisma", () => ({
 
 jest.mock("@/lib/api-keys", () => ({
   getApiKey: jest.fn().mockResolvedValue(null),
+  getAllApiKeys: jest.fn().mockResolvedValue([]),
+  sanitizeApiKey: jest.fn((k) => k || null),
+  maskApiKey: jest.fn((k) => k || "[none]"),
+  isPlaceholderKey: jest.fn(() => false),
 }));
 
 import { prismadb } from "@/lib/prisma";
