@@ -27,7 +27,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Mail, Trash2, Users } from "lucide-react";
+import { Loader2, Mail, Sparkles, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AlertModal from "@/components/modals/alert-modal";
 import { bulkDeleteContacts } from "@/actions/crm/contacts/delete-contact";
@@ -69,6 +69,7 @@ export function ContactsDataTable<TData, TValue>({
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
+  const [bulkEnrichLoading, setBulkEnrichLoading] = React.useState(false);
 
   // Bulk Assign Member states
   const [bulkAssignLoading, setBulkAssignLoading] = React.useState(false);
@@ -182,6 +183,51 @@ export function ContactsDataTable<TData, TValue>({
     }
   };
 
+  const onBulkEnrich = async () => {
+    if (selectedContactIds.length === 0 || bulkEnrichLoading) return;
+    setBulkEnrichLoading(true);
+    try {
+      const response = await fetch("/api/contacts/enrich", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          contactIds: selectedContactIds,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Something went wrong while enriching contacts.");
+        return;
+      }
+
+      const successCount = data.successCount ?? 0;
+      const failedCount = data.failedCount ?? 0;
+
+      if (failedCount > 0 && successCount > 0) {
+        toast.info(`${successCount} contact(s) enriched successfully, ${failedCount} failed.`);
+      } else if (successCount > 0) {
+        toast.success(`${successCount} contact(s) enriched successfully.`);
+      } else if (failedCount > 0) {
+        toast.error(data.failedContacts?.[0]?.error || "Failed to enrich selected contacts.");
+      } else {
+        toast.info("No contacts needed enrichment.");
+      }
+
+      table.toggleAllRowsSelected(false);
+      setRowSelection({});
+      router.refresh();
+    } catch (error) {
+      console.error("Bulk contact enrichment error:", error);
+      toast.error("Failed to connect to enrichment service. Please try again.");
+    } finally {
+      setBulkEnrichLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4 w-full">
       <AlertModal
@@ -224,7 +270,7 @@ export function ContactsDataTable<TData, TValue>({
                   }
                   setSendEmailOpen(true);
                 }}
-                disabled={bulkDeleteLoading || bulkAssignLoading}
+                disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Send Email
@@ -237,7 +283,7 @@ export function ContactsDataTable<TData, TValue>({
                 <Select
                   value=""
                   onValueChange={handleSelectMember}
-                  disabled={bulkDeleteLoading || bulkAssignLoading}
+                  disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
                 >
                   <SelectTrigger className="w-[180px] h-9">
                     <SelectValue placeholder="Bulk Assign Member" />
@@ -255,10 +301,29 @@ export function ContactsDataTable<TData, TValue>({
                 size="sm"
                 variant="destructive"
                 onClick={() => setBulkDeleteOpen(true)}
-                disabled={bulkDeleteLoading || bulkAssignLoading}
+                disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete selected
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onBulkEnrich}
+                disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+                data-testid="bulk-enrich-btn"
+              >
+                {bulkEnrichLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Enriching...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-1" />
+                    Enrich
+                  </>
+                )}
               </Button>
             </>
           )}
