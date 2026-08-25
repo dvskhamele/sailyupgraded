@@ -534,7 +534,7 @@ export function UnifiedPersonForm({
       submittedData = actionData;
     }
 
-    let result: { error?: string; data?: unknown } | undefined;
+    let result: { error?: string; data?: unknown; success?: boolean } | undefined;
 
     try {
       result = await onSubmitAction(actionData);
@@ -548,8 +548,10 @@ export function UnifiedPersonForm({
       return;
     }
 
-    if (result?.error) {
-      form.setError("root.serverError", { message: result.error });
+    if (result?.error || (result && "success" in result && !result.success)) {
+      const message = result?.error || "Failed to save. Please try again.";
+      form.setError("root.serverError", { message });
+      toast.error(message);
       return;
     }
 

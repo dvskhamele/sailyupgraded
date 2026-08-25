@@ -18,6 +18,7 @@ import {
 import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 import { resolveSourcePlatformToLeadSourceId } from "@/lib/crm/lead-source-resolver";
 import { formatBirthdayForLeadDb } from "@/lib/crm/birthday";
+import { serializeDecimals } from "@/lib/serialize-decimals";
 
 function normalizeOptionalText(value?: string | null) {
   const trimmed = value?.trim() ?? "";
@@ -518,24 +519,35 @@ export const createLead = async (data: {
       changes: null,
       userId: session.user.id,
     });
-    const pipelineOpportunity = await createPipelineOpportunityForLead({
-      leadId: lead.id,
-      userId,
-      assignedTo: lead.assigned_to || assigned_to || userId,
-      accountId: lead.accountsIDs || assigned_account || accountIDs,
-      firstName: lead.firstName || first_name,
-      lastName: lead.lastName || last_name,
-      company: lead.company || company,
-      email: lead.email || email,
-      personalEmail: lead.personal_email || personal_email,
-      phone: lead.phone || phone,
-      officePhone: lead.office_phone || office_phone,
-      mobilePhone: lead.mobile_phone || mobile_phone,
-      website: lead.website || website,
-      country: lead.country || country,
-      description: lead.description || description,
-    });
-    void inngest.send({ name: "crm/lead.saved", data: { record_id: lead.id } });
+    let pipelineOpportunity: { id: string } | null = null;
+    try {
+      pipelineOpportunity = await createPipelineOpportunityForLead({
+        leadId: lead.id,
+        userId,
+        assignedTo: lead.assigned_to || assigned_to || userId,
+        accountId: lead.accountsIDs || assigned_account || accountIDs,
+        firstName: lead.firstName || first_name,
+        lastName: lead.lastName || last_name,
+        company: lead.company || company,
+        email: lead.email || email,
+        personalEmail: lead.personal_email || personal_email,
+        phone: lead.phone || phone,
+        officePhone: lead.office_phone || office_phone,
+        mobilePhone: lead.mobile_phone || mobile_phone,
+        website: lead.website || website,
+        country: lead.country || country,
+        description: lead.description || description,
+      });
+    } catch (pipelineErr) {
+      console.error("[LEAD_CREATE_OPPORTUNITY_ERROR]", pipelineErr);
+    }
+
+    try {
+      void inngest.send({ name: "crm/lead.saved", data: { record_id: lead.id } });
+    } catch (inngestErr) {
+      console.error("[LEAD_CREATE_INGGEST_ERROR]", inngestErr);
+    }
+
     revalidatePath("/[locale]/crm/leads", "page");
     revalidatePath("/[locale]/(routes)/crm/leads", "page");
     revalidatePath("/[locale]/crm/opportunities", "page");
@@ -544,12 +556,12 @@ export const createLead = async (data: {
     revalidatePath("/[locale]/(routes)/crm/dashboard", "page");
     console.log("[LEAD CREATE DEBUG] Completed without transaction rollback", {
       id: lead.id,
-      pipelineOpportunityId: pipelineOpportunity.id,
+      pipelineOpportunityId: pipelineOpportunity?.id,
       note: "createLead does not wrap crm_Leads.create() in a transaction",
     });
-    return { data: lead };
+    return { success: true, data: serializeDecimals(lead) };
   } catch (error: any) {
-    console.log("[CREATE_LEAD] Error detail:", {
+    console.error("[LEAD_CREATE_ERROR] Error detail:", {
       message: error.message,
       code: error.code,
       meta: error.meta,
@@ -593,6 +605,6 @@ export const createLead = async (data: {
         custom_fields_data,
       }
     });
-    return { error: "Failed to create lead: " + (error.message || "Unknown error") };
+    return { success: false, error: "Failed to create lead: " + (error.message || "Unknown error") };
   }
 };

@@ -68,7 +68,7 @@ export async function getQuickInputMemory(): Promise<QuickDbMemory> {
     const session = await getSession();
     if (!session) return fallbackQuickInputMemory;
 
-    [contacts, opportunities, leadSources, stages, types] = await prismadb.$transaction([
+    [contacts, opportunities, leadSources, stages, types] = await Promise.all([
       prismadb.crm_Contacts.findMany({
         where: {
           deletedAt: null,

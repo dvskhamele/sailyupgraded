@@ -98,6 +98,7 @@ export function LeadDataTable<TData, TValue>({
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>(
     []
   );
+  const [globalFilter, setGlobalFilter] = React.useState<string>("");
   const [sorting, setSorting] = React.useState<SortingState>([]);
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
@@ -121,12 +122,61 @@ export function LeadDataTable<TData, TValue>({
       columnVisibility,
       rowSelection,
       columnFilters,
+      globalFilter,
     },
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
     onColumnVisibilityChange: setColumnVisibility,
+    onGlobalFilterChange: setGlobalFilter,
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const search = String(filterValue).toLowerCase().trim();
+      if (!search) return true;
+
+      const original = row.original as any;
+      const firstName = String(original?.firstName ?? "").toLowerCase();
+      const lastName = String(original?.lastName ?? "").toLowerCase();
+      const fullName = `${firstName} ${lastName}`.trim();
+      const email = String(original?.email ?? "").toLowerCase();
+      const personalEmail = String(original?.personal_email ?? "").toLowerCase();
+      const phone = String(original?.phone ?? "").toLowerCase();
+      const mobilePhone = String(original?.mobile_phone ?? "").toLowerCase();
+      const officePhone = String(original?.office_phone ?? "").toLowerCase();
+      const company = String(original?.company ?? "").toLowerCase();
+      const serial = String(original?.serial ?? "").toLowerCase();
+      const description = String(original?.description ?? "").toLowerCase();
+      const jobTitle = String(original?.jobTitle ?? "").toLowerCase();
+      const address = String(original?.address ?? original?.address_line1 ?? "").toLowerCase();
+      const city = String(original?.city ?? "").toLowerCase();
+      const state = String(original?.state ?? "").toLowerCase();
+      const country = String(original?.country ?? "").toLowerCase();
+      const leadSourceName = String(original?.lead_source?.name ?? "").toLowerCase();
+      const leadStatusName = String(original?.lead_status?.name ?? "").toLowerCase();
+      const assignedUserName = String(original?.assigned_to_user?.name ?? "").toLowerCase();
+
+      return (
+        firstName.includes(search) ||
+        lastName.includes(search) ||
+        fullName.includes(search) ||
+        email.includes(search) ||
+        personalEmail.includes(search) ||
+        phone.includes(search) ||
+        mobilePhone.includes(search) ||
+        officePhone.includes(search) ||
+        company.includes(search) ||
+        serial.includes(search) ||
+        description.includes(search) ||
+        jobTitle.includes(search) ||
+        address.includes(search) ||
+        city.includes(search) ||
+        state.includes(search) ||
+        country.includes(search) ||
+        leadSourceName.includes(search) ||
+        leadStatusName.includes(search) ||
+        assignedUserName.includes(search)
+      );
+    },
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -244,16 +294,19 @@ export function LeadDataTable<TData, TValue>({
     try {
       const result = await convertLeadsToContacts(selectedLeadIds);
       console.log("[LeadDataTable] result:", JSON.stringify(result));
-      if ("error" in result) {
+      if ("error" in result && !result.success) {
         toast.error(result.error as string);
       } else {
         // Also remove from local repository to update UI immediately
         await Promise.all(selectedLeadIds.map((id) => localLeadRepository.delete(id)));
         table.toggleAllRowsSelected(false);
+        const count = result.count ?? result.contactsCreated?.length ?? 0;
+        const skipped = result.skipped ?? result.skippedLeads?.length ?? 0;
         toast.success(
-          `${result.count} lead(s) converted to contacts. ${result.skipped} lead(s) skipped (already exist).`
+          `${count} lead(s) converted to contacts. ${skipped} lead(s) skipped (already exist).`
         );
         await onDataChange?.();
+        router.refresh();
       }
     } catch {
       toast.error("Something went wrong while converting leads. Please try again.");

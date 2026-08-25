@@ -404,4 +404,43 @@ describe("Agent Photo / Image Import & Excel Processing", () => {
       expect(createdContacts[1].custom_fields_data.agent_photo).toBe("https://cdn.example.com/valid-agent.png");
     });
   });
+
+  describe("Scenario 7: Embedded JPG & WEBP image formats in Excel", () => {
+    it("Test 5 & 8: Supports importing embedded JPG and WEBP image data URIs", async () => {
+      const createdContacts: any[] = [];
+      (prismadb.crm_Contacts.findMany as jest.Mock).mockResolvedValue([]);
+      (prismadb.crm_Contacts.create as jest.Mock).mockImplementation(async ({ data }: any) => {
+        const record = { id: `agent-${createdContacts.length + 1}`, ...data };
+        createdContacts.push(record);
+        return record;
+      });
+
+      const jpgDataUri = "data:image/jpeg;base64," + Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x46, 0x49, 0x46]).toString("base64");
+      const webpDataUri = "data:image/webp;base64," + Buffer.from([0x52, 0x49, 0x46, 0x46, 0x14, 0x00, 0x00, 0x00, 0x57, 0x45, 0x42, 0x50]).toString("base64");
+
+      const rows = [
+        {
+          "Agent Photo": jpgDataUri,
+          "First Name": "John",
+          "Last Name": "JpgAgent",
+          Email: "john.jpg@example.com",
+          AgentNumber: "AG-JPG",
+        },
+        {
+          "Agent Photo": webpDataUri,
+          "First Name": "Wendy",
+          "Last Name": "WebpAgent",
+          Email: "wendy.webp@example.com",
+          AgentNumber: "AG-WEBP",
+        },
+      ];
+
+      const result = await importContacts(rows, { contactType: "agent", userId: "test-user-id" }, []);
+
+      expect(result.importedRows).toBe(2);
+      expect(createdContacts).toHaveLength(2);
+      expect(createdContacts[0].custom_fields_data.agent_photo).toContain("data:image/jpeg;base64,");
+      expect(createdContacts[1].custom_fields_data.agent_photo).toContain("data:image/webp;base64,");
+    });
+  });
 });

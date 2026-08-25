@@ -116,6 +116,14 @@ const LeadsViewClient = ({
                     leadTypes={leadTypes}
                     saleStages={saleStages}
                     products={activeProducts}
+                    onCreated={(newLead) => {
+                      if (newLead?.id) {
+                        setLocalLeads((prev) => [
+                          newLead,
+                          ...prev.filter((l) => l.id !== newLead.id),
+                        ]);
+                      }
+                    }}
                     onFinish={() => {
                       setOpen(false);
                       router.refresh();

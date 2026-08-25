@@ -20,7 +20,7 @@ export async function getQuickOpportunityFormOptions() {
     });
   }
 
-  const [accounts, contacts, salesType, campaigns, currencies, products] = await prismadb.$transaction([
+  const [accounts, contacts, salesType, campaigns, currencies, products] = await Promise.all([
     prismadb.crm_Accounts.findMany({
       where: { deletedAt: null },
       include: {

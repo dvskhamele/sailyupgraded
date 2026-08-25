@@ -80,7 +80,7 @@ export async function unifiedSearch(
       kwTasks,
       kwUsers,
       kwDocuments,
-    ] = await prismadb.$transaction([
+    ] = await Promise.all([
       prismadb.crm_Accounts.findMany({
         where: {
           deletedAt: null,

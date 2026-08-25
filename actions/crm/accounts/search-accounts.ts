@@ -20,7 +20,7 @@ export async function searchAccounts({
     ? { name: { contains: search, mode: "insensitive" as const }, deletedAt: null }
     : { deletedAt: null };
 
-  const [accounts, total] = await prismadb.$transaction([
+  const [accounts, total] = await Promise.all([
     prismadb.crm_Accounts.findMany({
       where,
       select: { id: true, name: true },

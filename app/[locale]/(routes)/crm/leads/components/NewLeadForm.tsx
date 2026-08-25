@@ -20,6 +20,7 @@ type NewLeadFormProps = {
   saleStages?: Option[];
   products?: Option[];
   onFinish?: () => void;
+  onCreated?: (lead: any) => void;
 };
 
 export function NewLeadForm({
@@ -31,6 +32,7 @@ export function NewLeadForm({
   saleStages = [],
   products = [],
   onFinish,
+  onCreated,
 }: NewLeadFormProps) {
   const t = useTranslations("CrmLeadForm");
 
@@ -49,7 +51,13 @@ export function NewLeadForm({
       saleStages={saleStages}
       products={products}
       onSubmitAction={(data: UnifiedPersonFormValues) => createLead(data as any)}
-      onSuccess={() => onFinish?.()}
+      onSuccess={(result, submittedData) => {
+        const lead = (result as any)?.data || submittedData;
+        if (lead) {
+          onCreated?.(lead);
+        }
+        onFinish?.();
+      }}
     />
   );
 }

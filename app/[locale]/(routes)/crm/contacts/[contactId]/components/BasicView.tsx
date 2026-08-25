@@ -26,6 +26,7 @@ import { Badge } from "@/components/ui/badge";
 import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { extractAgentPhotoUrl, getAgentInitials } from "@/lib/crm/agent-photo";
+import { ContactPhotoUploader } from "./ContactPhotoUploader";
 import { ContactDetailActions } from "./ContactDetailActions";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
@@ -85,16 +86,12 @@ export async function BasicView({ data }: OppsViewProps) {
         <CardHeader className="pb-4">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-              <Avatar className="h-24 w-24 sm:h-28 sm:w-28 md:h-32 md:w-32 rounded-xl sm:rounded-2xl border-2 border-border/80 shadow-sm shrink-0 overflow-hidden">
-                <AvatarImage
-                  src={photoUrl ?? undefined}
-                  alt={fullName || "Agent Photo"}
-                  className="aspect-square h-full w-full object-cover"
-                />
-                <AvatarFallback className="rounded-xl sm:rounded-2xl bg-primary/10 text-primary text-2xl sm:text-3xl font-bold">
-                  {initials}
-                </AvatarFallback>
-              </Avatar>
+              <ContactPhotoUploader
+                contactId={data.id}
+                initialPhotoUrl={photoUrl}
+                fullName={fullName}
+                initials={initials}
+              />
 
               <div className="space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
