@@ -79,7 +79,7 @@ export function PeopleFiltersSheet({
             <SheetTitle className="text-lg font-semibold">Filter People & Accounts</SheetTitle>
           </div>
           <SheetDescription className="text-xs text-muted-foreground">
-            Apply active filters to query and refine the 6.25M+ dataset.
+            Apply active filters to query and refine the dataset.
           </SheetDescription>
         </SheetHeader>
 
