@@ -3,10 +3,11 @@
 import * as React from "react";
 import { Cross2Icon } from "@radix-ui/react-icons";
 import { Table } from "@tanstack/react-table";
-import { Building2, User, Search, RefreshCw, Layers } from "lucide-react";
+import { Building2, User, Search, RefreshCw, Filter, SlidersHorizontal } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import {
   Select,
   SelectContent,
@@ -27,6 +28,8 @@ interface DataTableToolbarProps {
   batchLimit?: number;
   onBatchLimitChange?: (limit: number) => void;
   onServerSearch?: (query: string) => void;
+  activeFiltersCount?: number;
+  onOpenFiltersSheet?: () => void;
 }
 
 const typeOptions = [
@@ -51,9 +54,11 @@ export function DataTableToolbar({
   batchLimit = 1000,
   onBatchLimitChange,
   onServerSearch,
+  activeFiltersCount = 0,
+  onOpenFiltersSheet,
 }: DataTableToolbarProps) {
   const isFiltered =
-    table.getState().columnFilters.length > 0 || Boolean(globalFilter);
+    table.getState().columnFilters.length > 0 || Boolean(globalFilter) || activeFiltersCount > 0;
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && onServerSearch) {
@@ -64,6 +69,7 @@ export function DataTableToolbar({
   return (
     <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between">
       <div className="flex flex-1 flex-wrap items-center gap-2">
+        {/* Search Bar with live search trigger */}
         <div className="relative w-full sm:w-[260px] lg:w-[320px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -86,6 +92,7 @@ export function DataTableToolbar({
           )}
         </div>
 
+        {/* Quick Type Filter */}
         {table.getColumn("type") && (
           <DataTableFacetedFilter
             column={table.getColumn("type")}
@@ -94,6 +101,28 @@ export function DataTableToolbar({
           />
         )}
 
+        {/* Advanced Filters Button with Counter */}
+        {onOpenFiltersSheet && (
+          <Button
+            variant={activeFiltersCount > 0 ? "default" : "outline"}
+            size="sm"
+            onClick={onOpenFiltersSheet}
+            className="h-8 gap-1.5 text-xs"
+          >
+            <SlidersHorizontal className="h-3.5 w-3.5" />
+            <span>Filters</span>
+            {activeFiltersCount > 0 && (
+              <Badge
+                variant="secondary"
+                className="ml-1 px-1.5 py-0 text-[10px] font-bold bg-background text-foreground"
+              >
+                {activeFiltersCount}
+              </Badge>
+            )}
+          </Button>
+        )}
+
+        {/* Reset Button */}
         {isFiltered && (
           <Button
             variant="ghost"

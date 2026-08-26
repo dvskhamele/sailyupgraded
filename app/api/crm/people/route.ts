@@ -14,8 +14,26 @@ export async function GET(req: NextRequest) {
     const typeParam = searchParams.get("type") || "All";
     const type = typeParam === "Account" || typeParam === "Contact" ? typeParam : "All";
     const limit = parseInt(searchParams.get("limit") || "500", 10);
+    const country = searchParams.get("country") || undefined;
+    const status = searchParams.get("status") || undefined;
+    const role = searchParams.get("role") || undefined;
+    const hasEmail = searchParams.get("hasEmail") === "true" ? true : undefined;
+    const hasPhone = searchParams.get("hasPhone") === "true" ? true : undefined;
+    const hasLinkedin = searchParams.get("hasLinkedin") === "true" ? true : undefined;
+    const hasCompany = searchParams.get("hasCompany") === "true" ? true : undefined;
 
-    const result = await getUnifiedPeople({ query, type, limit });
+    const result = await getUnifiedPeople({
+      query,
+      type,
+      limit,
+      country,
+      status,
+      role,
+      hasEmail,
+      hasPhone,
+      hasLinkedin,
+      hasCompany,
+    });
     return NextResponse.json(result);
   } catch (error) {
     console.error("[PEOPLE_API_ERROR]", error);

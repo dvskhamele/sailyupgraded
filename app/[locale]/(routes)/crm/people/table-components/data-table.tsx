@@ -16,7 +16,7 @@ import {
   useReactTable,
   FilterFn,
 } from "@tanstack/react-table";
-import { Copy, Download, Users, X, Check } from "lucide-react";
+import { Copy, Download, Users, X, Check, RotateCcw, Mail } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -32,16 +32,24 @@ import { Badge } from "@/components/ui/badge";
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
 import { PeopleDetailSheet } from "./people-detail-sheet";
-import type { PeopleRecord } from "@/types/people";
+import { PeopleActiveChips } from "./people-active-chips";
+import { SendEmailDialog } from "@/app/[locale]/(routes)/crm/contacts/components/SendEmailDialog";
+import type { PeopleRecord, PeopleFilterOptions, PeopleStats } from "@/types/people";
 
 interface PeopleDataTableProps {
   columns: ColumnDef<PeopleRecord, any>[];
   data: PeopleRecord[];
+  stats?: PeopleStats;
+  filters: PeopleFilterOptions;
+  onApplyFilters: (filters: PeopleFilterOptions) => void;
+  onResetFilters: () => void;
   onRefresh?: () => void;
   isLoading?: boolean;
   batchLimit?: number;
   onBatchLimitChange?: (limit: number) => void;
   onServerSearch?: (query: string) => void;
+  onOpenFiltersSheet?: () => void;
+  defaultEmailFrom?: string;
 }
 
 // Multi-field global search filter
@@ -78,11 +86,17 @@ const multiFieldFilterFn: FilterFn<PeopleRecord> = (row, columnId, filterValue: 
 export function PeopleDataTable({
   columns,
   data,
+  stats,
+  filters,
+  onApplyFilters,
+  onResetFilters,
   onRefresh,
   isLoading = false,
   batchLimit,
   onBatchLimitChange,
   onServerSearch,
+  onOpenFiltersSheet,
+  defaultEmailFrom = "",
 }: PeopleDataTableProps) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
@@ -98,6 +112,46 @@ export function PeopleDataTable({
   // Detail Sheet state
   const [activeRecord, setActiveRecord] = React.useState<PeopleRecord | null>(null);
   const [detailSheetOpen, setDetailSheetOpen] = React.useState(false);
+
+  // Send Email Dialog state
+  const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
+
+  // Calculate active filter count
+  const activeFiltersCount = React.useMemo(() => {
+    let count = 0;
+    if (filters.type && filters.type !== "All") count++;
+    if (filters.country && filters.country.trim()) count++;
+    if (filters.status && filters.status !== "All") count++;
+    if (filters.role && filters.role !== "All") count++;
+    if (filters.hasEmail) count++;
+    if (filters.hasPhone) count++;
+    if (filters.hasLinkedin) count++;
+    if (filters.hasCompany) count++;
+    return count;
+  }, [filters]);
+
+  const handleRemoveSingleFilter = (key: keyof PeopleFilterOptions) => {
+    const updated = { ...filters };
+    if (key === "type" || key === "status" || key === "role") {
+      updated[key] = "All";
+    } else if (typeof updated[key] === "boolean") {
+      updated[key] = false;
+    } else {
+      updated[key] = "";
+    }
+    onApplyFilters(updated);
+  };
+
+  const handleClearSearch = () => {
+    setGlobalFilter("");
+    if (onServerSearch) onServerSearch("");
+  };
+
+  const handleClearAll = () => {
+    setGlobalFilter("");
+    if (onServerSearch) onServerSearch("");
+    onResetFilters();
+  };
 
   // Set default page size to 20
   const table = useReactTable({
@@ -132,6 +186,25 @@ export function PeopleDataTable({
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
+  const filteredRowCount = table.getFilteredRowModel().rows.length;
+
+  // Extract valid, deduplicated emails from selected rows (Accounts and Contacts)
+  const selectedEmails = React.useMemo(() => {
+    const rawEmails = selectedRows
+      .map((r) => r.original.email?.trim())
+      .filter((e): e is string => {
+        if (!e) return false;
+        const normalized = e.toLowerCase();
+        return (
+          e.includes("@") &&
+          normalized !== "unavailable" &&
+          normalized !== "extrapolated" &&
+          normalized !== "entry" &&
+          normalized !== "null"
+        );
+      });
+    return Array.from(new Set(rawEmails));
+  }, [selectedRows]);
 
   const handleRowClick = (record: PeopleRecord, event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
@@ -149,17 +222,13 @@ export function PeopleDataTable({
   };
 
   const handleCopySelectedEmails = () => {
-    const emails = selectedRows
-      .map((r) => r.original.email?.trim())
-      .filter((e): e is string => Boolean(e));
-
-    if (emails.length === 0) {
+    if (selectedEmails.length === 0) {
       toast.info("No valid email addresses found in selected rows.");
       return;
     }
 
-    navigator.clipboard.writeText(emails.join(", "));
-    toast.success(`Copied ${emails.length} email(s) to clipboard`);
+    navigator.clipboard.writeText(selectedEmails.join(", "));
+    toast.success(`Copied ${selectedEmails.length} email(s) to clipboard`);
   };
 
   const handleExportCSV = () => {
@@ -214,6 +283,19 @@ export function PeopleDataTable({
 
   return (
     <div className="space-y-4">
+      {/* Existing Saily Send Email Modal */}
+      <SendEmailDialog
+        open={sendEmailOpen}
+        onOpenChange={setSendEmailOpen}
+        recipients={selectedEmails}
+        defaultFrom={defaultEmailFrom}
+        onSent={() => {
+          table.toggleAllPageRowsSelected(false);
+          setRowSelection({});
+          toast.success(`Email sent successfully to ${selectedEmails.length} recipient(s).`);
+        }}
+      />
+
       {/* Search & Filters Toolbar */}
       <DataTableToolbar
         table={table}
@@ -224,19 +306,63 @@ export function PeopleDataTable({
         batchLimit={batchLimit}
         onBatchLimitChange={onBatchLimitChange}
         onServerSearch={onServerSearch}
+        activeFiltersCount={activeFiltersCount}
+        onOpenFiltersSheet={onOpenFiltersSheet}
       />
+
+      {/* Active Filter Chips Bar */}
+      <PeopleActiveChips
+        filters={filters}
+        searchQuery={globalFilter}
+        onRemoveFilter={handleRemoveSingleFilter}
+        onClearSearch={handleClearSearch}
+        onClearAll={handleClearAll}
+      />
+
+      {/* Result Count and Scope Indicator */}
+      <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+        <span>
+          Showing <span className="font-semibold text-foreground">{filteredRowCount}</span> of{" "}
+          <span className="font-semibold text-foreground">{data.length}</span> loaded records
+          {stats?.totalRecords ? (
+            <span> (searched across <span className="font-medium text-foreground">{Number(stats.totalRecords).toLocaleString()}</span> total in database)</span>
+          ) : null}
+        </span>
+      </div>
 
       {/* Selected Action Bar */}
       {selectedCount > 0 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2 text-sm text-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm text-foreground">
           <div className="flex items-center gap-2">
             <Badge variant="default" className="font-semibold">
               {selectedCount}
             </Badge>
             <span>record(s) selected</span>
+            {selectedEmails.length > 0 && selectedEmails.length !== selectedCount && (
+              <span className="text-xs text-muted-foreground">
+                ({selectedEmails.length} with valid email)
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">
+            {/* Bulk Send Email Action Button */}
+            <Button
+              variant="default"
+              size="sm"
+              onClick={() => {
+                if (selectedEmails.length === 0) {
+                  toast.error("None of the selected records have valid email addresses.");
+                  return;
+                }
+                setSendEmailOpen(true);
+              }}
+              className="h-8 gap-1.5 text-xs shadow-xs"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Send Email {selectedEmails.length > 0 ? `(${selectedEmails.length})` : ""}
+            </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -246,6 +372,7 @@ export function PeopleDataTable({
               <Copy className="h-3.5 w-3.5" />
               Copy Emails
             </Button>
+
             <Button
               variant="outline"
               size="sm"
@@ -255,6 +382,7 @@ export function PeopleDataTable({
               <Download className="h-3.5 w-3.5" />
               Export CSV
             </Button>
+
             <Button
               variant="ghost"
               size="sm"
@@ -296,7 +424,7 @@ export function PeopleDataTable({
                 >
                   <div className="flex flex-col items-center justify-center gap-2">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <span className="text-sm">Loading people from Accounts & Contacts...</span>
+                    <span className="text-sm">Applying filters and querying Accounts & Contacts...</span>
                   </div>
                 </TableCell>
               </TableRow>
@@ -322,14 +450,25 @@ export function PeopleDataTable({
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
-                  className="h-32 text-center text-muted-foreground"
+                  className="h-36 text-center text-muted-foreground"
                 >
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <Users className="h-8 w-8 text-muted-foreground/50 mb-1" />
-                    <p className="text-sm font-medium text-foreground">No records found</p>
-                    <p className="text-xs text-muted-foreground">
-                      Try adjusting your search terms or filters
+                  <div className="flex flex-col items-center justify-center gap-2 py-4">
+                    <Users className="h-8 w-8 text-muted-foreground/50" />
+                    <p className="text-sm font-semibold text-foreground">No people or accounts found</p>
+                    <p className="text-xs text-muted-foreground max-w-sm">
+                      No records matched the current combination of search and filters.
                     </p>
+                    {(activeFiltersCount > 0 || globalFilter) && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleClearAll}
+                        className="mt-2 text-xs gap-1.5"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Clear All Filters
+                      </Button>
+                    )}
                   </div>
                 </TableCell>
               </TableRow>

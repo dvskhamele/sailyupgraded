@@ -3,19 +3,33 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Database, Building2, Users, Sparkles, Filter } from "lucide-react";
+import { Database, Building2, Users, SlidersHorizontal } from "lucide-react";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { createColumns } from "../table-components/columns";
 import { PeopleDataTable } from "../table-components/data-table";
 import { PeopleDetailSheet } from "../table-components/people-detail-sheet";
-import type { PeopleRecord, PeopleStats } from "@/types/people";
+import { PeopleFiltersSheet } from "../table-components/people-filters-sheet";
+import type { PeopleRecord, PeopleStats, PeopleFilterOptions } from "@/types/people";
 
 interface PeopleViewProps {
   initialData: PeopleRecord[];
   initialStats?: PeopleStats;
+  defaultEmailFrom?: string;
 }
+
+const defaultFilterOptions: PeopleFilterOptions = {
+  type: "All",
+  country: "",
+  status: "All",
+  role: "All",
+  hasEmail: false,
+  hasPhone: false,
+  hasLinkedin: false,
+  hasCompany: false,
+};
 
 export default function PeopleView({
   initialData,
@@ -24,10 +38,13 @@ export default function PeopleView({
     totalContacts: 999982,
     totalRecords: 6249231,
   },
+  defaultEmailFrom = "",
 }: PeopleViewProps) {
   const router = useRouter();
   const [data, setData] = React.useState<PeopleRecord[]>(initialData);
   const [stats, setStats] = React.useState<PeopleStats>(initialStats);
+  const [filters, setFilters] = React.useState<PeopleFilterOptions>(defaultFilterOptions);
+  const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
   const [batchLimit, setBatchLimit] = React.useState<number>(1000);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
@@ -49,20 +66,54 @@ export default function PeopleView({
     [handleViewRecord]
   );
 
-  const fetchPeopleData = async (query = "", limit = batchLimit) => {
+  const fetchPeopleData = async (
+    query = searchQuery,
+    currentFilters = filters,
+    limit = batchLimit
+  ) => {
     setIsLoading(true);
     try {
-      const qParam = query.trim() ? `&query=${encodeURIComponent(query.trim())}` : "";
-      const res = await fetch(`/api/crm/people?limit=${limit}${qParam}`);
-      if (!res.ok) throw new Error("Failed to load people data");
+      const params = new URLSearchParams();
+      params.set("limit", String(limit));
+
+      if (query.trim()) {
+        params.set("query", query.trim());
+      }
+      if (currentFilters.type && currentFilters.type !== "All") {
+        params.set("type", currentFilters.type);
+      }
+      if (currentFilters.country && currentFilters.country.trim()) {
+        params.set("country", currentFilters.country.trim());
+      }
+      if (currentFilters.status && currentFilters.status !== "All") {
+        params.set("status", currentFilters.status.trim());
+      }
+      if (currentFilters.role && currentFilters.role !== "All") {
+        params.set("role", currentFilters.role.trim());
+      }
+      if (currentFilters.hasEmail) {
+        params.set("hasEmail", "true");
+      }
+      if (currentFilters.hasPhone) {
+        params.set("hasPhone", "true");
+      }
+      if (currentFilters.hasLinkedin) {
+        params.set("hasLinkedin", "true");
+      }
+      if (currentFilters.hasCompany) {
+        params.set("hasCompany", "true");
+      }
+
+      const res = await fetch(`/api/crm/people?${params.toString()}`);
+      if (!res.ok) throw new Error("Failed to load filtered people data");
       const result = await res.json();
       if (result.success && Array.isArray(result.data)) {
         setData(result.data);
         if (result.stats) {
           setStats(result.stats);
         }
-        if (query.trim()) {
-          toast.success(`Found ${result.data.length} match(es) across 6.25M+ records`);
+        if (query.trim() || Object.values(currentFilters).some(v => v && v !== "All")) {
+          toast.success(`Filters applied: ${result.data.length} match(es) returned`);
         } else {
           toast.success(`Loaded ${result.data.length} records into table`);
         }
@@ -75,18 +126,28 @@ export default function PeopleView({
     }
   };
 
+  const handleApplyFilters = async (newFilters: PeopleFilterOptions) => {
+    setFilters(newFilters);
+    await fetchPeopleData(searchQuery, newFilters, batchLimit);
+  };
+
+  const handleResetFilters = async () => {
+    setFilters(defaultFilterOptions);
+    await fetchPeopleData(searchQuery, defaultFilterOptions, batchLimit);
+  };
+
   const handleRefresh = async () => {
-    await fetchPeopleData(searchQuery, batchLimit);
+    await fetchPeopleData(searchQuery, filters, batchLimit);
   };
 
   const handleBatchLimitChange = async (newLimit: number) => {
     setBatchLimit(newLimit);
-    await fetchPeopleData(searchQuery, newLimit);
+    await fetchPeopleData(searchQuery, filters, newLimit);
   };
 
   const handleServerSearch = async (query: string) => {
     setSearchQuery(query);
-    await fetchPeopleData(query, batchLimit);
+    await fetchPeopleData(query, filters, batchLimit);
   };
 
   const formattedTotal = Number(stats.totalRecords).toLocaleString();
@@ -149,11 +210,26 @@ export default function PeopleView({
       <PeopleDataTable
         columns={columns}
         data={data}
+        stats={stats}
+        filters={filters}
+        onApplyFilters={handleApplyFilters}
+        onResetFilters={handleResetFilters}
         onRefresh={handleRefresh}
         isLoading={isLoading}
         batchLimit={batchLimit}
         onBatchLimitChange={handleBatchLimitChange}
         onServerSearch={handleServerSearch}
+        onOpenFiltersSheet={() => setFilterSheetOpen(true)}
+        defaultEmailFrom={defaultEmailFrom}
+      />
+
+      {/* Filter Drawer Sheet */}
+      <PeopleFiltersSheet
+        open={filterSheetOpen}
+        onOpenChange={setFilterSheetOpen}
+        filters={filters}
+        onApplyFilters={handleApplyFilters}
+        onResetFilters={handleResetFilters}
       />
 
       {/* Detail View Sheet */}

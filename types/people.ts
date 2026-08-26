@@ -47,9 +47,19 @@ export interface PeopleStats {
   totalRecords: number;
 }
 
-export interface GetPeopleParams {
-  query?: string;
+export interface PeopleFilterOptions {
   type?: "All" | "Account" | "Contact";
+  country?: string;
+  status?: string;
+  role?: string;
+  hasEmail?: boolean;
+  hasPhone?: boolean;
+  hasLinkedin?: boolean;
+  hasCompany?: boolean;
+}
+
+export interface GetPeopleParams extends PeopleFilterOptions {
+  query?: string;
   limit?: number;
 }
 
@@ -57,6 +67,7 @@ export interface GetPeopleResponse {
   success: boolean;
   data: PeopleRecord[];
   total: number;
+  unfilteredTotal?: number;
   stats?: PeopleStats;
   error?: string;
 }

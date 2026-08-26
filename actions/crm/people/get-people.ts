@@ -35,7 +35,6 @@ function normalizeEmail(val: unknown): string {
 function normalizePhone(val: unknown): string {
   const str = cleanString(val);
   if (!str) return "";
-  // Exclude confidence numbers like "0.6" or "0.9"
   if (/^0\.\d+$/.test(str)) {
     return "";
   }
@@ -153,7 +152,18 @@ export async function getUnifiedPeople(
       return { success: false, data: [], total: 0, error: "Unauthorized" };
     }
 
-    const { query = "", type = "All", limit = 500 } = params;
+    const {
+      query = "",
+      type = "All",
+      limit = 500,
+      country,
+      status,
+      role,
+      hasEmail,
+      hasPhone,
+      hasLinkedin,
+      hasCompany,
+    } = params;
     const trimmedQuery = query.trim();
 
     let accountsUrl = trimmedQuery
@@ -212,7 +222,7 @@ export async function getUnifiedPeople(
       .map(mapContactToPeopleRecord)
       .filter((r): r is PeopleRecord => r !== null);
 
-    // Combine records
+    // Combine records according to Type parameter
     let combined: PeopleRecord[] = [];
     if (type === "Account") {
       combined = mappedAccounts;
@@ -222,13 +232,56 @@ export async function getUnifiedPeople(
       combined = [...mappedAccounts, ...mappedContacts];
     }
 
-    // Sort by name by default
-    combined.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    const unfilteredTotal = combined.length;
+
+    // Apply Real Filter Predicates (AND logic)
+    let filtered = combined;
+
+    if (country && country.trim()) {
+      const qCountry = country.trim().toLowerCase();
+      filtered = filtered.filter((r) => {
+        const countryMatch = r.country && r.country.toLowerCase().includes(qCountry);
+        const cityMatch = r.city && r.city.toLowerCase().includes(qCountry);
+        const stateMatch = r.state && r.state.toLowerCase().includes(qCountry);
+        const addressMatch = r.address && r.address.toLowerCase().includes(qCountry);
+        return Boolean(countryMatch || cityMatch || stateMatch || addressMatch);
+      });
+    }
+
+    if (status && status.trim() && status !== "All") {
+      const qStatus = status.trim().toLowerCase();
+      filtered = filtered.filter((r) => r.status && r.status.toLowerCase() === qStatus);
+    }
+
+    if (role && role.trim() && role !== "All") {
+      const qRole = role.trim().toLowerCase();
+      filtered = filtered.filter((r) => r.role && r.role.toLowerCase() === qRole);
+    }
+
+    if (hasEmail === true) {
+      filtered = filtered.filter((r) => Boolean(r.email && r.email.includes("@")));
+    }
+
+    if (hasPhone === true) {
+      filtered = filtered.filter((r) => Boolean(r.phone && r.phone.trim().length >= 3));
+    }
+
+    if (hasLinkedin === true) {
+      filtered = filtered.filter((r) => Boolean(r.socialLinkedin && r.socialLinkedin.trim()));
+    }
+
+    if (hasCompany === true) {
+      filtered = filtered.filter((r) => Boolean(r.company && r.company.trim()));
+    }
+
+    // Sort by name
+    filtered.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
 
     return {
       success: true,
-      data: combined,
-      total: combined.length,
+      data: filtered,
+      total: filtered.length,
+      unfilteredTotal,
       stats,
     };
   } catch (error) {

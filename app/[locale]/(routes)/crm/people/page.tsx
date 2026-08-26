@@ -4,6 +4,11 @@ import Container from "../../components/ui/Container";
 import CrmTableSkeleton from "@/components/skeletons/crm-table-skeleton";
 import PeopleView from "./components/PeopleView";
 import { getUnifiedPeople } from "@/actions/crm/people/get-people";
+import {
+  DEFAULT_SMTP2GO_SENDER,
+  isAllowedSmtp2GoSender,
+} from "@/lib/email/sender-policy";
+import { getEmailFromAddress } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +22,11 @@ const PeoplePage = async ({ searchParams }: Props) => {
   const typeParam = Array.isArray(search.type) ? search.type[0] : search.type;
   const validQuery = typeof qParam === "string" ? qParam : undefined;
   const validType = typeParam === "Account" || typeParam === "Contact" ? typeParam : "All";
+
+  const configuredEmailFrom = getEmailFromAddress();
+  const defaultEmailFrom = isAllowedSmtp2GoSender(configuredEmailFrom)
+    ? configuredEmailFrom
+    : DEFAULT_SMTP2GO_SENDER;
 
   const peopleResult = await getUnifiedPeople({
     query: validQuery,
@@ -38,7 +48,11 @@ const PeoplePage = async ({ searchParams }: Props) => {
     >
       <div className="flex flex-col space-y-4">
         <Suspense fallback={<CrmTableSkeleton />}>
-          <PeopleView initialData={peopleData} initialStats={peopleStats} />
+          <PeopleView
+            initialData={peopleData}
+            initialStats={peopleStats}
+            defaultEmailFrom={defaultEmailFrom}
+          />
         </Suspense>
       </div>
     </Container>
