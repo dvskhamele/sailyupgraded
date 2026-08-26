@@ -131,13 +131,23 @@ export function PeopleDataTable({
   }, [filters]);
 
   const handleRemoveSingleFilter = (key: keyof PeopleFilterOptions) => {
-    const updated = { ...filters };
-    if (key === "type" || key === "status" || key === "role") {
-      updated[key] = "All";
-    } else if (typeof updated[key] === "boolean") {
-      updated[key] = false;
-    } else {
-      updated[key] = "";
+    const updated: PeopleFilterOptions = { ...filters };
+    if (key === "type") {
+      updated.type = "All";
+    } else if (key === "status") {
+      updated.status = "All";
+    } else if (key === "role") {
+      updated.role = "All";
+    } else if (key === "country") {
+      updated.country = "";
+    } else if (key === "hasEmail") {
+      updated.hasEmail = false;
+    } else if (key === "hasPhone") {
+      updated.hasPhone = false;
+    } else if (key === "hasLinkedin") {
+      updated.hasLinkedin = false;
+    } else if (key === "hasCompany") {
+      updated.hasCompany = false;
     }
     onApplyFilters(updated);
   };
@@ -321,13 +331,13 @@ export function PeopleDataTable({
 
       {/* Result Count and Scope Indicator */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        <span>
+        {/* <span>
           Showing <span className="font-semibold text-foreground">{filteredRowCount}</span> of{" "}
           <span className="font-semibold text-foreground">{data.length}</span> loaded records
           {stats?.totalRecords ? (
             <span> (searched across <span className="font-medium text-foreground">{Number(stats.totalRecords).toLocaleString()}</span> total in database)</span>
           ) : null}
-        </span>
+        </span> */}
       </div>
 
       {/* Selected Action Bar */}

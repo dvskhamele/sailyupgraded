@@ -73,7 +73,7 @@ export function DataTableToolbar({
         <div className="relative w-full sm:w-[260px] lg:w-[320px]">
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search 6.25M+ records (press Enter)..."
+            placeholder="Search records (press Enter)..."
             value={globalFilter ?? ""}
             onChange={(event) => onGlobalFilterChange(event.target.value)}
             onKeyDown={handleKeyDown}

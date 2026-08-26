@@ -17,7 +17,6 @@ import type { PeopleRecord, PeopleStats, PeopleFilterOptions } from "@/types/peo
 interface PeopleViewProps {
   initialData: PeopleRecord[];
   initialStats?: PeopleStats;
-  defaultEmailFrom?: string;
 }
 
 const defaultFilterOptions: PeopleFilterOptions = {
@@ -38,7 +37,6 @@ export default function PeopleView({
     totalContacts: 999982,
     totalRecords: 6249231,
   },
-  defaultEmailFrom = "",
 }: PeopleViewProps) {
   const router = useRouter();
   const [data, setData] = React.useState<PeopleRecord[]>(initialData);
@@ -157,7 +155,7 @@ export default function PeopleView({
   return (
     <div className="space-y-4">
       {/* Overview Metric Banner */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+      {/* <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
         <Card className="border-border/60 bg-card/60 shadow-xs">
           <CardContent className="flex items-center gap-3 p-4">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
@@ -204,7 +202,7 @@ export default function PeopleView({
             </div>
           </CardContent>
         </Card>
-      </div>
+      </div> */}
 
       {/* Main Unified Data Table */}
       <PeopleDataTable
@@ -220,7 +218,6 @@ export default function PeopleView({
         onBatchLimitChange={handleBatchLimitChange}
         onServerSearch={handleServerSearch}
         onOpenFiltersSheet={() => setFilterSheetOpen(true)}
-        defaultEmailFrom={defaultEmailFrom}
       />
 
       {/* Filter Drawer Sheet */}
