@@ -22,6 +22,7 @@ import Link from "next/link";
 import { EnvelopeClosedIcon, LightningBoltIcon } from "@radix-ui/react-icons";
 import { EmailLink, WhatsAppLink } from "@/components/ui/contact-link";
 import { LeadDetailActions } from "./LeadDetailActions";
+import { EnrichLeadButton } from "./EnrichLeadButton";
 import { getAllCrmData } from "@/actions/crm/get-crm-data";
 import { formatAddress } from "@/lib/crm-address";
 import { CustomFieldsDisplay } from "@/components/crm/custom-fields-display";
@@ -53,15 +54,18 @@ export async function BasicView({ data }: OppsViewProps) {
               </CardTitle>
               <CardDescription>ID:{data.id}</CardDescription>
             </div>
-            <LeadDetailActions
-              lead={data}
-              accounts={accounts}
-              contactTypes={contactTypes}
-              leadSources={leadSources}
-              leadStatuses={leadStatuses}
-              leadTypes={leadTypes}
-              products={(products ?? []).filter((product: any) => product.status === "ACTIVE")}
-            />
+            <div className="flex items-center gap-2">
+              <EnrichLeadButton leadId={data.id} />
+              <LeadDetailActions
+                lead={data}
+                accounts={accounts}
+                contactTypes={contactTypes}
+                leadSources={leadSources}
+                leadStatuses={leadStatuses}
+                leadTypes={leadTypes}
+                products={(products ?? []).filter((product: any) => product.status === "ACTIVE")}
+              />
+            </div>
           </div>
         </CardHeader>
         <CardContent>

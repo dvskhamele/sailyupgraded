@@ -252,6 +252,14 @@ export async function withPrismaRetry<T>(operation: () => Promise<T>) {
 // Use a proxy to lazily initialize the Prisma client only when accessed
 export const prisma = new Proxy({} as PrismaClient, {
   get(target, prop, receiver) {
+    if ((global as any).customPrismaMock && prop in (global as any).customPrismaMock) {
+      const mockValue = (global as any).customPrismaMock[prop];
+      if (typeof mockValue === "function") {
+        return mockValue.bind((global as any).customPrismaMock);
+      }
+      return mockValue;
+    }
+
     if (prop === "$disconnect") {
       return resetPrisma;
     }

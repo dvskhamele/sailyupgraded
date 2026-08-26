@@ -27,7 +27,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Mail, Trash2, UserCheck } from "lucide-react";
+import { Loader2, Mail, Sparkles, Trash2, UserCheck } from "lucide-react";
 import { createColumns } from "./columns";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
@@ -104,6 +104,7 @@ export function LeadDataTable<TData, TValue>({
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
   const [bulkConvertLoading, setBulkConvertLoading] = React.useState(false);
+  const [bulkEnrichLoading, setBulkEnrichLoading] = React.useState(false);
   // Bulk Assign Member states
   const [bulkAssignLoading, setBulkAssignLoading] = React.useState(false);
   const [confirmAssignOpen, setConfirmAssignOpen] = React.useState(false);
@@ -262,6 +263,56 @@ export function LeadDataTable<TData, TValue>({
     }
   };
 
+  const onBulkEnrich = async () => {
+    if (selectedLeadIds.length === 0 || bulkEnrichLoading) return;
+    setBulkEnrichLoading(true);
+    try {
+      const response = await fetch("/api/leads/enrich", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          leadIds: selectedLeadIds,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        toast.error(data.error || "Something went wrong while enriching leads.");
+        return;
+      }
+
+      const successCount = data.successCount ?? 0;
+      const failedCount = data.failedCount ?? 0;
+
+      if (failedCount > 0 && successCount > 0) {
+        toast.info(`${successCount} lead(s) enriched successfully, ${failedCount} failed.`);
+      } else if (successCount > 0) {
+        if (selectedLeadIds.length === 1 && (data.organizationUpdated || data.organizationCreated)) {
+          toast.success("Lead and company enriched successfully.");
+        } else {
+          toast.success(`${successCount} lead(s) enriched successfully.`);
+        }
+      } else if (failedCount > 0) {
+        toast.error(data.failedLeads?.[0]?.error || "No enrichment data found for this lead.");
+      } else {
+        toast.info("No enrichment data found for this lead.");
+      }
+
+      table.toggleAllRowsSelected(false);
+      setRowSelection({});
+      await onDataChange?.();
+      router.refresh();
+    } catch (error) {
+      console.error("Bulk lead enrichment error:", error);
+      toast.error("Failed to connect to enrichment service. Please try again.");
+    } finally {
+      setBulkEnrichLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-4">
       <AlertModal
@@ -305,7 +356,7 @@ export function LeadDataTable<TData, TValue>({
                   }
                   setSendEmailOpen(true);
                 }}
-                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Send Email
@@ -318,7 +369,7 @@ export function LeadDataTable<TData, TValue>({
                 <Select
                   value=""
                   onValueChange={handleSelectMember}
-                  disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading}
+                  disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
                 >
                   <SelectTrigger className="w-[180px] h-9">
                     <SelectValue placeholder="Bulk Assign Member" />
@@ -336,7 +387,7 @@ export function LeadDataTable<TData, TValue>({
                 size="sm"
                 variant="outline"
                 onClick={onBulkConvert}
-                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
               >
                 <UserCheck className="h-4 w-4 mr-1" />
                 Convert to Contact
@@ -345,10 +396,29 @@ export function LeadDataTable<TData, TValue>({
                 size="sm"
                 variant="destructive"
                 onClick={() => setBulkDeleteOpen(true)}
-                disabled={bulkDeleteLoading || bulkConvertLoading || bulkAssignLoading}
+                disabled={bulkDeleteLoading || bulkConvertLoading || bulkAssignLoading || bulkEnrichLoading}
               >
                 <Trash2 className="h-4 w-4 mr-1" />
                 Delete selected
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onBulkEnrich}
+                disabled={bulkDeleteLoading || bulkConvertLoading || bulkAssignLoading || bulkEnrichLoading}
+                data-testid="bulk-enrich-btn"
+              >
+                {bulkEnrichLoading ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    Enriching...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4 mr-1" />
+                    Enrich
+                  </>
+                )}
               </Button>
             </>
           )}
