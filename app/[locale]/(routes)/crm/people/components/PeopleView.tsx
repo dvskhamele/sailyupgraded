@@ -17,6 +17,7 @@ import type { PeopleRecord, PeopleStats, PeopleFilterOptions } from "@/types/peo
 interface PeopleViewProps {
   initialData: PeopleRecord[];
   initialStats?: PeopleStats;
+  defaultEmailFrom?: string;
 }
 
 const defaultFilterOptions: PeopleFilterOptions = {
@@ -37,6 +38,7 @@ export default function PeopleView({
     totalContacts: 999982,
     totalRecords: 6249231,
   },
+  defaultEmailFrom = "",
 }: PeopleViewProps) {
   const router = useRouter();
   const [data, setData] = React.useState<PeopleRecord[]>(initialData);
@@ -218,6 +220,7 @@ export default function PeopleView({
         onBatchLimitChange={handleBatchLimitChange}
         onServerSearch={handleServerSearch}
         onOpenFiltersSheet={() => setFilterSheetOpen(true)}
+        defaultEmailFrom={defaultEmailFrom}
       />
 
       {/* Filter Drawer Sheet */}

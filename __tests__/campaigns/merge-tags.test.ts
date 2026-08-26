@@ -30,4 +30,26 @@ describe("resolveMergeTags", () => {
     const html = "{{first_name}} {{company}}";
     expect(resolveMergeTags(html, { last_name: "Smith" })).toBe(" ");
   });
+
+  it("replaces camelCase tags (firstName, lastName, company, email)", () => {
+    const text = "Hello {{firstName}} {{lastName}} from {{company}}! Email: {{email}}";
+    expect(
+      resolveMergeTags(text, {
+        firstName: "Rahul",
+        lastName: "Sharma",
+        company: "NextCRM",
+        email: "rahul@example.com",
+      })
+    ).toBe("Hello Rahul Sharma from NextCRM! Email: rahul@example.com");
+  });
+
+  it("resolves camelCase tags when only snake_case fields provided in target", () => {
+    const text = "Hi {{firstName}} {{lastName}}!";
+    expect(
+      resolveMergeTags(text, {
+        first_name: "Amit",
+        last_name: "Patel",
+      })
+    ).toBe("Hi Amit Patel!");
+  });
 });

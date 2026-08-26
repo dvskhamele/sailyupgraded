@@ -16,7 +16,7 @@ import {
   useReactTable,
   FilterFn,
 } from "@tanstack/react-table";
-import { Copy, Download, Users, X, Check, RotateCcw, Mail } from "lucide-react";
+import { Copy, Download, Users, X, Check, RotateCcw, Mail, MessageSquare, UserCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -34,6 +34,8 @@ import { DataTableToolbar } from "./data-table-toolbar";
 import { PeopleDetailSheet } from "./people-detail-sheet";
 import { PeopleActiveChips } from "./people-active-chips";
 import { SendEmailDialog } from "@/app/[locale]/(routes)/crm/contacts/components/SendEmailDialog";
+import { SendMessageDialog } from "./send-message-dialog";
+import { PeopleConvertDialog } from "./people-convert-dialog";
 import type { PeopleRecord, PeopleFilterOptions, PeopleStats } from "@/types/people";
 
 interface PeopleDataTableProps {
@@ -115,6 +117,14 @@ export function PeopleDataTable({
 
   // Send Email Dialog state
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
+
+  // Send Message Dialog state
+  const [sendMessageOpen, setSendMessageOpen] = React.useState(false);
+  const [messageDefaultChannel, setMessageDefaultChannel] = React.useState<"sms" | "email" | "whatsapp">("sms");
+
+  // Convert Dialog state
+  const [convertDialogOpen, setConvertDialogOpen] = React.useState(false);
+  const [convertMode, setConvertMode] = React.useState<"contact" | "lead">("contact");
 
   // Calculate active filter count
   const activeFiltersCount = React.useMemo(() => {
@@ -216,6 +226,11 @@ export function PeopleDataTable({
     return Array.from(new Set(rawEmails));
   }, [selectedRows]);
 
+  // Extract selected original PeopleRecords
+  const selectedRecords = React.useMemo(() => {
+    return selectedRows.map((r) => r.original);
+  }, [selectedRows]);
+
   const handleRowClick = (record: PeopleRecord, event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     if (
@@ -306,6 +321,34 @@ export function PeopleDataTable({
         }}
       />
 
+      {/* Saily Send Message Modal */}
+      <SendMessageDialog
+        open={sendMessageOpen}
+        onOpenChange={setSendMessageOpen}
+        recipients={selectedRecords}
+        defaultChannel={messageDefaultChannel}
+        defaultFromEmail={defaultEmailFrom}
+        onSent={() => {
+          table.toggleAllPageRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
+
+      {/* People Convert to Contact / Lead Modal */}
+      <PeopleConvertDialog
+        open={convertDialogOpen}
+        onOpenChange={setConvertDialogOpen}
+        mode={convertMode}
+        selectedRecords={selectedRecords}
+        onConversionComplete={() => {
+          if (onRefresh) {
+            onRefresh();
+          }
+          table.toggleAllPageRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
+
       {/* Search & Filters Toolbar */}
       <DataTableToolbar
         table={table}
@@ -347,7 +390,7 @@ export function PeopleDataTable({
             <Badge variant="default" className="font-semibold">
               {selectedCount}
             </Badge>
-            <span>record(s) selected</span>
+            <span>{selectedCount === 1 ? "record" : "records"} selected</span>
             {selectedEmails.length > 0 && selectedEmails.length !== selectedCount && (
               <span className="text-xs text-muted-foreground">
                 ({selectedEmails.length} with valid email)
@@ -356,9 +399,45 @@ export function PeopleDataTable({
           </div>
 
           <div className="flex items-center gap-2">
-            {/* Bulk Send Email Action Button */}
+            {/* Convert to Contact Action Button */}
             <Button
               variant="default"
+              size="sm"
+              onClick={() => {
+                if (selectedRecords.length === 0) {
+                  toast.error("Please select at least one record.");
+                  return;
+                }
+                setConvertMode("contact");
+                setConvertDialogOpen(true);
+              }}
+              className="h-8 gap-1.5 text-xs shadow-xs font-medium"
+            >
+              <UserCheck className="h-3.5 w-3.5" />
+              Convert to Contact
+            </Button>
+
+            {/* Convert to Lead Action Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (selectedRecords.length === 0) {
+                  toast.error("Please select at least one record.");
+                  return;
+                }
+                setConvertMode("lead");
+                setConvertDialogOpen(true);
+              }}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              Convert to Lead
+            </Button>
+
+            {/* Bulk Send Email Action Button */}
+            <Button
+              variant="outline"
               size="sm"
               onClick={() => {
                 if (selectedEmails.length === 0) {
@@ -367,10 +446,42 @@ export function PeopleDataTable({
                 }
                 setSendEmailOpen(true);
               }}
-              className="h-8 gap-1.5 text-xs shadow-xs"
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
             >
               <Mail className="h-3.5 w-3.5" />
-              Send Email {selectedEmails.length > 0 ? `(${selectedEmails.length})` : ""}
+              Send Email
+            </Button>
+
+            {/* WhatsApp Action Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                if (selectedRecords.length === 0) {
+                  toast.error("Please select at least one record.");
+                  return;
+                }
+                setMessageDefaultChannel("whatsapp");
+                setSendMessageOpen(true);
+              }}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              WhatsApp
+            </Button>
+
+            {/* Clear Selection Button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                table.toggleAllPageRowsSelected(false);
+                setRowSelection({});
+              }}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear Selection
             </Button>
 
             <Button
@@ -391,16 +502,6 @@ export function PeopleDataTable({
             >
               <Download className="h-3.5 w-3.5" />
               Export CSV
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => table.toggleAllPageRowsSelected(false)}
-              className="h-8 text-xs text-muted-foreground"
-            >
-              <X className="h-3.5 w-3.5 mr-1" />
-              Deselect
             </Button>
           </div>
         </div>

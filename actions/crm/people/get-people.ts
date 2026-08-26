@@ -41,6 +41,26 @@ function normalizePhone(val: unknown): string {
   return str;
 }
 
+function normalizeAccountId(val: unknown): string {
+  if (val === null || val === undefined) return "";
+  if (Array.isArray(val)) {
+    const first = val[0];
+    return first ? cleanString(first) : "";
+  }
+  let str = cleanString(val);
+  if (!str) return "";
+  if (str.startsWith("['") && str.endsWith("']")) {
+    return str.slice(2, -2).trim();
+  }
+  if (str.startsWith('["') && str.endsWith('"]')) {
+    return str.slice(2, -2).trim();
+  }
+  if (str.startsWith("[") && str.endsWith("]")) {
+    return str.slice(1, -1).replace(/['"]/g, "").trim();
+  }
+  return str;
+}
+
 function mapAccountToPeopleRecord(account: Record<string, any>): PeopleRecord | null {
   const name = cleanString(account.name);
   const id = cleanString(account.id);
@@ -122,7 +142,7 @@ function mapContactToPeopleRecord(contact: Record<string, any>): PeopleRecord | 
     state: cleanString(contact.state),
     country: cleanString(contact.country),
     postalCode: cleanString(contact.postal_code || contact.post_code),
-    accountsIDs: cleanString(contact.accountsIDs),
+    accountsIDs: normalizeAccountId(contact.accountsIDs),
     status: contact.status === "1" ? "Active" : (cleanString(contact.status) || "Active"),
     tags: cleanString(contact.tags),
     notes: cleanString(contact.notes),
