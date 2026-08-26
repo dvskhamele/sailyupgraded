@@ -11,6 +11,11 @@ export const getContactsMenuItem = (counts?: CrmSidebarCounts): NavItem => {
     alwaysOpen: true,
     items: [
       {
+        title: "People",
+        url: "/crm/people",
+        exact: true,
+      },
+      {
         title: "Leads",
         url: "/crm/leads",
         exact: true,

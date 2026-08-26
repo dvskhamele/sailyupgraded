@@ -4,25 +4,35 @@ import { prismadb } from "@/lib/prisma";
 import { buildExistingDbContactVisibilityFilter } from "@/lib/crm/contact-visibility.server";
 
 const FIELD_MAP: Record<string, string> = {
-  position:        "position",
-  website:         "website",
+  position: "position",
+  website: "website",
   social_linkedin: "social_linkedin",
-  social_twitter:  "social_twitter",
+  social_twitter: "social_twitter",
   social_facebook: "social_facebook",
-  social_instagram:"social_instagram",
-  description:     "description",
-  office_phone:    "office_phone",
-  mobile_phone:    "mobile_phone",
+  social_instagram: "social_instagram",
+  description: "description",
+  office_phone: "office_phone",
+  mobile_phone: "mobile_phone",
 };
+
+interface RouteContext {
+  params: Promise<{ contactId: string }> | { contactId: string };
+}
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  context: RouteContext
 ) {
-  const { id } = await params;
+  const resolvedParams = await Promise.resolve(context.params);
+  const contactId = resolvedParams.contactId || (resolvedParams as any).id;
+
   const session = await getSession();
   if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  if (!contactId) {
+    return NextResponse.json({ error: "Contact ID is required" }, { status: 400 });
   }
 
   const { enrichmentFields } = await request.json();
@@ -42,7 +52,7 @@ export async function PATCH(
 
   const existing = await prismadb.crm_Contacts.findFirst({
     where: {
-      id,
+      id: contactId,
       deletedAt: null,
       ...(await buildExistingDbContactVisibilityFilter(session.user)),
     },
@@ -54,7 +64,7 @@ export async function PATCH(
   }
 
   const contact = await prismadb.crm_Contacts.update({
-    where: { id },
+    where: { id: contactId },
     data: { ...updates, updatedBy: session.user.id },
     select: { id: true },
   });

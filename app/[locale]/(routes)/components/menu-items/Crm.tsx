@@ -6,6 +6,8 @@ type Props = {
   localizations: {
     title: string;
     accounts: string;
+    contacts?: string;
+    people?: string;
     leads: string;
     opportunities: string;
     contracts: string;
