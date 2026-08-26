@@ -22,32 +22,19 @@ export function DataTableToolbar<TData>({
   table,
   productOptions = [],
 }: DataTableToolbarProps<TData>) {
-  const isFiltered = table.getState().columnFilters.length > 0;
+  const globalFilter = (table.getState().globalFilter as string) ?? "";
+  const isFiltered =
+    table.getState().columnFilters.length > 0 || Boolean(globalFilter);
 
   return (
     <div className="flex items-center justify-between">
       <div className="flex flex-1 items-center space-x-2">
         <Input
-          placeholder="Filter leads ..."
-          value={(table.getColumn("company")?.getFilterValue() as string) ?? ""}
-          onChange={(event) =>
-            table.getColumn("company")?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-[150px] lg:w-[250px]"
+          placeholder="Search leads by name, email, phone, company..."
+          value={globalFilter}
+          onChange={(event) => table.setGlobalFilter(event.target.value)}
+          className="h-8 w-[200px] lg:w-[320px]"
         />
-        {/*         <Input
-          placeholder="Filter by assigned user ..."
-          value={
-            (table.getColumn("assigned_to_user")?.getFilterValue() as string) ??
-            ""
-          }
-          onChange={(event) =>
-            table
-              .getColumn("assigned_to_user")
-              ?.setFilterValue(event.target.value)
-          }
-          className="h-8 w-[150px] lg:w-[250px]"
-        /> */}
         {table.getColumn("status") && (
           <DataTableFacetedFilter
             column={table.getColumn("status")}
@@ -62,17 +49,13 @@ export function DataTableToolbar<TData>({
             options={productOptions}
           />
         )}
-        {/*        {table.getColumn("priority") && (
-          <DataTableFacetedFilter
-            column={table.getColumn("priority")}
-            title="Priority"
-            options={priorities}
-          />
-        )} */}
         {isFiltered && (
           <Button
             variant="ghost"
-            onClick={() => table.resetColumnFilters()}
+            onClick={() => {
+              table.resetColumnFilters();
+              table.setGlobalFilter("");
+            }}
             className="h-8 px-2 lg:px-3"
           >
             Reset

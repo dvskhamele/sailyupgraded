@@ -108,7 +108,7 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
 }
 
 function loadSidebarCounts(visibilityFilter: Prisma.crm_ContactsWhereInput) {
-  return prismadb.$transaction([
+  return Promise.all([
     prismadb.crm_Opportunities.count({ where: { deletedAt: null } }),
     prismadb.crm_Accounts.count({ where: { deletedAt: null } }),
     prismadb.crm_Products.count({ where: { deletedAt: null } }),

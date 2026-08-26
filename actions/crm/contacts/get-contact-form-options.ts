@@ -8,7 +8,7 @@ import {
 
 export const getContactFormOptions = async () => {
   const contactTypes = await ensureDefaultContactTypes();
-  const [accounts, leadSources, leadStatuses, leadTypes, products] = await prismadb.$transaction([
+  const [accounts, leadSources, leadStatuses, leadTypes, products] = await Promise.all([
     prismadb.crm_Accounts.findMany({ 
       where: { deletedAt: null },
       select: { id: true, name: true },

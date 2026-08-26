@@ -1,6 +1,26 @@
-import { isAgentPhotoInstruction } from "@/lib/crm/agent-photo-storage";
-
-export { isAgentPhotoInstruction } from "@/lib/crm/agent-photo-storage";
+/**
+ * Checks if a value is a placeholder instruction string (e.g. "Add agent photo here", "n/a", etc.)
+ */
+export function isAgentPhotoInstruction(val: unknown): boolean {
+  if (val == null) return true;
+  if (typeof val !== "string") return false;
+  const trimmed = val.trim().toLowerCase();
+  return (
+    trimmed === "" ||
+    trimmed === "add agent photo here" ||
+    trimmed === "insert agent photo here" ||
+    trimmed === "insert photo here" ||
+    trimmed === "add photo here" ||
+    trimmed === "agent photo here" ||
+    trimmed === "upload photo here" ||
+    trimmed === "photo here" ||
+    trimmed === "photo" ||
+    trimmed === "n/a" ||
+    trimmed === "none" ||
+    trimmed === "null" ||
+    trimmed === "undefined"
+  );
+}
 
 /**
  * Safely extracts the photo URL (if any) from a contact/agent data object.

@@ -15,6 +15,7 @@ import {
 } from "@/lib/custom-fields";
 import { resolveContactTypeId, resolveLeadSourceId } from "@/lib/crm/contact-form-options";
 import { formatBirthdayForLeadDb } from "@/lib/crm/birthday";
+import { serializeDecimals } from "@/lib/serialize-decimals";
 
 export const updateLead = async (data: {
   id: string;
@@ -215,9 +216,9 @@ export const updateLead = async (data: {
     });
     void inngest.send({ name: "crm/lead.saved", data: { record_id: lead.id } });
     revalidatePath("/[locale]/(routes)/crm/leads", "page");
-    return { data: lead };
-  } catch (error) {
-    console.log("[UPDATE_LEAD]", error);
-    return { error: "Failed to update lead" };
+    return { success: true, data: serializeDecimals(lead) };
+  } catch (error: any) {
+    console.error("[UPDATE_LEAD]", error);
+    return { success: false, error: "Failed to update lead: " + (error?.message || "Unknown error") };
   }
 };
