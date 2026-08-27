@@ -136,6 +136,8 @@ describe("Contacts — Bulk AI Call System", () => {
             metadata: {
               source: "crm-bulk-ai-call",
               contact_id: "c1",
+              lead_id: "c1",
+              entity_id: "c1",
               contact_name: "Rahul Sharma",
               contact_email: "rahul@example.com",
               contact_company: "Acme Corp",

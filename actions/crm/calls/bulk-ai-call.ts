@@ -135,6 +135,8 @@ export async function bulkAICallContacts(
         metadata: {
           source: "crm-bulk-ai-call",
           contact_id: contact.id,
+          lead_id: contact.id,
+          entity_id: contact.id,
           contact_name: displayName,
           contact_email: contact.email || undefined,
           contact_company: contact.company || undefined,
@@ -195,7 +197,7 @@ export async function bulkAICallContacts(
           where: { callId: payload.call_id },
           create: {
             callId: payload.call_id,
-            opportunityId: `contact-${contact.id}`,
+            opportunityId: contact.id,
             memberId: contact.id,
             phone: normalizedPhone,
             email: contact.email || undefined,
@@ -208,6 +210,7 @@ export async function bulkAICallContacts(
             createdBy: session.user.id,
           },
           update: {
+            opportunityId: contact.id,
             memberId: contact.id,
             phone: normalizedPhone,
             email: contact.email || undefined,
