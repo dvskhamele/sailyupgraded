@@ -38,7 +38,7 @@ export const peopleRecordSchema = z.object({
   description: z.string().optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
-  raw: z.record(z.any()),
+  raw: z.record(z.string(), z.any()),
 });
 
 export type PeopleRecord = z.infer<typeof peopleRecordSchema>;

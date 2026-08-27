@@ -325,8 +325,8 @@ export async function convertPeopleToContacts(
         existingContact = await prismadb.crm_Contacts.findFirst({
           where: {
             OR: [
-              { email: { equals: email, mode: "insensitive" } },
-              { personal_email: { equals: email, mode: "insensitive" } },
+              { email: { equals: email } },
+              { personal_email: { equals: email } },
             ],
             deletedAt: null,
           },
@@ -542,8 +542,8 @@ export async function convertPeopleToLeads(
         existingLead = await prismadb.crm_Leads.findFirst({
           where: {
             OR: [
-              { email: { equals: email, mode: "insensitive" } },
-              { personal_email: { equals: email, mode: "insensitive" } },
+              { email: { equals: email } },
+              { personal_email: { equals: email } },
             ],
             deletedAt: null,
           },
