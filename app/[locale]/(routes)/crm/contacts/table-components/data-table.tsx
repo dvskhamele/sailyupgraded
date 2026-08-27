@@ -27,8 +27,9 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Loader2, Mail, Sparkles, Trash2, Users } from "lucide-react";
+import { Loader2, Mail, MessageSquare, Sparkles, Trash2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import AlertModal from "@/components/modals/alert-modal";
 import { bulkDeleteContacts } from "@/actions/crm/contacts/delete-contact";
 import { bulkAssignContacts } from "@/actions/crm/contacts/assign-member";
@@ -36,6 +37,10 @@ import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
 import { SendEmailDialog } from "../components/SendEmailDialog";
+import { SendWhatsAppDialog } from "../components/SendWhatsAppDialog";
+import { SendMessageDialog } from "@/app/[locale]/(routes)/crm/people/table-components/send-message-dialog";
+import type { BulkMessageRecipient } from "@/actions/crm/messages/send-bulk-messages";
+import { cleanWhatsAppPhoneNumber } from "@/lib/whatsapp-extension";
 import {
   Select,
   SelectContent,
@@ -68,6 +73,10 @@ export function ContactsDataTable<TData, TValue>({
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
+  const [sendWhatsAppOpen, setSendWhatsAppOpen] = React.useState(false);
+  const [sendMessageOpen, setSendMessageOpen] = React.useState(false);
+  const [messageDefaultChannel, setMessageDefaultChannel] =
+    React.useState<"sms" | "email" | "whatsapp">("sms");
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
   const [bulkEnrichLoading, setBulkEnrichLoading] = React.useState(false);
 
@@ -103,13 +112,75 @@ export function ContactsDataTable<TData, TValue>({
   });
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
-  const selectedContactIds = selectedRows.map(
-    (row) => (row.original as { id: string }).id
+  const selectedContacts = React.useMemo(
+    () => selectedRows.map((row) => row.original as any),
+    [selectedRows]
   );
-  const selectedContactEmails = selectedRows
-    .map((row) => (row.original as { email?: string | null }).email?.trim())
-    .filter((email): email is string => Boolean(email));
+  const selectedContactIds = React.useMemo(
+    () => selectedContacts.map((c) => c.id as string),
+    [selectedContacts]
+  );
   const selectedCount = selectedContactIds.length;
+
+  const selectedContactRecipients = React.useMemo<BulkMessageRecipient[]>(() => {
+    return selectedContacts.map((c) => {
+      const firstName = c.first_name || (c.name ? c.name.split(" ")[0] : "");
+      const lastName =
+        c.last_name ||
+        (c.name && c.name.split(" ").length > 1
+          ? c.name.split(" ").slice(1).join(" ")
+          : "");
+      const fullName =
+        [firstName, lastName].filter(Boolean).join(" ") || c.name || "Contact";
+      const company = c.company || c.assigned_accounts?.name || "";
+      const jobTitle = c.jobTitle || c.position || c.role || "";
+      const phone = c.mobile_phone || c.phone || c.office_phone || null;
+      const email = c.email || c.personal_email || null;
+
+      return {
+        id: c.id,
+        originalId: c.id,
+        name: fullName,
+        fullName,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        email: email || undefined,
+        personalEmail: c.personal_email || undefined,
+        phone: phone || undefined,
+        mobilePhone: c.mobile_phone || undefined,
+        officePhone: c.office_phone || undefined,
+        company: company || undefined,
+        jobTitle: jobTitle || undefined,
+        type: "Contact",
+      };
+    });
+  }, [selectedContacts]);
+
+  const selectedContactEmails = React.useMemo(() => {
+    const rawEmails = selectedContacts
+      .map((c) => {
+        return (c.email || c.personal_email)?.trim();
+      })
+      .filter((e): e is string => {
+        if (!e) return false;
+        const normalized = e.toLowerCase();
+        return (
+          e.includes("@") &&
+          normalized !== "unavailable" &&
+          normalized !== "extrapolated" &&
+          normalized !== "entry" &&
+          normalized !== "null"
+        );
+      });
+    return Array.from(new Set(rawEmails));
+  }, [selectedContacts]);
+
+  const selectedContactsWithPhone = React.useMemo(() => {
+    return selectedContacts.filter((c) => {
+      const rawPhone = c.mobile_phone || c.phone || c.office_phone;
+      return Boolean(cleanWhatsAppPhoneNumber(rawPhone));
+    });
+  }, [selectedContacts]);
 
   // Load members when contacts are selected
   React.useEffect(() => {
@@ -228,6 +299,66 @@ export function ContactsDataTable<TData, TValue>({
     }
   };
 
+  const handleSendEmail = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one contact.");
+      return;
+    }
+    if (selectedContactEmails.length === 0) {
+      toast.error("None of the selected contacts have a valid email address.");
+      return;
+    }
+    const skipped = selectedCount - selectedContactEmails.length;
+    if (skipped > 0) {
+      toast.info(
+        `${skipped} contact(s) missing a valid email address will be skipped.`
+      );
+    }
+    setSendEmailOpen(true);
+  };
+
+  const handleSendMessage = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one contact.");
+      return;
+    }
+    if (selectedContactsWithPhone.length === 0) {
+      toast.error("None of the selected contacts have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedContactsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${skipped} contact(s) missing a valid phone number will be skipped.`
+      );
+    }
+    setMessageDefaultChannel("sms");
+    setSendMessageOpen(true);
+  };
+
+  const handleWhatsApp = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one contact.");
+      return;
+    }
+    if (selectedContactsWithPhone.length === 0) {
+      toast.error("No selected contacts have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedContactsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${selectedContactsWithPhone.length} recipient(s) will receive the WhatsApp message. ${skipped} selected contact(s) have no valid phone number and will be skipped.`
+      );
+    }
+    setSendWhatsAppOpen(true);
+  };
+
+  const handleClearSelection = () => {
+    table.toggleAllRowsSelected(false);
+    setRowSelection({});
+  };
+
   return (
     <div className="space-y-4 w-full">
       <AlertModal
@@ -254,26 +385,73 @@ export function ContactsDataTable<TData, TValue>({
         onOpenChange={setSendEmailOpen}
         recipients={selectedContactEmails}
         defaultFrom={defaultEmailFrom}
-        onSent={() => table.toggleAllRowsSelected(false)}
+        onSent={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
+      <SendWhatsAppDialog
+        open={sendWhatsAppOpen}
+        onOpenChange={setSendWhatsAppOpen}
+        contacts={selectedContacts}
+        onSent={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
+      <SendMessageDialog
+        open={sendMessageOpen}
+        onOpenChange={setSendMessageOpen}
+        recipients={selectedContactRecipients}
+        defaultChannel={messageDefaultChannel}
+        defaultFromEmail={defaultEmailFrom}
+        onSent={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
       />
       <div className="flex justify-between items-start gap-3">
-        <div className="flex justify-end items-center gap-2">
+        <div />
+        <div className="flex justify-end items-center gap-2 flex-wrap">
           {selectedCount > 0 && (
             <>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  if (selectedContactEmails.length === 0) {
-                    toast.error("Selected contact(s) do not have email addresses.");
-                    return;
-                  }
-                  setSendEmailOpen(true);
-                }}
+                onClick={handleSendEmail}
                 disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Send Email
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleWhatsApp}
+                disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+                className="border-emerald-600/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 text-foreground"
+              >
+                <MessageSquare className="h-4 w-4 mr-1 text-emerald-600 dark:text-emerald-500" />
+                WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleClearSelection}
+                disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Selection
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSendMessage}
+                disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              >
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Send Message
               </Button>
               {membersLoading ? (
                 <div className="text-sm text-muted-foreground px-3 py-1.5">
@@ -335,10 +513,66 @@ export function ContactsDataTable<TData, TValue>({
         assignedMemberFilter={assignedMemberFilter}
       />
       {selectedCount > 0 && (
-        <div className="flex items-center gap-2 py-2 px-1 bg-muted/50 rounded-md border">
-          <span className="text-sm text-muted-foreground">
-            {selectedCount} selected
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm text-foreground">
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="font-semibold">
+              {selectedCount}
+            </Badge>
+            <span>{selectedCount === 1 ? "contact" : "contacts"} selected</span>
+            {selectedContactEmails.length > 0 && selectedContactEmails.length !== selectedCount && (
+              <span className="text-xs text-muted-foreground">
+                ({selectedContactEmails.length} with valid email)
+              </span>
+            )}
+            {selectedContactsWithPhone.length > 0 && selectedContactsWithPhone.length !== selectedCount && (
+              <span className="text-xs text-muted-foreground">
+                ({selectedContactsWithPhone.length} with valid phone)
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSendEmail}
+              disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Send Email
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleWhatsApp}
+              disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium border-emerald-600/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600"
+            >
+              <MessageSquare className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
+              WhatsApp
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleClearSelection}
+              disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear Selection
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSendMessage}
+              disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Send Message
+            </Button>
+          </div>
         </div>
       )}
       <div className="rounded-md border overflow-x-auto w-full">
