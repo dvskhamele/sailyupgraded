@@ -34,8 +34,10 @@ import { DataTableToolbar } from "./data-table-toolbar";
 import { PeopleDetailSheet } from "./people-detail-sheet";
 import { PeopleActiveChips } from "./people-active-chips";
 import { SendEmailDialog } from "@/app/[locale]/(routes)/crm/contacts/components/SendEmailDialog";
+import { SendWhatsAppDialog } from "@/app/[locale]/(routes)/crm/contacts/components/SendWhatsAppDialog";
 import { SendMessageDialog } from "./send-message-dialog";
 import { PeopleConvertDialog } from "./people-convert-dialog";
+import { cleanWhatsAppPhoneNumber, getContactRawPhone } from "@/lib/whatsapp-extension";
 import type { PeopleRecord, PeopleFilterOptions, PeopleStats } from "@/types/people";
 
 interface PeopleDataTableProps {
@@ -117,6 +119,9 @@ export function PeopleDataTable({
 
   // Send Email Dialog state
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
+
+  // Send WhatsApp Dialog state
+  const [sendWhatsAppOpen, setSendWhatsAppOpen] = React.useState(false);
 
   // Send Message Dialog state
   const [sendMessageOpen, setSendMessageOpen] = React.useState(false);
@@ -231,6 +236,14 @@ export function PeopleDataTable({
     return selectedRows.map((r) => r.original);
   }, [selectedRows]);
 
+  // Extract selected records with valid WhatsApp phone numbers
+  const selectedRecordsWithPhone = React.useMemo(() => {
+    return selectedRecords.filter((record) => {
+      const rawPhone = getContactRawPhone(record);
+      return Boolean(cleanWhatsAppPhoneNumber(rawPhone));
+    });
+  }, [selectedRecords]);
+
   const handleRowClick = (record: PeopleRecord, event: React.MouseEvent) => {
     const target = event.target as HTMLElement;
     if (
@@ -306,6 +319,29 @@ export function PeopleDataTable({
     toast.success(`Exported ${rowsToExport.length} record(s) to CSV`);
   };
 
+  const handleWhatsApp = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one record.");
+      return;
+    }
+    if (selectedRecordsWithPhone.length === 0) {
+      toast.error("No selected People have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedRecordsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${selectedRecordsWithPhone.length} recipient(s) will receive the WhatsApp message. ${skipped} selected People don't have a valid phone number and will be skipped.`
+      );
+    }
+    setSendWhatsAppOpen(true);
+  };
+
+  const handleClearSelection = () => {
+    table.toggleAllPageRowsSelected(false);
+    setRowSelection({});
+  };
+
   return (
     <div className="space-y-4">
       {/* Existing Saily Send Email Modal */}
@@ -318,6 +354,18 @@ export function PeopleDataTable({
           table.toggleAllPageRowsSelected(false);
           setRowSelection({});
           toast.success(`Email sent successfully to ${selectedEmails.length} recipient(s).`);
+        }}
+      />
+
+      {/* WhatsApp Extension Modal */}
+      <SendWhatsAppDialog
+        open={sendWhatsAppOpen}
+        onOpenChange={setSendWhatsAppOpen}
+        contacts={selectedRecords}
+        entityType="people"
+        onSent={() => {
+          table.toggleAllPageRowsSelected(false);
+          setRowSelection({});
         }}
       />
 
@@ -396,9 +444,14 @@ export function PeopleDataTable({
                 ({selectedEmails.length} with valid email)
               </span>
             )}
+            {selectedRecordsWithPhone.length > 0 && selectedRecordsWithPhone.length !== selectedCount && (
+              <span className="text-xs text-muted-foreground">
+                ({selectedRecordsWithPhone.length} with valid phone)
+              </span>
+            )}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
             {/* Convert to Contact Action Button */}
             <Button
               variant="default"
@@ -456,17 +509,10 @@ export function PeopleDataTable({
             <Button
               variant="outline"
               size="sm"
-              onClick={() => {
-                if (selectedRecords.length === 0) {
-                  toast.error("Please select at least one record.");
-                  return;
-                }
-                setMessageDefaultChannel("whatsapp");
-                setSendMessageOpen(true);
-              }}
-              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+              onClick={handleWhatsApp}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium border-emerald-600/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 text-foreground"
             >
-              <MessageSquare className="h-3.5 w-3.5" />
+              <MessageSquare className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
               WhatsApp
             </Button>
 
@@ -474,10 +520,7 @@ export function PeopleDataTable({
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => {
-                table.toggleAllPageRowsSelected(false);
-                setRowSelection({});
-              }}
+              onClick={handleClearSelection}
               className="h-8 text-xs text-muted-foreground hover:text-foreground"
             >
               <X className="h-3.5 w-3.5 mr-1" />

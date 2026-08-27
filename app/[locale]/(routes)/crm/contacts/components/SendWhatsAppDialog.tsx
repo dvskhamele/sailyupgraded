@@ -34,7 +34,7 @@ export interface SendWhatsAppDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contacts: ContactPhoneSource[];
-  entityType?: "contact" | "lead";
+  entityType?: "contact" | "lead" | "person" | "people";
   onSent?: () => void;
 }
 
@@ -49,10 +49,11 @@ export function SendWhatsAppDialog({
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
 
   const isLead = entityType === "lead";
-  const entitySingular = isLead ? "lead" : "contact";
-  const entityPlural = isLead ? "leads" : "contacts";
-  const EntitySingularCap = isLead ? "Lead" : "Contact";
-  const EntityPluralCap = isLead ? "Leads" : "Contacts";
+  const isPeople = entityType === "people" || entityType === "person";
+  const entitySingular = isLead ? "lead" : isPeople ? "person" : "contact";
+  const entityPlural = isLead ? "leads" : isPeople ? "people" : "contacts";
+  const EntitySingularCap = isLead ? "Lead" : isPeople ? "Person" : "Contact";
+  const EntityPluralCap = isLead ? "Leads" : isPeople ? "People" : "Contacts";
 
   const { validRecipients, skippedContacts, uniquePhoneNumbers, extPhoneParam } =
     React.useMemo(() => {
@@ -75,9 +76,7 @@ export function SendWhatsAppDialog({
   const handleSend = () => {
     if (validCount === 0) {
       toast.error(
-        isLead
-          ? "No selected Leads have a valid phone number."
-          : "No selected contacts have a valid phone number."
+        `No selected ${EntityPluralCap} have a valid phone number.`
       );
       return;
     }
@@ -140,7 +139,7 @@ export function SendWhatsAppDialog({
               </div>
             </div>
 
-            {/* Validation warning when some contacts/leads are skipped */}
+            {/* Validation warning when some contacts/leads/people are skipped */}
             {skippedCount > 0 && (
               <div
                 className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-md border border-amber-200 dark:border-amber-900"
@@ -152,7 +151,9 @@ export function SendWhatsAppDialog({
                     {validCount} {validCount === 1 ? "recipient" : "recipients"} will receive the WhatsApp message.
                   </p>
                   <p className="text-muted-foreground">
-                    {isLead
+                    {isPeople
+                      ? `${skippedCount} selected People don't have a valid phone number and will be skipped.`
+                      : isLead
                       ? `${skippedCount} ${skippedCount === 1 ? "Lead doesn't" : "Leads don't"} have a valid phone number and will be skipped.`
                       : `${skippedCount} selected ${skippedCount === 1 ? "contact has" : "contacts have"} no valid phone number and will be skipped.`}
                   </p>
@@ -183,9 +184,7 @@ export function SendWhatsAppDialog({
               </div>
             ) : (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive text-center">
-                {isLead
-                  ? "No selected Leads have a valid phone number."
-                  : "No selected contacts have a valid phone number."}
+                No selected {EntityPluralCap} have a valid phone number.
               </div>
             )}
           </div>

@@ -8,9 +8,15 @@ export interface ContactPhoneSource {
   name?: string | null;
   first_name?: string | null;
   last_name?: string | null;
+  firstName?: string | null;
+  lastName?: string | null;
+  fullName?: string | null;
   mobile_phone?: string | null;
+  mobilePhone?: string | null;
   phone?: string | null;
   office_phone?: string | null;
+  officePhone?: string | null;
+  type?: string | null;
   [key: string]: any;
 }
 
@@ -72,25 +78,28 @@ export function cleanWhatsAppPhoneNumber(rawPhone?: string | null): string | nul
 }
 
 /**
- * Extracts the primary phone number from a contact or lead record.
- * Prioritizes phone, mobile_phone, then office_phone.
+ * Extracts the primary phone number from a contact, lead, or people record.
+ * Prioritizes mobile_phone / mobilePhone, then phone, then office_phone / officePhone.
  */
 export function getContactRawPhone(contact: ContactPhoneSource): string | null {
   const phone =
     contact.mobile_phone ||
+    contact.mobilePhone ||
     contact.phone ||
-    contact.office_phone;
+    contact.office_phone ||
+    contact.officePhone;
   return phone?.trim() || null;
 }
 
 /**
- * Derives a human-readable display name for a contact or lead.
+ * Derives a human-readable display name for a contact, lead, or people record.
  */
 export function getContactDisplayName(contact: ContactPhoneSource): string {
   const firstName = (contact.first_name || contact.firstName || "").trim();
   const lastName = (contact.last_name || contact.lastName || "").trim();
   const combined = [firstName, lastName].filter(Boolean).join(" ");
   if (combined) return combined;
+  if (contact.fullName && contact.fullName.trim()) return contact.fullName.trim();
   if (contact.name && contact.name.trim()) return contact.name.trim();
   return "Contact";
 }
@@ -166,3 +175,4 @@ export function buildWhatsAppWebExtensionUrl(
 
   return `https://web.whatsapp.com/?ext_phone=${phoneParam}&ext_msg=${encodedMsg}&ext_send=true`;
 }
+
