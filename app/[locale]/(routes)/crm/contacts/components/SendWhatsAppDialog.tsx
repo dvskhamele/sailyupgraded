@@ -34,6 +34,7 @@ export interface SendWhatsAppDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   contacts: ContactPhoneSource[];
+  entityType?: "contact" | "lead";
   onSent?: () => void;
 }
 
@@ -41,10 +42,17 @@ export function SendWhatsAppDialog({
   open,
   onOpenChange,
   contacts,
+  entityType = "contact",
   onSent,
 }: SendWhatsAppDialogProps) {
   const [message, setMessage] = React.useState("");
   const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  const isLead = entityType === "lead";
+  const entitySingular = isLead ? "lead" : "contact";
+  const entityPlural = isLead ? "leads" : "contacts";
+  const EntitySingularCap = isLead ? "Lead" : "Contact";
+  const EntityPluralCap = isLead ? "Leads" : "Contacts";
 
   const { validRecipients, skippedContacts, uniquePhoneNumbers, extPhoneParam } =
     React.useMemo(() => {
@@ -66,7 +74,11 @@ export function SendWhatsAppDialog({
 
   const handleSend = () => {
     if (validCount === 0) {
-      toast.error("No selected contacts have a valid phone number.");
+      toast.error(
+        isLead
+          ? "No selected Leads have a valid phone number."
+          : "No selected contacts have a valid phone number."
+      );
       return;
     }
 
@@ -85,7 +97,7 @@ export function SendWhatsAppDialog({
     window.open(url, "_blank", "noopener,noreferrer");
 
     toast.success(
-      `Opening WhatsApp Web for ${validCount} contact${validCount === 1 ? "" : "s"}...`
+      `Opening WhatsApp Web for ${validCount} ${validCount === 1 ? entitySingular : entityPlural}...`
     );
 
     // Clean up modal state and clear row selection
@@ -104,7 +116,7 @@ export function SendWhatsAppDialog({
             Send WhatsApp
           </DialogTitle>
           <DialogDescription>
-            Compose a message to broadcast to selected contacts using the WhatsApp browser extension.
+            Compose a message to broadcast to selected {entityPlural} using the WhatsApp browser extension.
           </DialogDescription>
         </DialogHeader>
 
@@ -128,7 +140,7 @@ export function SendWhatsAppDialog({
               </div>
             </div>
 
-            {/* Validation warning when some contacts are skipped */}
+            {/* Validation warning when some contacts/leads are skipped */}
             {skippedCount > 0 && (
               <div
                 className="flex items-start gap-2 text-xs text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-md border border-amber-200 dark:border-amber-900"
@@ -140,7 +152,9 @@ export function SendWhatsAppDialog({
                     {validCount} {validCount === 1 ? "recipient" : "recipients"} will receive the WhatsApp message.
                   </p>
                   <p className="text-muted-foreground">
-                    {skippedCount} selected {skippedCount === 1 ? "contact has" : "contacts have"} no valid phone number and will be skipped.
+                    {isLead
+                      ? `${skippedCount} ${skippedCount === 1 ? "Lead doesn't" : "Leads don't"} have a valid phone number and will be skipped.`
+                      : `${skippedCount} selected ${skippedCount === 1 ? "contact has" : "contacts have"} no valid phone number and will be skipped.`}
                   </p>
                 </div>
               </div>
@@ -169,7 +183,9 @@ export function SendWhatsAppDialog({
               </div>
             ) : (
               <div className="rounded-md border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive text-center">
-                No selected contacts have a valid phone number.
+                {isLead
+                  ? "No selected Leads have a valid phone number."
+                  : "No selected contacts have a valid phone number."}
               </div>
             )}
           </div>
@@ -219,7 +235,7 @@ export function SendWhatsAppDialog({
             <div className="grid grid-cols-1 gap-1.5 text-muted-foreground">
               <div>
                 <span className="font-medium text-foreground">Recipients: </span>
-                {validCount} {validCount === 1 ? "contact" : "contacts"}
+                {validCount} {validCount === 1 ? entitySingular : entityPlural}
               </div>
               <div>
                 <span className="font-medium text-foreground">Numbers: </span>

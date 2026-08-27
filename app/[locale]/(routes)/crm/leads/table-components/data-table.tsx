@@ -27,11 +27,12 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Loader2, Mail, Sparkles, Trash2, UserCheck } from "lucide-react";
+import { Loader2, Mail, MessageSquare, Sparkles, Trash2, UserCheck, X } from "lucide-react";
 import { createColumns } from "./columns";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import AlertModal from "@/components/modals/alert-modal";
 import { toast } from "sonner";
 import { localLeadRepository } from "@/lib/offline-first/storage";
@@ -39,6 +40,8 @@ import { convertLeadsToContacts } from "@/actions/crm/leads/convert-leads";
 import { bulkDeleteLeads } from "@/actions/crm/leads/delete-lead";
 import { bulkAssignLeads } from "@/actions/crm/leads/assign-member";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
+import { SendWhatsAppDialog } from "../../contacts/components/SendWhatsAppDialog";
+import { cleanWhatsAppPhoneNumber } from "@/lib/whatsapp-extension";
 import {
   Select,
   SelectContent,
@@ -103,6 +106,7 @@ export function LeadDataTable<TData, TValue>({
 
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
+  const [sendWhatsAppOpen, setSendWhatsAppOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
   const [bulkConvertLoading, setBulkConvertLoading] = React.useState(false);
   const [bulkEnrichLoading, setBulkEnrichLoading] = React.useState(false);
@@ -187,12 +191,25 @@ export function LeadDataTable<TData, TValue>({
   });
 
   const selectedRows = table.getFilteredSelectedRowModel().rows;
-  const selectedLeadIds = selectedRows.map(
-    (row) => (row.original as { id: string }).id
+  const selectedLeads = React.useMemo(
+    () => selectedRows.map((row) => row.original as any),
+    [selectedRows]
   );
-  const selectedLeadEmails = selectedRows
-    .map((row) => (row.original as { email?: string | null }).email?.trim())
-    .filter((email): email is string => Boolean(email));
+  const selectedLeadIds = React.useMemo(
+    () => selectedLeads.map((lead) => lead.id as string),
+    [selectedLeads]
+  );
+  const selectedLeadEmails = React.useMemo(() => {
+    return selectedLeads
+      .map((lead) => (lead.email || lead.personal_email)?.trim())
+      .filter((email): email is string => Boolean(email && email.includes("@")));
+  }, [selectedLeads]);
+  const selectedLeadsWithPhone = React.useMemo(() => {
+    return selectedLeads.filter((lead) => {
+      const rawPhone = lead.phone || lead.mobile_phone || lead.office_phone;
+      return Boolean(cleanWhatsAppPhoneNumber(rawPhone));
+    });
+  }, [selectedLeads]);
   const selectedCount = selectedLeadIds.length;
 
   // Load members when leads are selected
@@ -366,6 +383,47 @@ export function LeadDataTable<TData, TValue>({
     }
   };
 
+  const handleSendEmail = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one lead.");
+      return;
+    }
+    if (selectedLeadEmails.length === 0) {
+      toast.error("Selected lead(s) do not have email addresses.");
+      return;
+    }
+    const skipped = selectedCount - selectedLeadEmails.length;
+    if (skipped > 0) {
+      toast.info(
+        `${skipped} lead(s) missing a valid email address will be skipped.`
+      );
+    }
+    setSendEmailOpen(true);
+  };
+
+  const handleWhatsApp = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one lead.");
+      return;
+    }
+    if (selectedLeadsWithPhone.length === 0) {
+      toast.error("No selected Leads have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedLeadsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${selectedLeadsWithPhone.length} recipient(s) will receive the WhatsApp message. ${skipped} selected Lead(s) don't have a valid phone number and will be skipped.`
+      );
+    }
+    setSendWhatsAppOpen(true);
+  };
+
+  const handleClearSelection = () => {
+    table.toggleAllRowsSelected(false);
+    setRowSelection({});
+  };
+
   return (
     <div className="space-y-4">
       <AlertModal
@@ -392,27 +450,54 @@ export function LeadDataTable<TData, TValue>({
         onOpenChange={setSendEmailOpen}
         recipients={selectedLeadEmails}
         defaultFrom={defaultEmailFrom}
-        onSent={() => table.toggleAllRowsSelected(false)}
+        onSent={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
+      <SendWhatsAppDialog
+        open={sendWhatsAppOpen}
+        onOpenChange={setSendWhatsAppOpen}
+        contacts={selectedLeads}
+        entityType="lead"
+        onSent={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
       />
       <div className="flex justify-between items-start gap-3">
         <div />
-        <div className="flex justify-end items-center gap-2">
+        <div className="flex justify-end items-center gap-2 flex-wrap">
           {selectedCount > 0 && (
             <>
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => {
-                  if (selectedLeadEmails.length === 0) {
-                    toast.error("Selected lead(s) do not have email addresses.");
-                    return;
-                  }
-                  setSendEmailOpen(true);
-                }}
+                onClick={handleSendEmail}
                 disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Send Email
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleWhatsApp}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+                className="border-emerald-600/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600 text-foreground"
+              >
+                <MessageSquare className="h-4 w-4 mr-1 text-emerald-600 dark:text-emerald-500" />
+                WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleClearSelection}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear Selection
               </Button>
               {membersLoading ? (
                 <div className="text-sm text-muted-foreground px-3 py-1.5">
@@ -478,6 +563,59 @@ export function LeadDataTable<TData, TValue>({
         </div>
       </div>
       <DataTableToolbar table={table} productOptions={productOptions} />
+      {selectedCount > 0 && (
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-primary/20 bg-primary/5 px-4 py-2.5 text-sm text-foreground">
+          <div className="flex items-center gap-2">
+            <Badge variant="default" className="font-semibold">
+              {selectedCount}
+            </Badge>
+            <span>{selectedCount === 1 ? "lead" : "leads"} selected</span>
+            {selectedLeadEmails.length > 0 && selectedLeadEmails.length !== selectedCount && (
+              <span className="text-xs text-muted-foreground">
+                ({selectedLeadEmails.length} with valid email)
+              </span>
+            )}
+            {selectedLeadsWithPhone.length > 0 && selectedLeadsWithPhone.length !== selectedCount && (
+              <span className="text-xs text-muted-foreground">
+                ({selectedLeadsWithPhone.length} with valid phone)
+              </span>
+            )}
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSendEmail}
+              disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+            >
+              <Mail className="h-3.5 w-3.5" />
+              Send Email
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleWhatsApp}
+              disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium border-emerald-600/30 hover:bg-emerald-50 dark:hover:bg-emerald-950/30 hover:text-emerald-600"
+            >
+              <MessageSquare className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
+              WhatsApp
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleClearSelection}
+              disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 text-xs text-muted-foreground hover:text-foreground"
+            >
+              <X className="h-3.5 w-3.5 mr-1" />
+              Clear Selection
+            </Button>
+          </div>
+        </div>
+      )}
       <div className="rounded-md border overflow-x-auto">
         <Table data-testid="leads-table">
           <TableHeader>

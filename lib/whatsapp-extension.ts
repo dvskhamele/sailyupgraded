@@ -72,20 +72,23 @@ export function cleanWhatsAppPhoneNumber(rawPhone?: string | null): string | nul
 }
 
 /**
- * Extracts the primary phone number from a contact record.
- * Prioritizes mobile_phone, then phone, then office_phone.
+ * Extracts the primary phone number from a contact or lead record.
+ * Prioritizes phone, mobile_phone, then office_phone.
  */
 export function getContactRawPhone(contact: ContactPhoneSource): string | null {
-  const phone = contact.mobile_phone || contact.phone || contact.office_phone;
+  const phone =
+    contact.mobile_phone ||
+    contact.phone ||
+    contact.office_phone;
   return phone?.trim() || null;
 }
 
 /**
- * Derives a human-readable display name for a contact.
+ * Derives a human-readable display name for a contact or lead.
  */
 export function getContactDisplayName(contact: ContactPhoneSource): string {
-  const firstName = (contact.first_name || "").trim();
-  const lastName = (contact.last_name || "").trim();
+  const firstName = (contact.first_name || contact.firstName || "").trim();
+  const lastName = (contact.last_name || contact.lastName || "").trim();
   const combined = [firstName, lastName].filter(Boolean).join(" ");
   if (combined) return combined;
   if (contact.name && contact.name.trim()) return contact.name.trim();
