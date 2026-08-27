@@ -42,6 +42,8 @@ import { bulkAssignLeads } from "@/actions/crm/leads/assign-member";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 import { SendWhatsAppDialog } from "../../contacts/components/SendWhatsAppDialog";
 import { AICallDialog } from "../../contacts/components/AICallDialog";
+import { SendMessageDialog } from "@/app/[locale]/(routes)/crm/people/table-components/send-message-dialog";
+import type { BulkMessageRecipient } from "@/actions/crm/messages/send-bulk-messages";
 import { cleanWhatsAppPhoneNumber } from "@/lib/whatsapp-extension";
 import {
   Select,
@@ -109,6 +111,9 @@ export function LeadDataTable<TData, TValue>({
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [sendWhatsAppOpen, setSendWhatsAppOpen] = React.useState(false);
   const [aiCallOpen, setAiCallOpen] = React.useState(false);
+  const [sendMessageOpen, setSendMessageOpen] = React.useState(false);
+  const [messageDefaultChannel, setMessageDefaultChannel] =
+    React.useState<"sms" | "email" | "whatsapp">("sms");
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
   const [bulkConvertLoading, setBulkConvertLoading] = React.useState(false);
   const [bulkEnrichLoading, setBulkEnrichLoading] = React.useState(false);
@@ -210,6 +215,39 @@ export function LeadDataTable<TData, TValue>({
     return selectedLeads.filter((lead) => {
       const rawPhone = lead.phone || lead.mobile_phone || lead.office_phone;
       return Boolean(cleanWhatsAppPhoneNumber(rawPhone));
+    });
+  }, [selectedLeads]);
+  const selectedLeadRecipients = React.useMemo<BulkMessageRecipient[]>(() => {
+    return selectedLeads.map((lead) => {
+      const firstName = lead.firstName || (lead.name ? lead.name.split(" ")[0] : "");
+      const lastName =
+        lead.lastName ||
+        (lead.name && lead.name.split(" ").length > 1
+          ? lead.name.split(" ").slice(1).join(" ")
+          : "");
+      const fullName =
+        [firstName, lastName].filter(Boolean).join(" ") || lead.name || "Lead";
+      const company = lead.company || "";
+      const jobTitle = lead.jobTitle || lead.position || lead.role || "";
+      const phone = lead.mobile_phone || lead.phone || lead.office_phone || null;
+      const email = lead.email || lead.personal_email || null;
+
+      return {
+        id: lead.id,
+        originalId: lead.id,
+        name: fullName,
+        fullName,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        email: email || undefined,
+        personalEmail: lead.personal_email || undefined,
+        phone: phone || undefined,
+        mobilePhone: lead.mobile_phone || undefined,
+        officePhone: lead.office_phone || undefined,
+        company: company || undefined,
+        jobTitle: jobTitle || undefined,
+        type: "Lead",
+      };
     });
   }, [selectedLeads]);
   const selectedCount = selectedLeadIds.length;
@@ -403,6 +441,25 @@ export function LeadDataTable<TData, TValue>({
     setSendEmailOpen(true);
   };
 
+  const handleSendMessage = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one lead.");
+      return;
+    }
+    if (selectedLeadsWithPhone.length === 0) {
+      toast.error("None of the selected leads have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedLeadsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${skipped} lead(s) missing a valid phone number will be skipped.`
+      );
+    }
+    setMessageDefaultChannel("sms");
+    setSendMessageOpen(true);
+  };
+
   const handleWhatsApp = () => {
     if (selectedCount === 0) {
       toast.error("Please select at least one lead.");
@@ -495,6 +552,17 @@ export function LeadDataTable<TData, TValue>({
           setRowSelection({});
         }}
       />
+      <SendMessageDialog
+        open={sendMessageOpen}
+        onOpenChange={setSendMessageOpen}
+        recipients={selectedLeadRecipients}
+        defaultChannel={messageDefaultChannel}
+        defaultFromEmail={defaultEmailFrom}
+        onSent={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
       <div className="flex justify-between items-start gap-3">
         <div />
         <div className="flex justify-end items-center gap-2 flex-wrap">
@@ -508,6 +576,15 @@ export function LeadDataTable<TData, TValue>({
               >
                 <Mail className="h-4 w-4 mr-1" />
                 Send Email
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSendMessage}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              >
+                <MessageSquare className="h-4 w-4 mr-1" />
+                Send Message
               </Button>
               <Button
                 size="sm"
@@ -633,6 +710,16 @@ export function LeadDataTable<TData, TValue>({
             >
               <Mail className="h-3.5 w-3.5" />
               Send Email
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleSendMessage}
+              disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Send Message
             </Button>
             <Button
               size="sm"

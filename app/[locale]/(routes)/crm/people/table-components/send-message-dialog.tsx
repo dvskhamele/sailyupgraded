@@ -183,34 +183,62 @@ export function SendMessageDialog({
     };
   }, [open, defaultChannel]);
 
-  // Transform PeopleRecord to BulkMessageRecipient
+  // Transform PeopleRecord, Lead, Contact or BulkMessageRecipient to BulkMessageRecipient
   const normalizedRecipients: BulkMessageRecipient[] = React.useMemo(() => {
     return recipients.map((r) => {
-      const rec = r as PeopleRecord;
+      const rec = r as any;
       const firstName =
         rec.firstName ||
+        rec.first_name ||
         (rec.name ? rec.name.split(" ")[0] : undefined);
       const lastName =
         rec.lastName ||
+        rec.last_name ||
         (rec.name && rec.name.split(" ").length > 1
           ? rec.name.split(" ").slice(1).join(" ")
           : undefined);
+      const fullName =
+        rec.fullName ||
+        rec.name ||
+        [firstName, lastName].filter(Boolean).join(" ") ||
+        "Unknown";
+      const phone =
+        rec.phone ||
+        rec.mobilePhone ||
+        rec.mobile_phone ||
+        rec.officePhone ||
+        rec.office_phone ||
+        null;
+      const email =
+        rec.email ||
+        rec.personalEmail ||
+        rec.personal_email ||
+        null;
+      const company =
+        rec.company ||
+        rec.assigned_accounts?.name ||
+        undefined;
+      const jobTitle =
+        rec.jobTitle ||
+        rec.position ||
+        rec.role ||
+        undefined;
 
       return {
         id: rec.id,
         originalId: rec.originalId || rec.id,
-        name: rec.fullName || rec.name || "Unknown",
-        fullName: rec.fullName || rec.name || "Unknown",
-        firstName,
-        lastName,
-        email: rec.email || rec.personalEmail,
-        personalEmail: rec.personalEmail,
-        phone: rec.phone || rec.mobilePhone || rec.officePhone,
-        mobilePhone: rec.mobilePhone,
-        officePhone: rec.officePhone,
-        company: rec.company,
-        jobTitle: rec.jobTitle || rec.role,
-        type: rec.type,
+        name: fullName,
+        fullName,
+        firstName: firstName || undefined,
+        lastName: lastName || undefined,
+        email: email || undefined,
+        personalEmail: rec.personalEmail || rec.personal_email || undefined,
+        phone: phone || undefined,
+        mobilePhone: rec.mobilePhone || rec.mobile_phone || undefined,
+        officePhone: rec.officePhone || rec.office_phone || undefined,
+        company: company || undefined,
+        jobTitle: jobTitle || undefined,
+        type: rec.type || "Contact",
       };
     });
   }, [recipients]);

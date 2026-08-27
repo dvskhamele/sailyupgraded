@@ -323,6 +323,25 @@ export function PeopleDataTable({
     toast.success(`Exported ${rowsToExport.length} record(s) to CSV`);
   };
 
+  const handleSendMessage = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one record.");
+      return;
+    }
+    if (selectedRecordsWithPhone.length === 0) {
+      toast.error("None of the selected people have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedRecordsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${skipped} record(s) missing a valid phone number will be skipped.`
+      );
+    }
+    setMessageDefaultChannel("sms");
+    setSendMessageOpen(true);
+  };
+
   const handleWhatsApp = () => {
     if (selectedCount === 0) {
       toast.error("Please select at least one record.");
@@ -537,6 +556,17 @@ export function PeopleDataTable({
             >
               <Mail className="h-3.5 w-3.5" />
               Send Email
+            </Button>
+
+            {/* Send Message Action Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleSendMessage}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium"
+            >
+              <MessageSquare className="h-3.5 w-3.5" />
+              Send Message
             </Button>
 
             {/* WhatsApp Action Button */}
