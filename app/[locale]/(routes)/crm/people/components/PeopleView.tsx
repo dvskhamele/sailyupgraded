@@ -230,6 +230,7 @@ export default function PeopleView({
         filters={filters}
         onApplyFilters={handleApplyFilters}
         onResetFilters={handleResetFilters}
+        existingData={data}
       />
 
       {/* Detail View Sheet */}

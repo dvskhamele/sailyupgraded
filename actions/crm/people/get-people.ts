@@ -1,7 +1,15 @@
 "use server";
 
 import { getSession } from "@/lib/auth-server";
-import type { PeopleRecord, GetPeopleParams, GetPeopleResponse, PeopleStats } from "@/types/people";
+import { prismadb } from "@/lib/prisma";
+import type {
+  PeopleRecord,
+  GetPeopleParams,
+  GetPeopleResponse,
+  PeopleStats,
+  PeopleLocationOption,
+  GetPeopleLocationsResponse,
+} from "@/types/people";
 
 const ENRICHMENT_API_BASE =
   process.env.ENRICHMENT_API_URL || "http://129.146.163.220:7149";
@@ -311,6 +319,141 @@ export async function getUnifiedPeople(
       data: [],
       total: 0,
       error: error instanceof Error ? error.message : "Failed to load people data",
+    };
+  }
+}
+
+let cachedLocationsResult: GetPeopleLocationsResponse | null = null;
+let lastLocationsCacheTime = 0;
+const LOCATIONS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+
+export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> {
+  const now = Date.now();
+  if (cachedLocationsResult && now - lastLocationsCacheTime < LOCATIONS_CACHE_TTL_MS) {
+    return cachedLocationsResult;
+  }
+
+  try {
+    const countriesSet = new Set<string>();
+    const citiesSet = new Set<string>();
+    const seenNormalized = new Set<string>();
+
+    const addLocation = (rawVal: unknown, type: "country" | "city") => {
+      const cleaned = cleanString(rawVal);
+      if (!cleaned || cleaned.length < 2) return;
+      if (/^\d+$/.test(cleaned)) return; // Ignore numeric strings
+      if (cleaned.toLowerCase() === "unknown" || cleaned.toLowerCase() === "none") return;
+
+      const normalizedKey = cleaned.toLowerCase();
+      if (seenNormalized.has(normalizedKey)) return;
+      seenNormalized.add(normalizedKey);
+
+      if (type === "country") {
+        countriesSet.add(cleaned);
+      } else {
+        citiesSet.add(cleaned);
+      }
+    };
+
+    // 1. Fetch sample from external API
+    try {
+      const [accountsRes, contactsRes] = await Promise.all([
+        fetch(`${ENRICHMENT_API_BASE}/accounts?limit=300`, {
+          signal: AbortSignal.timeout(5000),
+          headers: { Accept: "application/json" },
+        }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        fetch(`${ENRICHMENT_API_BASE}/contacts?limit=300`, {
+          signal: AbortSignal.timeout(5000),
+          headers: { Accept: "application/json" },
+        }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+      ]);
+
+      if (Array.isArray(accountsRes)) {
+        for (const item of accountsRes) {
+          if (item.country || item.billing_country) addLocation(item.country || item.billing_country, "country");
+          if (item.city || item.billing_city) addLocation(item.city || item.billing_city, "city");
+        }
+      }
+
+      if (Array.isArray(contactsRes)) {
+        for (const item of contactsRes) {
+          if (item.country) addLocation(item.country, "country");
+          if (item.city) addLocation(item.city, "city");
+        }
+      }
+    } catch (apiErr) {
+      console.warn("[GET_PEOPLE_LOCATIONS] External API fetch warning:", apiErr);
+    }
+
+    // 2. Query local database for distinct locations
+    try {
+      const [dbAccounts, dbContacts] = await Promise.all([
+        prismadb.crm_Accounts.findMany({
+          where: { deletedAt: null },
+          select: { billing_country: true, billing_city: true, shipping_country: true, shipping_city: true },
+          take: 300,
+        }).catch(() => []),
+        prismadb.crm_Contacts.findMany({
+          where: { deletedAt: null },
+          select: { country: true, city: true },
+          take: 300,
+        }).catch(() => []),
+      ]);
+
+      for (const acc of dbAccounts) {
+        if (acc.billing_country) addLocation(acc.billing_country, "country");
+        if (acc.shipping_country) addLocation(acc.shipping_country, "country");
+        if (acc.billing_city) addLocation(acc.billing_city, "city");
+        if (acc.shipping_city) addLocation(acc.shipping_city, "city");
+      }
+
+      for (const con of dbContacts) {
+        if (con.country) addLocation(con.country, "country");
+        if (con.city) addLocation(con.city, "city");
+      }
+    } catch (dbErr) {
+      console.warn("[GET_PEOPLE_LOCATIONS] Database query warning:", dbErr);
+    }
+
+    const sortedCountries = Array.from(countriesSet).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
+    const sortedCities = Array.from(citiesSet).sort((a, b) =>
+      a.localeCompare(b, undefined, { sensitivity: "base" })
+    );
+
+    const locations: PeopleLocationOption[] = [
+      ...sortedCountries.map((c) => ({
+        value: c,
+        label: c,
+        type: "country" as const,
+      })),
+      ...sortedCities.map((c) => ({
+        value: c,
+        label: c,
+        type: "city" as const,
+      })),
+    ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
+
+    const response: GetPeopleLocationsResponse = {
+      success: true,
+      locations,
+      countries: sortedCountries,
+      cities: sortedCities,
+    };
+
+    cachedLocationsResult = response;
+    lastLocationsCacheTime = now;
+
+    return response;
+  } catch (error) {
+    console.error("[GET_PEOPLE_LOCATIONS_ERROR]", error);
+    return {
+      success: false,
+      locations: [],
+      countries: [],
+      cities: [],
+      error: error instanceof Error ? error.message : "Failed to load locations",
     };
   }
 }

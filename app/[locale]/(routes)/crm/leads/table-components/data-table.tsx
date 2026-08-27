@@ -27,7 +27,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Loader2, Mail, MessageSquare, Sparkles, Trash2, UserCheck, X } from "lucide-react";
+import { Bot, Loader2, Mail, MessageSquare, Sparkles, Trash2, UserCheck, X } from "lucide-react";
 import { createColumns } from "./columns";
 import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
@@ -41,6 +41,7 @@ import { bulkDeleteLeads } from "@/actions/crm/leads/delete-lead";
 import { bulkAssignLeads } from "@/actions/crm/leads/assign-member";
 import { SendEmailDialog } from "../../contacts/components/SendEmailDialog";
 import { SendWhatsAppDialog } from "../../contacts/components/SendWhatsAppDialog";
+import { AICallDialog } from "../../contacts/components/AICallDialog";
 import { cleanWhatsAppPhoneNumber } from "@/lib/whatsapp-extension";
 import {
   Select,
@@ -107,6 +108,7 @@ export function LeadDataTable<TData, TValue>({
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [sendWhatsAppOpen, setSendWhatsAppOpen] = React.useState(false);
+  const [aiCallOpen, setAiCallOpen] = React.useState(false);
   const [bulkDeleteLoading, setBulkDeleteLoading] = React.useState(false);
   const [bulkConvertLoading, setBulkConvertLoading] = React.useState(false);
   const [bulkEnrichLoading, setBulkEnrichLoading] = React.useState(false);
@@ -419,6 +421,24 @@ export function LeadDataTable<TData, TValue>({
     setSendWhatsAppOpen(true);
   };
 
+  const handleAICall = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one lead.");
+      return;
+    }
+    if (selectedLeadsWithPhone.length === 0) {
+      toast.error("No selected leads have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedLeadsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${selectedLeadsWithPhone.length} lead(s) are ready for AI calling. ${skipped} selected lead(s) have no valid phone number and will be skipped.`
+      );
+    }
+    setAiCallOpen(true);
+  };
+
   const handleClearSelection = () => {
     table.toggleAllRowsSelected(false);
     setRowSelection({});
@@ -465,6 +485,16 @@ export function LeadDataTable<TData, TValue>({
           setRowSelection({});
         }}
       />
+      <AICallDialog
+        open={aiCallOpen}
+        onOpenChange={setAiCallOpen}
+        contacts={selectedLeads}
+        entityType="lead"
+        onCallsStarted={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
       <div className="flex justify-between items-start gap-3">
         <div />
         <div className="flex justify-end items-center gap-2 flex-wrap">
@@ -488,6 +518,17 @@ export function LeadDataTable<TData, TValue>({
               >
                 <MessageSquare className="h-4 w-4 mr-1 text-emerald-600 dark:text-emerald-500" />
                 WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAICall}
+                disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+                className="border-primary/30 hover:bg-primary/5 hover:text-primary text-foreground"
+                data-testid="bulk-ai-call-btn"
+              >
+                <Bot className="h-4 w-4 mr-1 text-primary" />
+                AI Call
               </Button>
               <Button
                 size="sm"
@@ -602,6 +643,16 @@ export function LeadDataTable<TData, TValue>({
             >
               <MessageSquare className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
               WhatsApp
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAICall}
+              disabled={bulkConvertLoading || bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium border-primary/30 hover:bg-primary/5 hover:text-primary text-foreground"
+            >
+              <Bot className="h-3.5 w-3.5 text-primary" />
+              AI Call
             </Button>
             <Button
               size="sm"

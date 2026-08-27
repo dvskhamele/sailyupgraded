@@ -71,3 +71,18 @@ export interface GetPeopleResponse {
   stats?: PeopleStats;
   error?: string;
 }
+
+export interface PeopleLocationOption {
+  value: string;
+  label: string;
+  type?: "country" | "city" | "location";
+}
+
+export interface GetPeopleLocationsResponse {
+  success: boolean;
+  locations: PeopleLocationOption[];
+  countries: string[];
+  cities: string[];
+  error?: string;
+}
+

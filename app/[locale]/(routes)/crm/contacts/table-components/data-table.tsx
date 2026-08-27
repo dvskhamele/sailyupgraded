@@ -27,7 +27,7 @@ import {
 
 import { DataTablePagination } from "./data-table-pagination";
 import { DataTableToolbar } from "./data-table-toolbar";
-import { Loader2, Mail, MessageSquare, Sparkles, Trash2, Users, X } from "lucide-react";
+import { Bot, Loader2, Mail, MessageSquare, PhoneCall, Sparkles, Trash2, Users, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import AlertModal from "@/components/modals/alert-modal";
@@ -38,6 +38,7 @@ import { useRouter } from "next/navigation";
 import { handleRowClick, handleRowKeyDown } from "../../components/table-row-navigation";
 import { SendEmailDialog } from "../components/SendEmailDialog";
 import { SendWhatsAppDialog } from "../components/SendWhatsAppDialog";
+import { AICallDialog } from "../components/AICallDialog";
 import { SendMessageDialog } from "@/app/[locale]/(routes)/crm/people/table-components/send-message-dialog";
 import type { BulkMessageRecipient } from "@/actions/crm/messages/send-bulk-messages";
 import { cleanWhatsAppPhoneNumber } from "@/lib/whatsapp-extension";
@@ -74,6 +75,7 @@ export function ContactsDataTable<TData, TValue>({
   const [bulkDeleteOpen, setBulkDeleteOpen] = React.useState(false);
   const [sendEmailOpen, setSendEmailOpen] = React.useState(false);
   const [sendWhatsAppOpen, setSendWhatsAppOpen] = React.useState(false);
+  const [aiCallOpen, setAiCallOpen] = React.useState(false);
   const [sendMessageOpen, setSendMessageOpen] = React.useState(false);
   const [messageDefaultChannel, setMessageDefaultChannel] =
     React.useState<"sms" | "email" | "whatsapp">("sms");
@@ -354,6 +356,24 @@ export function ContactsDataTable<TData, TValue>({
     setSendWhatsAppOpen(true);
   };
 
+  const handleAICall = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one contact.");
+      return;
+    }
+    if (selectedContactsWithPhone.length === 0) {
+      toast.error("No selected contacts have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedContactsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${selectedContactsWithPhone.length} contact(s) are ready for AI calling. ${skipped} selected contact(s) have no valid phone number and will be skipped.`
+      );
+    }
+    setAiCallOpen(true);
+  };
+
   const handleClearSelection = () => {
     table.toggleAllRowsSelected(false);
     setRowSelection({});
@@ -399,6 +419,16 @@ export function ContactsDataTable<TData, TValue>({
           setRowSelection({});
         }}
       />
+      <AICallDialog
+        open={aiCallOpen}
+        onOpenChange={setAiCallOpen}
+        contacts={selectedContacts}
+        entityType="contact"
+        onCallsStarted={() => {
+          table.toggleAllRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
       <SendMessageDialog
         open={sendMessageOpen}
         onOpenChange={setSendMessageOpen}
@@ -433,6 +463,17 @@ export function ContactsDataTable<TData, TValue>({
               >
                 <MessageSquare className="h-4 w-4 mr-1 text-emerald-600 dark:text-emerald-500" />
                 WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleAICall}
+                disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+                className="border-primary/30 hover:bg-primary/5 hover:text-primary text-foreground"
+                data-testid="bulk-ai-call-btn"
+              >
+                <Bot className="h-4 w-4 mr-1 text-primary" />
+                AI Call
               </Button>
               <Button
                 size="sm"
@@ -551,6 +592,16 @@ export function ContactsDataTable<TData, TValue>({
             >
               <MessageSquare className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
               WhatsApp
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleAICall}
+              disabled={bulkDeleteLoading || bulkAssignLoading || bulkEnrichLoading}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium border-primary/30 hover:bg-primary/5 hover:text-primary text-foreground"
+            >
+              <Bot className="h-3.5 w-3.5 text-primary" />
+              AI Call
             </Button>
             <Button
               size="sm"

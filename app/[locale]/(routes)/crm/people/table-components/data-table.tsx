@@ -16,7 +16,7 @@ import {
   useReactTable,
   FilterFn,
 } from "@tanstack/react-table";
-import { Copy, Download, Users, X, Check, RotateCcw, Mail, MessageSquare, UserCheck, UserPlus } from "lucide-react";
+import { Bot, Copy, Download, Users, X, Check, RotateCcw, Mail, MessageSquare, UserCheck, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -35,6 +35,7 @@ import { PeopleDetailSheet } from "./people-detail-sheet";
 import { PeopleActiveChips } from "./people-active-chips";
 import { SendEmailDialog } from "@/app/[locale]/(routes)/crm/contacts/components/SendEmailDialog";
 import { SendWhatsAppDialog } from "@/app/[locale]/(routes)/crm/contacts/components/SendWhatsAppDialog";
+import { AICallDialog } from "@/app/[locale]/(routes)/crm/contacts/components/AICallDialog";
 import { SendMessageDialog } from "./send-message-dialog";
 import { PeopleConvertDialog } from "./people-convert-dialog";
 import { cleanWhatsAppPhoneNumber, getContactRawPhone } from "@/lib/whatsapp-extension";
@@ -122,6 +123,9 @@ export function PeopleDataTable({
 
   // Send WhatsApp Dialog state
   const [sendWhatsAppOpen, setSendWhatsAppOpen] = React.useState(false);
+
+  // AI Call Dialog state
+  const [aiCallOpen, setAiCallOpen] = React.useState(false);
 
   // Send Message Dialog state
   const [sendMessageOpen, setSendMessageOpen] = React.useState(false);
@@ -337,6 +341,24 @@ export function PeopleDataTable({
     setSendWhatsAppOpen(true);
   };
 
+  const handleAICall = () => {
+    if (selectedCount === 0) {
+      toast.error("Please select at least one record.");
+      return;
+    }
+    if (selectedRecordsWithPhone.length === 0) {
+      toast.error("No selected People have a valid phone number.");
+      return;
+    }
+    const skipped = selectedCount - selectedRecordsWithPhone.length;
+    if (skipped > 0) {
+      toast.info(
+        `${selectedRecordsWithPhone.length} person(s) are ready for AI calling. ${skipped} selected record(s) don't have a valid phone number and will be skipped.`
+      );
+    }
+    setAiCallOpen(true);
+  };
+
   const handleClearSelection = () => {
     table.toggleAllPageRowsSelected(false);
     setRowSelection({});
@@ -364,6 +386,18 @@ export function PeopleDataTable({
         contacts={selectedRecords}
         entityType="people"
         onSent={() => {
+          table.toggleAllPageRowsSelected(false);
+          setRowSelection({});
+        }}
+      />
+
+      {/* AI Call Modal */}
+      <AICallDialog
+        open={aiCallOpen}
+        onOpenChange={setAiCallOpen}
+        contacts={selectedRecords}
+        entityType="person"
+        onCallsStarted={() => {
           table.toggleAllPageRowsSelected(false);
           setRowSelection({});
         }}
@@ -514,6 +548,18 @@ export function PeopleDataTable({
             >
               <MessageSquare className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-500" />
               WhatsApp
+            </Button>
+
+            {/* AI Call Action Button */}
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleAICall}
+              className="h-8 gap-1.5 text-xs bg-background shadow-xs font-medium border-primary/30 hover:bg-primary/5 hover:text-primary text-foreground"
+              data-testid="bulk-ai-call-btn"
+            >
+              <Bot className="h-3.5 w-3.5 text-primary" />
+              AI Call
             </Button>
 
             {/* Clear Selection Button */}

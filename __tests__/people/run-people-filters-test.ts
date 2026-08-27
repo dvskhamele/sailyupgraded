@@ -16,7 +16,7 @@ module.prototype.require = function (id: string) {
 };
 
 import assert from "assert";
-import { getUnifiedPeople } from "../../actions/crm/people/get-people";
+import { getUnifiedPeople, getPeopleLocations } from "../../actions/crm/people/get-people";
 
 async function runFilterTests() {
   console.log("=== Starting Comprehensive People Filter Test Suite ===\n");
@@ -29,24 +29,42 @@ async function runFilterTests() {
   assert.ok(base.data.length > 0);
   console.log("✓ Unfiltered baseline loaded\n");
 
-  // TEST 2: Type Filter = Account
-  console.log("[TEST 2] Testing Type = Account filter...");
+  // TEST 2: Dynamic People Locations Aggregation
+  console.log("[TEST 2] Testing Dynamic Locations Aggregation (getPeopleLocations)...");
+  const locsResult = await getPeopleLocations();
+  assert.strictEqual(locsResult.success, true);
+  assert.ok(Array.isArray(locsResult.locations), "locations must be an array");
+  console.log(`  Aggregated ${locsResult.locations.length} unique locations (${locsResult.countries.length} countries, ${locsResult.cities.length} cities)`);
+  
+  // Verify deduplication
+  const lowerValues = locsResult.locations.map((l) => l.value.toLowerCase().trim());
+  const uniqueCount = new Set(lowerValues).size;
+  assert.strictEqual(uniqueCount, lowerValues.length, "All location values must be unique and deduplicated");
+
+  // Verify alphabetical sorting
+  const labels = locsResult.locations.map((l) => l.label);
+  const sortedLabels = [...labels].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+  assert.deepStrictEqual(labels, sortedLabels, "Locations must be sorted alphabetically");
+  console.log("  ✓ Dynamic locations aggregation, deduplication, and alphabetical sorting verified\n");
+
+  // TEST 3: Type Filter = Account
+  console.log("[TEST 3] Testing Type = Account filter...");
   const accountsOnly = await getUnifiedPeople({ type: "Account", limit: 50 });
   assert.strictEqual(accountsOnly.success, true);
   assert.ok(accountsOnly.data.length > 0);
   assert.ok(accountsOnly.data.every((r) => r.type === "Account"), "All records MUST be Accounts");
   console.log(`  ✓ Type = Account returned ${accountsOnly.data.length} records, 100% are Accounts\n`);
 
-  // TEST 3: Type Filter = Contact
-  console.log("[TEST 3] Testing Type = Contact filter...");
+  // TEST 4: Type Filter = Contact
+  console.log("[TEST 4] Testing Type = Contact filter...");
   const contactsOnly = await getUnifiedPeople({ type: "Contact", limit: 50 });
   assert.strictEqual(contactsOnly.success, true);
   assert.ok(contactsOnly.data.length > 0);
   assert.ok(contactsOnly.data.every((r) => r.type === "Contact"), "All records MUST be Contacts");
   console.log(`  ✓ Type = Contact returned ${contactsOnly.data.length} records, 100% are Contacts\n`);
 
-  // TEST 4: Country / Location Filter
-  console.log("[TEST 4] Testing Country = United States filter...");
+  // TEST 5: Country / Location Filter
+  console.log("[TEST 5] Testing Country = United States filter...");
   const countryFilter = await getUnifiedPeople({ country: "United States", limit: 100 });
   assert.strictEqual(countryFilter.success, true);
   console.log(`  Found ${countryFilter.data.length} records matching 'United States'`);
@@ -59,8 +77,8 @@ async function runFilterTests() {
   );
   console.log("  ✓ Location filter verified\n");
 
-  // TEST 5: Has Email Quality Filter
-  console.log("[TEST 5] Testing hasEmail = true filter...");
+  // TEST 6: Has Email Quality Filter
+  console.log("[TEST 6] Testing hasEmail = true filter...");
   const emailFilter = await getUnifiedPeople({ hasEmail: true, limit: 100 });
   assert.strictEqual(emailFilter.success, true);
   console.log(`  Found ${emailFilter.data.length} records with valid email`);
@@ -70,8 +88,8 @@ async function runFilterTests() {
   );
   console.log("  ✓ Has Email filter verified\n");
 
-  // TEST 6: Has LinkedIn Quality Filter
-  console.log("[TEST 6] Testing hasLinkedin = true filter...");
+  // TEST 7: Has LinkedIn Quality Filter
+  console.log("[TEST 7] Testing hasLinkedin = true filter...");
   const linkedinFilter = await getUnifiedPeople({ hasLinkedin: true, limit: 100 });
   assert.strictEqual(linkedinFilter.success, true);
   console.log(`  Found ${linkedinFilter.data.length} records with LinkedIn profile`);
@@ -81,8 +99,8 @@ async function runFilterTests() {
   );
   console.log("  ✓ Has LinkedIn filter verified\n");
 
-  // TEST 7: Multi-Filter Combination (AND Logic: Type + Country + hasEmail)
-  console.log("[TEST 7] Testing Multi-Filter: Type=Contact AND Country=United States AND hasEmail=true...");
+  // TEST 8: Multi-Filter Combination (AND Logic: Type + Country + hasEmail)
+  console.log("[TEST 8] Testing Multi-Filter: Type=Contact AND Country=United States AND hasEmail=true...");
   const multiFilter = await getUnifiedPeople({
     type: "Contact",
     country: "United States",
@@ -102,8 +120,8 @@ async function runFilterTests() {
   );
   console.log("  ✓ Multi-filter AND combination verified\n");
 
-  // TEST 8: Search + Filters Combination
-  console.log("[TEST 8] Testing Search + Filter: query='toyota' AND hasEmail=true...");
+  // TEST 9: Search + Filters Combination
+  console.log("[TEST 9] Testing Search + Filter: query='toyota' AND hasEmail=true...");
   const searchPlusFilter = await getUnifiedPeople({
     query: "toyota",
     hasEmail: true,
@@ -116,15 +134,15 @@ async function runFilterTests() {
   );
   console.log("  ✓ Search + Filter combined execution verified\n");
 
-  // TEST 9: Empty Filter / Reset Verification
-  console.log("[TEST 9] Testing Filter Reset back to full dataset...");
+  // TEST 10: Empty Filter / Reset Verification
+  console.log("[TEST 10] Testing Filter Reset back to full dataset...");
   const resetResult = await getUnifiedPeople({ limit: 50 });
   assert.strictEqual(resetResult.success, true);
   assert.strictEqual(resetResult.stats?.totalRecords, 6249231);
   console.log("  ✓ Filter reset restored full dataset scope\n");
 
   console.log("==============================================");
-  console.log("ALL 9 FILTER INTEGRATION TESTS PASSED!");
+  console.log("ALL 10 FILTER INTEGRATION TESTS PASSED!");
   console.log("==============================================");
 }
 
