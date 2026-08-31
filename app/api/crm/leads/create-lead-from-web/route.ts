@@ -130,6 +130,8 @@ export async function POST(req: Request) {
     // Identifiers the extensions send. Stored so /api/integrations/outreach/check
     // can recognise this person later and not message them twice.
     linkedin_url, instagram_url, facebook_url, username, source_platform,
+    // Everything else the extensions scrape from the profile.
+    about, location, website, twitter, message_snippet,
   } = body;
 
   const token = headers.get("authorization");
@@ -178,6 +180,17 @@ export async function POST(req: Request) {
       if (facebook_url) socialFields.social_facebook = fit(facebook_url);
       if (username) socialFields.username = fit(username);
       if (source_platform) socialFields.source_platform = fit(source_platform);
+
+      // The rest of what the extensions scrape. Without these a lead saved
+      // after a DM shows N/A for everything but the name, while one saved by
+      // Collect All Leads is complete — same person, same source, different
+      // record. birthday is left out on purpose: it is a Date column and
+      // LinkedIn gives "March 14" with no year.
+      if (about) socialFields.description = String(about).slice(0, 2000);
+      if (location) socialFields.address = fit(location);
+      if (website) socialFields.website = fit(website);
+      if (twitter) socialFields.social_twitter = fit(twitter);
+      if (message_snippet) socialFields.message_snippet = String(message_snippet).slice(0, 500);
 
       const createPayload = {
         v: 1,
