@@ -353,13 +353,30 @@ export async function getUnifiedPeople(
         const qTitle = jobTitle.trim().toLowerCase();
         if (!r.jobTitle || !r.jobTitle.toLowerCase().includes(qTitle)) return false;
       }
+      if (hasPhone === true) {
+        if (!r.phone && !r.mobilePhone && !r.officePhone) return false;
+      }
+      if (hasEmail === true) {
+        if (!r.email && !r.personalEmail) return false;
+      }
+      if (hasLinkedin === true) {
+        if (!r.socialLinkedin) return false;
+      }
+      if (hasCompany === true) {
+        if (!r.company) return false;
+      }
       return true;
     };
 
     const validatedExternal = combined.filter(matchesFilter);
 
     // If external microservice returned valid matching results, return them
-    if (validatedExternal.length > 0 && (!country || validatedExternal.some((r) => r.country))) {
+    if (
+      validatedExternal.length > 0 &&
+      (!country || validatedExternal.some((r) => r.country)) &&
+      (!hasPhone || validatedExternal.every((r) => r.phone || r.mobilePhone || r.officePhone)) &&
+      (!hasEmail || validatedExternal.every((r) => r.email || r.personalEmail))
+    ) {
       const stats: PeopleStats = {
         totalAccounts: typeof rawStats?.accounts === "number" ? rawStats.accounts : 5249249,
         totalContacts: typeof rawStats?.contacts === "number" ? rawStats.contacts : 999982,
