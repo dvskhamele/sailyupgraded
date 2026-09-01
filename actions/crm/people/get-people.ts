@@ -281,6 +281,7 @@ export async function getUnifiedPeople(
 
     const fetchAccounts = type === "Contact" ? Promise.resolve([]) : fetch(accountsUrl, {
       signal: AbortSignal.timeout(1500),
+      cache: "no-store",
       headers: { Accept: "application/json" },
     }).then(async (r) => {
       if (!r.ok) return [];
@@ -290,6 +291,7 @@ export async function getUnifiedPeople(
 
     const fetchContacts = type === "Account" ? Promise.resolve([]) : fetch(contactsUrl, {
       signal: AbortSignal.timeout(1500),
+      cache: "no-store",
       headers: { Accept: "application/json" },
     }).then(async (r) => {
       if (!r.ok) return [];
@@ -299,6 +301,7 @@ export async function getUnifiedPeople(
 
     const fetchStats = fetch(`${ENRICHMENT_API_BASE}/stats`, {
       signal: AbortSignal.timeout(1000),
+      cache: "no-store",
       headers: { Accept: "application/json" },
     }).then(async (r) => {
       if (!r.ok) return null;
