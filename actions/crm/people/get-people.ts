@@ -43,7 +43,20 @@ function normalizeEmail(val: unknown): string {
 function normalizePhone(val: unknown): string {
   const str = cleanString(val);
   if (!str) return "";
-  if (/^0\.\d+$/.test(str)) {
+  const lower = str.toLowerCase();
+  if (
+    lower === "unavailable" ||
+    lower === "none" ||
+    lower === "null" ||
+    lower === "unknown" ||
+    lower === "n/a" ||
+    lower === "undefined" ||
+    /^0\.\d+$/.test(str)
+  ) {
+    return "";
+  }
+  const digits = str.replace(/\D/g, "");
+  if (digits.length < 5) {
     return "";
   }
   return str;
@@ -87,9 +100,9 @@ function mapAccountToPeopleRecord(account: Record<string, any>): PeopleRecord | 
     jobTitle: "Company / Organization",
     role: "Account",
     email: cleanString(account.email),
-    phone: cleanString(account.phone || account.office_phone || account.phone_number || account.company_phone),
-    mobilePhone: cleanString(account.mobile_phone),
-    officePhone: cleanString(account.office_phone || account.phone),
+    phone: normalizePhone(account.phone) || normalizePhone(account.office_phone) || normalizePhone(account.phone_number) || normalizePhone(account.company_phone),
+    mobilePhone: normalizePhone(account.mobile_phone),
+    officePhone: normalizePhone(account.office_phone) || normalizePhone(account.phone),
     website: cleanString(account.website || account.domain),
     address: cleanString(account.address || account.billing_street || account.billing_address),
     city: cleanString(account.city || account.billing_city),
@@ -121,27 +134,24 @@ function mapContactToPeopleRecord(contact: Record<string, any>): PeopleRecord | 
     ? `con-${rawId}`
     : `con-${Math.random().toString(36).substring(7)}`;
 
-  const resolvedPhone = normalizePhone(
-    contact.phone ||
-    contact.mobile_phone ||
-    contact.office_phone ||
-    contact.person_sanitized_phone ||
-    contact.person_phone ||
-    contact.phone_sanitized ||
-    contact.sanitized_phone
-  );
+  const resolvedPhone =
+    normalizePhone(contact.phone) ||
+    normalizePhone(contact.mobile_phone) ||
+    normalizePhone(contact.office_phone) ||
+    normalizePhone(contact.person_sanitized_phone) ||
+    normalizePhone(contact.person_phone) ||
+    normalizePhone(contact.phone_sanitized) ||
+    normalizePhone(contact.sanitized_phone);
 
-  const resolvedMobilePhone = normalizePhone(
-    contact.mobile_phone ||
-    contact.person_sanitized_phone ||
-    contact.person_phone ||
-    contact.phone
-  );
+  const resolvedMobilePhone =
+    normalizePhone(contact.mobile_phone) ||
+    normalizePhone(contact.person_sanitized_phone) ||
+    normalizePhone(contact.person_phone) ||
+    normalizePhone(contact.phone);
 
-  const resolvedOfficePhone = normalizePhone(
-    contact.office_phone ||
-    contact.phone
-  );
+  const resolvedOfficePhone =
+    normalizePhone(contact.office_phone) ||
+    normalizePhone(contact.phone);
 
   const resolvedCompany = cleanString(
     contact.company ||
