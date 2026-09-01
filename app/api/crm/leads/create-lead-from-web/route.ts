@@ -125,7 +125,14 @@ export async function POST(req: Request) {
     return NextResponse.json({ message: "No headers" }, { status: 400 });
   }
 
-  const { firstName, lastName, account, job, email, phone, lead_source } = body;
+  const {
+    firstName, lastName, account, job, email, phone, lead_source,
+    // Identifiers the extensions send. Stored so /api/integrations/outreach/check
+    // can recognise this person later and not message them twice.
+    linkedin_url, instagram_url, facebook_url, username, source_platform,
+    // Everything else the extensions scrape from the profile.
+    about, location, website, twitter, message_snippet,
+  } = body;
 
   const token = headers.get("authorization");
   if (!token) {
@@ -162,6 +169,29 @@ export async function POST(req: Request) {
       });
       // ────────────────────────────────────────────────────────────────
 
+      // Whichever platform this lead came from, keep the identifier. The
+      // outreach check matches on these columns, so a lead saved without one
+      // is invisible to deduplication.
+      const socialFields: Record<string, string> = {};
+      const fit = (value: unknown) => String(value || "").slice(0, 191);
+
+      if (linkedin_url) socialFields.social_linkedin = fit(linkedin_url);
+      if (instagram_url) socialFields.social_instagram = fit(instagram_url);
+      if (facebook_url) socialFields.social_facebook = fit(facebook_url);
+      if (username) socialFields.username = fit(username);
+      if (source_platform) socialFields.source_platform = fit(source_platform);
+
+      // The rest of what the extensions scrape. Without these a lead saved
+      // after a DM shows N/A for everything but the name, while one saved by
+      // Collect All Leads is complete — same person, same source, different
+      // record. birthday is left out on purpose: it is a Date column and
+      // LinkedIn gives "March 14" with no year.
+      if (about) socialFields.description = String(about).slice(0, 2000);
+      if (location) socialFields.address = fit(location);
+      if (website) socialFields.website = fit(website);
+      if (twitter) socialFields.social_twitter = fit(twitter);
+      if (message_snippet) socialFields.message_snippet = String(message_snippet).slice(0, 500);
+
       const createPayload = {
         v: 1,
         firstName,
@@ -171,6 +201,7 @@ export async function POST(req: Request) {
         email,
         phone,
         lead_source_id: sourceId, // ← this is what the UI displays
+        ...socialFields,
       };
       console.log("[LEAD CREATE DEBUG] Prisma create payload", createPayload);
       const lead = await prismadb.crm_Leads.create({ data: { ...createPayload } });
