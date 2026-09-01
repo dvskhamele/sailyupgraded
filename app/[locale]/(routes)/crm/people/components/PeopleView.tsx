@@ -23,6 +23,10 @@ interface PeopleViewProps {
 const defaultFilterOptions: PeopleFilterOptions = {
   type: "All",
   country: "",
+  state: "",
+  city: "",
+  company: "",
+  jobTitle: "",
   status: "All",
   role: "All",
   hasEmail: false,
@@ -69,12 +73,14 @@ export default function PeopleView({
   const fetchPeopleData = async (
     query = searchQuery,
     currentFilters = filters,
-    limit = batchLimit
+    limit = batchLimit,
+    page = 1
   ) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("limit", String(limit));
+      params.set("page", String(page));
 
       if (query.trim()) {
         params.set("query", query.trim());
@@ -84,6 +90,18 @@ export default function PeopleView({
       }
       if (currentFilters.country && currentFilters.country.trim()) {
         params.set("country", currentFilters.country.trim());
+      }
+      if (currentFilters.state && currentFilters.state.trim()) {
+        params.set("state", currentFilters.state.trim());
+      }
+      if (currentFilters.city && currentFilters.city.trim()) {
+        params.set("city", currentFilters.city.trim());
+      }
+      if (currentFilters.company && currentFilters.company.trim()) {
+        params.set("company", currentFilters.company.trim());
+      }
+      if (currentFilters.jobTitle && currentFilters.jobTitle.trim()) {
+        params.set("jobTitle", currentFilters.jobTitle.trim());
       }
       if (currentFilters.status && currentFilters.status !== "All") {
         params.set("status", currentFilters.status.trim());

@@ -47,6 +47,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
+import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import type { PeopleFilterOptions, PeopleLocationOption, PeopleRecord } from "@/types/people";
@@ -166,6 +167,10 @@ export function PeopleFiltersSheet({
     const emptyFilters: PeopleFilterOptions = {
       type: "All",
       country: "",
+      state: "",
+      city: "",
+      company: "",
+      jobTitle: "",
       status: "All",
       role: "All",
       hasEmail: false,
@@ -242,7 +247,7 @@ export function PeopleFiltersSheet({
                 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"
               >
                 <Globe className="h-3.5 w-3.5" />
-                Country / City
+                Country
               </Label>
               {draft.country && (
                 <Button
@@ -268,14 +273,14 @@ export function PeopleFiltersSheet({
                   className="w-full h-9 justify-between text-sm font-normal text-left bg-background"
                 >
                   <span className="truncate">
-                    {draft.country ? draft.country : "All Countries / Cities"}
+                    {draft.country ? draft.country : "All Countries"}
                   </span>
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-[340px] p-0" align="start">
                 <Command>
-                  <CommandInput placeholder="Search country or city..." className="h-9 text-xs" />
+                  <CommandInput placeholder="Search country..." className="h-9 text-xs" />
                   <CommandList className="max-h-60 overflow-y-auto">
                     {loadingLocations ? (
                       <div className="flex items-center justify-center p-4 text-xs text-muted-foreground gap-2">
@@ -289,14 +294,14 @@ export function PeopleFiltersSheet({
                         </CommandEmpty>
                         <CommandGroup>
                           <CommandItem
-                            value="all countries cities"
+                            value="all countries"
                             onSelect={() => {
                               setDraft((prev) => ({ ...prev, country: "" }));
                               setLocationPopoverOpen(false);
                             }}
                             className="text-xs flex items-center justify-between cursor-pointer"
                           >
-                            <span className="font-medium">All Countries / Cities</span>
+                            <span className="font-medium">All Countries</span>
                             {!draft.country && (
                               <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                             )}
@@ -315,6 +320,7 @@ export function PeopleFiltersSheet({
                                     country: isSelected ? "" : loc.value,
                                   }));
                                   setLocationPopoverOpen(false);
+                                
                                 }}
                                 className="text-xs flex items-center justify-between cursor-pointer"
                               >
@@ -339,6 +345,58 @@ export function PeopleFiltersSheet({
                 </Command>
               </PopoverContent>
             </Popover>
+          </div>
+
+          {/* State / Province & City Filter */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                State / Region
+              </Label>
+              <Input
+                placeholder="e.g. California, TX"
+                value={draft.state || ""}
+                onChange={(e) => setDraft((prev) => ({ ...prev, state: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                City
+              </Label>
+              <Input
+                placeholder="e.g. Los Angeles"
+                value={draft.city || ""}
+                onChange={(e) => setDraft((prev) => ({ ...prev, city: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+          </div>
+
+          {/* Company & Job Title Filter */}
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Company
+              </Label>
+              <Input
+                placeholder="e.g. Acme Corp"
+                value={draft.company || ""}
+                onChange={(e) => setDraft((prev) => ({ ...prev, company: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Job Title
+              </Label>
+              <Input
+                placeholder="e.g. Director, Manager"
+                value={draft.jobTitle || ""}
+                onChange={(e) => setDraft((prev) => ({ ...prev, jobTitle: e.target.value }))}
+                className="h-9 text-xs"
+              />
+            </div>
           </div>
 
           {/* Status Filter */}

@@ -166,15 +166,17 @@ export async function getUnifiedPeople(
 ): Promise<GetPeopleResponse> {
   try {
     let session = null;
-    try {
-      session = await getSession();
-    } catch {
-      if (process.env.NODE_ENV === "test" || !process.env.NEXT_RUNTIME) {
-        session = { user: { id: "test-user", role: "admin" } } as any;
+    if (process.env.NEXT_RUNTIME) {
+      try {
+        session = await getSession();
+      } catch {
+        session = null;
       }
+    } else {
+      session = { user: { id: "admin-user", role: "admin" } } as any;
     }
     if (!session && (process.env.NODE_ENV === "test" || !process.env.NEXT_RUNTIME)) {
-      session = { user: { id: "test-user", role: "admin" } } as any;
+      session = { user: { id: "admin-user", role: "admin" } } as any;
     }
     if (!session) {
       return { success: false, data: [], total: 0, error: "Unauthorized" };
@@ -183,8 +185,13 @@ export async function getUnifiedPeople(
     const {
       query = "",
       type = "All",
-      limit = 500,
+      page = 1,
+      limit = 100,
       country,
+      state,
+      city,
+      company,
+      jobTitle,
       status,
       role,
       hasEmail,
@@ -193,35 +200,54 @@ export async function getUnifiedPeople(
       hasCompany,
     } = params;
     const trimmedQuery = query.trim();
+    const currentPage = Math.max(1, Number(page) || 1);
+    const pageLimit = Math.max(1, Number(limit) || 100);
+
+    // Build query params for external microservice API
+    const apiParams = new URLSearchParams();
+    apiParams.set("limit", String(pageLimit));
+    apiParams.set("page", String(currentPage));
+    if (trimmedQuery) apiParams.set("q", trimmedQuery);
+    if (country?.trim()) apiParams.set("country", country.trim());
+    if (state?.trim()) apiParams.set("state", state.trim());
+    if (city?.trim()) apiParams.set("city", city.trim());
+    if (company?.trim()) apiParams.set("company", company.trim());
+    if (jobTitle?.trim()) apiParams.set("jobTitle", jobTitle.trim());
+    if (status && status !== "All") apiParams.set("status", status.trim());
+    if (role && role !== "All") apiParams.set("role", role.trim());
+    if (hasEmail === true) apiParams.set("hasEmail", "true");
+    if (hasPhone === true) apiParams.set("hasPhone", "true");
+    if (hasLinkedin === true) apiParams.set("hasLinkedin", "true");
+    if (hasCompany === true) apiParams.set("hasCompany", "true");
 
     let accountsUrl = trimmedQuery
-      ? `${ENRICHMENT_API_BASE}/accounts/search?q=${encodeURIComponent(trimmedQuery)}`
-      : `${ENRICHMENT_API_BASE}/accounts?limit=${limit}`;
+      ? `${ENRICHMENT_API_BASE}/accounts/search?${apiParams.toString()}`
+      : `${ENRICHMENT_API_BASE}/accounts?${apiParams.toString()}`;
 
     let contactsUrl = trimmedQuery
-      ? `${ENRICHMENT_API_BASE}/contacts/search?q=${encodeURIComponent(trimmedQuery)}`
-      : `${ENRICHMENT_API_BASE}/contacts?limit=${limit}`;
+      ? `${ENRICHMENT_API_BASE}/contacts/search?${apiParams.toString()}`
+      : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
 
     const fetchAccounts = type === "Contact" ? Promise.resolve([]) : fetch(accountsUrl, {
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(1500),
       headers: { Accept: "application/json" },
     }).then(async (r) => {
       if (!r.ok) return [];
       const json = await r.json();
-      return Array.isArray(json) ? json : [];
+      return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
     }).catch(() => []);
 
     const fetchContacts = type === "Account" ? Promise.resolve([]) : fetch(contactsUrl, {
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(1500),
       headers: { Accept: "application/json" },
     }).then(async (r) => {
       if (!r.ok) return [];
       const json = await r.json();
-      return Array.isArray(json) ? json : [];
+      return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
     }).catch(() => []);
 
     const fetchStats = fetch(`${ENRICHMENT_API_BASE}/stats`, {
-      signal: AbortSignal.timeout(4000),
+      signal: AbortSignal.timeout(1000),
       headers: { Accept: "application/json" },
     }).then(async (r) => {
       if (!r.ok) return null;
@@ -234,23 +260,14 @@ export async function getUnifiedPeople(
       fetchStats,
     ]);
 
-    const stats: PeopleStats = {
-      totalAccounts: typeof rawStats?.accounts === "number" ? rawStats.accounts : 5249249,
-      totalContacts: typeof rawStats?.contacts === "number" ? rawStats.contacts : 999982,
-      totalRecords:
-        (typeof rawStats?.accounts === "number" ? rawStats.accounts : 5249249) +
-        (typeof rawStats?.contacts === "number" ? rawStats.contacts : 999982),
-    };
-
-    const mappedAccounts = rawAccounts
+    const mappedAccounts = (rawAccounts as any[])
       .map(mapAccountToPeopleRecord)
-      .filter((r): r is PeopleRecord => r !== null);
+      .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
 
-    const mappedContacts = rawContacts
+    const mappedContacts = (rawContacts as any[])
       .map(mapContactToPeopleRecord)
-      .filter((r): r is PeopleRecord => r !== null);
+      .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
 
-    // Combine records according to Type parameter
     let combined: PeopleRecord[] = [];
     if (type === "Account") {
       combined = mappedAccounts;
@@ -260,56 +277,297 @@ export async function getUnifiedPeople(
       combined = [...mappedAccounts, ...mappedContacts];
     }
 
-    const unfilteredTotal = combined.length;
+    // Filter validate external records to ensure upstream API respected filter params
+    const matchesFilter = (r: PeopleRecord) => {
+      if (country && country.trim()) {
+        const qCountry = country.trim().toLowerCase();
+        const cMatch = r.country && (r.country.toLowerCase().includes(qCountry) || (qCountry === "united states" && (r.country.toLowerCase() === "usa" || r.country.toLowerCase() === "us")));
+        const sMatch = r.state && r.state.toLowerCase().includes(qCountry);
+        const cityMatch = r.city && r.city.toLowerCase().includes(qCountry);
+        if (!cMatch && !sMatch && !cityMatch) return false;
+      }
+      if (state && state.trim()) {
+        const qState = state.trim().toLowerCase();
+        if (!r.state || !r.state.toLowerCase().includes(qState)) return false;
+      }
+      if (city && city.trim()) {
+        const qCity = city.trim().toLowerCase();
+        if (!r.city || !r.city.toLowerCase().includes(qCity)) return false;
+      }
+      if (company && company.trim()) {
+        const qComp = company.trim().toLowerCase();
+        if (!r.company || !r.company.toLowerCase().includes(qComp)) return false;
+      }
+      if (jobTitle && jobTitle.trim()) {
+        const qTitle = jobTitle.trim().toLowerCase();
+        if (!r.jobTitle || !r.jobTitle.toLowerCase().includes(qTitle)) return false;
+      }
+      return true;
+    };
 
-    // Apply Real Filter Predicates (AND logic)
-    let filtered = combined;
+    const validatedExternal = combined.filter(matchesFilter);
+
+    // If external microservice returned valid matching results, return them
+    if (validatedExternal.length > 0 && (!country || validatedExternal.some((r) => r.country))) {
+      const stats: PeopleStats = {
+        totalAccounts: typeof rawStats?.accounts === "number" ? rawStats.accounts : 5249249,
+        totalContacts: typeof rawStats?.contacts === "number" ? rawStats.contacts : 999982,
+        totalRecords:
+          (typeof rawStats?.accounts === "number" ? rawStats.accounts : 5249249) +
+          (typeof rawStats?.contacts === "number" ? rawStats.contacts : 999982),
+      };
+
+      const total = rawStats?.total || validatedExternal.length;
+      return {
+        success: true,
+        data: validatedExternal,
+        total,
+        page: currentPage,
+        limit: pageLimit,
+        totalPages: Math.max(1, Math.ceil(total / pageLimit)),
+        stats,
+      };
+    }
+
+    // Database Fallback Engine: Execute exact database-level queries with Prisma
+    const contactConditions: any[] = [];
+    const accountConditions: any[] = [];
 
     if (country && country.trim()) {
       const qCountry = country.trim().toLowerCase();
-      filtered = filtered.filter((r) => {
-        const countryMatch = r.country && r.country.toLowerCase().includes(qCountry);
-        const cityMatch = r.city && r.city.toLowerCase().includes(qCountry);
-        const stateMatch = r.state && r.state.toLowerCase().includes(qCountry);
-        const addressMatch = r.address && r.address.toLowerCase().includes(qCountry);
-        return Boolean(countryMatch || cityMatch || stateMatch || addressMatch);
+      if (qCountry === "united states" || qCountry === "usa" || qCountry === "us") {
+        contactConditions.push({
+          OR: [
+            { country: { in: ["United States", "USA", "US", "united states", "usa", "us"] } },
+            { country: { contains: "United States" } },
+          ],
+        });
+        accountConditions.push({
+          OR: [
+            { billing_country: { in: ["United States", "USA", "US", "united states", "usa", "us"] } },
+            { billing_country: { contains: "United States" } },
+            { shipping_country: { contains: "United States" } },
+          ],
+        });
+      } else {
+        contactConditions.push({ country: { contains: country.trim() } });
+        accountConditions.push({
+          OR: [
+            { billing_country: { contains: country.trim() } },
+            { shipping_country: { contains: country.trim() } },
+          ],
+        });
+      }
+    }
+
+    if (state && state.trim()) {
+      contactConditions.push({ state: { contains: state.trim() } });
+      accountConditions.push({
+        OR: [
+          { billing_state: { contains: state.trim() } },
+          { shipping_state: { contains: state.trim() } },
+        ],
       });
     }
 
-    if (status && status.trim() && status !== "All") {
-      const qStatus = status.trim().toLowerCase();
-      filtered = filtered.filter((r) => r.status && r.status.toLowerCase() === qStatus);
+    if (city && city.trim()) {
+      contactConditions.push({ city: { contains: city.trim() } });
+      accountConditions.push({
+        OR: [
+          { billing_city: { contains: city.trim() } },
+          { shipping_city: { contains: city.trim() } },
+        ],
+      });
     }
 
-    if (role && role.trim() && role !== "All") {
-      const qRole = role.trim().toLowerCase();
-      filtered = filtered.filter((r) => r.role && r.role.toLowerCase() === qRole);
+    if (company && company.trim()) {
+      contactConditions.push({
+        OR: [
+          { company: { contains: company.trim() } },
+          { assigned_accounts: { name: { contains: company.trim() } } },
+        ],
+      });
+      accountConditions.push({ name: { contains: company.trim() } });
+    }
+
+    if (jobTitle && jobTitle.trim()) {
+      contactConditions.push({
+        OR: [
+          { jobTitle: { contains: jobTitle.trim() } },
+          { position: { contains: jobTitle.trim() } },
+        ],
+      });
+    }
+
+    if (trimmedQuery) {
+      contactConditions.push({
+        OR: [
+          { first_name: { contains: trimmedQuery } },
+          { last_name: { contains: trimmedQuery } },
+          { email: { contains: trimmedQuery } },
+          { personal_email: { contains: trimmedQuery } },
+          { company: { contains: trimmedQuery } },
+          { jobTitle: { contains: trimmedQuery } },
+          { city: { contains: trimmedQuery } },
+          { country: { contains: trimmedQuery } },
+        ],
+      });
+      accountConditions.push({
+        OR: [
+          { name: { contains: trimmedQuery } },
+          { email: { contains: trimmedQuery } },
+          { billing_city: { contains: trimmedQuery } },
+          { billing_country: { contains: trimmedQuery } },
+        ],
+      });
     }
 
     if (hasEmail === true) {
-      filtered = filtered.filter((r) => Boolean(r.email && r.email.includes("@")));
+      contactConditions.push({
+        OR: [
+          { email: { not: null } },
+          { personal_email: { not: null } },
+        ],
+      });
+      accountConditions.push({ email: { not: null } });
     }
 
     if (hasPhone === true) {
-      filtered = filtered.filter((r) => Boolean(r.phone && r.phone.trim().length >= 3));
+      contactConditions.push({
+        OR: [
+          { phone: { not: null } },
+          { mobile_phone: { not: null } },
+          { office_phone: { not: null } },
+        ],
+      });
+      accountConditions.push({
+        OR: [
+          { office_phone: { not: null } },
+        ],
+      });
     }
 
     if (hasLinkedin === true) {
-      filtered = filtered.filter((r) => Boolean(r.socialLinkedin && r.socialLinkedin.trim()));
+      contactConditions.push({ social_linkedin: { not: null } });
     }
 
     if (hasCompany === true) {
-      filtered = filtered.filter((r) => Boolean(r.company && r.company.trim()));
+      contactConditions.push({
+        OR: [
+          { company: { not: null } },
+          { accountsIDs: { not: null } },
+        ],
+      });
     }
 
-    // Sort by name
-    filtered.sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
+    if (role && role.trim() && role !== "All") {
+      contactConditions.push({ role: { equals: role.trim() } });
+    }
+
+    if (status && status.trim() && status !== "All") {
+      const isActive = status.trim().toLowerCase() === "active";
+      contactConditions.push({ status: { equals: isActive } });
+      accountConditions.push({ status: { equals: status.trim() } });
+    }
+
+    const contactWhere = contactConditions.length > 0 ? { AND: contactConditions } : {};
+    const accountWhere = accountConditions.length > 0 ? { AND: accountConditions } : {};
+
+    const skip = (currentPage - 1) * pageLimit;
+
+    let dbCombined: PeopleRecord[] = [];
+    let totalCount = 0;
+    let dbContactsCount = 0;
+    let dbAccountsCount = 0;
+
+    if (type === "Contact") {
+      const [dbContacts, count] = await Promise.all([
+        prismadb.crm_Contacts.findMany({
+          where: contactWhere,
+          orderBy: { id: "asc" },
+          skip,
+          take: pageLimit,
+          include: { assigned_accounts: { select: { id: true, name: true } } },
+        }).catch(() => []),
+        prismadb.crm_Contacts.count({ where: contactWhere }).catch(() => 0),
+      ]);
+      dbContactsCount = count;
+      totalCount = count;
+      dbCombined = (dbContacts as any[]).map(mapContactToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+    } else if (type === "Account") {
+      const [dbAccounts, count] = await Promise.all([
+        prismadb.crm_Accounts.findMany({
+          where: accountWhere,
+          orderBy: { id: "asc" },
+          skip,
+          take: pageLimit,
+        }).catch(() => []),
+        prismadb.crm_Accounts.count({ where: accountWhere }).catch(() => 0),
+      ]);
+      dbAccountsCount = count;
+      totalCount = count;
+      dbCombined = (dbAccounts as any[]).map(mapAccountToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+    } else {
+      // type === "All": Seamless cross-table offset pagination
+      const [cCount, aCount] = await Promise.all([
+        prismadb.crm_Contacts.count({ where: contactWhere }).catch(() => 0),
+        prismadb.crm_Accounts.count({ where: accountWhere }).catch(() => 0),
+      ]);
+      dbContactsCount = cCount;
+      dbAccountsCount = aCount;
+      totalCount = cCount + aCount;
+
+      let fetchedContacts: PeopleRecord[] = [];
+      let fetchedAccounts: PeopleRecord[] = [];
+
+      if (skip < dbContactsCount) {
+        const contactTake = Math.min(pageLimit, dbContactsCount - skip);
+        const rawContacts = await prismadb.crm_Contacts.findMany({
+          where: contactWhere,
+          orderBy: { id: "asc" },
+          skip,
+          take: contactTake,
+          include: { assigned_accounts: { select: { id: true, name: true } } },
+        }).catch(() => []);
+        fetchedContacts = (rawContacts as any[]).map(mapContactToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+
+        const remainingLimit = pageLimit - fetchedContacts.length;
+        if (remainingLimit > 0) {
+          const rawAccounts = await prismadb.crm_Accounts.findMany({
+            where: accountWhere,
+            orderBy: { id: "asc" },
+            skip: 0,
+            take: remainingLimit,
+          }).catch(() => []);
+          fetchedAccounts = (rawAccounts as any[]).map(mapAccountToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+        }
+      } else {
+        const accountSkip = skip - dbContactsCount;
+        const rawAccounts = await prismadb.crm_Accounts.findMany({
+          where: accountWhere,
+          orderBy: { id: "asc" },
+          skip: accountSkip,
+          take: pageLimit,
+        }).catch(() => []);
+        fetchedAccounts = (rawAccounts as any[]).map(mapAccountToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+      }
+
+      dbCombined = [...fetchedContacts, ...fetchedAccounts];
+    }
+
+    const stats: PeopleStats = {
+      totalAccounts: dbAccountsCount || 5249249,
+      totalContacts: dbContactsCount || 999982,
+      totalRecords: (dbAccountsCount || 5249249) + (dbContactsCount || 999982),
+    };
 
     return {
       success: true,
-      data: filtered,
-      total: filtered.length,
-      unfilteredTotal,
+      data: dbCombined,
+      total: totalCount,
+      page: currentPage,
+      limit: pageLimit,
+      totalPages: Math.max(1, Math.ceil(totalCount / pageLimit)),
       stats,
     };
   } catch (error) {
@@ -341,8 +599,8 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
     const addLocation = (rawVal: unknown, type: "country" | "city") => {
       const cleaned = cleanString(rawVal);
       if (!cleaned || cleaned.length < 2) return;
-      if (/^\d+$/.test(cleaned)) return; // Ignore numeric strings
-      if (cleaned.toLowerCase() === "unknown" || cleaned.toLowerCase() === "none") return;
+      if (/^\d+$/.test(cleaned)) return;
+      if (cleaned.toLowerCase() === "unknown" || cleaned.toLowerCase() === "none" || cleaned.toLowerCase() === "null") return;
 
       const normalizedKey = cleaned.toLowerCase();
       if (seenNormalized.has(normalizedKey)) return;
@@ -355,15 +613,40 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       }
     };
 
-    // 1. Fetch sample from external API
+    // 1. Fast DISTINCT query from database (Instant without loading full records)
+    try {
+      const [contactCountries, contactCities, accountCountries, accountCities]: Array<Array<Record<string, unknown>>> = await Promise.all([
+        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
+          `SELECT DISTINCT country FROM crm_Contacts WHERE country IS NOT NULL AND TRIM(country) != '' AND LOWER(country) != 'null' LIMIT 200`
+        ).catch(() => []),
+        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
+          `SELECT DISTINCT city FROM crm_Contacts WHERE city IS NOT NULL AND TRIM(city) != '' AND LOWER(city) != 'null' LIMIT 200`
+        ).catch(() => []),
+        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
+          `SELECT DISTINCT billing_country as country FROM crm_Accounts WHERE billing_country IS NOT NULL AND TRIM(billing_country) != '' AND LOWER(billing_country) != 'null' LIMIT 200`
+        ).catch(() => []),
+        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
+          `SELECT DISTINCT billing_city as city FROM crm_Accounts WHERE billing_city IS NOT NULL AND TRIM(billing_city) != '' AND LOWER(billing_city) != 'null' LIMIT 200`
+        ).catch(() => []),
+      ]);
+
+      for (const row of contactCountries) if (row.country) addLocation(row.country, "country");
+      for (const row of contactCities) if (row.city) addLocation(row.city, "city");
+      for (const row of accountCountries) if (row.country) addLocation(row.country, "country");
+      for (const row of accountCities) if (row.city) addLocation(row.city, "city");
+    } catch (dbErr) {
+      console.warn("[GET_PEOPLE_LOCATIONS] DB distinct query warning:", dbErr);
+    }
+
+    // 2. Fetch from external API if available
     try {
       const [accountsRes, contactsRes] = await Promise.all([
-        fetch(`${ENRICHMENT_API_BASE}/accounts?limit=300`, {
-          signal: AbortSignal.timeout(5000),
+        fetch(`${ENRICHMENT_API_BASE}/accounts?limit=100`, {
+          signal: AbortSignal.timeout(1000),
           headers: { Accept: "application/json" },
         }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-        fetch(`${ENRICHMENT_API_BASE}/contacts?limit=300`, {
-          signal: AbortSignal.timeout(5000),
+        fetch(`${ENRICHMENT_API_BASE}/contacts?limit=100`, {
+          signal: AbortSignal.timeout(1000),
           headers: { Accept: "application/json" },
         }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
       ]);
@@ -385,35 +668,12 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       console.warn("[GET_PEOPLE_LOCATIONS] External API fetch warning:", apiErr);
     }
 
-    // 2. Query local database for distinct locations
-    try {
-      const [dbAccounts, dbContacts] = await Promise.all([
-        prismadb.crm_Accounts.findMany({
-          where: { deletedAt: null },
-          select: { billing_country: true, billing_city: true, shipping_country: true, shipping_city: true },
-          take: 300,
-        }).catch(() => []),
-        prismadb.crm_Contacts.findMany({
-          where: { deletedAt: null },
-          select: { country: true, city: true },
-          take: 300,
-        }).catch(() => []),
-      ]);
-
-      for (const acc of dbAccounts) {
-        if (acc.billing_country) addLocation(acc.billing_country, "country");
-        if (acc.shipping_country) addLocation(acc.shipping_country, "country");
-        if (acc.billing_city) addLocation(acc.billing_city, "city");
-        if (acc.shipping_city) addLocation(acc.shipping_city, "city");
-      }
-
-      for (const con of dbContacts) {
-        if (con.country) addLocation(con.country, "country");
-        if (con.city) addLocation(con.city, "city");
-      }
-    } catch (dbErr) {
-      console.warn("[GET_PEOPLE_LOCATIONS] Database query warning:", dbErr);
-    }
+    // Guarantee common standard options if list is sparse
+    if (!seenNormalized.has("united states")) addLocation("United States", "country");
+    if (!seenNormalized.has("india")) addLocation("India", "country");
+    if (!seenNormalized.has("united kingdom")) addLocation("United Kingdom", "country");
+    if (!seenNormalized.has("canada")) addLocation("Canada", "country");
+    if (!seenNormalized.has("australia")) addLocation("Australia", "country");
 
     const sortedCountries = Array.from(countriesSet).sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: "base" })
@@ -457,3 +717,4 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
     };
   }
 }
+

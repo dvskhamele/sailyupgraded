@@ -50,6 +50,10 @@ export interface PeopleStats {
 export interface PeopleFilterOptions {
   type?: "All" | "Account" | "Contact";
   country?: string;
+  state?: string;
+  city?: string;
+  company?: string;
+  jobTitle?: string;
   status?: string;
   role?: string;
   hasEmail?: boolean;
@@ -60,6 +64,7 @@ export interface PeopleFilterOptions {
 
 export interface GetPeopleParams extends PeopleFilterOptions {
   query?: string;
+  page?: number;
   limit?: number;
 }
 
@@ -68,6 +73,9 @@ export interface GetPeopleResponse {
   data: PeopleRecord[];
   total: number;
   unfilteredTotal?: number;
+  page?: number;
+  limit?: number;
+  totalPages?: number;
   stats?: PeopleStats;
   error?: string;
 }
@@ -85,4 +93,5 @@ export interface GetPeopleLocationsResponse {
   cities: string[];
   error?: string;
 }
+
 

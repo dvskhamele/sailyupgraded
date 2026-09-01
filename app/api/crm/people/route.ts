@@ -13,8 +13,13 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get("query") || searchParams.get("q") || "";
     const typeParam = searchParams.get("type") || "All";
     const type = typeParam === "Account" || typeParam === "Contact" ? typeParam : "All";
-    const limit = parseInt(searchParams.get("limit") || "500", 10);
+    const page = parseInt(searchParams.get("page") || "1", 10);
+    const limit = parseInt(searchParams.get("limit") || "100", 10);
     const country = searchParams.get("country") || undefined;
+    const state = searchParams.get("state") || undefined;
+    const city = searchParams.get("city") || undefined;
+    const company = searchParams.get("company") || undefined;
+    const jobTitle = searchParams.get("jobTitle") || searchParams.get("position") || undefined;
     const status = searchParams.get("status") || undefined;
     const role = searchParams.get("role") || undefined;
     const hasEmail = searchParams.get("hasEmail") === "true" ? true : undefined;
@@ -25,8 +30,13 @@ export async function GET(req: NextRequest) {
     const result = await getUnifiedPeople({
       query,
       type,
+      page,
       limit,
       country,
+      state,
+      city,
+      company,
+      jobTitle,
       status,
       role,
       hasEmail,

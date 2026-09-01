@@ -122,9 +122,9 @@ export async function BasicView({ data }: OppsViewProps) {
                       <span className="font-medium text-foreground">Agent Level:</span> {data.agent_level}
                     </div>
                   ) : null}
-                  {data.assigned_accounts?.name ? (
+                  {data.company || data.assigned_accounts?.name ? (
                     <div>
-                      <span className="font-medium text-foreground">Company:</span> {data.assigned_accounts.name}
+                      <span className="font-medium text-foreground">Company:</span> {data.company || data.assigned_accounts?.name}
                     </div>
                   ) : null}
                 </div>
@@ -181,7 +181,7 @@ export async function BasicView({ data }: OppsViewProps) {
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">Company</p>
                   <p className="text-sm text-muted-foreground">
-                    {data.assigned_accounts?.name}
+                    {data.company || data.assigned_accounts?.name || "N/A"}
                   </p>
                 </div>
               </div>
@@ -189,13 +189,26 @@ export async function BasicView({ data }: OppsViewProps) {
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    Position in Company
+                    Job Title
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {data.position ? data.position : "N/A"}
+                    {data.jobTitle || data.position || "N/A"}
                   </p>
                 </div>
               </div>
+              {data.position && data.jobTitle && data.position !== data.jobTitle ? (
+                <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                  <CoinsIcon className="mt-px h-5 w-5" />
+                  <div className="space-y-1">
+                    <p className="text-sm font-medium leading-none">
+                      Position
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      {data.position}
+                    </p>
+                  </div>
+                </div>
+              ) : null}
               <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
                 <CoinsIcon className="mt-px h-5 w-5" />
                 <div className="space-y-1">
@@ -478,6 +491,14 @@ export async function BasicView({ data }: OppsViewProps) {
                 />
               </div>
             </div>
+            {data.phone ? (
+              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">Phone</p>
+                  <WhatsAppLink value={data.phone} />
+                </div>
+              </div>
+            ) : null}
             <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">Office phone</p>
@@ -506,20 +527,25 @@ export async function BasicView({ data }: OppsViewProps) {
               <div className="space-y-1">
                 <p className="text-sm font-medium leading-none">Address</p>
                 <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                  {formatAddress(data, true) || "N/A"}
+                  {formatAddress(data, true) || data.address || data.address_line1 || "N/A"}
                 </p>
               </div>
             </div>
-            <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
-              <div className="space-y-1">
-                <p className="text-sm font-medium leading-none">
-                  Billing country
-                </p>
-                <p className="text-sm text-muted-foreground">
-                  {data.billing_country}
-                </p>
+            {data.city || data.state || data.country || data.billing_country ? (
+              <div className="-mx-2 flex items-start space-x-4 rounded-md p-2 transition-all hover:bg-accent hover:text-accent-foreground">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    Location / Country
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {[data.city, data.state, data.postal_code, data.country || data.billing_country]
+                      .filter(Boolean)
+                      .filter((s) => String(s).toLowerCase() !== "null" && String(s).toLowerCase() !== "undefined")
+                      .join(", ")}
+                  </p>
+                </div>
               </div>
-            </div>
+            ) : null}
           </CardContent>
         </Card>
         <Card>

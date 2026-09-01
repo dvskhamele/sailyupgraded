@@ -143,14 +143,16 @@ export function getAgentSpreadsheetHeaderMap(
     email: "email", emailaddress: "email", e_mail: "email", mail: "email",
     personalemail: "personal_email", privatemail: "personal_email", privateemail: "personal_email",
     phone: "phone", phonenumber: "phone", contactnumber: "phone",
+    personphone: "phone", person_phone: "phone", personsanitizedphone: "phone", person_sanitized_phone: "phone", phonesanitized: "phone", phone_sanitized: "phone",
     mobile: "mobile_phone", mobilephone: "mobile_phone", mobilephonenumber: "mobile_phone",
     cell: "mobile_phone", cellphone: "mobile_phone", cellphonenumber: "mobile_phone",
     officephone: "office_phone", officephonenumber: "office_phone", workphone: "office_phone", work: "office_phone", telephone: "office_phone", tel: "office_phone",
     website: "website", web: "website", site: "website", webaddress: "website", url: "website",
 
     // Professional & Assignment
-    company: "company", companyname: "company", organization: "company", organisation: "company", org: "company",
-    jobtitle: "jobTitle", title: "position", position: "position", positiontitle: "position", designation: "position",
+    company: "company", companyname: "company", company_name: "company", organization: "company", organisation: "company", org: "company",
+    jobtitle: "jobTitle", job_title: "jobTitle", persontitlenormalized: "jobTitle", person_title_normalized: "jobTitle", persontitle: "jobTitle", person_title: "jobTitle",
+    title: "position", position: "position", positiontitle: "position", designation: "position",
     assignedaccount: "accountsIDs", account: "accountsIDs", accountname: "accountsIDs", assignedcompany: "accountsIDs",
     assignedmember: "assigned_to", assignedto: "assigned_to", owner: "assigned_to", user: "assigned_to", assignee: "assigned_to",
     visibility: "visible_to_name", visibleto: "visible_to_name", visible_to: "visible_to_name",
