@@ -157,7 +157,7 @@ export const createColumns = ({
       <DataTableColumnHeader column={column} title="Phone" />
     ),
     cell: ({ row }) => {
-      const phone = row.getValue("phone") as string;
+      const phone = (row.getValue("phone") as string) || row.original.phone || row.original.mobilePhone || row.original.officePhone;
       if (!phone) return <span className="text-muted-foreground">—</span>;
       return <WhatsAppLink value={phone} className="max-w-[140px]" fallback="—" />;
     },

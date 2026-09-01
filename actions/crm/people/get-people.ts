@@ -70,7 +70,7 @@ function normalizeAccountId(val: unknown): string {
 }
 
 function mapAccountToPeopleRecord(account: Record<string, any>): PeopleRecord | null {
-  const name = cleanString(account.name);
+  const name = cleanString(account.name || account.company || account.company_name);
   const id = cleanString(account.id);
   if (!name && !id) return null;
 
@@ -87,9 +87,11 @@ function mapAccountToPeopleRecord(account: Record<string, any>): PeopleRecord | 
     jobTitle: "Company / Organization",
     role: "Account",
     email: cleanString(account.email),
-    phone: cleanString(account.phone || account.office_phone),
-    website: cleanString(account.website),
-    address: cleanString(account.address || account.billing_street),
+    phone: cleanString(account.phone || account.office_phone || account.phone_number || account.company_phone),
+    mobilePhone: cleanString(account.mobile_phone),
+    officePhone: cleanString(account.office_phone || account.phone),
+    website: cleanString(account.website || account.domain),
+    address: cleanString(account.address || account.billing_street || account.billing_address),
     city: cleanString(account.city || account.billing_city),
     state: cleanString(account.state || account.billing_state),
     country: cleanString(account.country || account.billing_country),
@@ -119,6 +121,45 @@ function mapContactToPeopleRecord(contact: Record<string, any>): PeopleRecord | 
     ? `con-${rawId}`
     : `con-${Math.random().toString(36).substring(7)}`;
 
+  const resolvedPhone = normalizePhone(
+    contact.phone ||
+    contact.mobile_phone ||
+    contact.office_phone ||
+    contact.person_sanitized_phone ||
+    contact.person_phone ||
+    contact.phone_sanitized ||
+    contact.sanitized_phone
+  );
+
+  const resolvedMobilePhone = normalizePhone(
+    contact.mobile_phone ||
+    contact.person_sanitized_phone ||
+    contact.person_phone ||
+    contact.phone
+  );
+
+  const resolvedOfficePhone = normalizePhone(
+    contact.office_phone ||
+    contact.phone
+  );
+
+  const resolvedCompany = cleanString(
+    contact.company ||
+    contact.organization_name ||
+    contact.company_name ||
+    contact.account_name ||
+    contact.assigned_accounts?.name
+  );
+
+  const resolvedJobTitle = cleanString(
+    contact.jobTitle ||
+    contact.position ||
+    contact.person_title_normalized ||
+    contact.primary_title_normalized_for_faceting ||
+    contact.title ||
+    contact.primary_title
+  );
+
   return {
     id: recordId,
     originalId: rawId,
@@ -127,14 +168,14 @@ function mapContactToPeopleRecord(contact: Record<string, any>): PeopleRecord | 
     fullName: fullName,
     firstName: firstName || undefined,
     lastName: lastName || undefined,
-    company: cleanString(contact.company),
-    jobTitle: cleanString(contact.jobTitle || contact.position || contact.person_title_normalized),
+    company: resolvedCompany,
+    jobTitle: resolvedJobTitle,
     role: cleanString(contact.role) || "Customer",
     email: normalizeEmail(rawEmail),
     personalEmail: normalizeEmail(contact.personal_email),
-    phone: normalizePhone(contact.phone || contact.mobile_phone || contact.office_phone),
-    mobilePhone: normalizePhone(contact.mobile_phone),
-    officePhone: normalizePhone(contact.office_phone),
+    phone: resolvedPhone,
+    mobilePhone: resolvedMobilePhone,
+    officePhone: resolvedOfficePhone,
     website: cleanString(contact.website),
     socialLinkedin: cleanString(contact.social_linkedin),
     socialTwitter: cleanString(contact.social_twitter),
@@ -146,9 +187,9 @@ function mapContactToPeopleRecord(contact: Record<string, any>): PeopleRecord | 
     address: cleanString(contact.address || [contact.address_line1, contact.address_line2].filter(Boolean).join(", ")),
     addressLine1: cleanString(contact.address_line1),
     addressLine2: cleanString(contact.address_line2),
-    city: cleanString(contact.city),
-    state: cleanString(contact.state),
-    country: cleanString(contact.country),
+    city: cleanString(contact.city || contact.person_city),
+    state: cleanString(contact.state || contact.person_state),
+    country: cleanString(contact.country || contact.person_country),
     postalCode: cleanString(contact.postal_code || contact.post_code),
     accountsIDs: normalizeAccountId(contact.accountsIDs),
     status: contact.status === "1" ? "Active" : (cleanString(contact.status) || "Active"),
