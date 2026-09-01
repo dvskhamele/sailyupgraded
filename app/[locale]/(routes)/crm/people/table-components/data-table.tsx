@@ -159,6 +159,14 @@ export function PeopleDataTable({
       updated.role = "All";
     } else if (key === "country") {
       updated.country = "";
+    } else if (key === "state") {
+      updated.state = "";
+    } else if (key === "city") {
+      updated.city = "";
+    } else if (key === "company") {
+      updated.company = "";
+    } else if (key === "jobTitle") {
+      updated.jobTitle = "";
     } else if (key === "hasEmail") {
       updated.hasEmail = false;
     } else if (key === "hasPhone") {

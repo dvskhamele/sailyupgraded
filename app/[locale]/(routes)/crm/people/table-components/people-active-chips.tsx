@@ -42,8 +42,40 @@ export function PeopleActiveChips({
   if (filters.country && filters.country.trim()) {
     activeChips.push({
       key: "country",
-      label: `Location: ${filters.country}`,
+      label: `Country: ${filters.country}`,
       onRemove: () => onRemoveFilter("country"),
+    });
+  }
+
+  if (filters.state && filters.state.trim()) {
+    activeChips.push({
+      key: "state",
+      label: `State: ${filters.state}`,
+      onRemove: () => onRemoveFilter("state"),
+    });
+  }
+
+  if (filters.city && filters.city.trim()) {
+    activeChips.push({
+      key: "city",
+      label: `City: ${filters.city}`,
+      onRemove: () => onRemoveFilter("city"),
+    });
+  }
+
+  if (filters.company && filters.company.trim()) {
+    activeChips.push({
+      key: "company",
+      label: `Company: ${filters.company}`,
+      onRemove: () => onRemoveFilter("company"),
+    });
+  }
+
+  if (filters.jobTitle && filters.jobTitle.trim()) {
+    activeChips.push({
+      key: "jobTitle",
+      label: `Job Title: ${filters.jobTitle}`,
+      onRemove: () => onRemoveFilter("jobTitle"),
     });
   }
 
