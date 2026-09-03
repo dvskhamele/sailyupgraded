@@ -8,13 +8,6 @@ import { Building2, User, Search, RefreshCw, Filter, SlidersHorizontal } from "l
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { DataTableViewOptions } from "./data-table-view-options";
 import { DataTableFacetedFilter } from "./data-table-faceted-filter";
 import type { PeopleRecord } from "@/types/people";
@@ -25,8 +18,6 @@ interface DataTableToolbarProps {
   onGlobalFilterChange: (value: string) => void;
   onRefresh?: () => void;
   isLoading?: boolean;
-  batchLimit?: number;
-  onBatchLimitChange?: (limit: number) => void;
   onServerSearch?: (query: string) => void;
   activeFiltersCount?: number;
   onOpenFiltersSheet?: () => void;
@@ -51,8 +42,6 @@ export function DataTableToolbar({
   onGlobalFilterChange,
   onRefresh,
   isLoading,
-  batchLimit = 1000,
-  onBatchLimitChange,
   onServerSearch,
   activeFiltersCount = 0,
   onOpenFiltersSheet,
@@ -140,26 +129,6 @@ export function DataTableToolbar({
       </div>
 
       <div className="flex items-center gap-2 self-end sm:self-auto">
-        {onBatchLimitChange && (
-          <div className="flex items-center gap-1.5">
-            <span className="text-xs text-muted-foreground hidden lg:inline">Fetch Limit:</span>
-            <Select
-              value={String(batchLimit)}
-              onValueChange={(val) => onBatchLimitChange(Number(val))}
-              disabled={isLoading}
-            >
-              <SelectTrigger className="h-8 w-[100px] text-xs">
-                <SelectValue placeholder="Limit" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="500">500 items</SelectItem>
-                <SelectItem value="1000">1,000 items</SelectItem>
-                <SelectItem value="2000">2,000 items</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-
         {onRefresh && (
           <Button
             variant="outline"

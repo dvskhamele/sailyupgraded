@@ -2,6 +2,7 @@
 
 import { getSession } from "@/lib/auth-server";
 import { prismadb } from "@/lib/prisma";
+import { serializeDecimals } from "@/lib/serialize-decimals";
 import type {
   PeopleRecord,
   GetPeopleParams,
@@ -11,8 +12,7 @@ import type {
   GetPeopleLocationsResponse,
 } from "@/types/people";
 
-const ENRICHMENT_API_BASE =
-  process.env.ENRICHMENT_API_URL || "http://129.146.163.220:7149";
+const ENRICHMENT_API_BASE = process.env.ENRICHMENT_API_URL?.trim() || "";
 
 function cleanString(val: unknown): string {
   if (val === null || val === undefined) return "";
@@ -137,10 +137,10 @@ function mapContactToPeopleRecord(contact: Record<string, any>): PeopleRecord | 
   const resolvedPhone =
     normalizePhone(contact.phone) ||
     normalizePhone(contact.mobile_phone) ||
-    normalizePhone(contact.office_phone) ||
     normalizePhone(contact.person_sanitized_phone) ||
     normalizePhone(contact.person_phone) ||
     normalizePhone(contact.phone_sanitized) ||
+    normalizePhone(contact.office_phone) ||
     normalizePhone(contact.sanitized_phone);
 
   const resolvedMobilePhone =
@@ -254,150 +254,151 @@ export async function getUnifiedPeople(
     const currentPage = Math.max(1, Number(page) || 1);
     const pageLimit = Math.max(1, Number(limit) || 100);
 
-    // Build query params for external microservice API
-    const apiParams = new URLSearchParams();
-    apiParams.set("limit", String(pageLimit));
-    apiParams.set("page", String(currentPage));
-    if (trimmedQuery) apiParams.set("q", trimmedQuery);
-    if (country?.trim()) apiParams.set("country", country.trim());
-    if (state?.trim()) apiParams.set("state", state.trim());
-    if (city?.trim()) apiParams.set("city", city.trim());
-    if (company?.trim()) apiParams.set("company", company.trim());
-    if (jobTitle?.trim()) apiParams.set("jobTitle", jobTitle.trim());
-    if (status && status !== "All") apiParams.set("status", status.trim());
-    if (role && role !== "All") apiParams.set("role", role.trim());
-    if (hasEmail === true) apiParams.set("hasEmail", "true");
-    if (hasPhone === true) apiParams.set("hasPhone", "true");
-    if (hasLinkedin === true) apiParams.set("hasLinkedin", "true");
-    if (hasCompany === true) apiParams.set("hasCompany", "true");
+    // If external enrichment API URL is explicitly configured, query it; otherwise go directly to database
+    if (ENRICHMENT_API_BASE) {
+      const apiParams = new URLSearchParams();
+      apiParams.set("limit", String(pageLimit));
+      apiParams.set("page", String(currentPage));
+      if (trimmedQuery) apiParams.set("q", trimmedQuery);
+      if (country?.trim()) apiParams.set("country", country.trim());
+      if (state?.trim()) apiParams.set("state", state.trim());
+      if (city?.trim()) apiParams.set("city", city.trim());
+      if (company?.trim()) apiParams.set("company", company.trim());
+      if (jobTitle?.trim()) apiParams.set("jobTitle", jobTitle.trim());
+      if (status && status !== "All") apiParams.set("status", status.trim());
+      if (role && role !== "All") apiParams.set("role", role.trim());
+      if (hasEmail === true) apiParams.set("hasEmail", "true");
+      if (hasPhone === true) apiParams.set("hasPhone", "true");
+      if (hasLinkedin === true) apiParams.set("hasLinkedin", "true");
+      if (hasCompany === true) apiParams.set("hasCompany", "true");
 
-    let accountsUrl = trimmedQuery
-      ? `${ENRICHMENT_API_BASE}/accounts/search?${apiParams.toString()}`
-      : `${ENRICHMENT_API_BASE}/accounts?${apiParams.toString()}`;
+      const accountsUrl = trimmedQuery
+        ? `${ENRICHMENT_API_BASE}/accounts/search?${apiParams.toString()}`
+        : `${ENRICHMENT_API_BASE}/accounts?${apiParams.toString()}`;
 
-    let contactsUrl = trimmedQuery
-      ? `${ENRICHMENT_API_BASE}/contacts/search?${apiParams.toString()}`
-      : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
+      const contactsUrl = trimmedQuery
+        ? `${ENRICHMENT_API_BASE}/contacts/search?${apiParams.toString()}`
+        : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
 
-    const fetchAccounts = type === "Contact" ? Promise.resolve([]) : fetch(accountsUrl, {
-      signal: AbortSignal.timeout(1500),
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    }).then(async (r) => {
-      if (!r.ok) return [];
-      const json = await r.json();
-      return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-    }).catch(() => []);
+      const fetchAccounts = type === "Contact" ? Promise.resolve([]) : fetch(accountsUrl, {
+        signal: AbortSignal.timeout(1500),
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      }).then(async (r) => {
+        if (!r.ok) return [];
+        const json = await r.json();
+        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+      }).catch(() => []);
 
-    const fetchContacts = type === "Account" ? Promise.resolve([]) : fetch(contactsUrl, {
-      signal: AbortSignal.timeout(1500),
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    }).then(async (r) => {
-      if (!r.ok) return [];
-      const json = await r.json();
-      return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
-    }).catch(() => []);
+      const fetchContacts = type === "Account" ? Promise.resolve([]) : fetch(contactsUrl, {
+        signal: AbortSignal.timeout(1500),
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      }).then(async (r) => {
+        if (!r.ok) return [];
+        const json = await r.json();
+        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+      }).catch(() => []);
 
-    const fetchStats = fetch(`${ENRICHMENT_API_BASE}/stats`, {
-      signal: AbortSignal.timeout(1000),
-      cache: "no-store",
-      headers: { Accept: "application/json" },
-    }).then(async (r) => {
-      if (!r.ok) return null;
-      return await r.json();
-    }).catch(() => null);
+      const fetchStats = fetch(`${ENRICHMENT_API_BASE}/stats`, {
+        signal: AbortSignal.timeout(1000),
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      }).then(async (r) => {
+        if (!r.ok) return null;
+        return await r.json();
+      }).catch(() => null);
 
-    const [rawAccounts, rawContacts, rawStats] = await Promise.all([
-      fetchAccounts,
-      fetchContacts,
-      fetchStats,
-    ]);
+      const [rawAccounts, rawContacts, rawStats] = await Promise.all([
+        fetchAccounts,
+        fetchContacts,
+        fetchStats,
+      ]);
 
-    const mappedAccounts = (rawAccounts as any[])
-      .map(mapAccountToPeopleRecord)
-      .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+      const mappedAccounts = (rawAccounts as any[])
+        .map(mapAccountToPeopleRecord)
+        .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
 
-    const mappedContacts = (rawContacts as any[])
-      .map(mapContactToPeopleRecord)
-      .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+      const mappedContacts = (rawContacts as any[])
+        .map(mapContactToPeopleRecord)
+        .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
 
-    let combined: PeopleRecord[] = [];
-    if (type === "Account") {
-      combined = mappedAccounts;
-    } else if (type === "Contact") {
-      combined = mappedContacts;
-    } else {
-      combined = [...mappedAccounts, ...mappedContacts];
-    }
-
-    // Filter validate external records to ensure upstream API respected filter params
-    const matchesFilter = (r: PeopleRecord) => {
-      if (country && country.trim()) {
-        const qCountry = country.trim().toLowerCase();
-        const cMatch = r.country && (r.country.toLowerCase().includes(qCountry) || (qCountry === "united states" && (r.country.toLowerCase() === "usa" || r.country.toLowerCase() === "us")));
-        const sMatch = r.state && r.state.toLowerCase().includes(qCountry);
-        const cityMatch = r.city && r.city.toLowerCase().includes(qCountry);
-        if (!cMatch && !sMatch && !cityMatch) return false;
+      let combined: PeopleRecord[] = [];
+      if (type === "Account") {
+        combined = mappedAccounts;
+      } else if (type === "Contact") {
+        combined = mappedContacts;
+      } else {
+        combined = [...mappedAccounts, ...mappedContacts];
       }
-      if (state && state.trim()) {
-        const qState = state.trim().toLowerCase();
-        if (!r.state || !r.state.toLowerCase().includes(qState)) return false;
-      }
-      if (city && city.trim()) {
-        const qCity = city.trim().toLowerCase();
-        if (!r.city || !r.city.toLowerCase().includes(qCity)) return false;
-      }
-      if (company && company.trim()) {
-        const qComp = company.trim().toLowerCase();
-        if (!r.company || !r.company.toLowerCase().includes(qComp)) return false;
-      }
-      if (jobTitle && jobTitle.trim()) {
-        const qTitle = jobTitle.trim().toLowerCase();
-        if (!r.jobTitle || !r.jobTitle.toLowerCase().includes(qTitle)) return false;
-      }
-      if (hasPhone === true) {
-        if (!r.phone && !r.mobilePhone && !r.officePhone) return false;
-      }
-      if (hasEmail === true) {
-        if (!r.email && !r.personalEmail) return false;
-      }
-      if (hasLinkedin === true) {
-        if (!r.socialLinkedin) return false;
-      }
-      if (hasCompany === true) {
-        if (!r.company) return false;
-      }
-      return true;
-    };
 
-    const validatedExternal = combined.filter(matchesFilter);
-
-    // If external microservice returned valid matching results, return them
-    if (
-      validatedExternal.length > 0 &&
-      (!country || validatedExternal.some((r) => r.country)) &&
-      (!hasPhone || validatedExternal.every((r) => r.phone || r.mobilePhone || r.officePhone)) &&
-      (!hasEmail || validatedExternal.every((r) => r.email || r.personalEmail))
-    ) {
-      const stats: PeopleStats = {
-        totalAccounts: typeof rawStats?.accounts === "number" ? rawStats.accounts : 5249249,
-        totalContacts: typeof rawStats?.contacts === "number" ? rawStats.contacts : 999982,
-        totalRecords:
-          (typeof rawStats?.accounts === "number" ? rawStats.accounts : 5249249) +
-          (typeof rawStats?.contacts === "number" ? rawStats.contacts : 999982),
+      const matchesFilter = (r: PeopleRecord) => {
+        if (country && country.trim()) {
+          const qCountry = country.trim().toLowerCase();
+          const cMatch = r.country && (r.country.toLowerCase().includes(qCountry) || (qCountry === "united states" && (r.country.toLowerCase() === "usa" || r.country.toLowerCase() === "us")));
+          const sMatch = r.state && r.state.toLowerCase().includes(qCountry);
+          const cityMatch = r.city && r.city.toLowerCase().includes(qCountry);
+          if (!cMatch && !sMatch && !cityMatch) return false;
+        }
+        if (state && state.trim()) {
+          const qState = state.trim().toLowerCase();
+          if (!r.state || !r.state.toLowerCase().includes(qState)) return false;
+        }
+        if (city && city.trim()) {
+          const qCity = city.trim().toLowerCase();
+          if (!r.city || !r.city.toLowerCase().includes(qCity)) return false;
+        }
+        if (company && company.trim()) {
+          const qComp = company.trim().toLowerCase();
+          if (!r.company || !r.company.toLowerCase().includes(qComp)) return false;
+        }
+        if (jobTitle && jobTitle.trim()) {
+          const qTitle = jobTitle.trim().toLowerCase();
+          if (!r.jobTitle || !r.jobTitle.toLowerCase().includes(qTitle)) return false;
+        }
+        if (hasPhone === true) {
+          if (!r.phone && !r.mobilePhone && !r.officePhone) return false;
+        }
+        if (hasEmail === true) {
+          if (!r.email && !r.personalEmail) return false;
+        }
+        if (hasLinkedin === true) {
+          if (!r.socialLinkedin) return false;
+        }
+        if (hasCompany === true) {
+          if (!r.company) return false;
+        }
+        return true;
       };
 
-      const total = rawStats?.total || validatedExternal.length;
-      return {
-        success: true,
-        data: validatedExternal,
-        total,
-        page: currentPage,
-        limit: pageLimit,
-        totalPages: Math.max(1, Math.ceil(total / pageLimit)),
-        stats,
-      };
+      const validatedExternal = combined.filter(matchesFilter);
+
+      if (
+        validatedExternal.length > 0 &&
+        (!country || validatedExternal.some((r) => r.country)) &&
+        (!hasPhone || validatedExternal.every((r) => r.phone || r.mobilePhone || r.officePhone)) &&
+        (!hasEmail || validatedExternal.every((r) => r.email || r.personalEmail))
+      ) {
+        const extAccounts = typeof rawStats?.accounts === "number" ? rawStats.accounts : mappedAccounts.length;
+        const extContacts = typeof rawStats?.contacts === "number" ? rawStats.contacts : mappedContacts.length;
+        const extTotal = typeof rawStats?.total === "number" ? rawStats.total : validatedExternal.length;
+
+        const stats: PeopleStats = {
+          totalAccounts: extAccounts,
+          totalContacts: extContacts,
+          totalRecords: extAccounts + extContacts,
+        };
+
+        return serializeDecimals({
+          success: true,
+          data: validatedExternal,
+          total: extTotal,
+          page: currentPage,
+          limit: pageLimit,
+          totalPages: Math.max(1, Math.ceil(extTotal / pageLimit)),
+          stats,
+        });
+      }
     }
 
     // Database Fallback Engine: Execute exact database-level queries with Prisma
@@ -496,36 +497,85 @@ export async function getUnifiedPeople(
     if (hasEmail === true) {
       contactConditions.push({
         OR: [
-          { email: { not: null } },
-          { personal_email: { not: null } },
+          {
+            AND: [
+              { email: { not: null } },
+              { email: { not: "" } },
+              { email: { contains: "@" } },
+              { email: { notIn: ["Unavailable", "unavailable", "null", "undefined"] } },
+            ],
+          },
+          {
+            AND: [
+              { personal_email: { not: null } },
+              { personal_email: { not: "" } },
+              { personal_email: { contains: "@" } },
+              { personal_email: { notIn: ["Unavailable", "unavailable", "null", "undefined"] } },
+            ],
+          },
         ],
       });
-      accountConditions.push({ email: { not: null } });
+      accountConditions.push({
+        AND: [
+          { email: { not: null } },
+          { email: { not: "" } },
+          { email: { contains: "@" } },
+        ],
+      });
     }
 
     if (hasPhone === true) {
       contactConditions.push({
         OR: [
-          { phone: { not: null } },
-          { mobile_phone: { not: null } },
-          { office_phone: { not: null } },
+          {
+            AND: [
+              { phone: { not: null } },
+              { phone: { not: "" } },
+              { phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
+            ],
+          },
+          {
+            AND: [
+              { mobile_phone: { not: null } },
+              { mobile_phone: { not: "" } },
+              { mobile_phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
+            ],
+          },
+          {
+            AND: [
+              { office_phone: { not: null } },
+              { office_phone: { not: "" } },
+              { office_phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
+            ],
+          },
         ],
       });
       accountConditions.push({
-        OR: [
+        AND: [
           { office_phone: { not: null } },
+          { office_phone: { not: "" } },
+          { office_phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
         ],
       });
     }
 
     if (hasLinkedin === true) {
-      contactConditions.push({ social_linkedin: { not: null } });
+      contactConditions.push({
+        AND: [
+          { social_linkedin: { not: null } },
+          { social_linkedin: { not: "" } },
+        ],
+      });
+      // Accounts do not have LinkedIn profile URLs in database
+      accountConditions.push({
+        id: "__none__",
+      });
     }
 
     if (hasCompany === true) {
       contactConditions.push({
         OR: [
-          { company: { not: null } },
+          { AND: [{ company: { not: null } }, { company: { not: "" } }] },
           { accountsIDs: { not: null } },
         ],
       });
@@ -627,12 +677,12 @@ export async function getUnifiedPeople(
     }
 
     const stats: PeopleStats = {
-      totalAccounts: dbAccountsCount || 5249249,
-      totalContacts: dbContactsCount || 999982,
-      totalRecords: (dbAccountsCount || 5249249) + (dbContactsCount || 999982),
+      totalAccounts: dbAccountsCount,
+      totalContacts: dbContactsCount,
+      totalRecords: dbAccountsCount + dbContactsCount,
     };
 
-    return {
+    return serializeDecimals({
       success: true,
       data: dbCombined,
       total: totalCount,
@@ -640,7 +690,7 @@ export async function getUnifiedPeople(
       limit: pageLimit,
       totalPages: Math.max(1, Math.ceil(totalCount / pageLimit)),
       stats,
-    };
+    });
   } catch (error) {
     console.error("[GET_UNIFIED_PEOPLE_ERROR]", error);
     return {
@@ -710,33 +760,35 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
     }
 
     // 2. Fetch from external API if available
-    try {
-      const [accountsRes, contactsRes] = await Promise.all([
-        fetch(`${ENRICHMENT_API_BASE}/accounts?limit=100`, {
-          signal: AbortSignal.timeout(1000),
-          headers: { Accept: "application/json" },
-        }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-        fetch(`${ENRICHMENT_API_BASE}/contacts?limit=100`, {
-          signal: AbortSignal.timeout(1000),
-          headers: { Accept: "application/json" },
-        }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-      ]);
+    if (ENRICHMENT_API_BASE) {
+      try {
+        const [accountsRes, contactsRes] = await Promise.all([
+          fetch(`${ENRICHMENT_API_BASE}/accounts?limit=100`, {
+            signal: AbortSignal.timeout(1000),
+            headers: { Accept: "application/json" },
+          }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+          fetch(`${ENRICHMENT_API_BASE}/contacts?limit=100`, {
+            signal: AbortSignal.timeout(1000),
+            headers: { Accept: "application/json" },
+          }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
+        ]);
 
-      if (Array.isArray(accountsRes)) {
-        for (const item of accountsRes) {
-          if (item.country || item.billing_country) addLocation(item.country || item.billing_country, "country");
-          if (item.city || item.billing_city) addLocation(item.city || item.billing_city, "city");
+        if (Array.isArray(accountsRes)) {
+          for (const item of accountsRes) {
+            if (item.country || item.billing_country) addLocation(item.country || item.billing_country, "country");
+            if (item.city || item.billing_city) addLocation(item.city || item.billing_city, "city");
+          }
         }
-      }
 
-      if (Array.isArray(contactsRes)) {
-        for (const item of contactsRes) {
-          if (item.country) addLocation(item.country, "country");
-          if (item.city) addLocation(item.city, "city");
+        if (Array.isArray(contactsRes)) {
+          for (const item of contactsRes) {
+            if (item.country) addLocation(item.country, "country");
+            if (item.city) addLocation(item.city, "city");
+          }
         }
+      } catch (apiErr) {
+        console.warn("[GET_PEOPLE_LOCATIONS] External API fetch warning:", apiErr);
       }
-    } catch (apiErr) {
-      console.warn("[GET_PEOPLE_LOCATIONS] External API fetch warning:", apiErr);
     }
 
     // Guarantee common standard options if list is sparse

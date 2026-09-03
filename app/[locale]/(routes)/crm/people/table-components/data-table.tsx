@@ -44,14 +44,18 @@ import type { PeopleRecord, PeopleFilterOptions, PeopleStats } from "@/types/peo
 interface PeopleDataTableProps {
   columns: ColumnDef<PeopleRecord, any>[];
   data: PeopleRecord[];
+  total: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
   stats?: PeopleStats;
   filters: PeopleFilterOptions;
   onApplyFilters: (filters: PeopleFilterOptions) => void;
   onResetFilters: () => void;
   onRefresh?: () => void;
   isLoading?: boolean;
-  batchLimit?: number;
-  onBatchLimitChange?: (limit: number) => void;
+  onPageChange: (page: number) => void;
+  onPageSizeChange: (pageSize: number) => void;
   onServerSearch?: (query: string) => void;
   onOpenFiltersSheet?: () => void;
   defaultEmailFrom?: string;
@@ -91,14 +95,18 @@ const multiFieldFilterFn: FilterFn<PeopleRecord> = (row, columnId, filterValue: 
 export function PeopleDataTable({
   columns,
   data,
+  total,
+  page,
+  pageSize,
+  totalPages,
   stats,
   filters,
   onApplyFilters,
   onResetFilters,
   onRefresh,
   isLoading = false,
-  batchLimit,
-  onBatchLimitChange,
+  onPageChange,
+  onPageSizeChange,
   onServerSearch,
   onOpenFiltersSheet,
   defaultEmailFrom = "",
@@ -190,38 +198,46 @@ export function PeopleDataTable({
     onResetFilters();
   };
 
-  // Set default page size to 20
+  const pagination = React.useMemo(
+    () => ({
+      pageIndex: Math.max(0, page - 1),
+      pageSize,
+    }),
+    [page, pageSize]
+  );
+
   const table = useReactTable({
     data,
     columns,
+    pageCount: totalPages,
+    rowCount: total,
+    manualPagination: true,
+    manualFiltering: true,
     state: {
+      pagination,
       sorting,
       columnVisibility,
       rowSelection,
       columnFilters,
-      globalFilter,
     },
-    initialState: {
-      pagination: {
-        pageSize: 20,
-      },
+    onPaginationChange: (updater) => {
+      const nextPagination =
+        typeof updater === "function" ? updater(pagination) : updater;
+      if (nextPagination.pageSize !== pageSize) {
+        onPageSizeChange(nextPagination.pageSize);
+      } else if (nextPagination.pageIndex !== pagination.pageIndex) {
+        onPageChange(nextPagination.pageIndex + 1);
+      }
     },
-    globalFilterFn: multiFieldFilterFn,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     onSortingChange: setSorting,
     onColumnFiltersChange: setColumnFilters,
-    onGlobalFilterChange: setGlobalFilter,
     onColumnVisibilityChange: setColumnVisibility,
     getCoreRowModel: getCoreRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFacetedRowModel: getFacetedRowModel(),
-    getFacetedUniqueValues: getFacetedUniqueValues(),
   });
 
-  const selectedRows = table.getFilteredSelectedRowModel().rows;
+  const selectedRows = table.getSelectedRowModel().rows;
   const selectedCount = selectedRows.length;
   const filteredRowCount = table.getFilteredRowModel().rows.length;
 
@@ -465,8 +481,6 @@ export function PeopleDataTable({
         onGlobalFilterChange={setGlobalFilter}
         onRefresh={onRefresh}
         isLoading={isLoading}
-        batchLimit={batchLimit}
-        onBatchLimitChange={onBatchLimitChange}
         onServerSearch={onServerSearch}
         activeFiltersCount={activeFiltersCount}
         onOpenFiltersSheet={onOpenFiltersSheet}
@@ -483,13 +497,11 @@ export function PeopleDataTable({
 
       {/* Result Count and Scope Indicator */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        {/* <span>
-          Showing <span className="font-semibold text-foreground">{filteredRowCount}</span> of{" "}
-          <span className="font-semibold text-foreground">{data.length}</span> loaded records
-          {stats?.totalRecords ? (
-            <span> (searched across <span className="font-medium text-foreground">{Number(stats.totalRecords).toLocaleString()}</span> total in database)</span>
-          ) : null}
-        </span> */}
+        <span>
+          Showing <span className="font-semibold text-foreground">{total > 0 ? (page - 1) * pageSize + 1 : 0}</span> to{" "}
+          <span className="font-semibold text-foreground">{Math.min(page * pageSize, total)}</span> of{" "}
+          <span className="font-semibold text-foreground">{Number(total).toLocaleString()}</span> matching records
+        </span>
       </div>
 
       {/* Selected Action Bar */}

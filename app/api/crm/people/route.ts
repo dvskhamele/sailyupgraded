@@ -16,8 +16,8 @@ export async function GET(req: NextRequest) {
     const query = searchParams.get("query") || searchParams.get("q") || "";
     const typeParam = searchParams.get("type") || "All";
     const type = typeParam === "Account" || typeParam === "Contact" ? typeParam : "All";
-    const page = parseInt(searchParams.get("page") || "1", 10);
-    const limit = parseInt(searchParams.get("limit") || "100", 10);
+    const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
+    const limit = Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20);
     const country = searchParams.get("country") || undefined;
     const state = searchParams.get("state") || undefined;
     const city = searchParams.get("city") || undefined;

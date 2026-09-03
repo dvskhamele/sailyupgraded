@@ -25,8 +25,13 @@ export function DataTablePagination<TData>({
   return (
     <div className="flex items-center justify-between px-2 py-4">
       <div className="flex-1 text-sm text-muted-foreground">
-        {table.getFilteredSelectedRowModel().rows.length} of{" "}
-        {table.getFilteredRowModel().rows.length} row(s) selected.
+        {table.getSelectedRowModel().rows.length > 0 ? (
+          <span>
+            {table.getSelectedRowModel().rows.length} row(s) selected on this page
+          </span>
+        ) : (
+          <span>{Number(table.getRowCount()).toLocaleString()} total matching record(s)</span>
+        )}
       </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
         <div className="flex items-center space-x-2">
@@ -41,7 +46,7 @@ export function DataTablePagination<TData>({
               <SelectValue placeholder={table.getState().pagination.pageSize} />
             </SelectTrigger>
             <SelectContent side="top">
-              {[10, 20, 30, 50, 100, 200].map((pageSize) => (
+              {[10, 20, 30, 50, 100].map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
                   {pageSize}
                 </SelectItem>

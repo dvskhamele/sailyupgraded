@@ -79,7 +79,12 @@ model crm_Accounts {
   @@index([type])
   @@index([createdAt])
   @@index([deletedAt])
+  @@index([billing_country])
+  @@index([billing_state])
+  @@index([billing_city])
+  @@index([name])
 }
+
 
 model crm_Leads {
   id                 String             @id @default(uuid())
@@ -572,6 +577,11 @@ model crm_Contacts {
   @@index([cratedAt])
   @@index([last_activity])
   @@index([deletedAt])
+  @@index([country])
+  @@index([state])
+  @@index([city])
+  @@index([company])
+  @@index([jobTitle])
 }
 
 model crm_Contracts {

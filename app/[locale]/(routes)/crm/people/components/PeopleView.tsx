@@ -12,11 +12,15 @@ import { createColumns } from "../table-components/columns";
 import { PeopleDataTable } from "../table-components/data-table";
 import { PeopleDetailSheet } from "../table-components/people-detail-sheet";
 import { PeopleFiltersSheet } from "../table-components/people-filters-sheet";
-import type { PeopleRecord, PeopleStats, PeopleFilterOptions } from "@/types/people";
+import type { PeopleRecord, PeopleStats, PeopleFilterOptions, GetPeopleResponse } from "@/types/people";
 
 interface PeopleViewProps {
   initialData: PeopleRecord[];
   initialStats?: PeopleStats;
+  initialTotal?: number;
+  initialPage?: number;
+  initialLimit?: number;
+  initialTotalPages?: number;
   defaultEmailFrom?: string;
 }
 
@@ -38,27 +42,47 @@ const defaultFilterOptions: PeopleFilterOptions = {
 export default function PeopleView({
   initialData,
   initialStats = {
-    totalAccounts: 5249249,
-    totalContacts: 999982,
-    totalRecords: 6249231,
+    totalAccounts: 0,
+    totalContacts: 0,
+    totalRecords: 0,
   },
+  initialTotal = 0,
+  initialPage = 1,
+  initialLimit = 20,
+  initialTotalPages = 1,
   defaultEmailFrom = "",
 }: PeopleViewProps) {
   const router = useRouter();
   const [data, setData] = React.useState<PeopleRecord[]>(initialData);
+  const [total, setTotal] = React.useState<number>(initialTotal || initialData.length);
+  const [page, setPage] = React.useState<number>(initialPage || 1);
+  const [pageSize, setPageSize] = React.useState<number>(initialLimit || 20);
+  const [totalPages, setTotalPages] = React.useState<number>(
+    initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 20)))
+  );
   const [stats, setStats] = React.useState<PeopleStats>(initialStats);
   const [filters, setFilters] = React.useState<PeopleFilterOptions>(defaultFilterOptions);
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [batchLimit, setBatchLimit] = React.useState<number>(1000);
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [activeRecord, setActiveRecord] = React.useState<PeopleRecord | null>(null);
   const [detailOpen, setDetailOpen] = React.useState(false);
 
-  // Synchronize when initialData updates from server
-  React.useEffect(() => {
+  // Synchronize when initial props update from server
+  const [prevInitialData, setPrevInitialData] = React.useState(initialData);
+  if (prevInitialData !== initialData) {
+    setPrevInitialData(initialData);
     setData(initialData);
-  }, [initialData]);
+    setTotal(initialTotal || initialData.length);
+    setPage(initialPage || 1);
+    setPageSize(initialLimit || 20);
+    setTotalPages(
+      initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 20)))
+    );
+    if (initialStats) {
+      setStats(initialStats);
+    }
+  }
 
   const handleViewRecord = React.useCallback((record: PeopleRecord) => {
     setActiveRecord(record);
@@ -71,16 +95,16 @@ export default function PeopleView({
   );
 
   const fetchPeopleData = async (
+    targetPage = page,
+    targetPageSize = pageSize,
     query = searchQuery,
-    currentFilters = filters,
-    limit = batchLimit,
-    page = 1
+    currentFilters = filters
   ) => {
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("limit", String(limit));
-      params.set("page", String(page));
+      params.set("limit", String(targetPageSize));
+      params.set("page", String(targetPage));
 
       if (query.trim()) {
         params.set("query", query.trim());
@@ -124,118 +148,85 @@ export default function PeopleView({
 
       const res = await fetch(`/api/crm/people?${params.toString()}`);
       if (!res.ok) throw new Error("Failed to load filtered people data");
-      const result = await res.json();
+      const result: GetPeopleResponse = await res.json();
       if (result.success && Array.isArray(result.data)) {
         setData(result.data);
+        const resolvedTotal = typeof result.total === "number" ? result.total : result.data.length;
+        const resolvedPage = typeof result.page === "number" ? result.page : targetPage;
+        const resolvedLimit = typeof result.limit === "number" ? result.limit : targetPageSize;
+        const resolvedTotalPages =
+          typeof result.totalPages === "number"
+            ? result.totalPages
+            : Math.max(1, Math.ceil(resolvedTotal / resolvedLimit));
+
+        setTotal(resolvedTotal);
+        setPage(resolvedPage);
+        setPageSize(resolvedLimit);
+        setTotalPages(resolvedTotalPages);
+
         if (result.stats) {
           setStats(result.stats);
-        }
-        if (query.trim() || Object.values(currentFilters).some(v => v && v !== "All")) {
-          toast.success(`Filters applied: ${result.data.length} match(es) returned`);
-        } else {
-          toast.success(`Loaded ${result.data.length} records into table`);
         }
       }
     } catch (error) {
       console.error("[FETCH_PEOPLE_ERROR]", error);
-      toast.error("Failed to load records from external API");
+      toast.error("Failed to load records from database");
     } finally {
       setIsLoading(false);
     }
   };
 
+  const handlePageChange = (newPage: number) => {
+    setPage(newPage);
+    fetchPeopleData(newPage, pageSize, searchQuery, filters);
+  };
+
+  const handlePageSizeChange = (newPageSize: number) => {
+    setPageSize(newPageSize);
+    setPage(1);
+    fetchPeopleData(1, newPageSize, searchQuery, filters);
+  };
+
   const handleApplyFilters = async (newFilters: PeopleFilterOptions) => {
     setFilters(newFilters);
-    await fetchPeopleData(searchQuery, newFilters, batchLimit);
+    setPage(1);
+    await fetchPeopleData(1, pageSize, searchQuery, newFilters);
   };
 
   const handleResetFilters = async () => {
     setFilters(defaultFilterOptions);
-    await fetchPeopleData(searchQuery, defaultFilterOptions, batchLimit);
+    setPage(1);
+    await fetchPeopleData(1, pageSize, searchQuery, defaultFilterOptions);
   };
 
   const handleRefresh = async () => {
-    await fetchPeopleData(searchQuery, filters, batchLimit);
-  };
-
-  const handleBatchLimitChange = async (newLimit: number) => {
-    setBatchLimit(newLimit);
-    await fetchPeopleData(searchQuery, filters, newLimit);
+    await fetchPeopleData(page, pageSize, searchQuery, filters);
   };
 
   const handleServerSearch = async (query: string) => {
     setSearchQuery(query);
-    await fetchPeopleData(query, filters, batchLimit);
+    setPage(1);
+    await fetchPeopleData(1, pageSize, query, filters);
   };
-
-  const formattedTotal = Number(stats.totalRecords).toLocaleString();
-  const formattedAccounts = Number(stats.totalAccounts).toLocaleString();
-  const formattedContacts = Number(stats.totalContacts).toLocaleString();
 
   return (
     <div className="space-y-4">
-      {/* Overview Metric Banner */}
-      {/* <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <Card className="border-border/60 bg-card/60 shadow-xs">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
-              <Database className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Total Database Records</p>
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-xl font-bold tracking-tight">{formattedTotal}</h3>
-                <Badge variant="outline" className="text-[10px] font-normal text-emerald-600 dark:text-emerald-400">
-                  Live API
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60 bg-card/60 shadow-xs">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-600/10 text-blue-600 dark:text-blue-400">
-              <Building2 className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Companies / Accounts</p>
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-xl font-bold tracking-tight">{formattedAccounts}</h3>
-                <span className="text-[11px] text-muted-foreground">~5.25M</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-border/60 bg-card/60 shadow-xs">
-          <CardContent className="flex items-center gap-3 p-4">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-600/10 text-emerald-600 dark:text-emerald-400">
-              <Users className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-xs font-medium text-muted-foreground">Contacts / People</p>
-              <div className="flex items-baseline gap-2">
-                <h3 className="text-xl font-bold tracking-tight">{formattedContacts}</h3>
-                <span className="text-[11px] text-muted-foreground">~1.00M</span>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div> */}
-
       {/* Main Unified Data Table */}
       <PeopleDataTable
         columns={columns}
         data={data}
+        total={total}
+        page={page}
+        pageSize={pageSize}
+        totalPages={totalPages}
         stats={stats}
         filters={filters}
         onApplyFilters={handleApplyFilters}
         onResetFilters={handleResetFilters}
         onRefresh={handleRefresh}
         isLoading={isLoading}
-        batchLimit={batchLimit}
-        onBatchLimitChange={handleBatchLimitChange}
+        onPageChange={handlePageChange}
+        onPageSizeChange={handlePageSizeChange}
         onServerSearch={handleServerSearch}
         onOpenFiltersSheet={() => setFilterSheetOpen(true)}
         defaultEmailFrom={defaultEmailFrom}
