@@ -5,7 +5,7 @@ import type { PoolConfig } from "mariadb";
 const DEFAULT_CONNECT_TIMEOUT_MS = 10_000;
 const DEFAULT_ACQUIRE_TIMEOUT_MS = 30_000;
 const DEFAULT_IDLE_TIMEOUT_SECONDS = 300;
-const DEFAULT_CONNECTION_LIMIT = 10;
+const DEFAULT_CONNECTION_LIMIT = 25;
 
 function parseNumber(value: string | null) {
   if (!value) {

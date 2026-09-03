@@ -280,28 +280,33 @@ export async function getUnifiedPeople(
         ? `${ENRICHMENT_API_BASE}/contacts/search?${apiParams.toString()}`
         : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
 
+      let extAccountsTotal: number | undefined;
+      let extContactsTotal: number | undefined;
+
       const fetchAccounts = type === "Contact" ? Promise.resolve([]) : fetch(accountsUrl, {
-        signal: AbortSignal.timeout(1500),
+        signal: AbortSignal.timeout(6000),
         cache: "no-store",
         headers: { Accept: "application/json" },
       }).then(async (r) => {
         if (!r.ok) return [];
         const json = await r.json();
-        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+        if (typeof json?.total === "number") extAccountsTotal = json.total;
+        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : (Array.isArray(json?.items) ? json.items : []));
       }).catch(() => []);
 
       const fetchContacts = type === "Account" ? Promise.resolve([]) : fetch(contactsUrl, {
-        signal: AbortSignal.timeout(1500),
+        signal: AbortSignal.timeout(6000),
         cache: "no-store",
         headers: { Accept: "application/json" },
       }).then(async (r) => {
         if (!r.ok) return [];
         const json = await r.json();
-        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : []);
+        if (typeof json?.total === "number") extContactsTotal = json.total;
+        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : (Array.isArray(json?.items) ? json.items : []));
       }).catch(() => []);
 
       const fetchStats = fetch(`${ENRICHMENT_API_BASE}/stats`, {
-        signal: AbortSignal.timeout(1000),
+        signal: AbortSignal.timeout(3000),
         cache: "no-store",
         headers: { Accept: "application/json" },
       }).then(async (r) => {
@@ -379,9 +384,9 @@ export async function getUnifiedPeople(
         (!hasPhone || validatedExternal.every((r) => r.phone || r.mobilePhone || r.officePhone)) &&
         (!hasEmail || validatedExternal.every((r) => r.email || r.personalEmail))
       ) {
-        const extAccounts = typeof rawStats?.accounts === "number" ? rawStats.accounts : mappedAccounts.length;
-        const extContacts = typeof rawStats?.contacts === "number" ? rawStats.contacts : mappedContacts.length;
-        const extTotal = typeof rawStats?.total === "number" ? rawStats.total : validatedExternal.length;
+        const extAccounts = typeof rawStats?.accounts === "number" ? rawStats.accounts : (typeof extAccountsTotal === "number" ? extAccountsTotal : mappedAccounts.length);
+        const extContacts = typeof rawStats?.contacts === "number" ? rawStats.contacts : (typeof extContactsTotal === "number" ? extContactsTotal : mappedContacts.length);
+        const extTotal = typeof rawStats?.total === "number" ? rawStats.total : ((typeof extContactsTotal === "number" || typeof extAccountsTotal === "number") ? (extAccounts + extContacts) : validatedExternal.length);
 
         const stats: PeopleStats = {
           totalAccounts: extAccounts,
