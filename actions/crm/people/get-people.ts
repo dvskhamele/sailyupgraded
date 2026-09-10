@@ -660,7 +660,9 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       success: false,
       locations: [],
       countries: [],
+      states: [],
       cities: [],
+      companies: [],
       error: error instanceof Error ? error.message : "Failed to load locations",
     };
   }
