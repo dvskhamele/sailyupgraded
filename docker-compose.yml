@@ -100,6 +100,7 @@ services:
       # App
       NEXT_PUBLIC_APP_NAME: NextCRM
       NEXT_PUBLIC_APP_URL: http://localhost:3000
+      ENRICHMENT_API_URL: ${ENRICHMENT_API_URL:-}
 
       # Initial admin account (created on first run by the seed script).
       # IMPORTANT: set this to a real email you control. The app uses

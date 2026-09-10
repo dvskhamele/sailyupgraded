@@ -21,16 +21,8 @@ import { getUnifiedPeople, getPeopleLocations } from "../../actions/crm/people/g
 async function runFilterTests() {
   console.log("=== Starting Comprehensive People Filter Test Suite ===\n");
 
-  // TEST 1: Unfiltered baseline
-  console.log("[TEST 1] Testing Unfiltered Baseline...");
-  const base = await getUnifiedPeople({ limit: 100 });
-  assert.strictEqual(base.success, true);
-  console.log(`  Loaded ${base.data.length} baseline records (Accounts: ${base.data.filter(r => r.type === "Account").length}, Contacts: ${base.data.filter(r => r.type === "Contact").length})`);
-  assert.ok(base.data.length > 0);
-  console.log("✓ Unfiltered baseline loaded\n");
-
-  // TEST 2: Dynamic People Locations Aggregation
-  console.log("[TEST 2] Testing Dynamic Locations Aggregation (getPeopleLocations)...");
+  // TEST 1: Dynamic People Locations Aggregation
+  console.log("[TEST 1] Testing Dynamic Locations Aggregation (getPeopleLocations)...");
   const locsResult = await getPeopleLocations();
   assert.strictEqual(locsResult.success, true);
   assert.ok(Array.isArray(locsResult.locations), "locations must be an array");
@@ -47,102 +39,146 @@ async function runFilterTests() {
   assert.deepStrictEqual(labels, sortedLabels, "Locations must be sorted alphabetically");
   console.log("  ✓ Dynamic locations aggregation, deduplication, and alphabetical sorting verified\n");
 
-  // TEST 3: Type Filter = Account
-  console.log("[TEST 3] Testing Type = Account filter...");
-  const accountsOnly = await getUnifiedPeople({ type: "Account", limit: 50 });
-  assert.strictEqual(accountsOnly.success, true);
-  assert.ok(accountsOnly.data.length > 0);
-  assert.ok(accountsOnly.data.every((r) => r.type === "Account"), "All records MUST be Accounts");
-  console.log(`  ✓ Type = Account returned ${accountsOnly.data.length} records, 100% are Accounts\n`);
+  // Mock Apollo contacts dataset to test filter logic without external network dependence
+  const originalFetch = global.fetch;
+  let lastFetchedUrl = "";
 
-  // TEST 4: Type Filter = Contact
-  console.log("[TEST 4] Testing Type = Contact filter...");
-  const contactsOnly = await getUnifiedPeople({ type: "Contact", limit: 50 });
-  assert.strictEqual(contactsOnly.success, true);
-  assert.ok(contactsOnly.data.length > 0);
-  assert.ok(contactsOnly.data.every((r) => r.type === "Contact"), "All records MUST be Contacts");
-  console.log(`  ✓ Type = Contact returned ${contactsOnly.data.length} records, 100% are Contacts\n`);
+  const mockContacts = [
+    {
+      id: "c1",
+      first_name: "John",
+      last_name: "Doe",
+      company: "Toyota Motor",
+      jobTitle: "Manager",
+      email: "john@toyota.com",
+      phone: "+1-555-1111",
+      social_linkedin: "https://linkedin.com/in/johndoe",
+      city: "Torrance",
+      state: "CA",
+      country: "United States",
+    },
+    {
+      id: "c2",
+      first_name: "Sarah",
+      last_name: "Connor",
+      company: "Cyberdyne Systems",
+      jobTitle: "Security Lead",
+      email: "sarah@cyberdyne.com",
+      phone: "Unavailable",
+      mobile_phone: "+1-555-2222",
+      social_linkedin: "https://linkedin.com/in/sarahconnor",
+      city: "Los Angeles",
+      state: "CA",
+      country: "United States",
+    },
+  ];
 
-  // TEST 5: Country / Location Filter
-  console.log("[TEST 5] Testing Country = United States filter...");
-  const countryFilter = await getUnifiedPeople({ country: "United States", limit: 100 });
-  assert.strictEqual(countryFilter.success, true);
-  console.log(`  Found ${countryFilter.data.length} records matching 'United States'`);
-  assert.ok(
-    countryFilter.data.every((r) => {
-      const txt = [r.country, r.city, r.state, r.address].filter(Boolean).join(" ").toLowerCase();
-      return txt.includes("united states");
-    }),
-    "Every record must match country query"
-  );
-  console.log("  ✓ Location filter verified\n");
+  const mockAccounts = [
+    {
+      id: "a1",
+      name: "Acme Global",
+      company: "Acme Global",
+      email: "info@acmeglobal.com",
+      phone: "+1-555-3333",
+      city: "New York",
+      state: "NY",
+      country: "United States",
+    },
+  ];
 
-  // TEST 6: Has Email Quality Filter
-  console.log("[TEST 6] Testing hasEmail = true filter...");
-  const emailFilter = await getUnifiedPeople({ hasEmail: true, limit: 100 });
-  assert.strictEqual(emailFilter.success, true);
-  console.log(`  Found ${emailFilter.data.length} records with valid email`);
-  assert.ok(
-    emailFilter.data.every((r) => Boolean(r.email && r.email.includes("@"))),
-    "Every record must contain a valid @ email"
-  );
-  console.log("  ✓ Has Email filter verified\n");
+  try {
+    // @ts-ignore
+    global.fetch = async (url: string | URL | Request) => {
+      lastFetchedUrl = String(url);
+      const urlStr = String(url);
+      const isAccount = urlStr.includes("/accounts");
+      const data = isAccount ? mockAccounts : mockContacts;
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "x-total-count": String(data.length) }),
+        json: async () => ({
+          success: true,
+          data,
+          total: data.length,
+          page: 1,
+          limit: 50,
+          totalPages: 1,
+        }),
+      } as Response;
+    };
 
-  // TEST 7: Has LinkedIn Quality Filter
-  console.log("[TEST 7] Testing hasLinkedin = true filter...");
-  const linkedinFilter = await getUnifiedPeople({ hasLinkedin: true, limit: 100 });
-  assert.strictEqual(linkedinFilter.success, true);
-  console.log(`  Found ${linkedinFilter.data.length} records with LinkedIn profile`);
-  assert.ok(
-    linkedinFilter.data.every((r) => Boolean(r.socialLinkedin && r.socialLinkedin.trim())),
-    "Every record must contain LinkedIn URL"
-  );
-  console.log("  ✓ Has LinkedIn filter verified\n");
+    // TEST 2: Unfiltered baseline
+    console.log("[TEST 2] Testing Unfiltered Baseline...");
+    const base = await getUnifiedPeople({ limit: 100 });
+    assert.strictEqual(base.success, true);
+    assert.strictEqual(base.source, "apollo");
+    assert.ok(base.data.length > 0);
+    console.log("✓ Unfiltered baseline loaded\n");
 
-  // TEST 8: Multi-Filter Combination (AND Logic: Type + Country + hasEmail)
-  console.log("[TEST 8] Testing Multi-Filter: Type=Contact AND Country=United States AND hasEmail=true...");
-  const multiFilter = await getUnifiedPeople({
-    type: "Contact",
-    country: "United States",
-    hasEmail: true,
-    limit: 100,
-  });
-  assert.strictEqual(multiFilter.success, true);
-  console.log(`  Found ${multiFilter.data.length} records matching all 3 conditions simultaneously`);
-  assert.ok(
-    multiFilter.data.every((r) => {
-      const isContact = r.type === "Contact";
-      const hasEmail = Boolean(r.email && r.email.includes("@"));
-      const isUS = [r.country, r.city, r.state, r.address].filter(Boolean).join(" ").toLowerCase().includes("united states");
-      return isContact && hasEmail && isUS;
-    }),
-    "All records MUST satisfy ALL active conditions simultaneously"
-  );
-  console.log("  ✓ Multi-filter AND combination verified\n");
+    // TEST 3: Type Filter = Account
+    console.log("[TEST 3] Testing Type = Account filter...");
+    const accountsOnly = await getUnifiedPeople({ type: "Account", limit: 50 });
+    assert.strictEqual(accountsOnly.success, true);
+    assert.ok(lastFetchedUrl.includes("/accounts"));
+    assert.ok(accountsOnly.data.every((r) => r.type === "Account"), "All records MUST be Accounts");
+    console.log(`  ✓ Type = Account fetched from /accounts endpoint and returned Account records\n`);
 
-  // TEST 9: Search + Filters Combination
-  console.log("[TEST 9] Testing Search + Filter: query='toyota' AND hasEmail=true...");
-  const searchPlusFilter = await getUnifiedPeople({
-    query: "toyota",
-    hasEmail: true,
-  });
-  assert.strictEqual(searchPlusFilter.success, true);
-  console.log(`  Found ${searchPlusFilter.data.length} records matching query 'toyota' + valid email`);
-  assert.ok(
-    searchPlusFilter.data.every((r) => Boolean(r.email && r.email.includes("@"))),
-    "Every search result must satisfy the filter"
-  );
-  console.log("  ✓ Search + Filter combined execution verified\n");
+    // TEST 4: Type Filter = Contact
+    console.log("[TEST 4] Testing Type = Contact filter...");
+    const contactsOnly = await getUnifiedPeople({ type: "Contact", limit: 50 });
+    assert.strictEqual(contactsOnly.success, true);
+    assert.ok(lastFetchedUrl.includes("/contacts"));
+    assert.ok(contactsOnly.data.every((r) => r.type === "Contact"), "All records MUST be Contacts");
+    console.log(`  ✓ Type = Contact fetched from /contacts endpoint and returned Contact records\n`);
 
-  // TEST 10: Empty Filter / Reset Verification
-  console.log("[TEST 10] Testing Filter Reset back to full dataset...");
-  const resetResult = await getUnifiedPeople({ limit: 50 });
-  assert.strictEqual(resetResult.success, true);
-  assert.strictEqual(resetResult.stats?.totalRecords, 6249231);
-  console.log("  ✓ Filter reset restored full dataset scope\n");
+    // TEST 5: Country / Location Filter forwarded to Apollo
+    console.log("[TEST 5] Testing Country = United States filter...");
+    await getUnifiedPeople({ country: "United States", limit: 100 });
+    assert.ok(lastFetchedUrl.includes("country=United+States") || lastFetchedUrl.includes("country=United%20States"));
+    console.log("  ✓ Country filter parameter forwarded to Apollo API\n");
+
+    // TEST 6: Has Email Quality Filter forwarded to Apollo
+    console.log("[TEST 6] Testing hasEmail = true filter...");
+    await getUnifiedPeople({ hasEmail: true, limit: 100 });
+    assert.ok(lastFetchedUrl.includes("hasEmail=true"));
+    console.log("  ✓ hasEmail filter forwarded to Apollo API\n");
+
+    // TEST 7: Has LinkedIn Quality Filter forwarded to Apollo
+    console.log("[TEST 7] Testing hasLinkedin = true filter...");
+    await getUnifiedPeople({ hasLinkedin: true, limit: 100 });
+    assert.ok(lastFetchedUrl.includes("hasLinkedin=true"));
+    console.log("  ✓ hasLinkedin filter forwarded to Apollo API\n");
+
+    // TEST 8: Multi-Filter Combination
+    console.log("[TEST 8] Testing Multi-Filter: Type=Contact AND Country=United States AND hasEmail=true...");
+    await getUnifiedPeople({
+      type: "Contact",
+      country: "United States",
+      hasEmail: true,
+      limit: 100,
+    });
+    assert.ok(lastFetchedUrl.includes("/contacts"));
+    assert.ok(lastFetchedUrl.includes("country="));
+    assert.ok(lastFetchedUrl.includes("hasEmail=true"));
+    console.log("  ✓ Multi-filter parameters forwarded to Apollo API\n");
+
+    // TEST 9: Search Query forwarded to Apollo
+    console.log("[TEST 9] Testing Search + Filter: query='toyota' AND hasEmail=true...");
+    await getUnifiedPeople({
+      query: "toyota",
+      hasEmail: true,
+    });
+    assert.ok(lastFetchedUrl.includes("q=toyota"));
+    assert.ok(lastFetchedUrl.includes("hasEmail=true"));
+    console.log("  ✓ Search query and filter forwarded to Apollo API\n");
+
+  } finally {
+    global.fetch = originalFetch;
+  }
 
   console.log("==============================================");
-  console.log("ALL 10 FILTER INTEGRATION TESTS PASSED!");
+  console.log("ALL FILTER INTEGRATION TESTS PASSED!");
   console.log("==============================================");
 }
 

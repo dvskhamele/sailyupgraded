@@ -48,11 +48,69 @@ const contactCountWhere = (
   ...buildContactRoleFilter(role),
 });
 
+const countsCache = new Map<string, { data: CrmSidebarCounts; timestamp: number }>();
+const refreshingKeys = new Set<string>();
+const SIDEBAR_CACHE_TTL_MS = 60_000; // 1 minute fresh TTL, served stale-while-revalidate
+
 export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
   const session = await getSession();
 
   if (!session) {
     return emptyCounts;
+  }
+
+  const cacheKey = session.user?.id || "anonymous";
+  const cached = countsCache.get(cacheKey);
+
+  // Stale-While-Revalidate: Return cached counts immediately to never block SSR page render
+  if (cached) {
+    if (Date.now() - cached.timestamp >= SIDEBAR_CACHE_TTL_MS && !refreshingKeys.has(cacheKey)) {
+      refreshingKeys.add(cacheKey);
+      Promise.resolve().then(async () => {
+        try {
+          const contactVisibilityFilter = await buildExistingDbContactVisibilityFilter(
+            session.user,
+          );
+          const counts = await withPrismaRetry(() =>
+            loadSidebarCounts(contactVisibilityFilter),
+          );
+          const [
+            opportunities,
+            company,
+            products,
+            contacts,
+            leads,
+            customers,
+            agents,
+            others,
+            activities,
+            aiActivities,
+            templates,
+          ] = counts;
+
+          const freshResult: CrmSidebarCounts = {
+            dashboard: opportunities + company + products + contacts + leads,
+            opportunities,
+            company,
+            products,
+            contacts,
+            leads,
+            customers,
+            agents,
+            others,
+            activities,
+            aiActivities,
+            templates,
+          };
+          countsCache.set(cacheKey, { data: freshResult, timestamp: Date.now() });
+        } catch (err) {
+          console.warn("[CRM sidebar counts background refresh]", err);
+        } finally {
+          refreshingKeys.delete(cacheKey);
+        }
+      });
+    }
+    return cached.data;
   }
 
   const contactVisibilityFilter = await buildExistingDbContactVisibilityFilter(
@@ -62,18 +120,22 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
   let counts: Awaited<ReturnType<typeof loadSidebarCounts>>;
 
   try {
-    counts = await withPrismaRetry(() =>
-      loadSidebarCounts(contactVisibilityFilter),
+    // Bound initial cold query to 3000ms so SSR page render is never delayed
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Sidebar counts timeout")), 3000)
     );
+
+    counts = await Promise.race([
+      withPrismaRetry(() => loadSidebarCounts(contactVisibilityFilter)),
+      timeoutPromise,
+    ]);
   } catch (error) {
     if (!isTransientPrismaConnectionError(error)) {
-      throw error;
+      console.warn(
+        "[CRM sidebar counts] initial fetch timed out or error; returning empty counts and updating in background.",
+        error instanceof Error ? error.message : error,
+      );
     }
-
-    console.warn(
-      "[CRM sidebar counts] database pool timeout after retry; using empty counts.",
-      error instanceof Error ? error.message : error,
-    );
     return emptyCounts;
   }
 
@@ -91,7 +153,7 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
     templates,
   ] = counts;
 
-  return {
+  const result: CrmSidebarCounts = {
     dashboard: opportunities + company + products + contacts + leads,
     opportunities,
     company,
@@ -105,6 +167,9 @@ export async function getCrmSidebarCounts(): Promise<CrmSidebarCounts> {
     aiActivities,
     templates,
   };
+
+  countsCache.set(cacheKey, { data: result, timestamp: Date.now() });
+  return result;
 }
 
 function loadSidebarCounts(visibilityFilter: Prisma.crm_ContactsWhereInput) {

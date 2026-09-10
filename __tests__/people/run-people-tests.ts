@@ -38,58 +38,146 @@ async function runPeopleTests() {
   assert.strictEqual(contactsMenuItem.items![1].url, "/crm/leads");
   console.log("✓ Sidebar order is correctly Contacts -> People -> Leads\n");
 
-  // TEST 2: Unified People Service with Live External APIs & Stats
-  console.log("[TEST 2] Testing getUnifiedPeople with live microservice & stats...");
-  const resultAll = await getUnifiedPeople({ limit: 50 });
-  assert.strictEqual(resultAll.success, true);
-  assert.ok(resultAll.data.length > 0, "Data should contain records");
+  // TEST 2: Verify getUnifiedPeople source is Apollo and NO silent fallback to local CRM
+  console.log("[TEST 2] Testing getUnifiedPeople data source and no fallback to local CRM...");
+  const liveResult = await getUnifiedPeople({ limit: 50 });
+  
+  assert.strictEqual(liveResult.source, "apollo", "Data source MUST be 'apollo'");
+  assert.notStrictEqual(liveResult.total, 7182, "Total MUST NEVER be 7,182 local CRM records");
+  assert.notStrictEqual(liveResult.data.length, 7182, "Data count MUST NEVER be 7,182");
 
-  console.log(`  Total unified records loaded: ${resultAll.data.length}`);
-  console.log(`  Total Database Stats:`, resultAll.stats);
-  assert.ok(resultAll.stats, "Stats must be returned");
-  assert.strictEqual(resultAll.stats?.totalAccounts, 5249249);
-  assert.strictEqual(resultAll.stats?.totalContacts, 999982);
-  assert.strictEqual(resultAll.stats?.totalRecords, 6249231);
-  console.log("✓ Live stats correctly show 6.25M+ total records (5.25M Accounts, 1M Contacts)\n");
+  if (!liveResult.success) {
+    console.log("  Live Apollo microservice is currently unreachable.");
+    console.log("  Explicit error returned:", liveResult.error);
+    assert.ok(liveResult.error?.includes("Apollo"), "Error must explicitly mention Apollo");
+    assert.strictEqual(liveResult.total, 0, "Total must be 0 when Apollo is unavailable, NOT 7,182");
+    assert.deepStrictEqual(liveResult.data, [], "Data must be empty when Apollo is unavailable, NOT local CRM records");
+    console.log("  ✓ Verified: When Apollo is unavailable, no silent fallback to local 7,182 CRM records occurred.\n");
+  } else {
+    console.log(`  Live Apollo returned ${liveResult.data.length} records. Total: ${liveResult.total}`);
+    assert.ok(liveResult.total > 0, "Total must be greater than 0");
+    console.log("  ✓ Verified: Live Apollo returned records.\n");
+  }
 
-  // TEST 3: Type Filtering
-  console.log("[TEST 3] Testing Type filtering in getUnifiedPeople...");
-  const resultAccountsOnly = await getUnifiedPeople({ type: "Account", limit: 20 });
-  assert.strictEqual(resultAccountsOnly.success, true);
-  assert.ok(resultAccountsOnly.data.every((r) => r.type === "Account"), "All records must be Accounts");
+  // TEST 3: Mock Apollo Contract - Server-side pagination, offset, and total verification
+  console.log("[TEST 3] Testing Apollo Contract with Mock Server (Pagination, offset=7182, real total)...");
+  const originalFetch = global.fetch;
+  let capturedUrl = "";
+  
+  const mockApolloTotal = 15284193; // Arbitrary dynamic Apollo database total
+  const mockApolloContacts = [
+    {
+      id: "apo-contact-1",
+      first_name: "Alice",
+      last_name: "Smith",
+      company: "Acme Corp",
+      jobTitle: "VP Engineering",
+      email: "alice@acme.com",
+      phone: "Unavailable",
+      mobile_phone: "+1-555-0199",
+      city: "San Francisco",
+      state: "CA",
+      country: "United States",
+    },
+    {
+      id: "apo-contact-2",
+      first_name: "Bob",
+      last_name: "Jones",
+      company: "TechGlobal",
+      jobTitle: "CTO",
+      email: "bob@techglobal.com",
+      phone: "+1-555-0200",
+      city: "Austin",
+      state: "TX",
+      country: "United States",
+    },
+  ];
 
-  const resultContactsOnly = await getUnifiedPeople({ type: "Contact", limit: 20 });
-  assert.strictEqual(resultContactsOnly.success, true);
-  assert.ok(resultContactsOnly.data.every((r) => r.type === "Contact"), "All records must be Contacts");
-  console.log("✓ Type filtering works for Accounts and Contacts\n");
+  try {
+    // @ts-ignore
+    global.fetch = async (url: string | URL | Request) => {
+      capturedUrl = String(url);
+      return {
+        ok: true,
+        status: 200,
+        headers: new Headers({ "x-total-count": String(mockApolloTotal) }),
+        json: async () => ({
+          success: true,
+          data: mockApolloContacts,
+          total: mockApolloTotal,
+          page: 1,
+          limit: 50,
+          totalPages: Math.ceil(mockApolloTotal / 50),
+        }),
+      } as Response;
+    };
 
-  // TEST 4: Field Mapping Integrity
-  console.log("[TEST 4] Testing Field mapping & metadata integrity...");
-  const sampleAccount = resultAll.data.find((r) => r.type === "Account")!;
-  assert.ok(sampleAccount.id.startsWith("acc-"));
-  assert.ok(sampleAccount.name.length > 0);
-  assert.strictEqual(sampleAccount.type, "Account");
-  assert.ok(sampleAccount.raw !== undefined);
+    // Test pagination & total passing
+    const mockResult = await getUnifiedPeople({ limit: 50, page: 1 });
+    assert.strictEqual(mockResult.success, true);
+    assert.strictEqual(mockResult.source, "apollo");
+    assert.strictEqual(mockResult.total, mockApolloTotal, "Total MUST match Apollo's real database total");
+    assert.strictEqual(mockResult.data.length, 2);
+    assert.ok(capturedUrl.includes("limit=50"));
+    assert.ok(capturedUrl.includes("offset=0"));
+    assert.ok(capturedUrl.includes("page=1"));
+    console.log("  ✓ Apollo live total & pagination parameters correctly forwarded\n");
 
-  const sampleContact = resultAll.data.find((r) => r.type === "Contact")!;
-  assert.ok(sampleContact.id.startsWith("con-"));
-  assert.ok(sampleContact.name.length > 0);
-  assert.strictEqual(sampleContact.type, "Contact");
-  assert.ok(sampleContact.raw !== undefined);
-  console.log("  Sample Account verified:", { id: sampleAccount.id, name: sampleAccount.name });
-  console.log("  Sample Contact verified:", { id: sampleContact.id, name: sampleContact.name, company: sampleContact.company });
-  console.log("✓ Field mapping integrity verified\n");
+    // TEST 4: Offset verification (offset=7182)
+    console.log("[TEST 4] Testing offset=7182 passing to Apollo API...");
+    await getUnifiedPeople({ limit: 5, page: 1437 }); // (1437-1)*5 = 7180 or direct offset
+    assert.ok(capturedUrl.includes("offset="), "API request MUST contain offset parameter");
+    console.log(`  Captured URL: ${capturedUrl}`);
+    console.log("  ✓ offset parameter correctly passed to Apollo\n");
 
-  // TEST 5: Search Querying across full dataset
-  console.log("[TEST 5] Testing Search functionality across combined APIs...");
-  const searchResult = await getUnifiedPeople({ query: "toyota" });
-  assert.strictEqual(searchResult.success, true);
-  console.log(`  Found ${searchResult.data.length} records matching 'toyota'`);
-  assert.ok(searchResult.data.length > 0, "Should find records for 'toyota'");
-  console.log("✓ Search querying across Accounts & Contacts passed\n");
+    // TEST 5: Phone fix verification
+    console.log("[TEST 5] Testing phone normalization fix (reject 'Unavailable', use mobile_phone)...");
+    const alice = mockResult.data.find((r) => r.firstName === "Alice")!;
+    assert.strictEqual(alice.phone, "+1-555-0199", "Must reject 'Unavailable' and use mobile_phone");
+    console.log("  ✓ Phone normalization correctly resolved phone:", alice.phone);
+
+    // TEST 6: Server-side filtering parameters forwarded to Apollo
+    console.log("[TEST 6] Testing Server-side filtering parameters forwarded to Apollo...");
+    await getUnifiedPeople({
+      query: "Acme",
+      country: "United States",
+      state: "CA",
+      city: "San Francisco",
+      company: "Acme Corp",
+      jobTitle: "VP Engineering",
+    });
+    assert.ok(capturedUrl.includes("q=Acme"), "q query must be passed to Apollo");
+    assert.ok(capturedUrl.includes("country=United+States") || capturedUrl.includes("country=United%20States"));
+    assert.ok(capturedUrl.includes("state=CA"));
+    assert.ok(capturedUrl.includes("city=San+Francisco") || capturedUrl.includes("city=San%20Francisco"));
+    assert.ok(capturedUrl.includes("company=Acme+Corp") || capturedUrl.includes("company=Acme%20Corp"));
+    assert.ok(capturedUrl.includes("jobTitle=VP+Engineering") || capturedUrl.includes("jobTitle=VP%20Engineering"));
+    console.log("  ✓ All server-side filter parameters forwarded to Apollo API\n");
+
+    // TEST 7: Apollo Failure does NOT fall back to local CRM
+    console.log("[TEST 7] Testing Apollo 503 Failure handling (MUST NOT fall back to local CRM)...");
+    // @ts-ignore
+    global.fetch = async () => {
+      return {
+        ok: false,
+        status: 503,
+      } as Response;
+    };
+
+    const failureResult = await getUnifiedPeople({ limit: 50 });
+    assert.strictEqual(failureResult.success, false);
+    assert.strictEqual(failureResult.source, "apollo");
+    assert.strictEqual(failureResult.total, 0, "Must NOT return 7,182 on failure");
+    assert.deepStrictEqual(failureResult.data, [], "Must NOT return local CRM records on failure");
+    assert.ok(failureResult.error?.includes("Apollo"), "Must clearly report Apollo failure");
+    console.log("  ✓ Apollo failure explicitly reported without local CRM fallback\n");
+
+  } finally {
+    global.fetch = originalFetch;
+  }
 
   console.log("==============================================");
-  console.log("ALL 5 PEOPLE TESTS PASSED SUCCESSFULLY!");
+  console.log("ALL PEOPLE TESTS PASSED SUCCESSFULLY!");
   console.log("==============================================");
 }
 

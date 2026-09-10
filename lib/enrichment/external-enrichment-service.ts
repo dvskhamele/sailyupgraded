@@ -201,8 +201,7 @@ export function parseEmailInfo(email: string | null | undefined): {
   };
 }
 
-const EXTERNAL_ENRICHMENT_BASE_URL =
-  process.env.ENRICHMENT_API_URL || "http://129.146.163.220:7149";
+const EXTERNAL_ENRICHMENT_BASE_URL = process.env.ENRICHMENT_API_URL || "";
 
 const REQUEST_TIMEOUT_MS = 5000;
 
@@ -225,7 +224,7 @@ async function safeFetchWithTimeout(url: string, timeoutMs: number = REQUEST_TIM
 
 /**
  * Searches external person endpoint:
- * http://129.146.163.220:7149/contacts
+ * ${ENRICHMENT_API_URL}/contacts
  *
  * Matching priority:
  * 1. External ID if available (/contact/{contact_id})
@@ -381,7 +380,7 @@ function mapExternalPersonRecord(rec: any): EnrichedPersonData {
 
 /**
  * Searches external account endpoint:
- * http://129.146.163.220:7149/accounts
+ * ${ENRICHMENT_API_URL}/accounts
  */
 export async function searchExternalAccount(
   companyNameOrId: string
@@ -602,7 +601,7 @@ export async function enrichPersonData(
     };
   }
 ): Promise<EnrichedDataResult> {
-  // 1. First search external microservice (http://129.146.163.220:7149/contacts)
+  // 1. First search the configured external enrichment microservice.
   let personData = await searchExternalPerson(input);
   let source: "external_api" | "ai_provider" | "heuristics" = "external_api";
 

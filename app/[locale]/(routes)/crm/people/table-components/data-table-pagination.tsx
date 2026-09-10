@@ -4,16 +4,11 @@ import {
   DoubleArrowLeftIcon,
   DoubleArrowRightIcon,
 } from "@radix-ui/react-icons";
+import { useEffect, useState } from "react";
 import { Table } from "@tanstack/react-table";
 
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>;
@@ -22,6 +17,34 @@ interface DataTablePaginationProps<TData> {
 export function DataTablePagination<TData>({
   table,
 }: DataTablePaginationProps<TData>) {
+  const pageSize = table.getState().pagination.pageSize;
+  const [pageSizeInput, setPageSizeInput] = useState(String(pageSize));
+  const [pageSizeError, setPageSizeError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setPageSizeInput(String(pageSize));
+  }, [pageSize]);
+
+  const applyPageSize = () => {
+    const trimmedValue = pageSizeInput.trim();
+    if (!/^\d+$/.test(trimmedValue)) {
+      setPageSizeError("Enter a positive whole number.");
+      return;
+    }
+
+    const nextPageSize = Number(trimmedValue);
+    if (!Number.isSafeInteger(nextPageSize) || nextPageSize < 1) {
+      setPageSizeError("Enter a positive whole number.");
+      return;
+    }
+
+    setPageSizeError(null);
+    if (nextPageSize !== pageSize) {
+      // The controlled table pagination handler resets the server-side page to 1.
+      table.setPageSize(nextPageSize);
+    }
+  };
+
   return (
     <div className="flex items-center justify-between px-2 py-4">
       <div className="flex-1 text-sm text-muted-foreground">
@@ -34,26 +57,40 @@ export function DataTablePagination<TData>({
         )}
       </div>
       <div className="flex items-center space-x-6 lg:space-x-8">
-        <div className="flex items-center space-x-2">
-          <p className="text-sm font-medium">Rows per page</p>
-          <Select
-            value={`${table.getState().pagination.pageSize}`}
-            onValueChange={(value) => {
-              table.setPageSize(Number(value));
+        <form
+          className="flex items-center space-x-2"
+          onSubmit={(event) => {
+            event.preventDefault();
+            applyPageSize();
+          }}
+        >
+          <label className="text-sm font-medium" htmlFor="people-rows-per-page">
+            Rows per page
+          </label>
+          <Input
+            id="people-rows-per-page"
+            aria-describedby={pageSizeError ? "people-rows-per-page-error" : undefined}
+            aria-invalid={Boolean(pageSizeError)}
+            className="h-8 w-24"
+            inputMode="numeric"
+            min={1}
+            onChange={(event) => {
+              setPageSizeInput(event.target.value);
+              if (pageSizeError) setPageSizeError(null);
             }}
-          >
-            <SelectTrigger className="h-8 w-[70px]">
-              <SelectValue placeholder={table.getState().pagination.pageSize} />
-            </SelectTrigger>
-            <SelectContent side="top">
-              {[10, 20, 30, 50, 100].map((pageSize) => (
-                <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
+            pattern="[0-9]*"
+            type="text"
+            value={pageSizeInput}
+          />
+          <Button className="h-8" size="sm" type="submit">
+            Apply
+          </Button>
+          {pageSizeError ? (
+            <span className="text-xs text-destructive" id="people-rows-per-page-error" role="alert">
+              {pageSizeError}
+            </span>
+          ) : null}
+        </form>
         <div className="flex w-[100px] items-center justify-center text-sm font-medium">
           Page {table.getState().pagination.pageIndex + 1} of{" "}
           {Math.max(table.getPageCount(), 1)}

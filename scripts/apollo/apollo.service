@@ -1,0 +1,29 @@
+[Unit]
+Description=Apollo People & Contacts FastAPI Microservice
+After=network.target mysql.service mariadb.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/apollo_project
+ExecStart=/home/ubuntu/apollo_project/venv/bin/uvicorn api.main:app --host 0.0.0.0 --port 7149 --workers 4 --access-log
+Restart=always
+RestartSec=3
+StandardOutput=journal
+StandardError=journal
+Environment=PYTHONUNBUFFERED=1
+Environment=DB_HOST=127.0.0.1
+Environment=DB_PORT=3306
+Environment=DB_USER=apollo
+Environment=DB_PASS=Apollo123!
+Environment=DB_NAME=apollo
+Environment=DB_TABLE_CONTACTS=contacts
+Environment=DB_TABLE_ACCOUNTS=accounts
+
+# Resource limits for high-scale data handling
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target

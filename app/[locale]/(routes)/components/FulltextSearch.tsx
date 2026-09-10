@@ -4,7 +4,7 @@ import { EmailLink } from "@/components/ui/contact-link";
 import { Input } from "@/components/ui/input";
 import { SearchIcon, UserPlus, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import React, { useMemo, useState, useEffect, useTransition } from "react";
+import React, { useMemo, useState, useEffect, useCallback, useTransition } from "react";
 import { toast } from "sonner";
 import useDebounce from "@/hooks/useDebounce";
 import { searchContacts, ContactSearchItem } from "@/actions/crm/contacts/search-contacts";
@@ -178,12 +178,18 @@ const FulltextSearch = () => {
     [dbMemory, localMemory, parsedValues, search],
   );
 
-  useEffect(() => {
-    queueMicrotask(() => setLocalMemory(loadQuickMemory()));
+  const [dbMemoryLoaded, setDbMemoryLoaded] = useState(false);
 
+  const ensureDbMemory = useCallback(() => {
+    if (dbMemoryLoaded) return;
+    setDbMemoryLoaded(true);
     getQuickInputMemory()
       .then(setDbMemory)
       .catch(() => setDbMemory({}));
+  }, [dbMemoryLoaded]);
+
+  useEffect(() => {
+    queueMicrotask(() => setLocalMemory(loadQuickMemory()));
   }, []);
 
   useEffect(() => {
@@ -331,7 +337,11 @@ const FulltextSearch = () => {
               className="min-w-0 flex-1"
               placeholder={"Search something ..."}
               value={search}
+              onFocus={() => {
+                ensureDbMemory();
+              }}
               onChange={(e) => {
+                ensureDbMemory();
                 const value = e.target.value;
                 setSearch(value);
                 if (!open) setOpen(true);

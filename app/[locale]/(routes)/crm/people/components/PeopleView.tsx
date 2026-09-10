@@ -21,6 +21,7 @@ interface PeopleViewProps {
   initialPage?: number;
   initialLimit?: number;
   initialTotalPages?: number;
+  initialError?: string;
   defaultEmailFrom?: string;
 }
 
@@ -48,17 +49,18 @@ export default function PeopleView({
   },
   initialTotal = 0,
   initialPage = 1,
-  initialLimit = 20,
+  initialLimit = 50,
   initialTotalPages = 1,
+  initialError,
   defaultEmailFrom = "",
 }: PeopleViewProps) {
   const router = useRouter();
   const [data, setData] = React.useState<PeopleRecord[]>(initialData);
   const [total, setTotal] = React.useState<number>(initialTotal || initialData.length);
   const [page, setPage] = React.useState<number>(initialPage || 1);
-  const [pageSize, setPageSize] = React.useState<number>(initialLimit || 20);
+  const [pageSize, setPageSize] = React.useState<number>(initialLimit || 50);
   const [totalPages, setTotalPages] = React.useState<number>(
-    initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 20)))
+    initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 50)))
   );
   const [stats, setStats] = React.useState<PeopleStats>(initialStats);
   const [filters, setFilters] = React.useState<PeopleFilterOptions>(defaultFilterOptions);
@@ -67,17 +69,21 @@ export default function PeopleView({
   const [searchQuery, setSearchQuery] = React.useState<string>("");
   const [activeRecord, setActiveRecord] = React.useState<PeopleRecord | null>(null);
   const [detailOpen, setDetailOpen] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(initialError || null);
 
   // Synchronize when initial props update from server
   const [prevInitialData, setPrevInitialData] = React.useState(initialData);
-  if (prevInitialData !== initialData) {
+  const [prevInitialError, setPrevInitialError] = React.useState(initialError);
+  if (prevInitialData !== initialData || prevInitialError !== initialError) {
     setPrevInitialData(initialData);
+    setPrevInitialError(initialError);
+    setError(initialError || null);
     setData(initialData);
     setTotal(initialTotal || initialData.length);
     setPage(initialPage || 1);
-    setPageSize(initialLimit || 20);
+    setPageSize(initialLimit || 50);
     setTotalPages(
-      initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 20)))
+      initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 50)))
     );
     if (initialStats) {
       setStats(initialStats);
@@ -147,9 +153,19 @@ export default function PeopleView({
       }
 
       const res = await fetch(`/api/crm/people?${params.toString()}`);
-      if (!res.ok) throw new Error("Failed to load filtered people data");
       const result: GetPeopleResponse = await res.json();
-      if (result.success && Array.isArray(result.data)) {
+      if (!res.ok || !result.success) {
+        const errorMsg = result.error || "Apollo People data is currently unavailable.";
+        setError(errorMsg);
+        setData([]);
+        setTotal(0);
+        setTotalPages(0);
+        toast.error(errorMsg);
+        return;
+      }
+
+      setError(null);
+      if (Array.isArray(result.data)) {
         setData(result.data);
         const resolvedTotal = typeof result.total === "number" ? result.total : result.data.length;
         const resolvedPage = typeof result.page === "number" ? result.page : targetPage;
@@ -157,7 +173,7 @@ export default function PeopleView({
         const resolvedTotalPages =
           typeof result.totalPages === "number"
             ? result.totalPages
-            : Math.max(1, Math.ceil(resolvedTotal / resolvedLimit));
+            : (resolvedTotal > 0 ? Math.ceil(resolvedTotal / resolvedLimit) : 0);
 
         setTotal(resolvedTotal);
         setPage(resolvedPage);
@@ -170,7 +186,12 @@ export default function PeopleView({
       }
     } catch (error) {
       console.error("[FETCH_PEOPLE_ERROR]", error);
-      toast.error("Failed to load records from database");
+      const errorMsg = "Apollo People data is currently unavailable.";
+      setError(errorMsg);
+      setData([]);
+      setTotal(0);
+      setTotalPages(0);
+      toast.error(errorMsg);
     } finally {
       setIsLoading(false);
     }
@@ -230,6 +251,7 @@ export default function PeopleView({
         onServerSearch={handleServerSearch}
         onOpenFiltersSheet={() => setFilterSheetOpen(true)}
         defaultEmailFrom={defaultEmailFrom}
+        error={error}
       />
 
       {/* Filter Drawer Sheet */}
@@ -239,7 +261,6 @@ export default function PeopleView({
         filters={filters}
         onApplyFilters={handleApplyFilters}
         onResetFilters={handleResetFilters}
-        existingData={data}
       />
 
       {/* Detail View Sheet */}

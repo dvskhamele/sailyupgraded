@@ -49,7 +49,7 @@ const PeoplePage = async ({ searchParams }: Props) => {
   const validHasLinkedin = hasLinkedinParam === "true" ? true : undefined;
   const validHasCompany = hasCompanyParam === "true" ? true : undefined;
   const validPage = Math.max(1, parseInt(typeof pageParam === "string" ? pageParam : "1", 10) || 1);
-  const validLimit = Math.max(1, parseInt(typeof limitParam === "string" ? limitParam : "20", 10) || 20);
+  const validLimit = Math.max(1, parseInt(typeof limitParam === "string" ? limitParam : "50", 10) || 50);
 
   const configuredEmailFrom = getEmailFromAddress();
   const defaultEmailFrom = isAllowedSmtp2GoSender(configuredEmailFrom)
@@ -74,16 +74,18 @@ const PeoplePage = async ({ searchParams }: Props) => {
     page: validPage,
   });
 
-  const peopleData = peopleResult?.success ? peopleResult.data : [];
-  const peopleTotal = peopleResult?.success ? peopleResult.total : 0;
+  const isApolloSuccess = Boolean(peopleResult?.success);
+  const peopleData = isApolloSuccess ? peopleResult.data : [];
+  const peopleTotal = isApolloSuccess ? peopleResult.total : 0;
   const peoplePage = peopleResult?.page || validPage;
   const peopleLimit = peopleResult?.limit || validLimit;
-  const peopleTotalPages = peopleResult?.totalPages || Math.max(1, Math.ceil(peopleTotal / peopleLimit));
+  const peopleTotalPages = peopleResult?.totalPages || (peopleTotal > 0 ? Math.max(1, Math.ceil(peopleTotal / peopleLimit)) : 0);
   const peopleStats = peopleResult?.stats || {
     totalAccounts: 0,
     totalContacts: 0,
     totalRecords: 0,
   };
+  const peopleError = isApolloSuccess ? undefined : (peopleResult?.error || "Apollo API service is unavailable");
 
   return (
     <Container
@@ -99,6 +101,7 @@ const PeoplePage = async ({ searchParams }: Props) => {
             initialPage={peoplePage}
             initialLimit={peopleLimit}
             initialTotalPages={peopleTotalPages}
+            initialError={peopleError}
             defaultEmailFrom={defaultEmailFrom}
           />
         </Suspense>

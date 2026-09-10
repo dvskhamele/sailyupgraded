@@ -50,7 +50,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
-import type { PeopleFilterOptions, PeopleLocationOption, PeopleRecord } from "@/types/people";
+import type { PeopleFilterOptions } from "@/types/people";
 
 interface PeopleFiltersSheetProps {
   open: boolean;
@@ -58,7 +58,6 @@ interface PeopleFiltersSheetProps {
   filters: PeopleFilterOptions;
   onApplyFilters: (filters: PeopleFilterOptions) => void;
   onResetFilters: () => void;
-  existingData?: PeopleRecord[];
 }
 
 export function PeopleFiltersSheet({
@@ -67,10 +66,14 @@ export function PeopleFiltersSheet({
   filters,
   onApplyFilters,
   onResetFilters,
-  existingData = [],
 }: PeopleFiltersSheetProps) {
   const [draft, setDraft] = React.useState<PeopleFilterOptions>(filters);
-  const [locations, setLocations] = React.useState<PeopleLocationOption[]>([]);
+  const [locationOptions, setLocationOptions] = React.useState({
+    countries: [] as string[],
+    states: [] as string[],
+    cities: [] as string[],
+    companies: [] as string[],
+  });
   const [loadingLocations, setLoadingLocations] = React.useState(false);
   const [locationPopoverOpen, setLocationPopoverOpen] = React.useState(false);
 
@@ -92,8 +95,13 @@ export function PeopleFiltersSheet({
         });
         if (res.ok) {
           const data = await res.json();
-          if (isMounted && Array.isArray(data.locations)) {
-            setLocations(data.locations);
+          if (isMounted) {
+            setLocationOptions({
+              countries: Array.isArray(data.countries) ? data.countries : [],
+              states: Array.isArray(data.states) ? data.states : [],
+              cities: Array.isArray(data.cities) ? data.cities : [],
+              companies: Array.isArray(data.companies) ? data.companies : [],
+            });
           }
         }
       } catch (err) {
@@ -111,52 +119,6 @@ export function PeopleFiltersSheet({
       isMounted = false;
     };
   }, [open]);
-
-  // Merge server locations with any locations from loaded dataset, deduplicate and sort
-  const allLocationOptions = React.useMemo(() => {
-    const map = new Map<string, PeopleLocationOption>();
-
-    // 1. Add server aggregated locations
-    for (const loc of locations) {
-      if (loc?.value && loc.value.trim().length >= 2) {
-        map.set(loc.value.toLowerCase().trim(), {
-          value: loc.value.trim(),
-          label: loc.label || loc.value.trim(),
-          type: loc.type,
-        });
-      }
-    }
-
-    // 2. Add from loaded records to guarantee 100% coverage
-    if (Array.isArray(existingData)) {
-      for (const r of existingData) {
-        if (r.country && r.country.trim().length >= 2) {
-          const norm = r.country.trim().toLowerCase();
-          if (!map.has(norm)) {
-            map.set(norm, {
-              value: r.country.trim(),
-              label: r.country.trim(),
-              type: "country",
-            });
-          }
-        }
-        if (r.city && r.city.trim().length >= 2) {
-          const norm = r.city.trim().toLowerCase();
-          if (!map.has(norm)) {
-            map.set(norm, {
-              value: r.city.trim(),
-              label: r.city.trim(),
-              type: "city",
-            });
-          }
-        }
-      }
-    }
-
-    return Array.from(map.values()).sort((a, b) =>
-      a.label.localeCompare(b.label, undefined, { sensitivity: "base" })
-    );
-  }, [locations, existingData]);
 
   const handleApply = () => {
     onApplyFilters(draft);
@@ -281,7 +243,7 @@ export function PeopleFiltersSheet({
               <PopoverContent className="w-[340px] p-0" align="start">
                 <Command>
                   <CommandInput placeholder="Search country..." className="h-9 text-xs" />
-                  <CommandList className="max-h-60 overflow-y-auto">
+                  <CommandList className="max-h-[280px] overflow-y-auto">
                     {loadingLocations ? (
                       <div className="flex items-center justify-center p-4 text-xs text-muted-foreground gap-2">
                         <Loader2 className="h-4 w-4 animate-spin text-primary" />
@@ -306,32 +268,27 @@ export function PeopleFiltersSheet({
                               <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                             )}
                           </CommandItem>
-                          {allLocationOptions.map((loc) => {
+                          {locationOptions.countries.map((country) => {
                             const isSelected =
                               draft.country?.toLowerCase().trim() ===
-                              loc.value.toLowerCase().trim();
+                              country.toLowerCase().trim();
                             return (
                               <CommandItem
-                                key={loc.value}
-                                value={`${loc.label} ${loc.type || ""}`}
+                                key={country}
+                                value={country}
                                 onSelect={() => {
                                   setDraft((prev) => ({
                                     ...prev,
-                                    country: isSelected ? "" : loc.value,
+                                    country: isSelected ? "" : country,
+                                    state: "",
+                                    city: "",
                                   }));
                                   setLocationPopoverOpen(false);
                                 
                                 }}
                                 className="text-xs flex items-center justify-between cursor-pointer"
                               >
-                                <div className="flex items-center gap-2 truncate">
-                                  <span className="truncate">{loc.label}</span>
-                                  {loc.type && (
-                                    <span className="text-[10px] text-muted-foreground capitalize">
-                                      ({loc.type})
-                                    </span>
-                                  )}
-                                </div>
+                                <span className="truncate">{country}</span>
                                 {isSelected && (
                                   <Check className="h-3.5 w-3.5 text-primary shrink-0" />
                                 )}
@@ -353,23 +310,46 @@ export function PeopleFiltersSheet({
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 State / Region
               </Label>
-              <Input
-                placeholder="e.g. California, TX"
-                value={draft.state || ""}
-                onChange={(e) => setDraft((prev) => ({ ...prev, state: e.target.value }))}
-                className="h-9 text-xs"
-              />
+              <Select
+                value={draft.state || "__all"}
+                onValueChange={(value) => setDraft((prev) => ({
+                  ...prev,
+                  state: value === "__all" ? "" : value,
+                  city: "",
+                }))}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="All States / Regions" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[280px] overflow-y-auto">
+                  <SelectItem value="__all">All States / Regions</SelectItem>
+                  {locationOptions.states.map((state) => (
+                    <SelectItem key={state} value={state}>{state}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 City
               </Label>
-              <Input
-                placeholder="e.g. Los Angeles"
-                value={draft.city || ""}
-                onChange={(e) => setDraft((prev) => ({ ...prev, city: e.target.value }))}
-                className="h-9 text-xs"
-              />
+              <Select
+                value={draft.city || "__all"}
+                onValueChange={(value) => setDraft((prev) => ({
+                  ...prev,
+                  city: value === "__all" ? "" : value,
+                }))}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="All Cities" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[280px] overflow-y-auto">
+                  <SelectItem value="__all">All Cities</SelectItem>
+                  {locationOptions.cities.map((city) => (
+                    <SelectItem key={city} value={city}>{city}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -379,12 +359,23 @@ export function PeopleFiltersSheet({
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Company
               </Label>
-              <Input
-                placeholder="e.g. Acme Corp"
-                value={draft.company || ""}
-                onChange={(e) => setDraft((prev) => ({ ...prev, company: e.target.value }))}
-                className="h-9 text-xs"
-              />
+              <Select
+                value={draft.company || "__all"}
+                onValueChange={(value) => setDraft((prev) => ({
+                  ...prev,
+                  company: value === "__all" ? "" : value,
+                }))}
+              >
+                <SelectTrigger className="h-9 text-xs">
+                  <SelectValue placeholder="All Companies" />
+                </SelectTrigger>
+                <SelectContent className="max-h-[280px] overflow-y-auto">
+                  <SelectItem value="__all">All Companies</SelectItem>
+                  {locationOptions.companies.map((company) => (
+                    <SelectItem key={company} value={company}>{company}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
@@ -443,7 +434,7 @@ export function PeopleFiltersSheet({
           <Separator />
 
           {/* Quality / Attribute Toggles */}
-          <div className="space-y-3">
+          {/* <div className="space-y-3">
             <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground block">
               Contact Attributes & Quality
             </Label>
@@ -485,7 +476,7 @@ export function PeopleFiltersSheet({
                 <span>Must have associated Company</span>
               </label>
             </div>
-          </div>
+          </div> */}
         </div>
 
         <SheetFooter className="flex flex-row items-center justify-between gap-2 pt-4 border-t">

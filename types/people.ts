@@ -70,6 +70,7 @@ export interface GetPeopleParams extends PeopleFilterOptions {
 
 export interface GetPeopleResponse {
   success: boolean;
+  source?: string;
   data: PeopleRecord[];
   total: number;
   unfilteredTotal?: number;
@@ -83,14 +84,16 @@ export interface GetPeopleResponse {
 export interface PeopleLocationOption {
   value: string;
   label: string;
-  type?: "country" | "city" | "location";
+  type?: "country" | "state" | "city" | "location";
 }
 
 export interface GetPeopleLocationsResponse {
   success: boolean;
   locations: PeopleLocationOption[];
   countries: string[];
+  states: string[];
   cities: string[];
+  companies: string[];
   error?: string;
 }
 

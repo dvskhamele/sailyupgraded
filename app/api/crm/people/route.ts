@@ -47,12 +47,47 @@ export async function GET(req: NextRequest) {
       hasLinkedin,
       hasCompany,
     });
-    return NextResponse.json(result);
+
+    if (!result.success) {
+      return NextResponse.json(
+        {
+          success: false,
+          source: "apollo",
+          data: [],
+          total: 0,
+          page,
+          limit,
+          totalPages: 0,
+          error: result.error || "Apollo API service is unavailable",
+        },
+        { status: 503 }
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      source: "apollo",
+      data: result.data,
+      total: result.total,
+      page: result.page || page,
+      limit: result.limit || limit,
+      totalPages: result.totalPages || (result.total > 0 ? Math.ceil(result.total / (result.limit || limit)) : 0),
+      stats: result.stats,
+    });
   } catch (error) {
     console.error("[PEOPLE_API_ERROR]", error);
     return NextResponse.json(
-      { error: "Internal Server Error" },
-      { status: 500 }
+      {
+        success: false,
+        source: "apollo",
+        data: [],
+        total: 0,
+        page: 1,
+        limit: 50,
+        totalPages: 0,
+        error: "Apollo API service is unavailable",
+      },
+      { status: 503 }
     );
   }
 }

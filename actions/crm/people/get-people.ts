@@ -1,7 +1,6 @@
 "use server";
 
 import { getSession } from "@/lib/auth-server";
-import { prismadb } from "@/lib/prisma";
 import { serializeDecimals } from "@/lib/serialize-decimals";
 import type {
   PeopleRecord,
@@ -12,7 +11,7 @@ import type {
   GetPeopleLocationsResponse,
 } from "@/types/people";
 
-const ENRICHMENT_API_BASE = process.env.ENRICHMENT_API_URL?.trim() || "";
+const ENRICHMENT_API_BASE = (process.env.ENRICHMENT_API_URL?.trim() || "").replace(/\/+$/, "");
 
 function cleanString(val: unknown): string {
   if (val === null || val === undefined) return "";
@@ -289,7 +288,7 @@ export async function getUnifiedPeople(
       query = "",
       type = "All",
       page = 1,
-      limit = 100,
+      limit = 50,
       country,
       state,
       city,
@@ -304,468 +303,246 @@ export async function getUnifiedPeople(
     } = params;
     const trimmedQuery = query.trim();
     const currentPage = Math.max(1, Number(page) || 1);
-    const pageLimit = Math.max(1, Number(limit) || 100);
+    const pageLimit = Math.max(1, Number(limit) || 50);
+    const offset = (currentPage - 1) * pageLimit;
 
-    // If external enrichment API URL is explicitly configured, query it; otherwise go directly to database
-    if (ENRICHMENT_API_BASE) {
-      const apiParams = new URLSearchParams();
-      apiParams.set("limit", String(pageLimit));
-      apiParams.set("page", String(currentPage));
-      if (trimmedQuery) apiParams.set("q", trimmedQuery);
-      if (country?.trim()) apiParams.set("country", country.trim());
-      if (state?.trim()) apiParams.set("state", state.trim());
-      if (city?.trim()) apiParams.set("city", city.trim());
-      if (company?.trim()) apiParams.set("company", company.trim());
-      if (jobTitle?.trim()) apiParams.set("jobTitle", jobTitle.trim());
-      if (status && status !== "All") apiParams.set("status", status.trim());
-      if (role && role !== "All") apiParams.set("role", role.trim());
-      if (hasEmail === true) apiParams.set("hasEmail", "true");
-      if (hasPhone === true) apiParams.set("hasPhone", "true");
-      if (hasLinkedin === true) apiParams.set("hasLinkedin", "true");
-      if (hasCompany === true) apiParams.set("hasCompany", "true");
-
-      const accountsUrl = trimmedQuery
-        ? `${ENRICHMENT_API_BASE}/accounts/search?${apiParams.toString()}`
-        : `${ENRICHMENT_API_BASE}/accounts?${apiParams.toString()}`;
-
-      const contactsUrl = trimmedQuery
-        ? `${ENRICHMENT_API_BASE}/contacts/search?${apiParams.toString()}`
-        : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
-
-      let extAccountsTotal: number | undefined;
-      let extContactsTotal: number | undefined;
-
-      const fetchAccounts = type === "Contact" ? Promise.resolve([]) : fetch(accountsUrl, {
-        signal: AbortSignal.timeout(6000),
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      }).then(async (r) => {
-        if (!r.ok) return [];
-        const json = await r.json();
-        if (typeof json?.total === "number") extAccountsTotal = json.total;
-        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : (Array.isArray(json?.items) ? json.items : []));
-      }).catch(() => []);
-
-      const fetchContacts = type === "Account" ? Promise.resolve([]) : fetch(contactsUrl, {
-        signal: AbortSignal.timeout(6000),
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      }).then(async (r) => {
-        if (!r.ok) return [];
-        const json = await r.json();
-        if (typeof json?.total === "number") extContactsTotal = json.total;
-        return Array.isArray(json) ? json : (Array.isArray(json?.data) ? json.data : (Array.isArray(json?.items) ? json.items : []));
-      }).catch(() => []);
-
-      const fetchStats = fetch(`${ENRICHMENT_API_BASE}/stats`, {
-        signal: AbortSignal.timeout(3000),
-        cache: "no-store",
-        headers: { Accept: "application/json" },
-      }).then(async (r) => {
-        if (!r.ok) return null;
-        return await r.json();
-      }).catch(() => null);
-
-      const [rawAccounts, rawContacts, rawStats] = await Promise.all([
-        fetchAccounts,
-        fetchContacts,
-        fetchStats,
-      ]);
-
-      const mappedAccounts = (rawAccounts as any[])
-        .map(mapAccountToPeopleRecord)
-        .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
-
-      const mappedContacts = (rawContacts as any[])
-        .map(mapContactToPeopleRecord)
-        .filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
-
-      let combined: PeopleRecord[] = [];
-      if (type === "Account") {
-        combined = mappedAccounts;
-      } else if (type === "Contact") {
-        combined = mappedContacts;
-      } else {
-        combined = [...mappedAccounts, ...mappedContacts];
-      }
-
-      const matchesFilter = (r: PeopleRecord) => {
-        if (country && country.trim()) {
-          const qCountry = country.trim().toLowerCase();
-          const cMatch = r.country && (r.country.toLowerCase().includes(qCountry) || (qCountry === "united states" && (r.country.toLowerCase() === "usa" || r.country.toLowerCase() === "us")));
-          const sMatch = r.state && r.state.toLowerCase().includes(qCountry);
-          const cityMatch = r.city && r.city.toLowerCase().includes(qCountry);
-          if (!cMatch && !sMatch && !cityMatch) return false;
-        }
-        if (state && state.trim()) {
-          const qState = state.trim().toLowerCase();
-          if (!r.state || !r.state.toLowerCase().includes(qState)) return false;
-        }
-        if (city && city.trim()) {
-          const qCity = city.trim().toLowerCase();
-          if (!r.city || !r.city.toLowerCase().includes(qCity)) return false;
-        }
-        if (company && company.trim()) {
-          const qComp = company.trim().toLowerCase();
-          if (!r.company || !r.company.toLowerCase().includes(qComp)) return false;
-        }
-        if (jobTitle && jobTitle.trim()) {
-          const qTitle = jobTitle.trim().toLowerCase();
-          if (!r.jobTitle || !r.jobTitle.toLowerCase().includes(qTitle)) return false;
-        }
-        if (hasPhone === true) {
-          if (!r.phone && !r.mobilePhone && !r.officePhone) return false;
-        }
-        if (hasEmail === true) {
-          if (!r.email && !r.personalEmail) return false;
-        }
-        if (hasLinkedin === true) {
-          if (!r.socialLinkedin) return false;
-        }
-        if (hasCompany === true) {
-          if (!r.company) return false;
-        }
-        return true;
-      };
-
-      const validatedExternal = combined.filter(matchesFilter);
-
-      if (validatedExternal.length > 0) {
-        const extAccounts =
-          typeof rawStats?.accounts === "number"
-            ? rawStats.accounts
-            : (typeof extAccountsTotal === "number" ? extAccountsTotal : 5249249);
-        const extContacts =
-          typeof rawStats?.contacts === "number"
-            ? rawStats.contacts
-            : (typeof extContactsTotal === "number" ? extContactsTotal : 40284193);
-        const extTotal =
-          typeof rawStats?.total === "number"
-            ? rawStats.total
-            : (extAccounts + extContacts);
-
-        const stats: PeopleStats = {
-          totalAccounts: extAccounts,
-          totalContacts: extContacts,
-          totalRecords: extAccounts + extContacts,
-        };
-
-        return serializeDecimals({
-          success: true,
-          data: validatedExternal,
-          total: extTotal,
-          page: currentPage,
-          limit: pageLimit,
-          totalPages: Math.max(1, Math.ceil(extTotal / pageLimit)),
-          stats,
-        });
-      }
-    }
-
-    // Database Fallback Engine: Execute exact database-level queries with Prisma
-    const contactConditions: any[] = [];
-    const accountConditions: any[] = [];
-
-    if (country && country.trim()) {
-      const qCountry = country.trim().toLowerCase();
-      if (qCountry === "united states" || qCountry === "usa" || qCountry === "us") {
-        contactConditions.push({
-          OR: [
-            { country: { in: ["United States", "USA", "US", "united states", "usa", "us"] } },
-            { country: { contains: "United States" } },
-          ],
-        });
-        accountConditions.push({
-          OR: [
-            { billing_country: { in: ["United States", "USA", "US", "united states", "usa", "us"] } },
-            { billing_country: { contains: "United States" } },
-            { shipping_country: { contains: "United States" } },
-          ],
-        });
-      } else {
-        contactConditions.push({ country: { contains: country.trim() } });
-        accountConditions.push({
-          OR: [
-            { billing_country: { contains: country.trim() } },
-            { shipping_country: { contains: country.trim() } },
-          ],
-        });
-      }
-    }
-
-    if (state && state.trim()) {
-      contactConditions.push({ state: { contains: state.trim() } });
-      accountConditions.push({
-        OR: [
-          { billing_state: { contains: state.trim() } },
-          { shipping_state: { contains: state.trim() } },
-        ],
-      });
-    }
-
-    if (city && city.trim()) {
-      contactConditions.push({ city: { contains: city.trim() } });
-      accountConditions.push({
-        OR: [
-          { billing_city: { contains: city.trim() } },
-          { shipping_city: { contains: city.trim() } },
-        ],
-      });
-    }
-
-    if (company && company.trim()) {
-      contactConditions.push({
-        OR: [
-          { company: { contains: company.trim() } },
-          { assigned_accounts: { name: { contains: company.trim() } } },
-        ],
-      });
-      accountConditions.push({ name: { contains: company.trim() } });
-    }
-
-    if (jobTitle && jobTitle.trim()) {
-      contactConditions.push({
-        OR: [
-          { jobTitle: { contains: jobTitle.trim() } },
-          { position: { contains: jobTitle.trim() } },
-        ],
-      });
-    }
+    // Build query parameters for Apollo external Enrichment Microservice
+    const apiParams = new URLSearchParams();
+    apiParams.set("limit", String(pageLimit));
+    apiParams.set("offset", String(offset));
+    apiParams.set("page", String(currentPage));
 
     if (trimmedQuery) {
-      contactConditions.push({
-        OR: [
-          { first_name: { contains: trimmedQuery } },
-          { last_name: { contains: trimmedQuery } },
-          { email: { contains: trimmedQuery } },
-          { personal_email: { contains: trimmedQuery } },
-          { company: { contains: trimmedQuery } },
-          { jobTitle: { contains: trimmedQuery } },
-          { city: { contains: trimmedQuery } },
-          { country: { contains: trimmedQuery } },
-        ],
-      });
-      accountConditions.push({
-        OR: [
-          { name: { contains: trimmedQuery } },
-          { email: { contains: trimmedQuery } },
-          { billing_city: { contains: trimmedQuery } },
-          { billing_country: { contains: trimmedQuery } },
-        ],
-      });
+      apiParams.set("q", trimmedQuery);
     }
-
+    if (country?.trim()) {
+      apiParams.set("country", country.trim());
+    }
+    if (state?.trim()) {
+      apiParams.set("state", state.trim());
+    }
+    if (city?.trim()) {
+      apiParams.set("city", city.trim());
+    }
+    if (company?.trim()) {
+      apiParams.set("company", company.trim());
+    }
+    if (jobTitle?.trim()) {
+      apiParams.set("jobTitle", jobTitle.trim());
+    }
+    if (status && status !== "All") {
+      apiParams.set("status", status.trim());
+    }
+    if (role && role !== "All") {
+      apiParams.set("role", role.trim());
+    }
     if (hasEmail === true) {
-      contactConditions.push({
-        OR: [
-          {
-            AND: [
-              { email: { not: null } },
-              { email: { not: "" } },
-              { email: { contains: "@" } },
-              { email: { notIn: ["Unavailable", "unavailable", "null", "undefined"] } },
-            ],
-          },
-          {
-            AND: [
-              { personal_email: { not: null } },
-              { personal_email: { not: "" } },
-              { personal_email: { contains: "@" } },
-              { personal_email: { notIn: ["Unavailable", "unavailable", "null", "undefined"] } },
-            ],
-          },
-        ],
-      });
-      accountConditions.push({
-        AND: [
-          { email: { not: null } },
-          { email: { not: "" } },
-          { email: { contains: "@" } },
-        ],
-      });
+      apiParams.set("hasEmail", "true");
     }
-
     if (hasPhone === true) {
-      contactConditions.push({
-        OR: [
-          {
-            AND: [
-              { phone: { not: null } },
-              { phone: { not: "" } },
-              { phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
-            ],
-          },
-          {
-            AND: [
-              { mobile_phone: { not: null } },
-              { mobile_phone: { not: "" } },
-              { mobile_phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
-            ],
-          },
-          {
-            AND: [
-              { office_phone: { not: null } },
-              { office_phone: { not: "" } },
-              { office_phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
-            ],
-          },
-        ],
-      });
-      accountConditions.push({
-        AND: [
-          { office_phone: { not: null } },
-          { office_phone: { not: "" } },
-          { office_phone: { notIn: ["Unavailable", "unavailable", "None", "none", "null", "undefined", "n/a", "N/A"] } },
-        ],
-      });
+      apiParams.set("hasPhone", "true");
     }
-
     if (hasLinkedin === true) {
-      contactConditions.push({
-        AND: [
-          { social_linkedin: { not: null } },
-          { social_linkedin: { not: "" } },
-        ],
-      });
-      // Accounts do not have LinkedIn profile URLs in database
-      accountConditions.push({
-        id: "__none__",
-      });
+      apiParams.set("hasLinkedin", "true");
     }
-
     if (hasCompany === true) {
-      contactConditions.push({
-        OR: [
-          { AND: [{ company: { not: null } }, { company: { not: "" } }] },
-          { accountsIDs: { not: null } },
-        ],
+      apiParams.set("hasCompany", "true");
+    }
+
+    const targetUrl = type === "Account"
+      ? `${ENRICHMENT_API_BASE}/accounts?${apiParams.toString()}`
+      : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
+
+    let apolloResponse: Response;
+    const requestStart = Date.now();
+    try {
+      apolloResponse = await fetch(targetUrl, {
+        signal: AbortSignal.timeout(8000),
+        cache: "no-store",
+        headers: { Accept: "application/json" },
+      });
+      console.log(`[APOLLO_REQUEST]\nURL=${targetUrl}\nSTATUS=${apolloResponse.status}\nDURATION_MS=${Date.now() - requestStart}`);
+    } catch (networkError: any) {
+      console.log(`[APOLLO_REQUEST]\nURL=${targetUrl}\nSTATUS=FAILED\nDURATION_MS=${Date.now() - requestStart}`);
+      console.error("[APOLLO_NETWORK_ERROR]", networkError?.message || networkError);
+      return serializeDecimals({
+        success: false,
+        source: "apollo",
+        data: [],
+        total: 0,
+        page: currentPage,
+        limit: pageLimit,
+        totalPages: 0,
+        error: "Apollo API service is unavailable",
       });
     }
 
-    if (role && role.trim() && role !== "All") {
-      contactConditions.push({ role: { equals: role.trim() } });
+    if (!apolloResponse.ok) {
+      console.error(`[APOLLO_HTTP_ERROR] HTTP ${apolloResponse.status} from ${targetUrl}`);
+      return serializeDecimals({
+        success: false,
+        source: "apollo",
+        data: [],
+        total: 0,
+        page: currentPage,
+        limit: pageLimit,
+        totalPages: 0,
+        error: `Apollo API service is unavailable (HTTP ${apolloResponse.status})`,
+      });
     }
 
-    if (status && status.trim() && status !== "All") {
-      const isActive = status.trim().toLowerCase() === "active";
-      contactConditions.push({ status: { equals: isActive } });
-      accountConditions.push({ status: { equals: status.trim() } });
+    let json: any;
+    try {
+      json = await apolloResponse.json();
+    } catch (jsonErr: any) {
+      console.error("[APOLLO_JSON_PARSE_ERROR]", jsonErr?.message || jsonErr);
+      return serializeDecimals({
+        success: false,
+        source: "apollo",
+        data: [],
+        total: 0,
+        page: currentPage,
+        limit: pageLimit,
+        totalPages: 0,
+        error: "Invalid response from Apollo API",
+      });
     }
 
-    const contactWhere = contactConditions.length > 0 ? { AND: contactConditions } : {};
-    const accountWhere = accountConditions.length > 0 ? { AND: accountConditions } : {};
+    let rawList: any[] = [];
+    let realTotal: number | undefined;
+    let realPage: number = currentPage;
+    let realLimit: number = pageLimit;
+    let realTotalPages: number | undefined;
+    let recordsProperty: "array" | "data" | "contacts" | "items" | "results" | "none" = "none";
 
-    const skip = (currentPage - 1) * pageLimit;
-
-    let dbCombined: PeopleRecord[] = [];
-    let totalCount = 0;
-    let dbContactsCount = 0;
-    let dbAccountsCount = 0;
-
-    if (type === "Contact") {
-      const [dbContacts, count] = await Promise.all([
-        prismadb.crm_Contacts.findMany({
-          where: contactWhere,
-          orderBy: { id: "asc" },
-          skip,
-          take: pageLimit,
-          include: { assigned_accounts: { select: { id: true, name: true } } },
-        }).catch(() => []),
-        prismadb.crm_Contacts.count({ where: contactWhere }).catch(() => 0),
-      ]);
-      dbContactsCount = count;
-      totalCount = count;
-      dbCombined = (dbContacts as any[]).map(mapContactToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
-    } else if (type === "Account") {
-      const [dbAccounts, count] = await Promise.all([
-        prismadb.crm_Accounts.findMany({
-          where: accountWhere,
-          orderBy: { id: "asc" },
-          skip,
-          take: pageLimit,
-        }).catch(() => []),
-        prismadb.crm_Accounts.count({ where: accountWhere }).catch(() => 0),
-      ]);
-      dbAccountsCount = count;
-      totalCount = count;
-      dbCombined = (dbAccounts as any[]).map(mapAccountToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
-    } else {
-      // type === "All": Seamless cross-table offset pagination
-      const [cCount, aCount] = await Promise.all([
-        prismadb.crm_Contacts.count({ where: contactWhere }).catch(() => 0),
-        prismadb.crm_Accounts.count({ where: accountWhere }).catch(() => 0),
-      ]);
-      dbContactsCount = cCount;
-      dbAccountsCount = aCount;
-      totalCount = cCount + aCount;
-
-      let fetchedContacts: PeopleRecord[] = [];
-      let fetchedAccounts: PeopleRecord[] = [];
-
-      if (skip < dbContactsCount) {
-        const contactTake = Math.min(pageLimit, dbContactsCount - skip);
-        const rawContacts = await prismadb.crm_Contacts.findMany({
-          where: contactWhere,
-          orderBy: { id: "asc" },
-          skip,
-          take: contactTake,
-          include: { assigned_accounts: { select: { id: true, name: true } } },
-        }).catch(() => []);
-        fetchedContacts = (rawContacts as any[]).map(mapContactToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
-
-        const remainingLimit = pageLimit - fetchedContacts.length;
-        if (remainingLimit > 0) {
-          const rawAccounts = await prismadb.crm_Accounts.findMany({
-            where: accountWhere,
-            orderBy: { id: "asc" },
-            skip: 0,
-            take: remainingLimit,
-          }).catch(() => []);
-          fetchedAccounts = (rawAccounts as any[]).map(mapAccountToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
-        }
-      } else {
-        const accountSkip = skip - dbContactsCount;
-        const rawAccounts = await prismadb.crm_Accounts.findMany({
-          where: accountWhere,
-          orderBy: { id: "asc" },
-          skip: accountSkip,
-          take: pageLimit,
-        }).catch(() => []);
-        fetchedAccounts = (rawAccounts as any[]).map(mapAccountToPeopleRecord).filter((r: PeopleRecord | null): r is PeopleRecord => r !== null);
+    if (Array.isArray(json)) {
+      rawList = json;
+      recordsProperty = "array";
+      const headerTotal = apolloResponse.headers.get("x-total-count");
+      if (headerTotal && !isNaN(Number(headerTotal))) {
+        realTotal = Number(headerTotal);
+      }
+    } else if (json && typeof json === "object") {
+      if (Array.isArray(json.data)) {
+        rawList = json.data;
+        recordsProperty = "data";
+      } else if (Array.isArray(json.contacts)) {
+        rawList = json.contacts;
+        recordsProperty = "contacts";
+      } else if (Array.isArray(json.items)) {
+        rawList = json.items;
+        recordsProperty = "items";
+      } else if (Array.isArray(json.results)) {
+        rawList = json.results;
+        recordsProperty = "results";
       }
 
-      dbCombined = [...fetchedContacts, ...fetchedAccounts];
+      if (typeof json.total === "number") {
+        realTotal = json.total;
+      } else if (typeof json.total_count === "number") {
+        realTotal = json.total_count;
+      } else if (typeof json.count === "number") {
+        realTotal = json.count;
+      } else if (json.pagination && typeof json.pagination.total === "number") {
+        realTotal = json.pagination.total;
+      }
+
+      if (typeof json.page === "number") realPage = json.page;
+      if (typeof json.limit === "number") realLimit = json.limit;
+      if (typeof json.totalPages === "number") realTotalPages = json.totalPages;
+      else if (typeof json.total_pages === "number") realTotalPages = json.total_pages;
     }
 
+    console.info("[APOLLO_RESPONSE]", {
+      status: apolloResponse.status,
+      responseKeys: json && typeof json === "object" && !Array.isArray(json)
+        ? Object.keys(json).sort()
+        : [],
+      recordsProperty,
+      receivedRecordCount: rawList.length,
+      total: realTotal ?? null,
+      page: realPage,
+      limit: realLimit,
+      firstRecordKeys: rawList[0] && typeof rawList[0] === "object"
+        ? Object.keys(rawList[0]).sort()
+        : [],
+    });
+
+    // Map raw records to PeopleRecord using existing mapping functions
+    const mapper = type === "Account" ? mapAccountToPeopleRecord : mapContactToPeopleRecord;
+    const mappedData = rawList
+      .map(mapper)
+      .filter((r): r is PeopleRecord => r !== null);
+
+    console.info("[APOLLO_MAPPING]", {
+      sourceRecordCount: rawList.length,
+      mappedRecordCount: mappedData.length,
+      droppedRecordCount: rawList.length - mappedData.length,
+      type,
+    });
+
+    const resolvedTotal = realTotal !== undefined ? realTotal : mappedData.length;
+    const resolvedTotalPages = realTotalPages !== undefined
+      ? realTotalPages
+      : (resolvedTotal > 0 ? Math.max(1, Math.ceil(resolvedTotal / realLimit)) : 0);
+
+    console.info("[PEOPLE_PAGINATION]", {
+      records: mappedData.length,
+      total: resolvedTotal,
+      page: realPage,
+      limit: realLimit,
+      totalPages: resolvedTotalPages,
+    });
+    console.info("[PEOPLE_FILTER]", {
+      country: country?.trim() || null,
+      state: state?.trim() || null,
+      city: city?.trim() || null,
+      company: company?.trim() || null,
+      jobTitle: jobTitle?.trim() || null,
+      status: status && status !== "All" ? status.trim() : null,
+      role: role && role !== "All" ? role.trim() : null,
+      page: currentPage,
+      limit: pageLimit,
+      offset,
+      recordsReceived: mappedData.length,
+      total: resolvedTotal,
+    });
+
     const stats: PeopleStats = {
-      totalAccounts: dbAccountsCount,
-      totalContacts: dbContactsCount,
-      totalRecords: dbAccountsCount + dbContactsCount,
+      totalAccounts: type === "Account" ? resolvedTotal : (typeof json?.stats?.accounts === "number" ? json.stats.accounts : 0),
+      totalContacts: type === "Contact" ? resolvedTotal : (typeof json?.stats?.contacts === "number" ? json.stats.contacts : resolvedTotal),
+      totalRecords: typeof json?.stats?.total === "number" ? json.stats.total : resolvedTotal,
     };
 
     return serializeDecimals({
       success: true,
-      data: dbCombined,
-      total: totalCount,
-      page: currentPage,
-      limit: pageLimit,
-      totalPages: Math.max(1, Math.ceil(totalCount / pageLimit)),
+      source: "apollo",
+      data: mappedData,
+      total: resolvedTotal,
+      page: realPage,
+      limit: realLimit,
+      totalPages: resolvedTotalPages,
       stats,
     });
   } catch (error) {
     console.error("[GET_UNIFIED_PEOPLE_ERROR]", error);
-    return {
+    return serializeDecimals({
       success: false,
+      source: "apollo",
       data: [],
       total: 0,
-      error: error instanceof Error ? error.message : "Failed to load people data",
-    };
+      page: 1,
+      limit: 50,
+      totalPages: 0,
+      error: error instanceof Error ? error.message : "Apollo API service is unavailable",
+    });
   }
 }
 
 let cachedLocationsResult: GetPeopleLocationsResponse | null = null;
 let lastLocationsCacheTime = 0;
 const LOCATIONS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
+const FILTER_OPTIONS_REQUEST_TIMEOUT_MS = 5000;
 
 export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> {
   const now = Date.now();
@@ -774,62 +551,33 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
   }
 
   try {
-    const countriesSet = new Set<string>();
-    const citiesSet = new Set<string>();
-    const seenNormalized = new Set<string>();
+    const optionsByType = {
+      country: new Map<string, string>(),
+      state: new Map<string, string>(),
+      city: new Map<string, string>(),
+      company: new Map<string, string>(),
+    };
 
-    const addLocation = (rawVal: unknown, type: "country" | "city") => {
+    const addLocation = (rawVal: unknown, type: "country" | "state" | "city" | "company") => {
       const cleaned = cleanString(rawVal);
       if (!cleaned || cleaned.length < 2) return;
       if (/^\d+$/.test(cleaned)) return;
       if (cleaned.toLowerCase() === "unknown" || cleaned.toLowerCase() === "none" || cleaned.toLowerCase() === "null") return;
 
       const normalizedKey = cleaned.toLowerCase();
-      if (seenNormalized.has(normalizedKey)) return;
-      seenNormalized.add(normalizedKey);
-
-      if (type === "country") {
-        countriesSet.add(cleaned);
-      } else {
-        citiesSet.add(cleaned);
-      }
+      if (!optionsByType[type].has(normalizedKey)) optionsByType[type].set(normalizedKey, cleaned);
     };
 
-    // 1. Fast DISTINCT query from database (Instant without loading full records)
-    try {
-      const [contactCountries, contactCities, accountCountries, accountCities]: Array<Array<Record<string, unknown>>> = await Promise.all([
-        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
-          `SELECT DISTINCT country FROM crm_Contacts WHERE country IS NOT NULL AND TRIM(country) != '' AND LOWER(country) != 'null' LIMIT 200`
-        ).catch(() => []),
-        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
-          `SELECT DISTINCT city FROM crm_Contacts WHERE city IS NOT NULL AND TRIM(city) != '' AND LOWER(city) != 'null' LIMIT 200`
-        ).catch(() => []),
-        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
-          `SELECT DISTINCT billing_country as country FROM crm_Accounts WHERE billing_country IS NOT NULL AND TRIM(billing_country) != '' AND LOWER(billing_country) != 'null' LIMIT 200`
-        ).catch(() => []),
-        prismadb.$queryRawUnsafe<Array<Record<string, unknown>>>(
-          `SELECT DISTINCT billing_city as city FROM crm_Accounts WHERE billing_city IS NOT NULL AND TRIM(billing_city) != '' AND LOWER(billing_city) != 'null' LIMIT 200`
-        ).catch(() => []),
-      ]);
-
-      for (const row of contactCountries) if (row.country) addLocation(row.country, "country");
-      for (const row of contactCities) if (row.city) addLocation(row.city, "city");
-      for (const row of accountCountries) if (row.country) addLocation(row.country, "country");
-      for (const row of accountCities) if (row.city) addLocation(row.city, "city");
-    } catch (dbErr) {
-      console.warn("[GET_PEOPLE_LOCATIONS] DB distinct query warning:", dbErr);
-    }
-
-    // 2. Fetch from external API if available
+    // 1. Fetch from external Apollo API if available
     if (ENRICHMENT_API_BASE) {
       try {
         const [accountsRes, contactsRes] = await Promise.all([
           fetch(`${ENRICHMENT_API_BASE}/accounts?limit=100`, {
-            signal: AbortSignal.timeout(1000),
+            signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
             headers: { Accept: "application/json" },
           }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
           fetch(`${ENRICHMENT_API_BASE}/contacts?limit=100`, {
-            signal: AbortSignal.timeout(1000),
+            signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
             headers: { Accept: "application/json" },
           }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
         ]);
@@ -837,14 +585,18 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
         if (Array.isArray(accountsRes)) {
           for (const item of accountsRes) {
             if (item.country || item.billing_country) addLocation(item.country || item.billing_country, "country");
+            if (item.state || item.billing_state) addLocation(item.state || item.billing_state, "state");
             if (item.city || item.billing_city) addLocation(item.city || item.billing_city, "city");
+            if (item.name || item.company || item.company_name) addLocation(item.name || item.company || item.company_name, "company");
           }
         }
 
         if (Array.isArray(contactsRes)) {
           for (const item of contactsRes) {
             if (item.country) addLocation(item.country, "country");
+            if (item.state) addLocation(item.state, "state");
             if (item.city) addLocation(item.city, "city");
+            if (item.company) addLocation(item.company, "company");
           }
         }
       } catch (apiErr) {
@@ -852,25 +604,24 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       }
     }
 
-    // Guarantee common standard options if list is sparse
-    if (!seenNormalized.has("united states")) addLocation("United States", "country");
-    if (!seenNormalized.has("india")) addLocation("India", "country");
-    if (!seenNormalized.has("united kingdom")) addLocation("United Kingdom", "country");
-    if (!seenNormalized.has("canada")) addLocation("Canada", "country");
-    if (!seenNormalized.has("australia")) addLocation("Australia", "country");
-
-    const sortedCountries = Array.from(countriesSet).sort((a, b) =>
+    const sortOptions = (options: Map<string, string>) => Array.from(options.values()).sort((a, b) =>
       a.localeCompare(b, undefined, { sensitivity: "base" })
     );
-    const sortedCities = Array.from(citiesSet).sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
+    const sortedCountries = sortOptions(optionsByType.country);
+    const sortedStates = sortOptions(optionsByType.state);
+    const sortedCities = sortOptions(optionsByType.city);
+    const sortedCompanies = sortOptions(optionsByType.company);
 
     const locations: PeopleLocationOption[] = [
       ...sortedCountries.map((c) => ({
         value: c,
         label: c,
         type: "country" as const,
+      })),
+      ...sortedStates.map((s) => ({
+        value: s,
+        label: s,
+        type: "state" as const,
       })),
       ...sortedCities.map((c) => ({
         value: c,
@@ -883,8 +634,21 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       success: true,
       locations,
       countries: sortedCountries,
+      states: sortedStates,
       cities: sortedCities,
+      companies: sortedCompanies,
     };
+
+    console.info("[PEOPLE_FILTER_OPTIONS]", {
+      countries: sortedCountries.length,
+      states: sortedStates.length,
+      cities: sortedCities.length,
+      companies: sortedCompanies.length,
+      countriesSample: sortedCountries.slice(0, 5),
+      statesSample: sortedStates.slice(0, 5),
+      citiesSample: sortedCities.slice(0, 5),
+      companiesSample: sortedCompanies.slice(0, 5),
+    });
 
     cachedLocationsResult = response;
     lastLocationsCacheTime = now;

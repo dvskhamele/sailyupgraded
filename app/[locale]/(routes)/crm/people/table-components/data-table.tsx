@@ -16,7 +16,7 @@ import {
   useReactTable,
   FilterFn,
 } from "@tanstack/react-table";
-import { Bot, Copy, Download, Users, X, Check, RotateCcw, Mail, MessageSquare, UserCheck, UserPlus } from "lucide-react";
+import { Bot, Copy, Download, Users, X, Check, RotateCcw, Mail, MessageSquare, UserCheck, UserPlus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -59,6 +59,7 @@ interface PeopleDataTableProps {
   onServerSearch?: (query: string) => void;
   onOpenFiltersSheet?: () => void;
   defaultEmailFrom?: string;
+  error?: string | null;
 }
 
 // Multi-field global search filter
@@ -110,6 +111,7 @@ export function PeopleDataTable({
   onServerSearch,
   onOpenFiltersSheet,
   defaultEmailFrom = "",
+  error = null,
 }: PeopleDataTableProps) {
   const [rowSelection, setRowSelection] = React.useState({});
   const [columnVisibility, setColumnVisibility] = React.useState<VisibilityState>({
@@ -497,11 +499,18 @@ export function PeopleDataTable({
 
       {/* Result Count and Scope Indicator */}
       <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
-        <span>
-          Showing <span className="font-semibold text-foreground">{total > 0 ? (page - 1) * pageSize + 1 : 0}</span> to{" "}
-          <span className="font-semibold text-foreground">{Math.min(page * pageSize, total)}</span> of{" "}
-          <span className="font-semibold text-foreground">{Number(total).toLocaleString()}</span> matching records
-        </span>
+        {error ? (
+          <span className="text-destructive font-medium flex items-center gap-1.5">
+            <AlertCircle className="h-3.5 w-3.5" />
+            Apollo People data is currently unavailable.
+          </span>
+        ) : (
+          <span>
+            Showing <span className="font-semibold text-foreground">{total > 0 ? (page - 1) * pageSize + 1 : 0}</span> to{" "}
+            <span className="font-semibold text-foreground">{Math.min(page * pageSize, total)}</span> of{" "}
+            <span className="font-semibold text-foreground">{Number(total).toLocaleString()}</span> matching records
+          </span>
+        )}
       </div>
 
       {/* Selected Action Bar */}
@@ -666,7 +675,39 @@ export function PeopleDataTable({
             ))}
           </TableHeader>
           <TableBody>
-            {isLoading ? (
+            {error ? (
+              <TableRow>
+                <TableCell
+                  colSpan={columns.length}
+                  className="h-44 text-center text-muted-foreground"
+                >
+                  <div className="flex flex-col items-center justify-center gap-3 py-6">
+                    <div className="rounded-full bg-destructive/10 p-3 text-destructive">
+                      <AlertCircle className="h-6 w-6" />
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-sm font-semibold text-foreground">
+                        Apollo People data is currently unavailable.
+                      </p>
+                      <p className="text-xs text-muted-foreground max-w-md">
+                        {error}
+                      </p>
+                    </div>
+                    {onRefresh && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={onRefresh}
+                        className="mt-2 text-xs gap-1.5"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Retry
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : isLoading ? (
               <TableRow>
                 <TableCell
                   colSpan={columns.length}
@@ -674,7 +715,7 @@ export function PeopleDataTable({
                 >
                   <div className="flex flex-col items-center justify-center gap-2">
                     <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                    <span className="text-sm">Applying filters and querying Accounts & Contacts...</span>
+                    <span className="text-sm">Querying Apollo People dataset...</span>
                   </div>
                 </TableCell>
               </TableRow>
