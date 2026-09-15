@@ -55,7 +55,7 @@ async function runPeopleTests() {
     console.log("  ✓ Verified: When Apollo is unavailable, no silent fallback to local 7,182 CRM records occurred.\n");
   } else {
     console.log(`  Live Apollo returned ${liveResult.data.length} records. Total: ${liveResult.total}`);
-    assert.ok(liveResult.total > 0, "Total must be greater than 0");
+    assert.ok(typeof liveResult.total === "number" && liveResult.total > 0, "Total must be greater than 0");
     console.log("  ✓ Verified: Live Apollo returned records.\n");
   }
 

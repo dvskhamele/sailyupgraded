@@ -79,7 +79,11 @@ const PeoplePage = async ({ searchParams }: Props) => {
   const peopleTotal = isApolloSuccess ? peopleResult.total : 0;
   const peoplePage = peopleResult?.page || validPage;
   const peopleLimit = peopleResult?.limit || validLimit;
-  const peopleTotalPages = peopleResult?.totalPages || (peopleTotal > 0 ? Math.max(1, Math.ceil(peopleTotal / peopleLimit)) : 0);
+  const peopleTotalPages = peopleResult?.totalPages || (
+    typeof peopleTotal === "number" && peopleTotal > 0
+      ? Math.max(1, Math.ceil(peopleTotal / peopleLimit))
+      : 0
+  );
   const peopleStats = peopleResult?.stats || {
     totalAccounts: 0,
     totalContacts: 0,
