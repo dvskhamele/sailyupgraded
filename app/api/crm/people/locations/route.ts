@@ -16,6 +16,9 @@ export async function GET(req: NextRequest) {
       city: searchParams.get("city") || undefined,
       companyQuery: searchParams.get("company_q") || undefined,
     });
+    if (!result.success) {
+      return NextResponse.json(result, { status: 502 });
+    }
     return NextResponse.json(result);
   } catch (error) {
     console.error("[PEOPLE_LOCATIONS_API_ERROR]", error);

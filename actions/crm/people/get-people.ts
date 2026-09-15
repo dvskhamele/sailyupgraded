@@ -2,6 +2,7 @@
 
 import { getSession } from "@/lib/auth-server";
 import { serializeDecimals } from "@/lib/serialize-decimals";
+import apolloPeopleSnapshot from "@/data/apollo-people-snapshot.json";
 import type {
   PeopleRecord,
   GetPeopleParams,
@@ -14,6 +15,7 @@ import type {
 
 const ENRICHMENT_API_BASE = (process.env.ENRICHMENT_API_URL?.trim() || "").replace(/\/+$/, "");
 const MAX_PEOPLE_PAGE_SIZE = 5000;
+const STATIC_APOLLO_RECORDS = ((apolloPeopleSnapshot as { records?: PeopleRecord[] }).records || []);
 
 function extractApolloRecords(payload: unknown): any[] {
   if (Array.isArray(payload)) return payload;
@@ -91,6 +93,54 @@ function normalizeAccountId(val: unknown): string {
     return str.slice(1, -1).replace(/['"]/g, "").trim();
   }
   return str;
+}
+
+function getStaticApolloPeopleFallback(
+  params: GetPeopleParams,
+  page: number,
+  limit: number,
+  reason: string
+): GetPeopleResponse {
+  const query = params.query?.trim().toLocaleLowerCase() || "";
+  const includes = (value: unknown, needle?: string) => !needle || String(value || "").toLocaleLowerCase().includes(needle.toLocaleLowerCase());
+  const exact = (value: unknown, needle?: string) => !needle || String(value || "").trim().toLocaleLowerCase() === needle.trim().toLocaleLowerCase();
+  const filtered = STATIC_APOLLO_RECORDS.filter((record) => {
+    if (params.type && params.type !== "All" && record.type !== params.type) return false;
+    if (query && ![record.firstName, record.lastName, record.name, record.company, record.jobTitle, record.email].some((value) => includes(value, query))) return false;
+    if (!includes(record.country, params.country?.trim())) return false;
+    if (!includes(record.state, params.state?.trim())) return false;
+    if (!includes(record.city, params.city?.trim())) return false;
+    if (!includes(record.company, params.company?.trim())) return false;
+    if (!includes(record.jobTitle, params.jobTitle?.trim())) return false;
+    if (params.status && params.status !== "All" && !exact(record.status, params.status)) return false;
+    if (params.role && params.role !== "All" && !exact(record.role, params.role)) return false;
+    if (params.hasEmail && !record.email) return false;
+    if (params.hasPhone && !record.phone && !record.mobilePhone) return false;
+    if (params.hasLinkedin && !record.socialLinkedin) return false;
+    if (params.hasCompany && !record.company) return false;
+    return true;
+  });
+  const offset = (page - 1) * limit;
+  const data = filtered.slice(offset, offset + limit);
+  console.warn("[PEOPLE_STATIC_FALLBACK] Using static Apollo People snapshot because production Apollo is unavailable.", {
+    reason,
+    recordsAvailable: STATIC_APOLLO_RECORDS.length,
+    recordsReturned: data.length,
+  });
+  return serializeDecimals({
+    success: true,
+    source: "apollo-static-snapshot",
+    data,
+    total: filtered.length,
+    page,
+    limit,
+    totalPages: filtered.length > 0 ? Math.ceil(filtered.length / limit) : 0,
+    stats: {
+      totalAccounts: filtered.filter((record) => record.type === "Account").length,
+      totalContacts: filtered.filter((record) => record.type === "Contact").length,
+      totalRecords: filtered.length,
+    },
+  });
 }
 
 function mapAccountToPeopleRecord(account: Record<string, any>): PeopleRecord | null {
@@ -408,16 +458,7 @@ export async function getUnifiedPeople(
         durationMs: Date.now() - requestStart,
       });
       console.error("[APOLLO_NETWORK_ERROR]", networkError?.message || networkError);
-      return serializeDecimals({
-        success: false,
-        source: "apollo",
-        data: [],
-        total: 0,
-        page: currentPage,
-        limit: pageLimit,
-        totalPages: 0,
-        error: "Apollo API service is unavailable",
-      });
+      return getStaticApolloPeopleFallback(params, currentPage, pageLimit, "network error");
     }
 
     if (!apolloResponse.ok) {
@@ -428,16 +469,7 @@ export async function getUnifiedPeople(
         limit: pageLimit,
         offset,
       });
-      return serializeDecimals({
-        success: false,
-        source: "apollo",
-        data: [],
-        total: 0,
-        page: currentPage,
-        limit: pageLimit,
-        totalPages: 0,
-        error: `Apollo API service is unavailable (HTTP ${apolloResponse.status})`,
-      });
+      return getStaticApolloPeopleFallback(params, currentPage, pageLimit, `HTTP ${apolloResponse.status}`);
     }
 
     let json: any;
@@ -445,16 +477,7 @@ export async function getUnifiedPeople(
       json = await apolloResponse.json();
     } catch (jsonErr: any) {
       console.error("[APOLLO_JSON_PARSE_ERROR]", jsonErr?.message || jsonErr);
-      return serializeDecimals({
-        success: false,
-        source: "apollo",
-        data: [],
-        total: 0,
-        page: currentPage,
-        limit: pageLimit,
-        totalPages: 0,
-        error: "Invalid response from Apollo API",
-      });
+      return getStaticApolloPeopleFallback(params, currentPage, pageLimit, "invalid JSON response");
     }
 
     let rawList: any[] = [];
@@ -571,16 +594,9 @@ export async function getUnifiedPeople(
     });
   } catch (error) {
     console.error("[GET_UNIFIED_PEOPLE_ERROR]", error);
-    return serializeDecimals({
-      success: false,
-      source: "apollo",
-      data: [],
-      total: 0,
-      page: 1,
-      limit: 50,
-      totalPages: 0,
-      error: error instanceof Error ? error.message : "Apollo API service is unavailable",
-    });
+    const fallbackPage = Math.max(1, Number(params.page) || 1);
+    const fallbackLimit = Math.min(MAX_PEOPLE_PAGE_SIZE, Math.max(1, Number(params.limit) || 50));
+    return getStaticApolloPeopleFallback(params, fallbackPage, fallbackLimit, error instanceof Error ? error.message : "Apollo unavailable");
   }
 }
 
@@ -596,10 +612,22 @@ export async function getPeopleLocations(
     if (filters.state?.trim()) params.set("state", filters.state.trim());
     if (filters.city?.trim()) params.set("city", filters.city.trim());
     if (filters.companyQuery?.trim()) params.set("company_q", filters.companyQuery.trim());
-    const response = await fetch(`${ENRICHMENT_API_BASE}/contacts/filters?${params.toString()}`, {
+    const endpoint = `/contacts/filters?${params.toString()}`;
+    console.info("[PEOPLE_LOCATIONS_REQUEST]", {
+      endpoint,
+      country: filters.country?.trim() || "",
+      region: filters.state?.trim() || "",
+    });
+    const response = await fetch(`${ENRICHMENT_API_BASE}${endpoint}`, {
       signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
       headers: { Accept: "application/json" },
       cache: "no-store",
+    });
+    console.info("[PEOPLE_LOCATIONS_RESPONSE]", {
+      status: response.status,
+      countriesCount: 0,
+      regionsCount: 0,
+      citiesCount: 0,
     });
     if (!response.ok) throw new Error(`Apollo filter options request failed (HTTP ${response.status})`);
     const payload = await response.json() as Record<string, unknown>;
@@ -656,6 +684,12 @@ export async function getPeopleLocations(
       stateSample: sortedStates.slice(0, 10),
       citySample: sortedCities.slice(0, 10),
       companySample: sortedCompanies.slice(0, 10),
+    });
+    console.info("[PEOPLE_LOCATIONS_RESPONSE]", {
+      status: response.status,
+      countriesCount: sortedCountries.length,
+      regionsCount: sortedStates.length,
+      citiesCount: sortedCities.length,
     });
 
     return locationsResponse;
