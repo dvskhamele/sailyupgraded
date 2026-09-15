@@ -77,6 +77,8 @@ export function PeopleFiltersSheet({
   });
   const [loadingLocations, setLoadingLocations] = React.useState(false);
   const [locationPopoverOpen, setLocationPopoverOpen] = React.useState(false);
+  const [companyPopoverOpen, setCompanyPopoverOpen] = React.useState(false);
+  const [companyQuery, setCompanyQuery] = React.useState("");
 
   // Sync draft when filters change
   React.useEffect(() => {
@@ -91,7 +93,12 @@ export function PeopleFiltersSheet({
     const fetchLocations = async () => {
       setLoadingLocations(true);
       try {
-        const res = await fetch("/api/crm/people/locations", {
+        const params = new URLSearchParams();
+        if (draft.country) params.set("country", draft.country);
+        if (draft.state) params.set("state", draft.state);
+        if (draft.city) params.set("city", draft.city);
+        if (companyQuery.trim()) params.set("company_q", companyQuery.trim());
+        const res = await fetch(`/api/crm/people/locations?${params.toString()}`, {
           cache: "no-store",
         });
         if (res.ok) {
@@ -120,28 +127,15 @@ export function PeopleFiltersSheet({
     return () => {
       isMounted = false;
     };
-  }, [open]);
+  }, [open, draft.country, draft.state, draft.city, companyQuery]);
 
   const scopedStates = React.useMemo(() => {
-    if (!draft.country) return locationOptions.states;
-    const country = (draft.country || "").toLocaleLowerCase();
-    return Array.from(new Set(locationOptions.locationRows
-      .filter((row) => row.country.toLocaleLowerCase() === country)
-      .map((row) => row.state)
-      .filter(Boolean)))
-      .sort((a, b) => a.localeCompare(b));
-  }, [draft.country, locationOptions]);
+    return locationOptions.states;
+  }, [locationOptions.states]);
 
   const scopedCities = React.useMemo(() => {
-    const country = (draft.country || "").toLocaleLowerCase();
-    const state = (draft.state || "").toLocaleLowerCase();
-    const rows = locationOptions.locationRows.filter((row) =>
-      (!country || row.country.toLocaleLowerCase() === country) &&
-      (!state || row.state.toLocaleLowerCase() === state)
-    );
-    return Array.from(new Set(rows.map((row) => row.city).filter(Boolean)))
-      .sort((a, b) => a.localeCompare(b));
-  }, [draft.country, draft.state, locationOptions]);
+    return locationOptions.cities;
+  }, [locationOptions.cities]);
 
   const handleApply = () => {
     onApplyFilters(draft);
@@ -382,23 +376,32 @@ export function PeopleFiltersSheet({
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Company
               </Label>
-              <Select
-                value={draft.company || "__all"}
-                onValueChange={(value) => setDraft((prev) => ({
-                  ...prev,
-                  company: value === "__all" ? "" : value,
-                }))}
-              >
-                <SelectTrigger className="h-9 text-xs">
-                  <SelectValue placeholder="All Companies" />
-                </SelectTrigger>
-                <SelectContent className="max-h-[280px] overflow-y-auto">
-                  <SelectItem value="__all">All Companies</SelectItem>
-                  {locationOptions.companies.map((company) => (
-                    <SelectItem key={company} value={company}>{company}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Popover open={companyPopoverOpen} onOpenChange={setCompanyPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <Button type="button" variant="outline" role="combobox" aria-expanded={companyPopoverOpen} className="w-full h-9 justify-between text-xs font-normal text-left bg-background">
+                    <span className="truncate">{draft.company || "All Companies"}</span>
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-[340px] p-0" align="start">
+                  <Command shouldFilter={false}>
+                    <CommandInput value={companyQuery} onValueChange={setCompanyQuery} placeholder="Search companies..." className="h-9 text-xs" />
+                    <CommandList className="max-h-[280px] overflow-y-auto">
+                      <CommandEmpty className="py-4 text-center text-xs text-muted-foreground">No companies available</CommandEmpty>
+                      <CommandGroup>
+                        <CommandItem value="all companies" onSelect={() => { setDraft((prev) => ({ ...prev, company: "" })); setCompanyPopoverOpen(false); }} className="text-xs cursor-pointer">
+                          All Companies
+                        </CommandItem>
+                        {locationOptions.companies.map((company) => (
+                          <CommandItem key={company} value={company} onSelect={() => { setDraft((prev) => ({ ...prev, company })); setCompanyPopoverOpen(false); }} className="text-xs cursor-pointer">
+                            <span className="truncate">{company}</span>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">

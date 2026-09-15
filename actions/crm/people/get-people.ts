@@ -9,6 +9,7 @@ import type {
   PeopleStats,
   PeopleLocationOption,
   GetPeopleLocationsResponse,
+  PeopleFilterOptions,
 } from "@/types/people";
 
 const ENRICHMENT_API_BASE = (process.env.ENRICHMENT_API_URL?.trim() || "").replace(/\/+$/, "");
@@ -363,6 +364,13 @@ export async function getUnifiedPeople(
     const targetUrl = type === "Account"
       ? `${ENRICHMENT_API_BASE}/accounts?${apiParams.toString()}`
       : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
+    let safeApiBase = "not configured";
+    try {
+      const parsedApiBase = new URL(ENRICHMENT_API_BASE);
+      safeApiBase = `${parsedApiBase.protocol}//${parsedApiBase.host}${parsedApiBase.pathname.replace(/\/$/, "")}`;
+    } catch {
+      // Keep diagnostics safe when a deployment uses an invalid or relative base URL.
+    }
     // Log only the final route and query, never the configured service origin
     // (which may contain deployment-specific credentials).
     const apolloRequestPathAndQuery = targetUrl.startsWith("/")
@@ -371,6 +379,12 @@ export async function getUnifiedPeople(
 
     let apolloResponse: Response;
     const requestStart = Date.now();
+    console.info("[PRODUCTION_PEOPLE_REQUEST]", {
+      endpoint: type === "Account" ? "/accounts" : "/contacts",
+      apiBase: safeApiBase,
+      page: currentPage,
+      limit: pageLimit,
+    });
     console.info("[PEOPLE_APOLLO_REQUEST]", {
       endpoint: type === "Account" ? "/accounts" : "/contacts",
       page: currentPage,
@@ -570,85 +584,40 @@ export async function getUnifiedPeople(
   }
 }
 
-let cachedLocationsResult: GetPeopleLocationsResponse | null = null;
-let lastLocationsCacheTime = 0;
-const LOCATIONS_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes cache
 const FILTER_OPTIONS_REQUEST_TIMEOUT_MS = 5000;
 
-export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> {
-  const now = Date.now();
-  if (cachedLocationsResult && now - lastLocationsCacheTime < LOCATIONS_CACHE_TTL_MS) {
-    return cachedLocationsResult;
-  }
-
+export async function getPeopleLocations(
+  filters: Pick<PeopleFilterOptions, "country" | "state" | "city"> & { companyQuery?: string } = {}
+): Promise<GetPeopleLocationsResponse> {
   try {
-    const optionsByType = {
-      country: new Map<string, string>(),
-      state: new Map<string, string>(),
-      city: new Map<string, string>(),
-      company: new Map<string, string>(),
-    };
-    const locationRows: Array<{ country: string; state: string; city: string }> = [];
-
-    const addLocation = (rawVal: unknown, type: "country" | "state" | "city" | "company") => {
-      const cleaned = cleanString(rawVal);
-      if (!cleaned || cleaned.length < 2) return;
-      if (/^\d+$/.test(cleaned)) return;
-      if (cleaned.toLowerCase() === "unknown" || cleaned.toLowerCase() === "none" || cleaned.toLowerCase() === "null") return;
-
-      const normalizedKey = cleaned.toLowerCase();
-      if (!optionsByType[type].has(normalizedKey)) optionsByType[type].set(normalizedKey, cleaned);
-    };
-
-    // 1. Fetch from external Apollo API if available
-    if (ENRICHMENT_API_BASE) {
-      try {
-        const [accountsRes, contactsRes] = await Promise.all([
-          fetch(`${ENRICHMENT_API_BASE}/accounts?limit=500&offset=0&page=1`, {
-            signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
-            headers: { Accept: "application/json" },
-          }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-          fetch(`${ENRICHMENT_API_BASE}/contacts?limit=500&offset=0&page=1`, {
-            signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
-            headers: { Accept: "application/json" },
-          }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-        ]);
-
-        for (const item of extractApolloRecords(accountsRes)) {
-          const country = cleanString(item.country || item.billing_country);
-          const state = cleanString(item.state || item.billing_state);
-          const city = cleanString(item.city || item.billing_city);
-          locationRows.push({ country, state, city });
-          if (country) addLocation(country, "country");
-          if (state) addLocation(state, "state");
-          if (city) addLocation(city, "city");
-          if (item.name || item.company || item.company_name) addLocation(item.name || item.company || item.company_name, "company");
-        }
-
-        for (const item of extractApolloRecords(contactsRes)) {
-          const country = cleanString(item.country || item.person_country);
-          const state = cleanString(item.state || item.person_state);
-          const city = cleanString(item.city || item.person_city);
-          locationRows.push({ country, state, city });
-          if (country) addLocation(country, "country");
-          if (state) addLocation(state, "state");
-          if (city) addLocation(city, "city");
-          if (item.company || item.organization_name || item.company_name || item.account_name) {
-            addLocation(item.company || item.organization_name || item.company_name || item.account_name, "company");
-          }
-        }
-      } catch (apiErr) {
-        console.warn("[GET_PEOPLE_LOCATIONS] External API fetch warning:", apiErr);
+    if (!ENRICHMENT_API_BASE) throw new Error("Apollo API URL is not configured");
+    const params = new URLSearchParams();
+    if (filters.country?.trim()) params.set("country", filters.country.trim());
+    if (filters.state?.trim()) params.set("state", filters.state.trim());
+    if (filters.city?.trim()) params.set("city", filters.city.trim());
+    if (filters.companyQuery?.trim()) params.set("company_q", filters.companyQuery.trim());
+    const response = await fetch(`${ENRICHMENT_API_BASE}/contacts/filters?${params.toString()}`, {
+      signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
+      headers: { Accept: "application/json" },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error(`Apollo filter options request failed (HTTP ${response.status})`);
+    const payload = await response.json() as Record<string, unknown>;
+    const normalizeOptions = (values: unknown): string[] => {
+      if (!Array.isArray(values)) return [];
+      const deduped = new Map<string, string>();
+      for (const value of values) {
+        const cleaned = cleanString(value);
+        if (!cleaned) continue;
+        const key = cleaned.toLocaleLowerCase();
+        if (!deduped.has(key)) deduped.set(key, cleaned);
       }
-    }
-
-    const sortOptions = (options: Map<string, string>) => Array.from(options.values()).sort((a, b) =>
-      a.localeCompare(b, undefined, { sensitivity: "base" })
-    );
-    const sortedCountries = sortOptions(optionsByType.country);
-    const sortedStates = sortOptions(optionsByType.state);
-    const sortedCities = sortOptions(optionsByType.city);
-    const sortedCompanies = sortOptions(optionsByType.company);
+      return Array.from(deduped.values()).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+    };
+    const sortedCountries = normalizeOptions(payload.countries);
+    const sortedStates = normalizeOptions(payload.states);
+    const sortedCities = normalizeOptions(payload.cities);
+    const sortedCompanies = normalizeOptions(payload.companies);
 
     const locations: PeopleLocationOption[] = [
       ...sortedCountries.map((c) => ({
@@ -668,31 +637,28 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       })),
     ].sort((a, b) => a.label.localeCompare(b.label, undefined, { sensitivity: "base" }));
 
-    const response: GetPeopleLocationsResponse = {
+    const locationsResponse: GetPeopleLocationsResponse = {
       success: true,
       locations,
       countries: sortedCountries,
       states: sortedStates,
       cities: sortedCities,
       companies: sortedCompanies,
-      locationRows,
+      locationRows: [],
     };
 
     console.info("[PEOPLE_FILTER_OPTIONS]", {
-      countries: sortedCountries.length,
-      states: sortedStates.length,
-      cities: sortedCities.length,
-      companies: sortedCompanies.length,
+      countriesCount: sortedCountries.length,
+      statesCount: sortedStates.length,
+      citiesCount: sortedCities.length,
+      companiesCount: sortedCompanies.length,
       countrySample: sortedCountries.slice(0, 10),
       stateSample: sortedStates.slice(0, 10),
       citySample: sortedCities.slice(0, 10),
       companySample: sortedCompanies.slice(0, 10),
     });
 
-    cachedLocationsResult = response;
-    lastLocationsCacheTime = now;
-
-    return response;
+    return locationsResponse;
   } catch (error) {
     console.error("[GET_PEOPLE_LOCATIONS_ERROR]", error);
     return {

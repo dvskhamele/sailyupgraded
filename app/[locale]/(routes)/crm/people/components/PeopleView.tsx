@@ -176,8 +176,13 @@ export default function PeopleView({
         params.set("hasCompany", "true");
       }
 
-      console.info("[PEOPLE_SEARCH]", {
+      console.info("[PEOPLE_FILTER_STATE]", {
         search: query.trim(),
+        type: currentFilters.type || "All",
+        country: currentFilters.country || "",
+        region: currentFilters.state || "",
+        city: currentFilters.city || "",
+        account: currentFilters.company || "",
         page: targetPage,
         limit: safePageSize,
         offset: (targetPage - 1) * safePageSize,

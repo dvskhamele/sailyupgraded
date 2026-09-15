@@ -14,7 +14,6 @@ import {
   getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  FilterFn,
 } from "@tanstack/react-table";
 import { Bot, Copy, Download, Users, X, Check, RotateCcw, Mail, MessageSquare, UserCheck, UserPlus, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -62,37 +61,6 @@ interface PeopleDataTableProps {
   defaultEmailFrom?: string;
   error?: string | null;
 }
-
-// Multi-field global search filter
-const multiFieldFilterFn: FilterFn<PeopleRecord> = (row, columnId, filterValue: string) => {
-  if (!filterValue) return true;
-  const q = String(filterValue).toLowerCase().trim();
-  const item = row.original;
-
-  const searchableFields = [
-    item.name,
-    item.fullName,
-    item.firstName,
-    item.lastName,
-    item.company,
-    item.jobTitle,
-    item.email,
-    item.personalEmail,
-    item.phone,
-    item.mobilePhone,
-    item.city,
-    item.state,
-    item.country,
-    item.website,
-    item.accountsIDs,
-    item.type,
-    item.role,
-  ];
-
-  return searchableFields.some(
-    (field) => field && String(field).toLowerCase().includes(q)
-  );
-};
 
 export function PeopleDataTable({
   columns,

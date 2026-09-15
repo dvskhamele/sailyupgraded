@@ -165,6 +165,26 @@ class UnifiedPaginatedResponse(BaseModel):
     totalPages: int
     pagination: PaginationMeta
 
+FILTER_OPTIONS_LIMIT = 1000
+
+def get_distinct_filter_values(cur, table_name: str, column: str, where_clauses: List[str], params: List[Any], limit: int = FILTER_OPTIONS_LIMIT) -> List[str]:
+    """Return bounded, database-derived option values without loading contact rows."""
+    where_sql = [f"`{column}` IS NOT NULL", f"TRIM(`{column}`) != ''"] + where_clauses
+    sql = f"""
+        SELECT DISTINCT TRIM(`{column}`) AS value
+        FROM `{table_name}`
+        WHERE {' AND '.join(where_sql)}
+        ORDER BY value ASC
+        LIMIT %s
+    """
+    cur.execute(sql, list(params) + [limit])
+    values: Dict[str, str] = {}
+    for row in cur.fetchall() or []:
+        value = (row.get("value") or "").strip()
+        if value and value.casefold() not in values:
+            values[value.casefold()] = value
+    return sorted(values.values(), key=str.casefold)
+
 @app.on_event("startup")
 def startup_event():
     init_db_pool()
@@ -376,6 +396,49 @@ def get_contacts(
             "hasMore": has_more,
         },
     }
+
+@app.get("/contacts/filters")
+def get_contact_filter_options(
+    country: Optional[str] = Query(default=None),
+    state: Optional[str] = Query(default=None),
+    city: Optional[str] = Query(default=None),
+    company_q: Optional[str] = Query(default=None, max_length=100),
+):
+    """Database-backed metadata for People filters; location dependencies are applied before distinct selection."""
+    table_name = resolve_table_name("contacts")
+    location_clauses: List[str] = []
+    location_params: List[Any] = []
+    if country and country.strip():
+        location_clauses.append("LOWER(country) = LOWER(%s)")
+        location_params.append(country.strip())
+    if state and state.strip():
+        location_clauses.append("LOWER(state) = LOWER(%s)")
+        location_params.append(state.strip())
+    if city and city.strip():
+        location_clauses.append("LOWER(city) = LOWER(%s)")
+        location_params.append(city.strip())
+
+    try:
+        with get_db_connection() as conn:
+            with conn.cursor() as cur:
+                countries = get_distinct_filter_values(cur, table_name, "country", [], [])
+                states = get_distinct_filter_values(cur, table_name, "state", location_clauses[:1], location_params[:1])
+                cities = get_distinct_filter_values(cur, table_name, "city", location_clauses[:2], location_params[:2])
+                company_clauses = location_clauses[:]
+                company_params = location_params[:]
+                if company_q and company_q.strip():
+                    company_clauses.append("company LIKE %s")
+                    company_params.append(f"%{company_q.strip()}%")
+                companies = get_distinct_filter_values(cur, table_name, "company", company_clauses, company_params, 100)
+    except Exception as e:
+        logger.error(f"[APOLLO_FILTER_OPTIONS_ERROR] {e}")
+        raise HTTPException(status_code=500, detail="Filter options query failed")
+
+    logger.info(
+        f"[APOLLO_FILTER_OPTIONS] countries={len(countries)} states={len(states)} "
+        f"cities={len(cities)} companies={len(companies)} country={country} state={state} city={city}"
+    )
+    return {"countries": countries, "states": states, "cities": cities, "companies": companies}
 
 @app.get("/accounts")
 def get_accounts(
