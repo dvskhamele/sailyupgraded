@@ -49,7 +49,7 @@ const PeoplePage = async ({ searchParams }: Props) => {
   const validHasLinkedin = hasLinkedinParam === "true" ? true : undefined;
   const validHasCompany = hasCompanyParam === "true" ? true : undefined;
   const validPage = Math.max(1, parseInt(typeof pageParam === "string" ? pageParam : "1", 10) || 1);
-  const validLimit = Math.max(1, parseInt(typeof limitParam === "string" ? limitParam : "50", 10) || 50);
+  const validLimit = Math.min(5000, Math.max(1, parseInt(typeof limitParam === "string" ? limitParam : "50", 10) || 50));
 
   const configuredEmailFrom = getEmailFromAddress();
   const defaultEmailFrom = isAllowedSmtp2GoSender(configuredEmailFrom)
@@ -102,6 +102,21 @@ const PeoplePage = async ({ searchParams }: Props) => {
             initialLimit={peopleLimit}
             initialTotalPages={peopleTotalPages}
             initialError={peopleError}
+            initialQuery={validQuery || ""}
+            initialFilters={{
+              type: validType,
+              country: validCountry || "",
+              state: validState || "",
+              city: validCity || "",
+              company: validCompany || "",
+              jobTitle: validJobTitle || "",
+              status: validStatus || "All",
+              role: validRole || "All",
+              hasEmail: validHasEmail || false,
+              hasPhone: validHasPhone || false,
+              hasLinkedin: validHasLinkedin || false,
+              hasCompany: validHasCompany || false,
+            }}
             defaultEmailFrom={defaultEmailFrom}
           />
         </Suspense>

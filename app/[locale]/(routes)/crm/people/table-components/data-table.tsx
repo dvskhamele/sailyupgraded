@@ -44,7 +44,7 @@ import type { PeopleRecord, PeopleFilterOptions, PeopleStats } from "@/types/peo
 interface PeopleDataTableProps {
   columns: ColumnDef<PeopleRecord, any>[];
   data: PeopleRecord[];
-  total: number;
+  total: number | null;
   page: number;
   pageSize: number;
   totalPages: number;
@@ -52,6 +52,7 @@ interface PeopleDataTableProps {
   filters: PeopleFilterOptions;
   onApplyFilters: (filters: PeopleFilterOptions) => void;
   onResetFilters: () => void;
+  onClearAll?: () => void;
   onRefresh?: () => void;
   isLoading?: boolean;
   onPageChange: (page: number) => void;
@@ -104,6 +105,7 @@ export function PeopleDataTable({
   filters,
   onApplyFilters,
   onResetFilters,
+  onClearAll,
   onRefresh,
   isLoading = false,
   onPageChange,
@@ -150,6 +152,10 @@ export function PeopleDataTable({
     let count = 0;
     if (filters.type && filters.type !== "All") count++;
     if (filters.country && filters.country.trim()) count++;
+    if (filters.state && filters.state.trim()) count++;
+    if (filters.city && filters.city.trim()) count++;
+    if (filters.company && filters.company.trim()) count++;
+    if (filters.jobTitle && filters.jobTitle.trim()) count++;
     if (filters.status && filters.status !== "All") count++;
     if (filters.role && filters.role !== "All") count++;
     if (filters.hasEmail) count++;
@@ -196,8 +202,11 @@ export function PeopleDataTable({
 
   const handleClearAll = () => {
     setGlobalFilter("");
-    if (onServerSearch) onServerSearch("");
-    onResetFilters();
+    if (onClearAll) onClearAll();
+    else {
+      if (onServerSearch) onServerSearch("");
+      onResetFilters();
+    }
   };
 
   const pagination = React.useMemo(
@@ -211,8 +220,9 @@ export function PeopleDataTable({
   const table = useReactTable({
     data,
     columns,
-    pageCount: totalPages,
-    rowCount: total,
+    // A full Apollo page means another page may exist when its total is unknown.
+    pageCount: total === null ? (data.length === pageSize ? -1 : page) : totalPages,
+    rowCount: total ?? undefined,
     manualPagination: true,
     manualFiltering: true,
     state: {
@@ -505,11 +515,15 @@ export function PeopleDataTable({
             Apollo People data is currently unavailable.
           </span>
         ) : (
-          <span>
-            Showing <span className="font-semibold text-foreground">{total > 0 ? (page - 1) * pageSize + 1 : 0}</span> to{" "}
-            <span className="font-semibold text-foreground">{Math.min(page * pageSize, total)}</span> of{" "}
-            <span className="font-semibold text-foreground">{Number(total).toLocaleString()}</span> matching records
-          </span>
+          total === null ? (
+            <span><span className="font-semibold text-foreground">{data.length.toLocaleString()}</span> records loaded</span>
+          ) : (
+            <span>
+              Showing <span className="font-semibold text-foreground">{total > 0 ? (page - 1) * pageSize + 1 : 0}</span> to{" "}
+              <span className="font-semibold text-foreground">{Math.min(page * pageSize, total)}</span> of{" "}
+              <span className="font-semibold text-foreground">{Number(total).toLocaleString()}</span> matching records
+            </span>
+          )
         )}
       </div>
 
@@ -769,7 +783,7 @@ export function PeopleDataTable({
       </div>
 
       {/* Pagination */}
-      <DataTablePagination table={table} />
+      <DataTablePagination table={table} total={total} recordsLoaded={data.length} />
 
       {/* Detail View Sheet */}
       <PeopleDetailSheet

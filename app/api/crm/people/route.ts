@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     const typeParam = searchParams.get("type") || "All";
     const type = typeParam === "Account" || typeParam === "Contact" ? typeParam : "All";
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
-    const limit = Math.max(1, parseInt(searchParams.get("limit") || "20", 10) || 20);
+    const limit = Math.min(5000, Math.max(1, parseInt(searchParams.get("limit") || "50", 10) || 50));
     const country = searchParams.get("country") || undefined;
     const state = searchParams.get("state") || undefined;
     const city = searchParams.get("city") || undefined;
@@ -71,7 +71,9 @@ export async function GET(req: NextRequest) {
       total: result.total,
       page: result.page || page,
       limit: result.limit || limit,
-      totalPages: result.totalPages || (result.total > 0 ? Math.ceil(result.total / (result.limit || limit)) : 0),
+      totalPages: result.totalPages ?? (typeof result.total === "number" && result.total > 0
+        ? Math.ceil(result.total / (result.limit || limit))
+        : undefined),
       stats: result.stats,
     });
   } catch (error) {

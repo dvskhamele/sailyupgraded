@@ -54,6 +54,36 @@ describe("GET /api/crm/people", () => {
     expect(body.limit).toBe(50);
   });
 
+  it("preserves a successful full Apollo page when its total is unknown", async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      user: { id: "user-1", role: "admin" },
+    });
+
+    const records = Array.from({ length: 50 }, (_, index) => ({
+      id: `con-${index + 1}`,
+      fullName: `Contact ${index + 1}`,
+    }));
+    (getUnifiedPeople as jest.Mock).mockResolvedValue({
+      success: true,
+      source: "apollo",
+      data: records,
+      total: null,
+      page: 1,
+      limit: 50,
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/crm/people?limit=50&page=1");
+    const res = await GET(req);
+    const body = await res.json();
+
+    expect(res.status).toBe(200);
+    expect(body.success).toBe(true);
+    expect(body.source).toBe("apollo");
+    expect(body.total).toBeNull();
+    expect(body.totalPages).toBeUndefined();
+    expect(body.data).toHaveLength(50);
+  });
+
   it("returns 503 with explicit Apollo error and total 0 when Apollo is unavailable", async () => {
     (getSession as jest.Mock).mockResolvedValue({
       user: { id: "user-1", role: "admin" },

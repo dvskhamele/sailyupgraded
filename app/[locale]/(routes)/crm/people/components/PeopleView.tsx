@@ -17,11 +17,13 @@ import type { PeopleRecord, PeopleStats, PeopleFilterOptions, GetPeopleResponse 
 interface PeopleViewProps {
   initialData: PeopleRecord[];
   initialStats?: PeopleStats;
-  initialTotal?: number;
+  initialTotal?: number | null;
   initialPage?: number;
   initialLimit?: number;
   initialTotalPages?: number;
   initialError?: string;
+  initialQuery?: string;
+  initialFilters?: PeopleFilterOptions;
   defaultEmailFrom?: string;
 }
 
@@ -52,21 +54,23 @@ export default function PeopleView({
   initialLimit = 50,
   initialTotalPages = 1,
   initialError,
+  initialQuery = "",
+  initialFilters = defaultFilterOptions,
   defaultEmailFrom = "",
 }: PeopleViewProps) {
   const router = useRouter();
   const [data, setData] = React.useState<PeopleRecord[]>(initialData);
-  const [total, setTotal] = React.useState<number>(initialTotal || initialData.length);
+  const [total, setTotal] = React.useState<number | null>(initialTotal ?? null);
   const [page, setPage] = React.useState<number>(initialPage || 1);
   const [pageSize, setPageSize] = React.useState<number>(initialLimit || 50);
   const [totalPages, setTotalPages] = React.useState<number>(
-    initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 50)))
+    initialTotalPages || 0
   );
   const [stats, setStats] = React.useState<PeopleStats>(initialStats);
-  const [filters, setFilters] = React.useState<PeopleFilterOptions>(defaultFilterOptions);
+  const [filters, setFilters] = React.useState<PeopleFilterOptions>(initialFilters);
   const [filterSheetOpen, setFilterSheetOpen] = React.useState(false);
   const [isLoading, setIsLoading] = React.useState(false);
-  const [searchQuery, setSearchQuery] = React.useState<string>("");
+  const [searchQuery, setSearchQuery] = React.useState<string>(initialQuery);
   const [activeRecord, setActiveRecord] = React.useState<PeopleRecord | null>(null);
   const [detailOpen, setDetailOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(initialError || null);
@@ -79,11 +83,11 @@ export default function PeopleView({
     setPrevInitialError(initialError);
     setError(initialError || null);
     setData(initialData);
-    setTotal(initialTotal || initialData.length);
+    setTotal(initialTotal ?? null);
     setPage(initialPage || 1);
     setPageSize(initialLimit || 50);
     setTotalPages(
-      initialTotalPages || Math.max(1, Math.ceil((initialTotal || initialData.length) / (initialLimit || 50)))
+      initialTotalPages || 0
     );
     if (initialStats) {
       setStats(initialStats);
@@ -100,16 +104,34 @@ export default function PeopleView({
     [handleViewRecord]
   );
 
+  const updateUrl = React.useCallback((targetPage: number, targetPageSize: number, query: string, currentFilters: PeopleFilterOptions) => {
+    const params = new URLSearchParams();
+    params.set("page", String(targetPage));
+    params.set("limit", String(targetPageSize));
+    if (query.trim()) params.set("q", query.trim());
+    if (currentFilters.type && currentFilters.type !== "All") params.set("type", currentFilters.type);
+    (["country", "state", "city", "company", "jobTitle", "status", "role"] as const).forEach((key) => {
+      const value = currentFilters[key];
+      if (typeof value === "string" && value && value !== "All") params.set(key, value);
+    });
+    (["hasEmail", "hasPhone", "hasLinkedin", "hasCompany"] as const).forEach((key) => {
+      if (currentFilters[key]) params.set(key, "true");
+    });
+    window.history.replaceState(null, "", `${window.location.pathname}?${params.toString()}`);
+  }, []);
+
   const fetchPeopleData = async (
     targetPage = page,
     targetPageSize = pageSize,
     query = searchQuery,
     currentFilters = filters
   ) => {
+    const safePageSize = Math.min(5000, Math.max(1, targetPageSize));
+    updateUrl(targetPage, safePageSize, query, currentFilters);
     setIsLoading(true);
     try {
       const params = new URLSearchParams();
-      params.set("limit", String(targetPageSize));
+      params.set("limit", String(safePageSize));
       params.set("page", String(targetPage));
 
       if (query.trim()) {
@@ -167,13 +189,13 @@ export default function PeopleView({
       setError(null);
       if (Array.isArray(result.data)) {
         setData(result.data);
-        const resolvedTotal = typeof result.total === "number" ? result.total : result.data.length;
+        const resolvedTotal = typeof result.total === "number" ? result.total : null;
         const resolvedPage = typeof result.page === "number" ? result.page : targetPage;
-        const resolvedLimit = typeof result.limit === "number" ? result.limit : targetPageSize;
+        const resolvedLimit = typeof result.limit === "number" ? result.limit : safePageSize;
         const resolvedTotalPages =
           typeof result.totalPages === "number"
             ? result.totalPages
-            : (resolvedTotal > 0 ? Math.ceil(resolvedTotal / resolvedLimit) : 0);
+            : (resolvedTotal !== null && resolvedTotal > 0 ? Math.ceil(resolvedTotal / resolvedLimit) : 0);
 
         setTotal(resolvedTotal);
         setPage(resolvedPage);
@@ -203,9 +225,10 @@ export default function PeopleView({
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    setPageSize(newPageSize);
+    const safePageSize = Math.min(5000, Math.max(1, newPageSize));
+    setPageSize(safePageSize);
     setPage(1);
-    fetchPeopleData(1, newPageSize, searchQuery, filters);
+    fetchPeopleData(1, safePageSize, searchQuery, filters);
   };
 
   const handleApplyFilters = async (newFilters: PeopleFilterOptions) => {
@@ -218,6 +241,13 @@ export default function PeopleView({
     setFilters(defaultFilterOptions);
     setPage(1);
     await fetchPeopleData(1, pageSize, searchQuery, defaultFilterOptions);
+  };
+
+  const handleClearAll = async () => {
+    setSearchQuery("");
+    setFilters(defaultFilterOptions);
+    setPage(1);
+    await fetchPeopleData(1, pageSize, "", defaultFilterOptions);
   };
 
   const handleRefresh = async () => {
@@ -244,6 +274,7 @@ export default function PeopleView({
         filters={filters}
         onApplyFilters={handleApplyFilters}
         onResetFilters={handleResetFilters}
+        onClearAll={handleClearAll}
         onRefresh={handleRefresh}
         isLoading={isLoading}
         onPageChange={handlePageChange}

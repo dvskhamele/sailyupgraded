@@ -72,7 +72,8 @@ export interface GetPeopleResponse {
   success: boolean;
   source?: string;
   data: PeopleRecord[];
-  total: number;
+  /** Null means Apollo returned a valid page but did not provide a total count. */
+  total: number | null;
   unfilteredTotal?: number;
   page?: number;
   limit?: number;
@@ -94,6 +95,8 @@ export interface GetPeopleLocationsResponse {
   states: string[];
   cities: string[];
   companies: string[];
+  /** Bounded Apollo-derived values used to keep location dropdowns dependent. */
+  locationRows?: Array<{ country: string; state: string; city: string }>;
   error?: string;
 }
 

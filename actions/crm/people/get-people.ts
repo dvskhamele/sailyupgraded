@@ -12,6 +12,17 @@ import type {
 } from "@/types/people";
 
 const ENRICHMENT_API_BASE = (process.env.ENRICHMENT_API_URL?.trim() || "").replace(/\/+$/, "");
+const MAX_PEOPLE_PAGE_SIZE = 5000;
+
+function extractApolloRecords(payload: unknown): any[] {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== "object") return [];
+  const body = payload as Record<string, unknown>;
+  for (const key of ["records", "data", "contacts", "accounts", "items", "results"]) {
+    if (Array.isArray(body[key])) return body[key] as any[];
+  }
+  return [];
+}
 
 function cleanString(val: unknown): string {
   if (val === null || val === undefined) return "";
@@ -303,7 +314,7 @@ export async function getUnifiedPeople(
     } = params;
     const trimmedQuery = query.trim();
     const currentPage = Math.max(1, Number(page) || 1);
-    const pageLimit = Math.max(1, Number(limit) || 50);
+    const pageLimit = Math.min(MAX_PEOPLE_PAGE_SIZE, Math.max(1, Number(limit) || 50));
     const offset = (currentPage - 1) * pageLimit;
 
     // Build query parameters for Apollo external Enrichment Microservice
@@ -355,15 +366,27 @@ export async function getUnifiedPeople(
 
     let apolloResponse: Response;
     const requestStart = Date.now();
+    console.info("[PEOPLE_APOLLO_REQUEST]", {
+      endpoint: type === "Account" ? "/accounts" : "/contacts",
+      page: currentPage,
+      limit: pageLimit,
+      offset,
+    });
     try {
       apolloResponse = await fetch(targetUrl, {
         signal: AbortSignal.timeout(8000),
         cache: "no-store",
         headers: { Accept: "application/json" },
       });
-      console.log(`[APOLLO_REQUEST]\nURL=${targetUrl}\nSTATUS=${apolloResponse.status}\nDURATION_MS=${Date.now() - requestStart}`);
     } catch (networkError: any) {
-      console.log(`[APOLLO_REQUEST]\nURL=${targetUrl}\nSTATUS=FAILED\nDURATION_MS=${Date.now() - requestStart}`);
+      console.info("[PEOPLE_APOLLO_REQUEST]", {
+        endpoint: type === "Account" ? "/accounts" : "/contacts",
+        page: currentPage,
+        limit: pageLimit,
+        offset,
+        status: "FAILED",
+        durationMs: Date.now() - requestStart,
+      });
       console.error("[APOLLO_NETWORK_ERROR]", networkError?.message || networkError);
       return serializeDecimals({
         success: false,
@@ -378,7 +401,13 @@ export async function getUnifiedPeople(
     }
 
     if (!apolloResponse.ok) {
-      console.error(`[APOLLO_HTTP_ERROR] HTTP ${apolloResponse.status} from ${targetUrl}`);
+      console.error("[APOLLO_HTTP_ERROR]", {
+        endpoint: type === "Account" ? "/accounts" : "/contacts",
+        status: apolloResponse.status,
+        page: currentPage,
+        limit: pageLimit,
+        offset,
+      });
       return serializeDecimals({
         success: false,
         source: "apollo",
@@ -413,7 +442,7 @@ export async function getUnifiedPeople(
     let realPage: number = currentPage;
     let realLimit: number = pageLimit;
     let realTotalPages: number | undefined;
-    let recordsProperty: "array" | "data" | "contacts" | "items" | "results" | "none" = "none";
+    let recordsProperty: "array" | "records" | "data" | "contacts" | "items" | "results" | "none" = "none";
 
     if (Array.isArray(json)) {
       rawList = json;
@@ -423,7 +452,10 @@ export async function getUnifiedPeople(
         realTotal = Number(headerTotal);
       }
     } else if (json && typeof json === "object") {
-      if (Array.isArray(json.data)) {
+      if (Array.isArray(json.records)) {
+        rawList = json.records;
+        recordsProperty = "records";
+      } else if (Array.isArray(json.data)) {
         rawList = json.data;
         recordsProperty = "data";
       } else if (Array.isArray(json.contacts)) {
@@ -453,19 +485,12 @@ export async function getUnifiedPeople(
       else if (typeof json.total_pages === "number") realTotalPages = json.total_pages;
     }
 
-    console.info("[APOLLO_RESPONSE]", {
-      status: apolloResponse.status,
-      responseKeys: json && typeof json === "object" && !Array.isArray(json)
-        ? Object.keys(json).sort()
-        : [],
-      recordsProperty,
-      receivedRecordCount: rawList.length,
+    console.info("[PEOPLE_APOLLO_RESPONSE]", {
+      recordsReceived: rawList.length,
       total: realTotal ?? null,
-      page: realPage,
-      limit: realLimit,
-      firstRecordKeys: rawList[0] && typeof rawList[0] === "object"
-        ? Object.keys(rawList[0]).sort()
-        : [],
+      page: currentPage,
+      limit: pageLimit,
+      offset,
     });
 
     // Map raw records to PeopleRecord using existing mapping functions
@@ -481,14 +506,14 @@ export async function getUnifiedPeople(
       type,
     });
 
-    const resolvedTotal = realTotal !== undefined ? realTotal : mappedData.length;
+    const resolvedTotal = realTotal;
     const resolvedTotalPages = realTotalPages !== undefined
       ? realTotalPages
-      : (resolvedTotal > 0 ? Math.max(1, Math.ceil(resolvedTotal / realLimit)) : 0);
+      : (resolvedTotal !== undefined && resolvedTotal > 0 ? Math.max(1, Math.ceil(resolvedTotal / realLimit)) : undefined);
 
     console.info("[PEOPLE_PAGINATION]", {
       records: mappedData.length,
-      total: resolvedTotal,
+      total: resolvedTotal ?? null,
       page: realPage,
       limit: realLimit,
       totalPages: resolvedTotalPages,
@@ -505,20 +530,20 @@ export async function getUnifiedPeople(
       limit: pageLimit,
       offset,
       recordsReceived: mappedData.length,
-      total: resolvedTotal,
+      total: resolvedTotal ?? null,
     });
 
     const stats: PeopleStats = {
-      totalAccounts: type === "Account" ? resolvedTotal : (typeof json?.stats?.accounts === "number" ? json.stats.accounts : 0),
-      totalContacts: type === "Contact" ? resolvedTotal : (typeof json?.stats?.contacts === "number" ? json.stats.contacts : resolvedTotal),
-      totalRecords: typeof json?.stats?.total === "number" ? json.stats.total : resolvedTotal,
+      totalAccounts: type === "Account" ? (resolvedTotal ?? 0) : (typeof json?.stats?.accounts === "number" ? json.stats.accounts : 0),
+      totalContacts: type === "Contact" ? (resolvedTotal ?? 0) : (typeof json?.stats?.contacts === "number" ? json.stats.contacts : 0),
+      totalRecords: typeof json?.stats?.total === "number" ? json.stats.total : (resolvedTotal ?? 0),
     };
 
     return serializeDecimals({
       success: true,
       source: "apollo",
       data: mappedData,
-      total: resolvedTotal,
+      total: resolvedTotal ?? null,
       page: realPage,
       limit: realLimit,
       totalPages: resolvedTotalPages,
@@ -557,6 +582,7 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       city: new Map<string, string>(),
       company: new Map<string, string>(),
     };
+    const locationRows: Array<{ country: string; state: string; city: string }> = [];
 
     const addLocation = (rawVal: unknown, type: "country" | "state" | "city" | "company") => {
       const cleaned = cleanString(rawVal);
@@ -572,31 +598,37 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
     if (ENRICHMENT_API_BASE) {
       try {
         const [accountsRes, contactsRes] = await Promise.all([
-          fetch(`${ENRICHMENT_API_BASE}/accounts?limit=100`, {
+          fetch(`${ENRICHMENT_API_BASE}/accounts?limit=500&offset=0&page=1`, {
             signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
             headers: { Accept: "application/json" },
           }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
-          fetch(`${ENRICHMENT_API_BASE}/contacts?limit=100`, {
+          fetch(`${ENRICHMENT_API_BASE}/contacts?limit=500&offset=0&page=1`, {
             signal: AbortSignal.timeout(FILTER_OPTIONS_REQUEST_TIMEOUT_MS),
             headers: { Accept: "application/json" },
           }).then((r) => (r.ok ? r.json() : [])).catch(() => []),
         ]);
 
-        if (Array.isArray(accountsRes)) {
-          for (const item of accountsRes) {
-            if (item.country || item.billing_country) addLocation(item.country || item.billing_country, "country");
-            if (item.state || item.billing_state) addLocation(item.state || item.billing_state, "state");
-            if (item.city || item.billing_city) addLocation(item.city || item.billing_city, "city");
-            if (item.name || item.company || item.company_name) addLocation(item.name || item.company || item.company_name, "company");
-          }
+        for (const item of extractApolloRecords(accountsRes)) {
+          const country = cleanString(item.country || item.billing_country);
+          const state = cleanString(item.state || item.billing_state);
+          const city = cleanString(item.city || item.billing_city);
+          locationRows.push({ country, state, city });
+          if (country) addLocation(country, "country");
+          if (state) addLocation(state, "state");
+          if (city) addLocation(city, "city");
+          if (item.name || item.company || item.company_name) addLocation(item.name || item.company || item.company_name, "company");
         }
 
-        if (Array.isArray(contactsRes)) {
-          for (const item of contactsRes) {
-            if (item.country) addLocation(item.country, "country");
-            if (item.state) addLocation(item.state, "state");
-            if (item.city) addLocation(item.city, "city");
-            if (item.company) addLocation(item.company, "company");
+        for (const item of extractApolloRecords(contactsRes)) {
+          const country = cleanString(item.country || item.person_country);
+          const state = cleanString(item.state || item.person_state);
+          const city = cleanString(item.city || item.person_city);
+          locationRows.push({ country, state, city });
+          if (country) addLocation(country, "country");
+          if (state) addLocation(state, "state");
+          if (city) addLocation(city, "city");
+          if (item.company || item.organization_name || item.company_name || item.account_name) {
+            addLocation(item.company || item.organization_name || item.company_name || item.account_name, "company");
           }
         }
       } catch (apiErr) {
@@ -637,6 +669,7 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       states: sortedStates,
       cities: sortedCities,
       companies: sortedCompanies,
+      locationRows,
     };
 
     console.info("[PEOPLE_FILTER_OPTIONS]", {
@@ -644,10 +677,10 @@ export async function getPeopleLocations(): Promise<GetPeopleLocationsResponse> 
       states: sortedStates.length,
       cities: sortedCities.length,
       companies: sortedCompanies.length,
-      countriesSample: sortedCountries.slice(0, 5),
-      statesSample: sortedStates.slice(0, 5),
-      citiesSample: sortedCities.slice(0, 5),
-      companiesSample: sortedCompanies.slice(0, 5),
+      countrySample: sortedCountries.slice(0, 10),
+      stateSample: sortedStates.slice(0, 10),
+      citySample: sortedCities.slice(0, 10),
+      companySample: sortedCompanies.slice(0, 10),
     });
 
     cachedLocationsResult = response;

@@ -73,6 +73,7 @@ export function PeopleFiltersSheet({
     states: [] as string[],
     cities: [] as string[],
     companies: [] as string[],
+    locationRows: [] as Array<{ country: string; state: string; city: string }>,
   });
   const [loadingLocations, setLoadingLocations] = React.useState(false);
   const [locationPopoverOpen, setLocationPopoverOpen] = React.useState(false);
@@ -101,6 +102,7 @@ export function PeopleFiltersSheet({
               states: Array.isArray(data.states) ? data.states : [],
               cities: Array.isArray(data.cities) ? data.cities : [],
               companies: Array.isArray(data.companies) ? data.companies : [],
+              locationRows: Array.isArray(data.locationRows) ? data.locationRows : [],
             });
           }
         }
@@ -119,6 +121,27 @@ export function PeopleFiltersSheet({
       isMounted = false;
     };
   }, [open]);
+
+  const scopedStates = React.useMemo(() => {
+    if (!draft.country) return locationOptions.states;
+    const country = (draft.country || "").toLocaleLowerCase();
+    return Array.from(new Set(locationOptions.locationRows
+      .filter((row) => row.country.toLocaleLowerCase() === country)
+      .map((row) => row.state)
+      .filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b));
+  }, [draft.country, locationOptions]);
+
+  const scopedCities = React.useMemo(() => {
+    const country = (draft.country || "").toLocaleLowerCase();
+    const state = (draft.state || "").toLocaleLowerCase();
+    const rows = locationOptions.locationRows.filter((row) =>
+      (!country || row.country.toLocaleLowerCase() === country) &&
+      (!state || row.state.toLocaleLowerCase() === state)
+    );
+    return Array.from(new Set(rows.map((row) => row.city).filter(Boolean)))
+      .sort((a, b) => a.localeCompare(b));
+  }, [draft.country, draft.state, locationOptions]);
 
   const handleApply = () => {
     onApplyFilters(draft);
@@ -323,7 +346,7 @@ export function PeopleFiltersSheet({
                 </SelectTrigger>
                 <SelectContent className="max-h-[280px] overflow-y-auto">
                   <SelectItem value="__all">All States / Regions</SelectItem>
-                  {locationOptions.states.map((state) => (
+                  {scopedStates.map((state) => (
                     <SelectItem key={state} value={state}>{state}</SelectItem>
                   ))}
                 </SelectContent>
@@ -345,7 +368,7 @@ export function PeopleFiltersSheet({
                 </SelectTrigger>
                 <SelectContent className="max-h-[280px] overflow-y-auto">
                   <SelectItem value="__all">All Cities</SelectItem>
-                  {locationOptions.cities.map((city) => (
+                  {scopedCities.map((city) => (
                     <SelectItem key={city} value={city}>{city}</SelectItem>
                   ))}
                 </SelectContent>
