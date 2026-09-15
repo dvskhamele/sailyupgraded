@@ -126,7 +126,7 @@ export default function PeopleView({
     query = searchQuery,
     currentFilters = filters
   ) => {
-    const safePageSize = Math.min(5000, Math.max(1, targetPageSize));
+    const safePageSize = Math.min(1000, Math.max(1, targetPageSize));
     updateUrl(targetPage, safePageSize, query, currentFilters);
     setIsLoading(true);
     try {
@@ -239,7 +239,7 @@ export default function PeopleView({
   };
 
   const handlePageSizeChange = (newPageSize: number) => {
-    const safePageSize = Math.min(5000, Math.max(1, newPageSize));
+    const safePageSize = Math.min(1000, Math.max(1, newPageSize));
     setPageSize(safePageSize);
     setPage(1);
     fetchPeopleData(1, safePageSize, searchQuery, filters);

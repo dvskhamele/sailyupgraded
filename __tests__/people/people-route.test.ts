@@ -80,6 +80,29 @@ describe("GET /api/crm/people", () => {
     expect((await res.json()).data).toEqual([{ id: "con-parekh", fullName: "Parekh Satish" }]);
   });
 
+  it("caps page size at Apollo's 1,000-record maximum without changing the requested page", async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      user: { id: "user-1", role: "admin" },
+    });
+    (getUnifiedPeople as jest.Mock).mockResolvedValue({
+      success: true,
+      source: "apollo",
+      data: [],
+      total: null,
+      page: 6,
+      limit: 1000,
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/crm/people?limit=5000&page=6");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(getUnifiedPeople).toHaveBeenCalledWith(expect.objectContaining({
+      page: 6,
+      limit: 1000,
+    }));
+  });
+
   it("preserves a successful full Apollo page when its total is unknown", async () => {
     (getSession as jest.Mock).mockResolvedValue({
       user: { id: "user-1", role: "admin" },

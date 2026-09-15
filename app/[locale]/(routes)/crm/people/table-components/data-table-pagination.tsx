@@ -37,8 +37,8 @@ export function DataTablePagination<TData>({
     }
 
     const nextPageSize = Number(trimmedValue);
-    if (!Number.isSafeInteger(nextPageSize) || nextPageSize < 1 || nextPageSize > 5000) {
-      setPageSizeError("Enter a whole number from 1 to 5,000.");
+    if (!Number.isSafeInteger(nextPageSize) || nextPageSize < 1 || nextPageSize > 1000) {
+      setPageSizeError("Enter a whole number from 1 to 1,000.");
       return;
     }
 
@@ -78,7 +78,7 @@ export function DataTablePagination<TData>({
             className="h-8 w-24"
             inputMode="numeric"
             min={1}
-            max={5000}
+            max={1000}
             onChange={(event) => {
               setPageSizeInput(event.target.value);
               if (pageSizeError) setPageSizeError(null);
