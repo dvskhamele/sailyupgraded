@@ -54,6 +54,32 @@ describe("GET /api/crm/people", () => {
     expect(body.limit).toBe(50);
   });
 
+  it("forwards the canonical Apollo q search parameter with page-one pagination", async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      user: { id: "user-1", role: "admin" },
+    });
+    (getUnifiedPeople as jest.Mock).mockResolvedValue({
+      success: true,
+      source: "apollo",
+      data: [{ id: "con-parekh", fullName: "Parekh Satish" }],
+      total: 1,
+      page: 1,
+      limit: 50,
+      totalPages: 1,
+    });
+
+    const req = new NextRequest("http://localhost:3000/api/crm/people?q=parekh%20satish&limit=50&page=1");
+    const res = await GET(req);
+
+    expect(res.status).toBe(200);
+    expect(getUnifiedPeople).toHaveBeenCalledWith(expect.objectContaining({
+      query: "parekh satish",
+      page: 1,
+      limit: 50,
+    }));
+    expect((await res.json()).data).toEqual([{ id: "con-parekh", fullName: "Parekh Satish" }]);
+  });
+
   it("preserves a successful full Apollo page when its total is unknown", async () => {
     (getSession as jest.Mock).mockResolvedValue({
       user: { id: "user-1", role: "admin" },

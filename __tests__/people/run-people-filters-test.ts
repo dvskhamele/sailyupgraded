@@ -163,15 +163,38 @@ async function runFilterTests() {
     assert.ok(lastFetchedUrl.includes("hasEmail=true"));
     console.log("  ✓ Multi-filter parameters forwarded to Apollo API\n");
 
-    // TEST 9: Search Query forwarded to Apollo
-    console.log("[TEST 9] Testing Search + Filter: query='toyota' AND hasEmail=true...");
+    // TEST 9: Search Query forwarded to Apollo before pagination
+    console.log("[TEST 9] Testing Search + Filter: query='parekh satish' AND hasEmail=true...");
     await getUnifiedPeople({
-      query: "toyota",
+      query: "parekh satish",
       hasEmail: true,
     });
-    assert.ok(lastFetchedUrl.includes("q=toyota"));
+    assert.ok(lastFetchedUrl.includes("q=parekh+satish"));
     assert.ok(lastFetchedUrl.includes("hasEmail=true"));
     console.log("  ✓ Search query and filter forwarded to Apollo API\n");
+
+    // TEST 10: Search variants, clearing, Account filter, and search pagination.
+    for (const query of ["parekh", "satish"]) {
+      await getUnifiedPeople({ query, limit: 50, page: 1 });
+      assert.ok(lastFetchedUrl.includes(`q=${query}`));
+      assert.ok(lastFetchedUrl.includes("offset=0"));
+    }
+    await getUnifiedPeople({ limit: 50, page: 1 });
+    assert.ok(!lastFetchedUrl.includes("q="), "clearing search must omit q");
+    await getUnifiedPeople({
+      query: "parekh satish",
+      type: "Account",
+      company: "Saily",
+      limit: 50,
+      page: 1,
+    });
+    assert.ok(lastFetchedUrl.includes("/accounts"));
+    assert.ok(lastFetchedUrl.includes("q=parekh+satish"));
+    assert.ok(lastFetchedUrl.includes("company=Saily"));
+    await getUnifiedPeople({ query: "parekh satish", limit: 50, page: 2 });
+    assert.ok(lastFetchedUrl.includes("q=parekh+satish"));
+    assert.ok(lastFetchedUrl.includes("offset=50"));
+    console.log("  ✓ Search variants, clear, Account filter, and pagination are server-side\n");
 
   } finally {
     global.fetch = originalFetch;

@@ -363,6 +363,11 @@ export async function getUnifiedPeople(
     const targetUrl = type === "Account"
       ? `${ENRICHMENT_API_BASE}/accounts?${apiParams.toString()}`
       : `${ENRICHMENT_API_BASE}/contacts?${apiParams.toString()}`;
+    // Log only the final route and query, never the configured service origin
+    // (which may contain deployment-specific credentials).
+    const apolloRequestPathAndQuery = targetUrl.startsWith("/")
+      ? targetUrl
+      : targetUrl.replace(/^[a-z]+:\/\/[^/]+/i, "");
 
     let apolloResponse: Response;
     const requestStart = Date.now();
@@ -371,6 +376,7 @@ export async function getUnifiedPeople(
       page: currentPage,
       limit: pageLimit,
       offset,
+      finalPathAndQuery: apolloRequestPathAndQuery,
     });
     try {
       apolloResponse = await fetch(targetUrl, {

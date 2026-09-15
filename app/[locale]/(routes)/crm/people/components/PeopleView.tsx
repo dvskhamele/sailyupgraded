@@ -135,7 +135,9 @@ export default function PeopleView({
       params.set("page", String(targetPage));
 
       if (query.trim()) {
-        params.set("query", query.trim());
+        // Apollo's /contacts contract uses `q`; use that canonical name all
+        // the way through the browser request instead of relying on a proxy alias.
+        params.set("q", query.trim());
       }
       if (currentFilters.type && currentFilters.type !== "All") {
         params.set("type", currentFilters.type);
@@ -173,6 +175,13 @@ export default function PeopleView({
       if (currentFilters.hasCompany) {
         params.set("hasCompany", "true");
       }
+
+      console.info("[PEOPLE_SEARCH]", {
+        search: query.trim(),
+        page: targetPage,
+        limit: safePageSize,
+        offset: (targetPage - 1) * safePageSize,
+      });
 
       const res = await fetch(`/api/crm/people?${params.toString()}`);
       const result: GetPeopleResponse = await res.json();

@@ -13,7 +13,9 @@ export async function GET(req: NextRequest) {
     }
 
     const { searchParams } = new URL(req.url);
-    const query = searchParams.get("query") || searchParams.get("q") || "";
+    // `q` is the documented Apollo /contacts search parameter. Keep `query`
+    // as a backwards-compatible API alias, but always forward a single value.
+    const query = searchParams.get("q") || searchParams.get("query") || "";
     const typeParam = searchParams.get("type") || "All";
     const type = typeParam === "Account" || typeParam === "Contact" ? typeParam : "All";
     const page = Math.max(1, parseInt(searchParams.get("page") || "1", 10) || 1);
@@ -29,6 +31,13 @@ export async function GET(req: NextRequest) {
     const hasPhone = searchParams.get("hasPhone") === "true" ? true : undefined;
     const hasLinkedin = searchParams.get("hasLinkedin") === "true" ? true : undefined;
     const hasCompany = searchParams.get("hasCompany") === "true" ? true : undefined;
+
+    console.info("[PEOPLE_SEARCH]", {
+      search: query,
+      page,
+      limit,
+      offset: (page - 1) * limit,
+    });
 
     const result = await getUnifiedPeople({
       query,
