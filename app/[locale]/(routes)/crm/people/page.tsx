@@ -49,7 +49,7 @@ const PeoplePage = async ({ searchParams }: Props) => {
   const validHasLinkedin = hasLinkedinParam === "true" ? true : undefined;
   const validHasCompany = hasCompanyParam === "true" ? true : undefined;
   const validPage = Math.max(1, parseInt(typeof pageParam === "string" ? pageParam : "1", 10) || 1);
-  const validLimit = Math.min(1000, Math.max(1, parseInt(typeof limitParam === "string" ? limitParam : "50", 10) || 50));
+  const validLimit = Math.min(1000, Math.max(1, parseInt(typeof limitParam === "string" ? limitParam : "200", 10) || 200));
 
   const configuredEmailFrom = getEmailFromAddress();
   const defaultEmailFrom = isAllowedSmtp2GoSender(configuredEmailFrom)

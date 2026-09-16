@@ -51,7 +51,7 @@ export default function PeopleView({
   },
   initialTotal = 0,
   initialPage = 1,
-  initialLimit = 50,
+  initialLimit = 200,
   initialTotalPages = 1,
   initialError,
   initialQuery = "",
@@ -62,7 +62,7 @@ export default function PeopleView({
   const [data, setData] = React.useState<PeopleRecord[]>(initialData);
   const [total, setTotal] = React.useState<number | null>(initialTotal ?? null);
   const [page, setPage] = React.useState<number>(initialPage || 1);
-  const [pageSize, setPageSize] = React.useState<number>(initialLimit || 50);
+  const [pageSize, setPageSize] = React.useState<number>(initialLimit || 200);
   const [totalPages, setTotalPages] = React.useState<number>(
     initialTotalPages || 0
   );
@@ -75,6 +75,21 @@ export default function PeopleView({
   const [detailOpen, setDetailOpen] = React.useState(false);
   const [error, setError] = React.useState<string | null>(initialError || null);
 
+  // This runs after every initial page render, including server-rendered data,
+  // so Chrome DevTools can confirm what reached the client before interaction.
+  React.useEffect(() => {
+    console.info("[PEOPLE_UI_INITIAL_STATE]", {
+      source: "server-props",
+      initialRecords: initialData.length,
+      initialTotal: initialTotal ?? null,
+      initialPage: initialPage ?? 1,
+      initialLimit: initialLimit ?? null,
+      initialError: initialError || null,
+      queryPresent: Boolean(initialQuery?.trim()),
+      filterKeys: Object.entries(initialFilters || {}).filter(([, value]) => Boolean(value) && value !== "All").map(([key]) => key),
+    });
+  }, [initialData.length, initialError, initialFilters, initialLimit, initialPage, initialQuery, initialTotal]);
+
   // Synchronize when initial props update from server
   const [prevInitialData, setPrevInitialData] = React.useState(initialData);
   const [prevInitialError, setPrevInitialError] = React.useState(initialError);
@@ -85,7 +100,7 @@ export default function PeopleView({
     setData(initialData);
     setTotal(initialTotal ?? null);
     setPage(initialPage || 1);
-    setPageSize(initialLimit || 50);
+    setPageSize(initialLimit || 200);
     setTotalPages(
       initialTotalPages || 0
     );

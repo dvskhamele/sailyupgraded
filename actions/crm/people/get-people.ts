@@ -305,7 +305,7 @@ export async function getUnifiedPeople(
       query = "",
       type = "All",
       page = 1,
-      limit = 50,
+      limit = 200,
       country,
       state,
       city,

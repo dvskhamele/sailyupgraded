@@ -26,6 +26,50 @@ describe("GET /api/crm/people", () => {
     expect(body.error).toBe("Unauthorized");
   });
 
+  it("uses Apollo's 200-record default page size when no limit is supplied", async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      user: { id: "user-1", role: "admin" },
+    });
+    (getUnifiedPeople as jest.Mock).mockResolvedValue({
+      success: true,
+      source: "apollo",
+      data: [],
+      total: null,
+      page: 1,
+      limit: 200,
+    });
+
+    const res = await GET(new NextRequest("http://localhost:3000/api/crm/people"));
+
+    expect(res.status).toBe(200);
+    expect(getUnifiedPeople).toHaveBeenCalledWith(expect.objectContaining({
+      page: 1,
+      limit: 200,
+    }));
+  });
+
+  it("forwards the selected 200-record page size on page two", async () => {
+    (getSession as jest.Mock).mockResolvedValue({
+      user: { id: "user-1", role: "admin" },
+    });
+    (getUnifiedPeople as jest.Mock).mockResolvedValue({
+      success: true,
+      source: "apollo",
+      data: [],
+      total: null,
+      page: 2,
+      limit: 200,
+    });
+
+    const res = await GET(new NextRequest("http://localhost:3000/api/crm/people?page=2&limit=200"));
+
+    expect(res.status).toBe(200);
+    expect(getUnifiedPeople).toHaveBeenCalledWith(expect.objectContaining({
+      page: 2,
+      limit: 200,
+    }));
+  });
+
   it("proxies Apollo response with real total and source: 'apollo'", async () => {
     (getSession as jest.Mock).mockResolvedValue({
       user: { id: "user-1", role: "admin" },
