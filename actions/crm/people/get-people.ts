@@ -1,10 +1,7 @@
 "use server";
 
-import { readFile } from "node:fs/promises";
-import path from "node:path";
 import { getSession } from "@/lib/auth-server";
 import { serializeDecimals } from "@/lib/serialize-decimals";
-import apolloPeopleSnapshot from "@/data/apollo-people-snapshot.json";
 import type {
   PeopleRecord,
   GetPeopleParams,
@@ -17,7 +14,6 @@ import type {
 
 const ENRICHMENT_API_BASE = (process.env.ENRICHMENT_API_URL?.trim() || "").replace(/\/+$/, "");
 const MAX_PEOPLE_PAGE_SIZE = 1000;
-const STATIC_APOLLO_RECORDS = ((apolloPeopleSnapshot as { records?: PeopleRecord[] }).records || []);
 
 function extractApolloRecords(payload: unknown): any[] {
   if (Array.isArray(payload)) return payload;
@@ -97,104 +93,8 @@ function normalizeAccountId(val: unknown): string {
   return str;
 }
 
-function matchesStaticPeopleFilters(record: PeopleRecord, params: GetPeopleParams): boolean {
-  const query = params.query?.trim().toLocaleLowerCase() || "";
-  const includes = (value: unknown, needle?: string) => !needle || String(value || "").toLocaleLowerCase().includes(needle.toLocaleLowerCase());
-  const exact = (value: unknown, needle?: string) => !needle || String(value || "").trim().toLocaleLowerCase() === needle.trim().toLocaleLowerCase();
-  if (params.type && params.type !== "All" && record.type !== params.type) return false;
-  if (query && ![record.firstName, record.lastName, record.name, record.company, record.jobTitle, record.email].some((value) => includes(value, query))) return false;
-  if (!includes(record.country, params.country?.trim())) return false;
-  if (!includes(record.state, params.state?.trim())) return false;
-  if (!includes(record.city, params.city?.trim())) return false;
-  if (!includes(record.company, params.company?.trim())) return false;
-  if (!includes(record.jobTitle, params.jobTitle?.trim())) return false;
-  const requestedStatus = toApolloStatusFilter(params.status);
-  if (requestedStatus && toSailyStatus(record.status) !== toSailyStatus(requestedStatus)) return false;
-  if (params.role && params.role !== "All" && !exact(record.role, params.role)) return false;
-  if (params.hasEmail && !record.email) return false;
-  if (params.hasPhone && !record.phone && !record.mobilePhone) return false;
-  if (params.hasLinkedin && !record.socialLinkedin) return false;
-  if (params.hasCompany && !record.company) return false;
-  return true;
-}
-
-async function getChunkedApolloPeopleFallback(
-  params: GetPeopleParams,
-  page: number,
-  limit: number,
-  reason: string
-): Promise<GetPeopleResponse | null> {
-  const directory = path.join(process.cwd(), "data", "apollo-people");
-  try {
-    const manifest = JSON.parse(await readFile(path.join(directory, "manifest.json"), "utf8")) as { chunks?: number; uniqueRecords?: number; complete?: boolean };
-    if (!manifest.complete || !manifest.chunks) return null;
-
-    const offset = (page - 1) * limit;
-    const data: PeopleRecord[] = [];
-    let matchingRecords = 0;
-    let contacts = 0;
-    let accounts = 0;
-    for (let chunkIndex = 1; chunkIndex <= manifest.chunks; chunkIndex += 1) {
-      const chunkPath = path.join(directory, `part-${String(chunkIndex).padStart(6, "0")}.json`);
-      const chunk = JSON.parse(await readFile(chunkPath, "utf8")) as PeopleRecord[];
-      for (const record of chunk) {
-        if (!matchesStaticPeopleFilters(record, params)) continue;
-        if (record.type === "Account") accounts += 1;
-        if (record.type === "Contact") contacts += 1;
-        if (matchingRecords >= offset && data.length < limit) data.push(record);
-        matchingRecords += 1;
-      }
-    }
-    console.warn("[PEOPLE_STATIC_FALLBACK] Using chunked static Apollo People snapshot because production Apollo is unavailable.", {
-      reason,
-      recordsAvailable: manifest.uniqueRecords || 0,
-      recordsReturned: data.length,
-    });
-    return serializeDecimals({
-      success: true,
-      source: "apollo-static-snapshot",
-      data,
-      total: matchingRecords,
-      page,
-      limit,
-      totalPages: matchingRecords > 0 ? Math.ceil(matchingRecords / limit) : 0,
-      stats: { totalAccounts: accounts, totalContacts: contacts, totalRecords: matchingRecords },
-    });
-  } catch {
-    return null;
-  }
-}
-
-async function getStaticApolloPeopleFallback(
-  params: GetPeopleParams,
-  page: number,
-  limit: number,
-  reason: string
-): Promise<GetPeopleResponse> {
-  const chunkedResponse = await getChunkedApolloPeopleFallback(params, page, limit, reason);
-  if (chunkedResponse) return chunkedResponse;
-  const filtered = STATIC_APOLLO_RECORDS.filter((record) => matchesStaticPeopleFilters(record, params));
-  const offset = (page - 1) * limit;
-  const data = filtered.slice(offset, offset + limit);
-  console.warn("[PEOPLE_STATIC_FALLBACK] Using static Apollo People snapshot because production Apollo is unavailable.", {
-    reason,
-    recordsAvailable: STATIC_APOLLO_RECORDS.length,
-    recordsReturned: data.length,
-  });
-  return serializeDecimals({
-    success: true,
-    source: "apollo-static-snapshot",
-    data,
-    total: filtered.length,
-    page,
-    limit,
-    totalPages: filtered.length > 0 ? Math.ceil(filtered.length / limit) : 0,
-    stats: {
-      totalAccounts: filtered.filter((record) => record.type === "Account").length,
-      totalContacts: filtered.filter((record) => record.type === "Contact").length,
-      totalRecords: filtered.length,
-    },
-  });
+function apolloUnavailable(error: string): GetPeopleResponse {
+  return { success: false, data: [], total: 0, error };
 }
 
 function mapAccountToPeopleRecord(account: Record<string, any>): PeopleRecord | null {
@@ -513,7 +413,7 @@ export async function getUnifiedPeople(
         durationMs: Date.now() - requestStart,
       });
       console.error("[APOLLO_NETWORK_ERROR]", networkError?.message || networkError);
-      return await getStaticApolloPeopleFallback(params, currentPage, pageLimit, "network error");
+      return apolloUnavailable("Apollo API service is unavailable (network error)");
     }
 
     if (!apolloResponse.ok) {
@@ -531,7 +431,7 @@ export async function getUnifiedPeople(
         wwwAuthenticate: apolloResponse.headers.get("www-authenticate"),
         contentType: apolloResponse.headers.get("content-type"),
       });
-      return await getStaticApolloPeopleFallback(params, currentPage, pageLimit, `HTTP ${apolloResponse.status}`);
+      return apolloUnavailable(`Apollo API service is unavailable (HTTP ${apolloResponse.status})`);
     }
 
     let json: any;
@@ -539,7 +439,7 @@ export async function getUnifiedPeople(
       json = await apolloResponse.json();
     } catch (jsonErr: any) {
       console.error("[APOLLO_JSON_PARSE_ERROR]", jsonErr?.message || jsonErr);
-      return await getStaticApolloPeopleFallback(params, currentPage, pageLimit, "invalid JSON response");
+      return apolloUnavailable("Apollo API service returned invalid JSON");
     }
 
     let rawList: any[] = [];
@@ -656,9 +556,7 @@ export async function getUnifiedPeople(
     });
   } catch (error) {
     console.error("[GET_UNIFIED_PEOPLE_ERROR]", error);
-    const fallbackPage = Math.max(1, Number(params.page) || 1);
-    const fallbackLimit = Math.min(MAX_PEOPLE_PAGE_SIZE, Math.max(1, Number(params.limit) || 50));
-    return await getStaticApolloPeopleFallback(params, fallbackPage, fallbackLimit, error instanceof Error ? error.message : "Apollo unavailable");
+    return apolloUnavailable(error instanceof Error ? error.message : "Apollo API service is unavailable");
   }
 }
 

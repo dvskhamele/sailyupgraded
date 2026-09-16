@@ -42,7 +42,7 @@ async function runPeopleTests() {
   console.log("[TEST 2] Testing getUnifiedPeople data source and no fallback to local CRM...");
   const liveResult = await getUnifiedPeople({ limit: 50 });
   
-  assert.ok(["apollo", "apollo-static-snapshot"].includes(liveResult.source || ""), "Data source must be Apollo or the Apollo snapshot");
+  assert.ok(!liveResult.success || liveResult.source === "apollo", "Successful People results must come from Apollo");
   assert.notStrictEqual(liveResult.total, 7182, "Total MUST NEVER be 7,182 local CRM records");
   assert.notStrictEqual(liveResult.data.length, 7182, "Data count MUST NEVER be 7,182");
 
@@ -165,10 +165,10 @@ async function runPeopleTests() {
     };
 
     const failureResult = await getUnifiedPeople({ limit: 50 });
-    assert.strictEqual(failureResult.success, true);
-    assert.strictEqual(failureResult.source, "apollo-static-snapshot");
-    assert.notStrictEqual(failureResult.total, 7182, "Must NOT return local CRM records");
-    assert.ok(failureResult.data.length > 0, "Apollo snapshot must provide People records");
+    assert.strictEqual(failureResult.success, false);
+    assert.strictEqual(failureResult.total, 0);
+    assert.deepStrictEqual(failureResult.data, []);
+    assert.ok(failureResult.error?.includes("Apollo"));
     console.log("  ✓ Apollo failure explicitly reported without local CRM fallback\n");
 
   } finally {
