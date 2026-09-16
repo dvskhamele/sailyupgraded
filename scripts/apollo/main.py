@@ -452,16 +452,21 @@ def get_contact_filter_options(
     location_clauses: List[str] = []
     location_params: List[Any] = []
     if country and country.strip():
-        # Values originate from the option lists. Equality keeps the existing
-        # country/state/city indexes usable (unlike wrapping the column in LOWER).
-        location_clauses.append("country = %s")
-        location_params.append(country.strip())
+        # Keep dependent option scopes consistent with /contacts. Source values
+        # are not always normalized (for example, "Mumbai, India"), so exact
+        # equality here would hide values returned by country=India in /contacts.
+        country_value = country.strip()
+        if country_value.lower() in ["united states", "usa", "us"]:
+            location_clauses.append("country IN ('United States', 'USA', 'US', 'united states', 'usa')")
+        else:
+            location_clauses.append("country LIKE %s")
+            location_params.append(f"%{country_value}%")
     if state and state.strip():
-        location_clauses.append("state = %s")
-        location_params.append(state.strip())
+        location_clauses.append("state LIKE %s")
+        location_params.append(f"%{state.strip()}%")
     if city and city.strip():
-        location_clauses.append("city = %s")
-        location_params.append(city.strip())
+        location_clauses.append("city LIKE %s")
+        location_params.append(f"%{city.strip()}%")
 
     country_key = country.strip().casefold() if country and country.strip() else ""
     state_key = state.strip().casefold() if state and state.strip() else ""
