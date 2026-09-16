@@ -66,6 +66,8 @@ export interface GetPeopleParams extends PeopleFilterOptions {
   query?: string;
   page?: number;
   limit?: number;
+  /** Correlates browser, API-route, and Apollo logs. It is diagnostic-only. */
+  debugId?: string;
 }
 
 export interface GetPeopleResponse {

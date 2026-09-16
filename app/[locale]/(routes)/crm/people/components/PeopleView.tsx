@@ -126,7 +126,8 @@ export default function PeopleView({
     query = searchQuery,
     currentFilters = filters
   ) => {
-    const safePageSize = Math.min(1000, Math.max(1, targetPageSize));
+      const safePageSize = Math.min(1000, Math.max(1, targetPageSize));
+      const debugId = `people-ui-${Date.now().toString(36)}`;
     updateUrl(targetPage, safePageSize, query, currentFilters);
     setIsLoading(true);
     try {
@@ -177,6 +178,7 @@ export default function PeopleView({
       }
 
       console.info("[PEOPLE_FILTER_STATE]", {
+        debugId,
         search: query.trim(),
         type: currentFilters.type || "All",
         country: currentFilters.country || "",
@@ -188,8 +190,12 @@ export default function PeopleView({
         offset: (targetPage - 1) * safePageSize,
       });
 
-      const res = await fetch(`/api/crm/people?${params.toString()}`);
+      const requestPath = `/api/crm/people?${params.toString()}`;
+      const requestStartedAt = performance.now();
+      console.info("[PEOPLE_UI_REQUEST]", { debugId, path: "/api/crm/people", page: targetPage, limit: safePageSize, offset: (targetPage - 1) * safePageSize, queryPresent: Boolean(query.trim()), filterKeys: Array.from(params.keys()).filter((key) => !["page", "limit", "q"].includes(key)) });
+      const res = await fetch(requestPath, { headers: { "x-people-debug-id": debugId } });
       const result: GetPeopleResponse = await res.json();
+      console.info("[PEOPLE_UI_RESPONSE]", { debugId, status: res.status, ok: res.ok, success: result.success, source: result.source || null, records: Array.isArray(result.data) ? result.data.length : 0, total: result.total ?? null, page: result.page ?? targetPage, limit: result.limit ?? safePageSize, durationMs: Math.round(performance.now() - requestStartedAt), error: result.success ? null : (result.error || "Unknown error") });
       if (!res.ok || !result.success) {
         const errorMsg = result.error || "Apollo People data is currently unavailable.";
         setError(errorMsg);
@@ -221,7 +227,7 @@ export default function PeopleView({
         }
       }
     } catch (error) {
-      console.error("[FETCH_PEOPLE_ERROR]", error);
+      console.error("[FETCH_PEOPLE_ERROR]", { error, page: targetPage, limit: safePageSize });
       const errorMsg = "Apollo People data is currently unavailable.";
       setError(errorMsg);
       setData([]);

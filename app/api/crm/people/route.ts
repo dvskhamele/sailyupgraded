@@ -7,8 +7,10 @@ export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
+    const debugId = req.headers.get("x-people-debug-id") || `people-api-${Date.now().toString(36)}`;
     const session = await getSession();
     if (!session) {
+      console.warn("[PEOPLE_API_REQUEST]", { debugId, status: 401, reason: "missing-session" });
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
@@ -31,6 +33,17 @@ export async function GET(req: NextRequest) {
     const hasPhone = searchParams.get("hasPhone") === "true" ? true : undefined;
     const hasLinkedin = searchParams.get("hasLinkedin") === "true" ? true : undefined;
     const hasCompany = searchParams.get("hasCompany") === "true" ? true : undefined;
+
+    console.info("[PEOPLE_API_REQUEST]", {
+      debugId,
+      path: "/api/crm/people",
+      page,
+      limit,
+      offset: (page - 1) * limit,
+      queryPresent: Boolean(query),
+      queryLength: query.length,
+      filterKeys: ["country", "state", "city", "company", "jobTitle", "status", "role", "hasEmail", "hasPhone", "hasLinkedin", "hasCompany"].filter((key) => searchParams.has(key)),
+    });
 
     console.info("[PEOPLE_SEARCH]", {
       search: query,
@@ -55,9 +68,11 @@ export async function GET(req: NextRequest) {
       hasPhone,
       hasLinkedin,
       hasCompany,
+      debugId,
     });
 
     if (!result.success) {
+      console.error("[PEOPLE_API_RESPONSE]", { debugId, status: 503, success: false, error: result.error || "Apollo unavailable" });
       return NextResponse.json(
         {
           success: false,
@@ -73,6 +88,7 @@ export async function GET(req: NextRequest) {
       );
     }
 
+    console.info("[PEOPLE_API_RESPONSE]", { debugId, status: 200, success: true, source: result.source, records: result.data.length, total: result.total, page: result.page || page, limit: result.limit || limit });
     return NextResponse.json({
       success: true,
       source: "apollo",

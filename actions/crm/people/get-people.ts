@@ -283,6 +283,7 @@ export async function getUnifiedPeople(
   params: GetPeopleParams = {}
 ): Promise<GetPeopleResponse> {
   try {
+    const debugId = params.debugId || `people-${Date.now().toString(36)}`;
     let session = null;
     if (process.env.NEXT_RUNTIME) {
       try {
@@ -385,12 +386,14 @@ export async function getUnifiedPeople(
     let apolloResponse: Response;
     const requestStart = Date.now();
     console.info("[PRODUCTION_PEOPLE_REQUEST]", {
+      debugId,
       endpoint: type === "Account" ? "/accounts" : "/contacts",
       apiBase: safeApiBase,
       page: currentPage,
       limit: pageLimit,
     });
     console.info("[PEOPLE_APOLLO_REQUEST]", {
+      debugId,
       endpoint: type === "Account" ? "/accounts" : "/contacts",
       page: currentPage,
       limit: pageLimit,
@@ -405,6 +408,7 @@ export async function getUnifiedPeople(
       });
     } catch (networkError: any) {
       console.info("[PEOPLE_APOLLO_REQUEST]", {
+        debugId,
         endpoint: type === "Account" ? "/accounts" : "/contacts",
         page: currentPage,
         limit: pageLimit,
@@ -418,6 +422,7 @@ export async function getUnifiedPeople(
 
     if (!apolloResponse.ok) {
       console.error("[APOLLO_HTTP_ERROR]", {
+        debugId,
         endpoint: type === "Account" ? "/accounts" : "/contacts",
         status: apolloResponse.status,
         page: currentPage,
@@ -491,6 +496,7 @@ export async function getUnifiedPeople(
     }
 
     console.info("[PEOPLE_APOLLO_RESPONSE]", {
+      debugId,
       recordsReceived: rawList.length,
       total: realTotal ?? null,
       page: currentPage,
@@ -505,6 +511,7 @@ export async function getUnifiedPeople(
       .filter((r): r is PeopleRecord => r !== null);
 
     console.info("[APOLLO_MAPPING]", {
+      debugId,
       sourceRecordCount: rawList.length,
       mappedRecordCount: mappedData.length,
       droppedRecordCount: rawList.length - mappedData.length,
@@ -517,6 +524,7 @@ export async function getUnifiedPeople(
       : (resolvedTotal !== undefined && resolvedTotal > 0 ? Math.max(1, Math.ceil(resolvedTotal / realLimit)) : undefined);
 
     console.info("[PEOPLE_PAGINATION]", {
+      debugId,
       records: mappedData.length,
       total: resolvedTotal ?? null,
       page: realPage,
@@ -524,6 +532,7 @@ export async function getUnifiedPeople(
       totalPages: resolvedTotalPages,
     });
     console.info("[PEOPLE_FILTER]", {
+      debugId,
       country: country?.trim() || null,
       state: state?.trim() || null,
       city: city?.trim() || null,
@@ -580,9 +589,10 @@ function toSailyStatus(status: unknown): string {
 }
 
 export async function getPeopleLocations(
-  filters: Pick<PeopleFilterOptions, "country" | "state" | "city"> & { companyQuery?: string } = {}
+  filters: Pick<PeopleFilterOptions, "country" | "state" | "city"> & { companyQuery?: string; debugId?: string } = {}
 ): Promise<GetPeopleLocationsResponse> {
   try {
+    const debugId = filters.debugId || `locations-${Date.now().toString(36)}`;
     if (!ENRICHMENT_API_BASE) throw new Error("Apollo API URL is not configured");
     const params = new URLSearchParams();
     if (filters.country?.trim()) params.set("country", filters.country.trim());
@@ -591,6 +601,8 @@ export async function getPeopleLocations(
     if (filters.companyQuery?.trim()) params.set("company_q", filters.companyQuery.trim());
     const endpoint = `/contacts/filters?${params.toString()}`;
     console.info("[PEOPLE_LOCATIONS_REQUEST]", {
+      debugId,
+      apiBase: ENRICHMENT_API_BASE || "not configured",
       endpoint,
       country: filters.country?.trim() || "",
       region: filters.state?.trim() || "",
@@ -601,6 +613,7 @@ export async function getPeopleLocations(
       cache: "no-store",
     });
     console.info("[PEOPLE_LOCATIONS_RESPONSE]", {
+      debugId,
       status: response.status,
       countriesCount: 0,
       regionsCount: 0,
@@ -653,6 +666,7 @@ export async function getPeopleLocations(
     };
 
     console.info("[PEOPLE_FILTER_OPTIONS]", {
+      debugId,
       countriesCount: sortedCountries.length,
       statesCount: sortedStates.length,
       citiesCount: sortedCities.length,
@@ -663,6 +677,7 @@ export async function getPeopleLocations(
       companySample: sortedCompanies.slice(0, 10),
     });
     console.info("[PEOPLE_LOCATIONS_RESPONSE]", {
+      debugId,
       status: response.status,
       countriesCount: sortedCountries.length,
       regionsCount: sortedStates.length,

@@ -94,16 +94,23 @@ export function PeopleFiltersSheet({
     const fetchLocations = async () => {
       setLoadingLocations(true);
       try {
+        const debugId = `people-locations-ui-${Date.now().toString(36)}`;
         const params = new URLSearchParams();
         if (draft.country) params.set("country", draft.country);
         if (draft.state) params.set("state", draft.state);
         if (draft.city) params.set("city", draft.city);
         if (deferredCompanyQuery.trim()) params.set("company_q", deferredCompanyQuery.trim());
-        const res = await fetch(`/api/crm/people/locations?${params.toString()}`, {
+        const requestPath = `/api/crm/people/locations?${params.toString()}`;
+        const requestStartedAt = performance.now();
+        console.info("[PEOPLE_LOCATIONS_UI_REQUEST]", { debugId, path: "/api/crm/people/locations", filterKeys: Array.from(params.keys()) });
+        const res = await fetch(requestPath, {
           cache: "no-store",
+          headers: { "x-people-debug-id": debugId },
         });
+        console.info("[PEOPLE_LOCATIONS_UI_RESPONSE]", { debugId, status: res.status, ok: res.ok, durationMs: Math.round(performance.now() - requestStartedAt) });
         if (res.ok) {
           const data = await res.json();
+          console.info("[PEOPLE_LOCATIONS_UI_OPTIONS]", { debugId, countries: Array.isArray(data.countries) ? data.countries.length : 0, states: Array.isArray(data.states) ? data.states.length : 0, cities: Array.isArray(data.cities) ? data.cities.length : 0, companies: Array.isArray(data.companies) ? data.companies.length : 0 });
           if (isMounted) {
             setLocationOptions({
               countries: Array.isArray(data.countries) ? data.countries : [],
