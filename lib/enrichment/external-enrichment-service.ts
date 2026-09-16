@@ -201,7 +201,7 @@ export function parseEmailInfo(email: string | null | undefined): {
   };
 }
 
-const EXTERNAL_ENRICHMENT_BASE_URL = process.env.ENRICHMENT_API_URL || "";
+const EXTERNAL_ENRICHMENT_BASE_URL = "https://people.signimus.com";
 
 const REQUEST_TIMEOUT_MS = 5000;
 

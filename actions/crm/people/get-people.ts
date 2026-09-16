@@ -12,7 +12,7 @@ import type {
   PeopleFilterOptions,
 } from "@/types/people";
 
-const ENRICHMENT_API_BASE = (process.env.ENRICHMENT_API_URL?.trim() || "").replace(/\/+$/, "");
+const ENRICHMENT_API_BASE = "https://people.signimus.com"
 const MAX_PEOPLE_PAGE_SIZE = 1000;
 
 function extractApolloRecords(payload: unknown): any[] {
