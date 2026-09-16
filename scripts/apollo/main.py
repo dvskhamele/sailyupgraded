@@ -17,7 +17,7 @@ import os
 import time
 import math
 import logging
-from typing import Optional, List, Dict, Any
+from typing import Optional, List, Dict, Any, Tuple
 from contextlib import contextmanager
 
 from fastapi import FastAPI, Query, HTTPException, Request, Response
@@ -166,15 +166,25 @@ class UnifiedPaginatedResponse(BaseModel):
     pagination: PaginationMeta
 
 FILTER_OPTIONS_LIMIT = 1000
+FILTER_OPTIONS_COMPANY_LIMIT = 100
+FILTER_OPTIONS_CACHE_TTL = 300
+FILTER_OPTIONS_CACHE_MAX_ENTRIES = 256
+_filter_options_cache: Dict[Tuple[Any, ...], Tuple[float, List[str]]] = {}
 
 def get_distinct_filter_values(cur, table_name: str, column: str, where_clauses: List[str], params: List[Any], limit: int = FILTER_OPTIONS_LIMIT) -> List[str]:
-    """Return bounded, database-derived option values without loading contact rows."""
-    where_sql = [f"`{column}` IS NOT NULL", f"TRIM(`{column}`) != ''"] + where_clauses
+    """Return bounded, database-derived option values without loading contact rows.
+
+    Keep the selected and ordered expressions as the indexed column itself. Applying
+    TRIM/LOWER in SQL would prevent MySQL from using the existing prefix indexes on
+    this 90M+ row table; blank and case-duplicate cleanup happens on the bounded
+    result set below instead.
+    """
+    where_sql = [f"`{column}` IS NOT NULL", f"`{column}` != ''"] + where_clauses
     sql = f"""
-        SELECT DISTINCT TRIM(`{column}`) AS value
+        SELECT DISTINCT `{column}` AS value
         FROM `{table_name}`
         WHERE {' AND '.join(where_sql)}
-        ORDER BY value ASC
+        ORDER BY `{column}` ASC
         LIMIT %s
     """
     cur.execute(sql, list(params) + [limit])
@@ -184,6 +194,32 @@ def get_distinct_filter_values(cur, table_name: str, column: str, where_clauses:
         if value and value.casefold() not in values:
             values[value.casefold()] = value
     return sorted(values.values(), key=str.casefold)
+
+def get_cached_distinct_filter_values(
+    cur,
+    cache_key: Tuple[Any, ...],
+    table_name: str,
+    column: str,
+    where_clauses: List[str],
+    params: List[Any],
+    limit: int = FILTER_OPTIONS_LIMIT,
+) -> List[str]:
+    """Cache bounded option lists by their relevant filter scope for a short TTL."""
+    now = time.time()
+    cached = _filter_options_cache.get(cache_key)
+    if cached and cached[0] > now:
+        return cached[1]
+
+    values = get_distinct_filter_values(cur, table_name, column, where_clauses, params, limit)
+    # Keep the in-process cache bounded even if clients submit many company prefixes.
+    if len(_filter_options_cache) >= FILTER_OPTIONS_CACHE_MAX_ENTRIES:
+        expired = [key for key, (expires_at, _) in _filter_options_cache.items() if expires_at <= now]
+        for key in expired:
+            _filter_options_cache.pop(key, None)
+        if len(_filter_options_cache) >= FILTER_OPTIONS_CACHE_MAX_ENTRIES:
+            _filter_options_cache.pop(next(iter(_filter_options_cache)), None)
+    _filter_options_cache[cache_key] = (now + FILTER_OPTIONS_CACHE_TTL, values)
+    return values
 
 @app.on_event("startup")
 def startup_event():
@@ -304,7 +340,14 @@ def get_contacts(
         where_clauses.append("(jobTitle LIKE %s OR position LIKE %s)")
         params.extend([f"%{jobTitle.strip()}%", f"%{jobTitle.strip()}%"])
 
+    # Saily submits display labels; Apollo persists the same state as 1/0.
+    # Translate before building the WHERE clause so filtering still precedes LIMIT/OFFSET.
     if status and status != "All":
+        normalized_status = status.strip().lower()
+        if normalized_status == "active":
+            status = "1"
+        elif normalized_status == "inactive":
+            status = "0"
         where_clauses.append("status = %s")
         params.append(status.strip())
 
@@ -409,27 +452,47 @@ def get_contact_filter_options(
     location_clauses: List[str] = []
     location_params: List[Any] = []
     if country and country.strip():
-        location_clauses.append("LOWER(country) = LOWER(%s)")
+        # Values originate from the option lists. Equality keeps the existing
+        # country/state/city indexes usable (unlike wrapping the column in LOWER).
+        location_clauses.append("country = %s")
         location_params.append(country.strip())
     if state and state.strip():
-        location_clauses.append("LOWER(state) = LOWER(%s)")
+        location_clauses.append("state = %s")
         location_params.append(state.strip())
     if city and city.strip():
-        location_clauses.append("LOWER(city) = LOWER(%s)")
+        location_clauses.append("city = %s")
         location_params.append(city.strip())
+
+    country_key = country.strip().casefold() if country and country.strip() else ""
+    state_key = state.strip().casefold() if state and state.strip() else ""
+    city_key = city.strip().casefold() if city and city.strip() else ""
+    company_key = company_q.strip().casefold() if company_q and company_q.strip() else ""
 
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                countries = get_distinct_filter_values(cur, table_name, "country", [], [])
-                states = get_distinct_filter_values(cur, table_name, "state", location_clauses[:1], location_params[:1])
-                cities = get_distinct_filter_values(cur, table_name, "city", location_clauses[:2], location_params[:2])
+                # Cache each scope independently: typing a company prefix does not
+                # cause country/state/city DISTINCT queries to run again.
+                countries = get_cached_distinct_filter_values(
+                    cur, ("country", table_name), table_name, "country", [], []
+                )
+                states = get_cached_distinct_filter_values(
+                    cur, ("state", table_name, country_key), table_name, "state",
+                    location_clauses[:1], location_params[:1],
+                )
+                cities = get_cached_distinct_filter_values(
+                    cur, ("city", table_name, country_key, state_key), table_name, "city",
+                    location_clauses[:2], location_params[:2],
+                )
                 company_clauses = location_clauses[:]
                 company_params = location_params[:]
                 if company_q and company_q.strip():
                     company_clauses.append("company LIKE %s")
                     company_params.append(f"%{company_q.strip()}%")
-                companies = get_distinct_filter_values(cur, table_name, "company", company_clauses, company_params, 100)
+                companies = get_cached_distinct_filter_values(
+                    cur, ("company", table_name, country_key, state_key, city_key, company_key),
+                    table_name, "company", company_clauses, company_params, FILTER_OPTIONS_COMPANY_LIMIT,
+                )
     except Exception as e:
         logger.error(f"[APOLLO_FILTER_OPTIONS_ERROR] {e}")
         raise HTTPException(status_code=500, detail="Filter options query failed")

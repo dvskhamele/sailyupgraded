@@ -21,6 +21,8 @@ import { getUnifiedPeople, getPeopleLocations } from "../../actions/crm/people/g
 async function runFilterTests() {
   console.log("=== Starting Comprehensive People Filter Test Suite ===\n");
 
+  // This live smoke test is opt-in; the deterministic contract test runs below.
+  if (process.env.RUN_LIVE_APOLLO_FILTER_TESTS === "true") {
   // TEST 1: Dynamic People Locations Aggregation
   console.log("[TEST 1] Testing Dynamic Locations Aggregation (getPeopleLocations)...");
   const locsResult = await getPeopleLocations();
@@ -39,6 +41,8 @@ async function runFilterTests() {
   assert.deepStrictEqual(labels, sortedLabels, "Locations must be sorted alphabetically");
   console.log("  ✓ Dynamic locations aggregation, deduplication, and alphabetical sorting verified\n");
 
+  }
+
   // Mock Apollo contacts dataset to test filter logic without external network dependence
   const originalFetch = global.fetch;
   let lastFetchedUrl = "";
@@ -56,6 +60,7 @@ async function runFilterTests() {
       city: "Torrance",
       state: "CA",
       country: "United States",
+      status: "1",
     },
     {
       id: "c2",
@@ -70,6 +75,15 @@ async function runFilterTests() {
       city: "Los Angeles",
       state: "CA",
       country: "United States",
+      status: "0",
+    },
+    {
+      id: "c3", first_name: "Priya", last_name: "Shah", company: "Saily", jobTitle: "Director",
+      email: "priya@saily.com", city: "Mumbai", state: "Maharashtra", country: "India", status: "1",
+    },
+    {
+      id: "c4", first_name: "Alex", last_name: "Chen", company: "Saily", jobTitle: "Director",
+      email: "alex@saily.com", city: "Mumbai", state: "Maharashtra", country: "India", status: "0",
     },
   ];
 
@@ -91,19 +105,39 @@ async function runFilterTests() {
     global.fetch = async (url: string | URL | Request) => {
       lastFetchedUrl = String(url);
       const urlStr = String(url);
+      const requestUrl = new URL(urlStr);
+      if (requestUrl.pathname.endsWith("/contacts/filters")) {
+        return {
+          ok: true,
+          status: 200,
+          headers: new Headers(),
+          json: async () => ({
+            countries: ["India", "United States"],
+            states: ["CA", "Maharashtra"],
+            cities: ["Los Angeles", "Mumbai", "Torrance"],
+            companies: ["Cyberdyne Systems", "Saily", "Toyota Motor"],
+          }),
+        } as Response;
+      }
       const isAccount = urlStr.includes("/accounts");
-      const data = isAccount ? mockAccounts : mockContacts;
+      const status = requestUrl.searchParams.get("status");
+      const filtered = isAccount
+        ? mockAccounts
+        : mockContacts.filter((contact) => !status || contact.status === status);
+      const offset = Number(requestUrl.searchParams.get("offset") || "0");
+      const limit = Number(requestUrl.searchParams.get("limit") || "50");
+      const data = filtered.slice(offset, offset + limit);
       return {
         ok: true,
         status: 200,
-        headers: new Headers({ "x-total-count": String(data.length) }),
+        headers: new Headers({ "x-total-count": String(filtered.length) }),
         json: async () => ({
           success: true,
           data,
-          total: data.length,
-          page: 1,
-          limit: 50,
-          totalPages: 1,
+          total: filtered.length,
+          page: Number(requestUrl.searchParams.get("page") || "1"),
+          limit,
+          totalPages: Math.ceil(filtered.length / limit),
         }),
       } as Response;
     };
@@ -196,6 +230,37 @@ async function runFilterTests() {
     assert.ok(lastFetchedUrl.includes("offset=50"));
     console.log("  ✓ Search variants, clear, Account filter, and pagination are server-side\n");
 
+    // TEST 11: Filter option contract is populated from Apollo's bounded metadata endpoint.
+    const options = await getPeopleLocations({ country: "India", state: "Maharashtra", companyQuery: "Saily" });
+    assert.strictEqual(options.success, true);
+    assert.deepStrictEqual(options.countries, ["India", "United States"]);
+    assert.deepStrictEqual(options.states, ["CA", "Maharashtra"]);
+    assert.deepStrictEqual(options.cities, ["Los Angeles", "Mumbai", "Torrance"]);
+    assert.deepStrictEqual(options.companies, ["Cyberdyne Systems", "Saily", "Toyota Motor"]);
+    const locationValues = options.locations.map((location) => location.value.toLowerCase().trim());
+    assert.strictEqual(new Set(locationValues).size, locationValues.length, "locations must be deduplicated");
+    const labels = options.locations.map((location) => location.label);
+    assert.deepStrictEqual(labels, [...labels].sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" })));
+    assert.ok(lastFetchedUrl.includes("/contacts/filters"));
+    assert.ok(lastFetchedUrl.includes("country=India"));
+    assert.ok(lastFetchedUrl.includes("state=Maharashtra"));
+    assert.ok(lastFetchedUrl.includes("company_q=Saily"));
+    console.log("  ✓ Filter option contract populates all four dropdowns\n");
+
+    // TEST 12: UI labels translate to Apollo's numeric flags before pagination,
+    // and numeric flags translate back to the expected label on every page.
+    for (const [label, raw] of [["Active", "1"], ["Inactive", "0"]] as const) {
+      for (const page of [1, 2]) {
+        const result = await getUnifiedPeople({ status: label, country: "India", limit: 1, page });
+        assert.ok(lastFetchedUrl.includes(`status=${raw}`), `${label} must use Apollo status ${raw}`);
+        assert.ok(lastFetchedUrl.includes("country=India"), "country filter must persist across pages");
+        assert.ok(lastFetchedUrl.includes(`page=${page}`));
+        assert.ok(lastFetchedUrl.includes(`offset=${page - 1}`));
+        assert.strictEqual(result.data.length, 1);
+        assert.strictEqual(result.data[0].status, label);
+      }
+    }
+    console.log("  ✓ Active/Inactive mapping and page 1/page 2 filter persistence verified\n");
   } finally {
     global.fetch = originalFetch;
   }

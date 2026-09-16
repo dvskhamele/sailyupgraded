@@ -79,6 +79,7 @@ export function PeopleFiltersSheet({
   const [locationPopoverOpen, setLocationPopoverOpen] = React.useState(false);
   const [companyPopoverOpen, setCompanyPopoverOpen] = React.useState(false);
   const [companyQuery, setCompanyQuery] = React.useState("");
+  const deferredCompanyQuery = React.useDeferredValue(companyQuery);
 
   // Sync draft when filters change
   React.useEffect(() => {
@@ -97,7 +98,7 @@ export function PeopleFiltersSheet({
         if (draft.country) params.set("country", draft.country);
         if (draft.state) params.set("state", draft.state);
         if (draft.city) params.set("city", draft.city);
-        if (companyQuery.trim()) params.set("company_q", companyQuery.trim());
+        if (deferredCompanyQuery.trim()) params.set("company_q", deferredCompanyQuery.trim());
         const res = await fetch(`/api/crm/people/locations?${params.toString()}`, {
           cache: "no-store",
         });
@@ -127,7 +128,7 @@ export function PeopleFiltersSheet({
     return () => {
       isMounted = false;
     };
-  }, [open, draft.country, draft.state, draft.city, companyQuery]);
+  }, [open, draft.country, draft.state, draft.city, deferredCompanyQuery]);
 
   const scopedStates = React.useMemo(() => {
     return locationOptions.states;

@@ -108,7 +108,8 @@ function matchesStaticPeopleFilters(record: PeopleRecord, params: GetPeopleParam
   if (!includes(record.city, params.city?.trim())) return false;
   if (!includes(record.company, params.company?.trim())) return false;
   if (!includes(record.jobTitle, params.jobTitle?.trim())) return false;
-  if (params.status && params.status !== "All" && !exact(record.status, params.status)) return false;
+  const requestedStatus = toApolloStatusFilter(params.status);
+  if (requestedStatus && toSailyStatus(record.status) !== toSailyStatus(requestedStatus)) return false;
   if (params.role && params.role !== "All" && !exact(record.role, params.role)) return false;
   if (params.hasEmail && !record.email) return false;
   if (params.hasPhone && !record.phone && !record.mobilePhone) return false;
@@ -223,7 +224,7 @@ function mapAccountToPeopleRecord(account: Record<string, any>): PeopleRecord | 
     state: cleanString(account.state || account.billing_state),
     country: cleanString(account.country || account.billing_country),
     postalCode: cleanString(account.postal_code || account.billing_postal_code),
-    status: cleanString(account.status) || "Active",
+    status: toSailyStatus(account.status),
     description: cleanString(account.description),
     createdAt: cleanString(account.createdAt || account.created_on),
     updatedAt: cleanString(account.updatedAt),
@@ -368,7 +369,7 @@ function mapContactToPeopleRecord(contact: Record<string, any>): PeopleRecord | 
     country: cleanString(contact.country || contact.person_country),
     postalCode: cleanString(contact.postal_code || contact.post_code),
     accountsIDs: normalizeAccountId(contact.accountsIDs),
-    status: contact.status === "1" ? "Active" : (cleanString(contact.status) || "Active"),
+    status: toSailyStatus(contact.status),
     tags: cleanString(contact.tags),
     notes: cleanString(contact.notes),
     description: cleanString(contact.description),
@@ -445,8 +446,9 @@ export async function getUnifiedPeople(
     if (jobTitle?.trim()) {
       apiParams.set("jobTitle", jobTitle.trim());
     }
-    if (status && status !== "All") {
-      apiParams.set("status", status.trim());
+    const apolloStatus = toApolloStatusFilter(status);
+    if (apolloStatus) {
+      apiParams.set("status", apolloStatus);
     }
     if (role && role !== "All") {
       apiParams.set("role", role.trim());
@@ -661,6 +663,23 @@ export async function getUnifiedPeople(
 }
 
 const FILTER_OPTIONS_REQUEST_TIMEOUT_MS = 5000;
+
+/** Apollo persists contact status as a numeric flag, while the People UI uses labels. */
+function toApolloStatusFilter(status?: string): string | undefined {
+  const trimmed = status?.trim();
+  const normalized = trimmed?.toLocaleLowerCase();
+  if (!normalized || normalized === "all") return undefined;
+  if (normalized === "active") return "1";
+  if (normalized === "inactive") return "0";
+  return trimmed;
+}
+
+function toSailyStatus(status: unknown): string {
+  const normalized = cleanString(status).toLocaleLowerCase();
+  if (normalized === "1" || normalized === "active" || normalized === "true") return "Active";
+  if (normalized === "0" || normalized === "inactive" || normalized === "false") return "Inactive";
+  return cleanString(status) || "Active";
+}
 
 export async function getPeopleLocations(
   filters: Pick<PeopleFilterOptions, "country" | "state" | "city"> & { companyQuery?: string } = {}
