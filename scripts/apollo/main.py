@@ -17,6 +17,7 @@ import os
 import time
 import math
 import logging
+import re
 from typing import Optional, List, Dict, Any, Tuple
 from contextlib import contextmanager
 
@@ -171,6 +172,53 @@ FILTER_OPTIONS_CACHE_TTL = 300
 FILTER_OPTIONS_CACHE_MAX_ENTRIES = 256
 _filter_options_cache: Dict[Tuple[Any, ...], Tuple[float, List[str]]] = {}
 
+# The contacts table is very large.  Keep a small cache of the *leading*
+# columns of installed indexes so query construction never guesses that a
+# column is searchable.  SHOW INDEX is metadata-only; it does not read contact
+# rows.  A prefix predicate (value%) can use a B-tree whose leading column is
+# the predicate column, while %value% cannot.
+INDEX_METADATA_CACHE_TTL = 300
+_indexed_columns_cache: Dict[str, Tuple[float, set[str]]] = {}
+_SAFE_IDENTIFIER = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
+
+class UnsafeContactQuery(ValueError):
+    """A requested predicate has no verified index and would scan contacts."""
+
+
+def get_leading_indexed_columns(cur, table_name: str) -> set[str]:
+    if not _SAFE_IDENTIFIER.match(table_name):
+        raise UnsafeContactQuery("Invalid contacts table name")
+    now = time.time()
+    cached = _indexed_columns_cache.get(table_name)
+    if cached and cached[0] > now:
+        return cached[1]
+
+    cur.execute(f"SHOW INDEX FROM `{table_name}`")
+    columns = {
+        str(row.get("Column_name"))
+        for row in (cur.fetchall() or [])
+        if int(row.get("Seq_in_index") or 0) == 1 and row.get("Column_name")
+    }
+    _indexed_columns_cache[table_name] = (now + INDEX_METADATA_CACHE_TTL, columns)
+    return columns
+
+
+def require_indexed_column(indexed_columns: set[str], column: str, parameter: str) -> None:
+    if column not in indexed_columns:
+        raise UnsafeContactQuery(
+            f"{parameter} is temporarily unavailable because `{column}` has no verified leading index"
+        )
+
+
+def add_indexed_prefix_filter(
+    where_clauses: List[str], params: List[Any], indexed_columns: set[str], column: str, value: str, parameter: str
+) -> None:
+    """Add a case-insensitive (under the table's normal CI collation) indexable prefix filter."""
+    require_indexed_column(indexed_columns, column, parameter)
+    where_clauses.append(f"`{column}` LIKE %s")
+    params.append(f"{value}%")
+
 def get_distinct_filter_values(cur, table_name: str, column: str, where_clauses: List[str], params: List[Any], limit: int = FILTER_OPTIONS_LIMIT) -> List[str]:
     """Return bounded, database-derived option values without loading contact rows.
 
@@ -275,7 +323,7 @@ def get_stats():
 @app.get("/contacts")
 def get_contacts(
     response: Response,
-    limit: int = Query(default=50, ge=1, le=500),
+    limit: int = Query(default=200, ge=1, le=1000),
     offset: int = Query(default=0, ge=0),
     page: int = Query(default=1, ge=1),
     q: Optional[str] = Query(default=None),
@@ -304,75 +352,12 @@ def get_contacts(
         f"country={country} state={state} city={city} company={company} jobTitle={jobTitle} q={q}"
     )
 
-    where_clauses = []
-    params = []
+    where_clauses: List[str] = []
+    params: List[Any] = []
 
-    # Free-text search across indexed candidate columns
-    if q and q.strip():
-        search_term = f"%{q.strip()}%"
-        where_clauses.append(
-            "(first_name LIKE %s OR last_name LIKE %s OR company LIKE %s OR jobTitle LIKE %s OR email LIKE %s)"
-        )
-        params.extend([search_term, search_term, search_term, search_term, search_term])
-
-    # Structured filters
-    if country and country.strip():
-        c = country.strip()
-        if c.lower() in ["united states", "usa", "us"]:
-            where_clauses.append("country IN ('United States', 'USA', 'US', 'united states', 'usa')")
-        else:
-            where_clauses.append("country LIKE %s")
-            params.append(f"%{c}%")
-
-    if state and state.strip():
-        where_clauses.append("state LIKE %s")
-        params.append(f"%{state.strip()}%")
-
-    if city and city.strip():
-        where_clauses.append("city LIKE %s")
-        params.append(f"%{city.strip()}%")
-
-    if company and company.strip():
-        where_clauses.append("company LIKE %s")
-        params.append(f"%{company.strip()}%")
-
-    if jobTitle and jobTitle.strip():
-        where_clauses.append("(jobTitle LIKE %s OR position LIKE %s)")
-        params.extend([f"%{jobTitle.strip()}%", f"%{jobTitle.strip()}%"])
-
-    # Saily submits display labels; Apollo persists the same state as 1/0.
-    # Translate before building the WHERE clause so filtering still precedes LIMIT/OFFSET.
-    if status and status != "All":
-        normalized_status = status.strip().lower()
-        if normalized_status == "active":
-            status = "1"
-        elif normalized_status == "inactive":
-            status = "0"
-        where_clauses.append("status = %s")
-        params.append(status.strip())
-
-    if role and role != "All":
-        where_clauses.append("role = %s")
-        params.append(role.strip())
-
-    if hasEmail is True:
-        where_clauses.append("email IS NOT NULL AND email != '' AND email LIKE '%@%'")
-
-    if hasPhone is True:
-        where_clauses.append(
-            "(phone IS NOT NULL AND phone != '' AND phone NOT IN ('Unavailable', 'None', 'entry')) OR "
-            "(mobile_phone IS NOT NULL AND mobile_phone != '')"
-        )
-
-    if hasLinkedin is True:
-        where_clauses.append("social_linkedin IS NOT NULL AND social_linkedin != ''")
-
-    if hasCompany is True:
-        where_clauses.append("company IS NOT NULL AND company != ''")
-
-    where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
-
-    # Database query execution
+    # Database query execution.  Construct predicates only after looking up
+    # installed indexes: the deployed schema, rather than a migration file,
+    # is the source of truth.
     query_start = time.time()
     records = []
     has_filters = len(where_clauses) > 0
@@ -380,7 +365,84 @@ def get_contacts(
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
-                # 1. Fetch paginated data
+                indexed_columns = get_leading_indexed_columns(cur, table_name)
+
+                # Search uses exact email first (when q is an email), otherwise
+                # indexable prefixes.  This deliberately does not use %q%:
+                # leading wildcards across 90M contacts caused multi-second
+                # scans and timeouts for no-match searches.
+                if q and q.strip():
+                    term = q.strip()
+                    search_columns = ["first_name", "last_name", "company", "jobTitle"]
+                    if "@" in term:
+                        require_indexed_column(indexed_columns, "email", "q")
+                        where_clauses.append("`email` = %s")
+                        params.append(term)
+                    else:
+                        # Do not silently omit names from People search.  The
+                        # required name/company/title coverage is enabled only
+                        # when every field has a verified leading index.
+                        for column in search_columns:
+                            require_indexed_column(indexed_columns, column, "q")
+                        available_search_columns = search_columns[:]
+                        if "email" in indexed_columns:
+                            available_search_columns.append("email")
+                        where_clauses.append(
+                            "(" + " OR ".join(f"`{column}` LIKE %s" for column in available_search_columns) + ")"
+                        )
+                        params.extend([f"{term}%"] * len(available_search_columns))
+
+                # Structured filter mappings are the actual contacts columns.
+                # They combine by AND and use equality/prefix predicates only.
+                if country and country.strip():
+                    country_value = country.strip()
+                    require_indexed_column(indexed_columns, "country", "country")
+                    if country_value.lower() in ["united states", "usa", "us"]:
+                        where_clauses.append("`country` IN ('United States', 'USA', 'US', 'united states', 'usa')")
+                    else:
+                        add_indexed_prefix_filter(where_clauses, params, indexed_columns, "country", country_value, "country")
+                if state and state.strip():
+                    add_indexed_prefix_filter(where_clauses, params, indexed_columns, "state", state.strip(), "state")
+                if city and city.strip():
+                    add_indexed_prefix_filter(where_clauses, params, indexed_columns, "city", city.strip(), "city")
+                if company and company.strip():
+                    add_indexed_prefix_filter(where_clauses, params, indexed_columns, "company", company.strip(), "company")
+                if jobTitle and jobTitle.strip():
+                    add_indexed_prefix_filter(where_clauses, params, indexed_columns, "jobTitle", jobTitle.strip(), "jobTitle")
+
+                # Saily labels map to the boolean database field as 1/0.
+                if status and status != "All":
+                    normalized_status = status.strip().lower()
+                    raw_status = "1" if normalized_status == "active" else "0" if normalized_status == "inactive" else status.strip()
+                    require_indexed_column(indexed_columns, "status", "status")
+                    where_clauses.append("`status` = %s")
+                    params.append(raw_status)
+                if role and role != "All":
+                    require_indexed_column(indexed_columns, "role", "role")
+                    where_clauses.append("`role` = %s")
+                    params.append(role.strip())
+                if hasEmail is True:
+                    require_indexed_column(indexed_columns, "email", "hasEmail")
+                    where_clauses.append("`email` IS NOT NULL AND `email` != ''")
+                if hasPhone is True:
+                    require_indexed_column(indexed_columns, "phone", "hasPhone")
+                    require_indexed_column(indexed_columns, "mobile_phone", "hasPhone")
+                    where_clauses.append(
+                        "((`phone` IS NOT NULL AND `phone` != '') OR "
+                        "(`mobile_phone` IS NOT NULL AND `mobile_phone` != ''))"
+                    )
+                if hasLinkedin is True:
+                    require_indexed_column(indexed_columns, "social_linkedin", "hasLinkedin")
+                    where_clauses.append("`social_linkedin` IS NOT NULL AND `social_linkedin` != ''")
+                if hasCompany is True:
+                    require_indexed_column(indexed_columns, "company", "hasCompany")
+                    where_clauses.append("`company` IS NOT NULL AND `company` != ''")
+
+                where_sql = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
+                has_filters = bool(where_clauses)
+
+                # Fetch one extra row instead of a filtered COUNT(*).  WHERE
+                # precedes deterministic primary-key ordering and pagination.
                 select_sql = f"""
                     SELECT *
                     FROM `{table_name}`
@@ -388,36 +450,39 @@ def get_contacts(
                     ORDER BY id ASC
                     LIMIT %s OFFSET %s
                 """
-                query_params = list(params) + [limit, calculated_offset]
+                query_params = list(params) + [limit + 1, calculated_offset]
                 cur.execute(select_sql, query_params)
                 records = cur.fetchall() or []
+                has_more = len(records) > limit
+                records = records[:limit]
 
                 query_duration_ms = round((time.time() - query_start) * 1000, 2)
                 logger.info(f"[APOLLO_DB_QUERY] rows={len(records)} duration_ms={query_duration_ms}")
 
-                # 2. Total calculation:
-                # If no filters applied: instant O(1) estimate from metadata
-                # If filters applied: execute bounded count with limit 10000 to protect latency
+                # For the unfiltered listing a metadata estimate is safe.  A
+                # filtered total is intentionally unknown: COUNT would scan or
+                # traverse huge index ranges and is not needed for pagination.
                 if not has_filters:
                     total_count = get_estimated_table_rows("contacts")
                     if total_count == 0 and len(records) > 0:
                         total_count = 80000000
                 else:
-                    # Filtered count
-                    count_sql = f"SELECT COUNT(1) AS cnt FROM `{table_name}` {where_sql}"
-                    cur.execute(count_sql, params)
-                    count_row = cur.fetchone()
-                    total_count = int(count_row["cnt"]) if count_row and "cnt" in count_row else len(records)
+                    total_count = None
+
+    except UnsafeContactQuery as e:
+        raise HTTPException(status_code=422, detail=str(e))
 
     except Exception as e:
         logger.error(f"[APOLLO_DB_ERROR] {e}")
         raise HTTPException(status_code=500, detail=f"Database query failed: {str(e)}")
 
-    total_pages = max(1, math.ceil(total_count / limit)) if total_count > 0 else 1
-    has_more = (calculated_offset + limit) < total_count
+    total_pages = max(1, math.ceil(total_count / limit)) if total_count else None
+    if not has_filters:
+        has_more = (calculated_offset + limit) < total_count
 
     # Forward x-total-count header for simple clients
-    response.headers["x-total-count"] = str(total_count)
+    if total_count is not None:
+        response.headers["x-total-count"] = str(total_count)
 
     total_duration_ms = round((time.time() - req_start) * 1000, 2)
     logger.info(
@@ -460,13 +525,13 @@ def get_contact_filter_options(
             location_clauses.append("country IN ('United States', 'USA', 'US', 'united states', 'usa')")
         else:
             location_clauses.append("country LIKE %s")
-            location_params.append(f"%{country_value}%")
+            location_params.append(f"{country_value}%")
     if state and state.strip():
         location_clauses.append("state LIKE %s")
-        location_params.append(f"%{state.strip()}%")
+        location_params.append(f"{state.strip()}%")
     if city and city.strip():
         location_clauses.append("city LIKE %s")
-        location_params.append(f"%{city.strip()}%")
+        location_params.append(f"{city.strip()}%")
 
     country_key = country.strip().casefold() if country and country.strip() else ""
     state_key = state.strip().casefold() if state and state.strip() else ""
@@ -476,6 +541,14 @@ def get_contact_filter_options(
     try:
         with get_db_connection() as conn:
             with conn.cursor() as cur:
+                indexed_columns = get_leading_indexed_columns(cur, table_name)
+                # Each DISTINCT query has a hard LIMIT and its selected column
+                # must be indexed.  Rejecting a missing index is safer than
+                # allowing a metadata request to walk the contacts table.
+                require_indexed_column(indexed_columns, "country", "filters.countries")
+                require_indexed_column(indexed_columns, "state", "filters.states")
+                require_indexed_column(indexed_columns, "city", "filters.cities")
+                require_indexed_column(indexed_columns, "company", "filters.companies")
                 # Cache each scope independently: typing a company prefix does not
                 # cause country/state/city DISTINCT queries to run again.
                 countries = get_cached_distinct_filter_values(
@@ -493,11 +566,13 @@ def get_contact_filter_options(
                 company_params = location_params[:]
                 if company_q and company_q.strip():
                     company_clauses.append("company LIKE %s")
-                    company_params.append(f"%{company_q.strip()}%")
+                    company_params.append(f"{company_q.strip()}%")
                 companies = get_cached_distinct_filter_values(
                     cur, ("company", table_name, country_key, state_key, city_key, company_key),
                     table_name, "company", company_clauses, company_params, FILTER_OPTIONS_COMPANY_LIMIT,
                 )
+    except UnsafeContactQuery as e:
+        raise HTTPException(status_code=422, detail=str(e))
     except Exception as e:
         logger.error(f"[APOLLO_FILTER_OPTIONS_ERROR] {e}")
         raise HTTPException(status_code=500, detail="Filter options query failed")
