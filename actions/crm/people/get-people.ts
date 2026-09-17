@@ -402,7 +402,7 @@ export async function getUnifiedPeople(
     });
     try {
       apolloResponse = await fetch(targetUrl, {
-        signal: AbortSignal.timeout(30000),
+        signal: AbortSignal.timeout(60000),
         cache: "no-store",
         headers: { Accept: "application/json" },
       });
